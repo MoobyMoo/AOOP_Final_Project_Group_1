@@ -10,6 +10,8 @@ export const ICON_IDS: string[] = [
   "bowler", "tophat", "fedora", "cap", "hardhat", "pith", "beanie", "crown",
   "shades", "aviators", "monocle", "eyepatch", "goggles", "heartglasses", "banditmask",
   "satchel", "bigpack", "cratepack",
+  // weapons (tools/items/icon_kingpin.py stages the game GLB)
+  "kingpin",
 ];
 
 const KNOWN = new Set(ICON_IDS);

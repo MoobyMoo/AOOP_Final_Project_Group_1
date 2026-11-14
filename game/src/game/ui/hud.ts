@@ -6,6 +6,7 @@ import { itemDef } from "../loot/raidloot";
 import { CLEARINGS } from "../world/layout";
 import { ARMOR, PLAYER } from "../combat/weapons";
 import { iconHtml } from "./itemicon";
+import { iconUrl } from "./icons";
 
 const root = () => document.getElementById("ui")!;
 const el = (cls: string, html = "", parent: HTMLElement = root()) => { const d = document.createElement("div"); d.className = cls; d.innerHTML = html; parent.appendChild(d); return d; };
@@ -50,7 +51,7 @@ export const hud = {
     const heal = HEALS.find((h) => G.pack.includes(h)), healN = G.pack.filter((h) => HEALS.includes(h)).length;
     const w = packWeight(), full = G.pack.length >= G.packSlots, value = G.pack.reduce((a, id) => a + itemDef(id).value, 0);
     E.bar.innerHTML = `
-      <div class="hb-slot on ${G.reloadT >= 0 ? "reload" : ""}"><span class="tag ${G.mag === 0 ? "empty" : ""}">${G.mag} / ${G.ammo}</span><span class="gun">Kingpin<small>.45</small></span><span class="key"><kbd>1</kbd></span></div>
+      <div class="hb-slot wide on ${G.reloadT >= 0 ? "reload" : ""}"><span class="tag ${G.mag === 0 ? "empty" : ""}">${G.mag} / ${G.ammo}</span><img class="gun" src="${iconUrl("kingpin")}" srcset="${iconUrl("kingpin", true)} 2x" alt="Kingpin .45" draggable="false"><span class="key"><kbd>1</kbd></span></div>
       <div class="hb-slot"><span class="emo" style="font-size:28px">💼</span><span class="key"><kbd>V</kbd></span></div>
       <div class="hb-slot">${heal ? iconHtml(heal, 44) : ""}${healN ? `<span class="n">${healN}</span>` : ""}<span class="key"><kbd>Q</kbd></span></div>
       <div class="hb-pack"><span class="chip ${full ? "full" : ""}">Pack ${G.pack.length} of ${G.packSlots}, <b>🍌 ${value}</b></span><span class="chip"><kbd>Tab</kbd> ${w.toFixed(1)} of ${PLAYER.maxWeight} kg</span></div>`;
