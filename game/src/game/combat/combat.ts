@@ -34,6 +34,7 @@ export function shoot() {
     const side = Math.abs(ex * dz - ez * dx); if (side < e.rig.bounds.radius + 0.15) { hit = e; hitD = along; }
   }
   to.set(sx + dx * hitD, G.pp.y + 1.05, sz + dz * hitD);
+  G.gun.pose({ fireT: 0, reloadT: -1 }); G.gun.root.updateMatrixWorld(true);
   G.fx.fire(G.gun.muzzle, G.gun.eject, to, hit ? "enemy" : wallD < KINGPIN.range ? "wall" : "none");
   sfx("shot"); sfx("shell");
   G.stage.kick.add(V(-dx, -dz).multiplyScalar(FEEL.shotKick));

@@ -73,7 +73,7 @@ function finish(how: RaidResult["how"], bonus: number) {
   onEnd({ how, kept, lost, bonus, raidT: G.raidT, log: G.log });
 }
 let bonkT = 0;
-const focus = new THREE.Vector3(), chest = new THREE.Vector3();
+const focus = new THREE.Vector3(), chest = new THREE.Vector3(), sockQ = new THREE.Quaternion(), yawQ = new THREE.Quaternion(), UPV = new THREE.Vector3(0, 1, 0);
 export function stepRaid(dt: number) {
   G.raidT += dt; G.time += dt;
   updatePlayer(dt); updateEnemies(dt); updateLoot(dt); updateInteractions(dt);
@@ -85,6 +85,10 @@ export function renderRaid(dt: number) {
   const at = action === "defeat" ? Math.min(1, bonkT / 0.9) : action === "roll" ? G.rollT : action === "melee" ? G.meleeT : action === "reload" ? G.reloadT : action === "hurt" ? G.hurtT : action === "fire" ? G.fireT : 0;
   G.rig.root.rotation.y = G.moveYaw;
   G.rig.pose({ time: G.time, speed: G.vel.length(), moveYaw: G.moveYaw, faceYaw: action === "roll" ? G.moveYaw : G.aimYaw, action, actionT: at, armed: G.meleeT >= 0 ? "briefcase" : "pistol", flash: G.iframes > 0.25 ? 1 : 0 });
+  // level the gun in the hand and point it along the aim (the socket's own rotation follows the arm pose)
+  G.rig.root.updateMatrixWorld(true); G.rig.sockets.handR.getWorldQuaternion(sockQ);
+  G.gun.root.quaternion.copy(sockQ.invert()).multiply(yawQ.setFromAxisAngle(UPV, G.aimYaw));
+  G.gun.root.visible = G.meleeT < 0 && G.alive;
   G.gun.pose({ fireT: Math.min(1, G.fireT), reloadT: G.reloadT });
   G.fx.update(dt); updateFx(dt); hud.update(dt); updateMinimap();
   U.uTime.value = G.time; U.uPlayer.value.copy(G.pp);
