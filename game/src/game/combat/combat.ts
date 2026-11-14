@@ -3,8 +3,7 @@
 import * as THREE from "three";
 import { G, V, flat, angDiff, type Enemy } from "../core/state";
 import { KINGPIN, BRIEFCASE, ENEMY, FEEL } from "./weapons";
-import { rayShot, wallAt, breakWall, isWall } from "../world/grid";
-import { WALLS } from "../world/layout";
+import { rayShot, wallAt, breakWall, isWall, gate } from "../world/grid";
 import { sfx } from "../core/audio";
 import { burst, floatText } from "../../fx";
 import { hud } from "../ui/hud";
@@ -42,7 +41,7 @@ export function shoot() {
     if (a < bestA) { bestA = a; target = e; }
   }
   if (target) yaw = Math.atan2(target.p.x - G.pp.x, target.p.z - G.pp.z);
-  yaw += (Math.random() - 0.5) * (G.ads ? 0.02 : 0.05); // a little spread so a burst looks alive
+  yaw += (G.rng() - 0.5) * (G.ads ? 0.02 : 0.05); // a little spread so a burst looks alive
   G.gun.pose({ fireT: 0, reloadT: -1 }); G.gun.root.updateMatrixWorld(true);
   G.gun.muzzle.getWorldPosition(to);
   G.fx.fire(G.gun.muzzle, G.gun.eject, to, "none"); // flash, light, brass; the bullet itself draws the tracer
@@ -104,14 +103,14 @@ export function swingBriefcase() {
 }
 const wallHp = new Map<string, number>();
 export function hitWall(id: string, n: number, at: THREE.Vector3) {
-  const w = WALLS.find((q) => q.id === id)!; if (!w.breakable) return;
-  const hp = (wallHp.get(id) ?? w.breakable.hp) - n; wallHp.set(id, hp);
-  burst(at, 8, w.kind === "palisade" || w.kind === "hull" ? "#a8824f" : "#b9ab94", 0.8); sfx("hit");
+  const w = gate(id); if (!w || w.hp === undefined || w.open) return; // breakable wall sections and boarded doors are both gates in the grid
+  const hp = (wallHp.get(id) ?? w.hp) - n; wallHp.set(id, hp);
+  burst(at, 8, w.mat === "palisade" || w.mat === "hull" || w.mat === "wood" ? "#a8824f" : "#b9ab94", 0.8); sfx("hit");
   if (hp <= 0) {
     breakWall(id); breakWallVisual(id); sfx("crate"); sfx("thunk"); G.stage.trauma = Math.min(1, G.stage.trauma + 0.4);
-    hud.banner(w.breakable.reveals); G.log.breaks.push(id); makeNoise(at, 10, "smash");
-    if (w.breakable.persist && !G.save.fixtures.includes("open:" + id)) G.save.fixtures.push("open:" + id);
-  } else floatText(["crack!", "CRACK!", "KRAK!"][Math.min(2, w.breakable.hp - hp - 1)] ?? "crack!", at, "#7a5a3c", 20);
+    if (w.reveals) hud.banner(w.reveals); G.log.breaks.push(id); makeNoise(at, 10, "smash");
+    if (w.persist && !G.save.fixtures.includes("open:" + id)) G.save.fixtures.push("open:" + id);
+  } else floatText(["crack!", "CRACK!", "KRAK!"][Math.min(2, w.hp - hp - 1)] ?? "crack!", at, "#7a5a3c", 20);
 }
 export function resetWalls() { wallHp.clear(); }
 
@@ -120,7 +119,7 @@ export function damage(e: Enemy, n: number, by: "pistol" | "briefcase" | "slam" 
   if (e.kind === "sleeper" && e.state !== "stunned") { // awake hits plink for zero (advisor 18)
     floatText("plink", e.p.clone().setY(3.4), "#8a8fa0", 18); sfx("hit", 0.4); if (e.state === "sleep") hearNoise(e, 3); return;
   }
-  e.hp -= n; e.flash = FEEL.flash; floatText(String(n), e.p.clone().setY(e.rig.bounds.height + 0.2 + Math.random() * 0.4), by === "briefcase" ? "#ffd84a" : "#fff8ec", 18); sfx(by === "pistol" ? "hit" : "bonk"); hud.hitMarker(e.hp <= 0);
+  e.hp -= n; e.flash = FEEL.flash; floatText(String(n), e.p.clone().setY(e.rig.bounds.height + 0.2 + G.rng() * 0.4), by === "briefcase" ? "#ffd84a" : "#fff8ec", 18); sfx(by === "pistol" ? "hit" : "bonk"); hud.hitMarker(e.hp <= 0);
   if (e.kind !== "brute" && e.kind !== "sleeper") e.vel.addScaledVector(dir, by === "briefcase" ? BRIEFCASE.knock : 2.5);
   burst(e.p.clone().setY(1.2), by === "briefcase" ? 10 : 5, "#fff3b0", 0.7);
   if (by === "briefcase") floatText("BONK!", e.p.clone().setY(e.rig.bounds.height + 0.8), "#e8493a", 24);

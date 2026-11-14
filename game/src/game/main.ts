@@ -10,7 +10,9 @@ import { G } from "./core/state";
 import { load, save } from "./core/save";
 import { unlockAudio } from "./core/audio";
 import { startRaid, stepRaid, renderRaid, buildRaidWorld, raidScene, type RaidResult } from "./core/raid";
-import { path, walkable, los } from "./world/grid";
+import { path, walkable, los, lintReport, gates, setGate, pathLength } from "./world/grid";
+import { preloadWorldKits, worldStats, countVisible } from "./world/world";
+import { groundHeight } from "./world/terrain";
 import { enterBunker, stepBunker, renderBunker, leaveBunker, bunkerScene, homeApi } from "./home/bunker";
 import { openCreator, renderCreator } from "./ui/creator";
 import { buildMapShots, toggleMap, mapOpen, toggleMinimap } from "./ui/mapview";
@@ -28,12 +30,13 @@ G.stage = new Stage(document.getElementById("game") as HTMLCanvasElement);
 G.input = new Input(G.stage.renderer.domElement);
 if (QS.has("fresh")) localStorage.removeItem("bv_g1");
 G.save = load(); G.bot = QS.has("bot"); G.intent = G.input.read(0);
-if (G.bot) { const bot = createBot({ greed: Number(QS.get("greed") ?? 0.5), reactionLag: Number(QS.get("lag") ?? 0.25), seed: Number(QS.get("seed") ?? 1) }); setBot(bot); (window as unknown as { __bot: unknown }).__bot = bot; }
+if (G.bot) { const bot = createBot({ greed: Number(QS.get("greed") ?? 0.5), reactionLag: Number(QS.get("lag") ?? 0.25), seed: Number(QS.get("botseed") ?? QS.get("seed") ?? 1) }); setBot(bot); (window as unknown as { __bot: unknown }).__bot = bot; }
 addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlockAudio);
 
 // world + rig up front (the map snapshot needs the raid scene built); the gun model is a GLB, loaded before anything asks for it
 await preloadKingpin();
 await preloadCharacters(); // character GLBs (rig v2): createRig() is synchronous once this resolves
+await preloadWorldKits(); // nature + structures + building kits: the world builds from them
 buildRaidWorld(); G.stage.setScene(raidScene); buildMapShots(raidScene);
 G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); G.rig.setGear?.(G.save.gear);
 
@@ -92,7 +95,10 @@ function frame() {
   requestAnimationFrame(frame);
 }
 function neutral() { const i = G.intent; i.move = { x: 0, z: 0 }; i.fire = i.firePressed = i.melee = i.roll = i.interact = i.reload = i.heal = false; }
-(window as unknown as { __g: unknown }).__g = { G, path, walkable, los, home: homeApi, info: () => ({ calls: G.stage.renderer.info.render.calls, tris: G.stage.renderer.info.render.triangles }) };
+(window as unknown as { __g: unknown }).__g = { G, path, walkable, los, home: homeApi, info: () => ({ calls: G.stage.renderer.info.render.calls, tris: G.stage.renderer.info.render.triangles }),
+  // map v3 checks: lint report, world build stats, objects in the current frame (G1-21), teleport, gates
+  lint: lintReport, world: () => worldStats, density: () => countVisible(G.stage.camera, [...G.crates, ...G.enemies.filter((e) => !e.down).map((e) => ({ x: e.p.x, z: e.p.z }))]),
+  tp: (x: number, z: number) => { G.pp.set(x, groundHeight(x, z), z); G.vel.set(0, 0, 0); }, gates, setGate, pathLength };
 
 if (QS.has("raid")) { G.save.lookDone = true; startRaid(onRaidEnd); }
 else if (!G.save.lookDone) openCreator(() => goHome(), bunkerScene);

@@ -1,16 +1,21 @@
-// Dresses the raid map from layout shapes: a layered jungle wall along the play-space edge, understory, rocks and
-// logs inside clearings, grass, canopy shadow casters. Everything is collected as KitPieces into 16 u chunks and
+// Builds the raid world's static scenery from the map (map v3): every placed piece (grove.ts + the rule scatter)
+// becomes kit geometry, the world edge is dressed by rule (dense foliage on the berm, rock under the cliffs, cave
+// rock round the grotto), and the grass is instanced. Everything is collected as KitPieces into 16 u chunks and
 // merged into one mesh per (material, tall) per chunk, so the draw-call budget holds (advisor G1 items 3, 32, 37).
-// Builders come from a KitSource: placeholders from the L1 kit now, Fable's kit_nature/kit_build when they land.
+// Collision is not decided here: grid.ts builds it from the same placed list (map/colliders.ts).
 import * as THREE from "three";
-import type { KitPiece, MatId } from "../contracts";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import type { KitPiece, MatId, Placed } from "../contracts";
 import { bake, M, mergePieces, kitMaterial } from "./kitutil";
-import { openness, nearestTrailDist, block, areaAt, isUnder } from "./grid";
-import { groundHeight, groundColor } from "./terrain";
-import { CRATES, SPAWNS, POI, PORTALS, LANDMARKS, CLEARINGS, BOUNDS } from "./layout";
+import { edgeDist, inside, roadDist, isUnder } from "./grid";
+import { groundHeight, groundColor, isGrass, POOL_Y } from "./terrain";
+import { BOUNDS, UNDER_X } from "./map/grove";
+import type { EdgeKind } from "./map/types";
 import { withCutout } from "../render/cutout";
 import { patch } from "../render/shading";
 import { fbm } from "./noise";
+import { naturePiece, natureTypes, waterfall } from "./kit_nature";
+import * as K from "./kit_build";
 
 export type Builder = (rng: () => number, s: number) => KitPiece[];
 export type KitSource = { palm: Builder; tree: Builder; bush: Builder; fern: Builder; bigLeaf: Builder; banana: Builder; rock: Builder; log: Builder; stump: Builder; caveRock: Builder; mushroom: Builder; caster: Builder };
@@ -30,129 +35,135 @@ export function groupToPieces(g: THREE.Object3D, o: { tall?: boolean; blocks?: b
     geo = bake(geo, col ?? "#ffffff", m.matrixWorld, !!mm.flatShading);
     (by.get(id) ?? by.set(id, []).get(id)!).push(geo);
   });
-  return [...by].map(([mat, geos]) => {
-    const geo = geos.length === 1 ? geos[0] : (mergeAll(geos));
-    return { geo, mat, footprint: o.footprint ?? 0.4, blocksMove: !!o.blocks, blocksShot: !!o.blocks, tall: !!o.tall };
-  });
+  return [...by].map(([mat, geos]) => ({ geo: geos.length === 1 ? geos[0] : mergeGeometries(geos, false)!, mat, footprint: o.footprint ?? 0.4, blocksMove: !!o.blocks, blocksShot: !!o.blocks, tall: !!o.tall }));
 }
-import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-const mergeAll = (geos: THREE.BufferGeometry[]) => mergeGeometries(geos, false)!;
 
-// ---- chunk store
+// ---------------------------------------------------------------- chunk store
 const CH = 16;
-type Bucket = { pieces: KitPiece[] };
-const chunks = new Map<string, Map<string, Bucket>>();
+const chunks = new Map<string, Map<string, THREE.BufferGeometry[]>>();
+const tmpM = new THREE.Matrix4();
+/** add one piece to its chunk at a world transform (y defaults to just under the ground, so bases embed) */
 export function addPiece(p: KitPiece, x: number, z: number, yaw: number, s = 1, y?: number) {
-  const m = M(x, y ?? groundHeight(x, z) - 0.04, z, 0, yaw, 0, s);
-  const geo = p.geo.clone().applyMatrix4(m);
+  tmpM.copy(M(x, y ?? groundHeight(x, z) - 0.04, z, 0, yaw, 0, s));
+  const geo = p.geo.clone().applyMatrix4(tmpM);
   const key = `${Math.floor(x / CH)},${Math.floor(z / CH)}`, sub = `${p.mat}|${p.tall ? 1 : 0}`;
   const c = chunks.get(key) ?? chunks.set(key, new Map()).get(key)!;
-  (c.get(sub) ?? c.set(sub, { pieces: [] }).get(sub)!).pieces.push({ ...p, geo });
+  (c.get(sub) ?? c.set(sub, []).get(sub)!).push(geo);
 }
-export function addPieces(ps: KitPiece[], x: number, z: number, yaw: number, s = 1, y?: number) {
-  for (const p of ps) addPiece(p, x, z, yaw, s, y);
-  const fp = Math.max(...ps.map((p) => (p.blocksMove ? p.footprint : 0))) * s;
-  if (fp > 0) block(x, z, fp, ps.some((p) => p.blocksShot), ps.some((p) => p.tall && p.blocksMove));
-}
+export function addPieces(ps: KitPiece[], x: number, z: number, yaw: number, s = 1, y?: number) { for (const p of ps) addPiece(p, x, z, yaw, s, y); }
 const tallMats: Partial<Record<MatId, THREE.Material>> = {};
 function tallMaterial(id: MatId) {
-  if (!tallMats[id]) { const base = kitMaterial(id) as THREE.MeshStandardMaterial; const m = base.clone(); m.onBeforeCompile = base.onBeforeCompile; m.customProgramCacheKey = base.customProgramCacheKey; tallMats[id] = withCutout(m); }
+  if (!tallMats[id]) { const base = kitMaterial(id) as THREE.MeshStandardMaterial; const m = base.clone(); m.onBeforeCompile = base.onBeforeCompile; m.customProgramCacheKey = base.customProgramCacheKey; tallMats[id] = id === "emissive" ? m : withCutout(m); }
   return tallMats[id]!;
 }
-/** merge every chunk into meshes and add them to the scene; returns the chunk groups (for culling stats) */
+/** merge every chunk into meshes and add them to the scene; returns stats */
 export function flushChunks(scene: THREE.Scene) {
-  const groups: THREE.Group[] = [];
+  let meshes = 0, tris = 0;
   for (const [, subs] of chunks) {
-    const g = new THREE.Group();
-    for (const [sub, b] of subs) {
-      const merged = mergePieces(b.pieces);
-      if (sub.endsWith("|1")) merged.traverse((c) => { const m = c as THREE.Mesh; if (m.isMesh) m.material = tallMaterial(sub.split("|")[0] as MatId); });
-      g.add(merged);
+    const g = new THREE.Group(); g.name = "chunk";
+    for (const [sub, geos] of subs) {
+      const [id, tall] = sub.split("|") as [MatId, string], merged = mergeGeometries(geos, false)!;
+      for (const q of geos) q.dispose();
+      const m = new THREE.Mesh(merged, tall === "1" ? tallMaterial(id) : kitMaterial(id));
+      m.castShadow = id !== "emissive"; m.receiveShadow = id !== "emissive"; g.add(m); meshes++; tris += merged.attributes.position.count / 3;
     }
-    scene.add(g); groups.push(g);
+    scene.add(g);
   }
-  chunks.clear(); return groups;
+  chunks.clear(); return { meshes, tris: Math.round(tris) };
 }
 
-// ---- placement rules
-const keepClear: { x: number; z: number; r: number }[] = [
-  ...CRATES.map((c) => ({ x: c.x, z: c.z, r: 1.8 })), ...SPAWNS.flat().map((s) => ({ x: s.x, z: s.z, r: 1.5 })),
-  ...PORTALS.flatMap((p) => [{ x: p.a.x, z: p.a.z, r: 2.5 }, { x: p.b.x, z: p.b.z, r: 2.5 }]), ...LANDMARKS.map((l) => ({ x: l.x, z: l.z, r: 4 })),
-  { x: POI.hatch.x, z: POI.hatch.z, r: 4 }, { x: POI.raft.x, z: POI.raft.z, r: 4 }, { x: POI.tunnelExit.x, z: POI.tunnelExit.z, r: 3 },
-];
-export const reserve = (x: number, z: number, r: number) => keepClear.push({ x, z, r });
-const free = (x: number, z: number, r = 0) => !keepClear.some((k) => Math.hypot(x - k.x, z - k.z) < k.r + r);
+// ---------------------------------------------------------------- placed pieces
+/** every object that stands in the world, for the density count (G1-21) and the map screen */
+export const objects: { x: number; z: number; k: string; big: boolean }[] = [];
+/** kinds too small to count as a "readable object" in a gameplay frame */
+const SMALL = new Set(["flowers", "litter", "pebbles", "shells", "rocks", "lily", "beachgrass", "mushroom", "ammo_box", "bedroll_a", "bedroll_b", "ruin_floor_a", "ruin_floor_b", "ruin_floor_c", "lantern", "satchel", "sack"]);
+/** animated / attach-point nodes of placed pieces, by the Placed id (props.ts hooks gameplay onto them) */
+export const placedParts = new Map<string, Record<string, THREE.Object3D>>();
+const NATURE = new Set<string>();
+/** deck height of the boardwalk sections above their origin: they are sunk by this so the deck sits on the causeway */
+const DECK_Y = 0.52;
+/** kinds built elsewhere (interactive props, buildings) or that have no geometry */
+const SKIP = new Set(["pool", "zip_tower", "zip_end", "vine_door", "ground", "light"]);
+let pieceSeed = 1;
+/** build one placed instance into the chunk store; nodes with moving parts go to the scene */
+function buildOne(scene: THREE.Scene, p: Placed, rng: () => number) {
+  if (SKIP.has(p.k) || p.k.startsWith("building:")) return;
+  const s = p.s ?? 1, yaw = p.yaw ?? 0, o = p.o ?? {};
+  objects.push({ x: p.x, z: p.z, k: p.k, big: !SMALL.has(p.k) });
+  if (NATURE.has(p.k)) {
+    const y = o.water !== undefined && p.k === "lily" ? Number(o.water) - 0.03 : undefined;
+    addPieces(naturePiece(p.k, rng, s, o.v !== undefined ? { variant: Number(o.v) } : {}), p.x, p.z, yaw, 1, y); return;
+  }
+  if (p.k === "waterfall") { const w = waterfall(); w.position.set(p.x, POOL_Y, p.z); w.rotation.y = yaw; scene.add(w); if (p.id) placedParts.set(p.id, { root: w }); return; }
+  let b: K.Built;
+  if (p.k.startsWith("wall:")) b = K.wallSection(p.k.slice(5) as K.WallKind, { length: Number(o.len ?? 2.5), seed: pieceSeed++ });
+  else if (p.k === "gate") b = K.gate(!!o.open);
+  else b = K.asset(p.k);
+  const y = o.y !== undefined ? Number(o.y) : groundHeight(p.x, p.z) - (o.deck ? DECK_Y : p.k === "bridge" ? 0.42 : 0.04);
+  addPieces(b.pieces, p.x, p.z, yaw, s, y);
+  if (b.parts.root.children.length) { b.parts.root.position.set(p.x, y, p.z); b.parts.root.rotation.y = yaw; b.parts.root.scale.setScalar(s); scene.add(b.parts.root); if (p.id) placedParts.set(p.id, b.parts); }
+  else if (p.id) placedParts.set(p.id, b.parts);
+}
+export function buildPlaced(scene: THREE.Scene, list: Placed[], rng: () => number) {
+  if (!NATURE.size) for (const t of natureTypes()) NATURE.add(t.type);
+  for (const p of list) buildOne(scene, p, rng);
+}
 
-export function dressWorld(scene: THREE.Scene, kit: KitSource, rng: () => number) {
-  const rr = (a: number, b: number) => a + rng() * (b - a);
-  let wall = 0, under = 0, rocks = 0;
-  // 1) the jungle wall: dense layered planting in the band just outside the play space; sparse canopy further out
-  for (let i = 0; i < 26000; i++) {
-    const x = rr(BOUNDS.minX, BOUNDS.maxX), z = rr(BOUNDS.minZ + 4, BOUNDS.maxZ - 6), o = openness(x, z);
-    if (o > -0.8) continue;
-    const und = isUnder(x);
-    if (!und && (z > 72 || z < -64)) continue; // no trees in the sea or river
-    const band = -o;
-    // camera side (the camera sits south-south-west): planting that would hide the play space stays low
-    const front = !und && (openness(x + 3, z - 5.2) > 0 || openness(x + 5.5, z - 9.5) > 0 || openness(x + 8, z - 14) > 0);
-    if (front) {
-      if (band > 3.2 || rng() > 0.45) continue;
-      const f = rng(); addPieces(f < 0.4 ? kit.fern(rng, rr(0.8, 1.2)) : f < 0.7 ? kit.bush(rng, rr(0.6, 0.95)) : kit.bigLeaf(rng, rr(0.7, 1.0)), x, z, rr(0, 6.28)); wall++;
+// ---------------------------------------------------------------- the world edge (rule-dressed: visual only, it stands outside the outline)
+const N = (type: string, rng: () => number, s: number) => naturePiece(type, rng, s);
+/** dense foliage on the berm, rock under the cliffs, cave rock round the grotto. Camera side (the camera sits
+ *  south-south-west) stays low next to the play space, so the edge never hides the hero */
+export function dressEdges(rng: () => number) {
+  const rr = (a: number, b: number) => a + rng() * (b - a), info = { kind: "jungle" as EdgeKind | "cave" };
+  let n = 0;
+  const STEP = 1.9;
+  for (let gz = BOUNDS.minZ - 14; gz < BOUNDS.maxZ + 14; gz += STEP) for (let gx = BOUNDS.minX - 14; gx < BOUNDS.maxX + 6; gx += STEP) {
+    const x = gx + rng() * STEP, z = gz + rng() * STEP, d = edgeDist(x, z, info), band = -d, f = rng(), yaw = rng() * 6.28;
+    if (band < 0.3 || band > 16) continue;
+    const kind = info.kind;
+    if (kind === "cave") {
+      if (band < 2.6) { if (f < 0.7) { addPieces(N("caverock", rng, rr(0.9, 1.5) * (1 + band * 0.35)), x, z, yaw); n++; } else if (f < 0.85) { addPieces(N("stalagmite", rng, rr(0.9, 1.6)), x, z, yaw); n++; } }
+      else if (band < 7 && f < 0.16) { addPieces(N("caverock", rng, rr(1.8, 2.8)), x, z, yaw); n++; }
       continue;
     }
-    if (band < 4.5) {
-      if (rng() > 0.55) continue;
-      const f = rng(), yaw = rr(0, 6.28);
-      const ps = und ? (f < 0.6 ? kit.caveRock(rng, rr(0.8, 1.6)) : kit.mushroom(rng, rr(0.7, 1.3)))
-        : band < 1.8 ? (f < 0.35 ? kit.bush(rng, rr(0.9, 1.4)) : f < 0.6 ? kit.fern(rng, rr(1, 1.5)) : f < 0.8 ? kit.bigLeaf(rng, rr(1, 1.4)) : kit.banana(rng, rr(0.9, 1.2)))
-        : (f < 0.45 ? kit.palm(rng, rr(1, 1.3)) : f < 0.85 ? kit.tree(rng, rr(1.1, 1.5)) : kit.bush(rng, rr(1.3, 1.8)));
-      addPieces(ps, x, z, yaw); wall++;
-    } else if (band < 14 && rng() < (und ? 0.05 : 0.07)) {
-      addPieces(und ? kit.caveRock(rng, rr(1.5, 2.6)) : kit.tree(rng, rr(1.4, 1.9)), x, z, rr(0, 6.28)); wall++;
+    if (kind === "coast") { if (band < 5 && f < 0.035) { addPieces(N(f < 0.02 ? "rockm" : "rockl", rng, rr(0.8, 1.3)), x, z, yaw); n++; } continue; }
+    if (kind === "river") { if (band < 2.2 && f < 0.3) { addPieces(N(f < 0.2 ? "reeds" : "rockm", rng, rr(0.9, 1.4)), x, z, yaw); n++; } continue; }
+    const front = inside(x + 2.1, z - 3.6) || inside(x + 3.9, z - 6.7);
+    if (kind === "cliff") {
+      if (band < 4.2) { if (f < 0.62) { addPieces(N(f < 0.2 ? "boulders" : "rockl", rng, (front ? rr(1.0, 1.5) : rr(1.6, 2.7)) * (f < 0.2 ? 0.8 : 1)), x, z, yaw); n++; } else if (f < 0.8 && !front) { addPieces(N(f < 0.7 ? "bush" : "fern", rng, rr(1, 1.5)), x, z, yaw); n++; } }
+      else if (f < (front ? 0.1 : 0.2)) { addPieces(N(f < 0.06 ? "rockl" : "treefar", rng, f < 0.06 ? rr(1.6, 2.6) : rr(1.3, 1.8)), x, z, yaw); n++; }
+      continue;
     }
+    // jungle
+    if (front && band < 4.2) { if (f < 0.55) { addPieces(N(f < 0.22 ? "fern" : f < 0.4 ? "bush" : "bigleaf", rng, rr(0.8, 1.2)), x, z, yaw); n++; } continue; }
+    if (band < 1.8) { if (f < 0.7) { addPieces(N(f < 0.25 ? "bush" : f < 0.42 ? "fern" : f < 0.56 ? "bigleaf" : "banana", rng, rr(0.9, 1.4)), x, z, yaw); n++; } }
+    else if (band < 6) { if (f < 0.55) { addPieces(N(f < 0.22 ? "palm" : f < 0.44 ? "tree" : "bush", rng, f < 0.44 ? rr(0.95, 1.25) : rr(1.3, 1.8)), x, z, yaw); n++; } }
+    else if (f < 0.13) { addPieces(N("treefar", rng, rr(1.3, 1.9)), x, z, yaw); n++; }
   }
-  // 2) inside clearings: understory clusters near the edges, rocks and logs as cover, never on trails or POIs
-  for (const c of CLEARINGS) {
-    const n = Math.round(c.rx * c.rz * 0.09);
-    for (let k = 0; k < n; k++) {
-      const a = rr(0, 6.28), e = Math.sqrt(rr(0.15, 1)), x = c.x + Math.cos(a) * c.rx * e, z = c.z + Math.sin(a) * c.rz * e;
-      if (openness(x, z) < 1.2 || nearestTrailDist(x, z) < 2.6 || !free(x, z, 1)) continue;
-      const f = rng(), edge = e > 0.65;
-      let ps: KitPiece[];
-      if (c.under) ps = f < 0.5 ? kit.mushroom(rng, rr(0.6, 1.1)) : kit.caveRock(rng, rr(0.5, 1.0));
-      else if (edge) ps = f < 0.3 ? kit.fern(rng, rr(0.8, 1.2)) : f < 0.55 ? kit.bigLeaf(rng, rr(0.8, 1.2)) : f < 0.75 ? kit.bush(rng, rr(0.8, 1.2)) : kit.banana(rng, rr(0.8, 1.1));
-      else ps = f < 0.45 ? kit.rock(rng, rr(0.6, 1.2)) : f < 0.7 ? kit.log(rng, 1) : f < 0.85 ? kit.stump(rng, 1) : kit.palm(rng, rr(0.9, 1.1));
-      addPieces(ps, x, z, rr(0, 6.28)); reserve(x, z, 1.2); under++;
-      if (!edge && !c.under) rocks++;
-    }
-  }
-  // 3) canopy shadow casters over the jungle edge (only their shadows land on the play space; trails/POIs stay sunny)
-  const ghost = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false });
-  for (let i = 0; i < 0; i++) { // off: with a 35 deg sun, casters at 9-12 u land ~17 u inland
-    const x = rr(-60, 60), z = rr(-60, 70), o = openness(x, z);
-    if (o > 1.5 || o < -6 || nearestTrailDist(x, z) < 5) continue;
-    for (const p of kit.caster(rng, rr(1.4, 2.6))) { const m = new THREE.Mesh(p.geo, ghost); m.position.set(x, rr(9, 12), z); m.castShadow = true; scene.add(m); }
-  }
-  return { wall, under, rocks };
+  return n;
 }
 
-// ---- grass: instanced tufts per chunk, root colour = ground colour, wind + push (L1 shader)
-export function buildGrass(scene: THREE.Scene, rng: () => number, tuft: THREE.BufferGeometry) {
+// ---------------------------------------------------------------- grass: instanced tufts per chunk, root colour = ground colour, wind + push (L1 shader)
+/** noGrass(x, z): true where a floor or a deck covers the ground (building footprints) */
+export function buildGrass(scene: THREE.Scene, rng: () => number, tuft: THREE.BufferGeometry, noGrass: (x: number, z: number) => boolean = () => false) {
   const per = new Map<string, number[][]>();
-  for (let i = 0; i < 90000; i++) {
-    const x = -70 + rng() * 140, z = -64 + rng() * 136, o = openness(x, z);
-    if (o < 0.3 || nearestTrailDist(x, z) < 1.9 || !free(x, z, -0.6)) continue;
-    const ar = areaAt(x, z), c = CLEARINGS.find((q) => q.id === ar); if (c && c.ground !== "grass") continue;
-    const dens = fbm(x * 0.1 + 3, z * 0.1); if (dens < 0.46) continue;
-    const edgeK = THREE.MathUtils.smoothstep(o, 0.3, 2.2); if (rng() > edgeK) continue; // thin out toward the edges, no hard lines
+  const W = BOUNDS.maxX - BOUNDS.minX, H = BOUNDS.maxZ - BOUNDS.minZ, samples = Math.round(W * H * 3.4);
+  for (let i = 0; i < samples; i++) {
+    const x = BOUNDS.minX + rng() * W, z = BOUNDS.minZ + rng() * H; if (x > UNDER_X - 8) continue;
+    const d = edgeDist(x, z); if (d < 0.4 || !isGrass(x, z)) continue;
+    const rd = roadDist(x, z); if (rd < 0.5) continue;
+    const dens = fbm(x * 0.1 + 3, z * 0.1); if (dens < 0.44) continue;
+    const edgeK = THREE.MathUtils.smoothstep(Math.min(d, rd + 0.4), 0.4, 2.2); if (rng() > edgeK) continue; // thin out toward edges and roads, no hard lines
+    if (noGrass(x, z)) continue;
     const key = `${Math.floor(x / CH)},${Math.floor(z / CH)}`; (per.get(key) ?? per.set(key, []).get(key)!).push([x, z, (0.7 + dens * 0.9) * (0.6 + edgeK * 0.4)]);
   }
   const mat = patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }), { rim: 0.25, grass: true });
   const m = new THREE.Matrix4(), c = new THREE.Color(); let total = 0;
   for (const [, spots] of per) {
-    const im = new THREE.InstancedMesh(tuft, mat, spots.length);
+    const im = new THREE.InstancedMesh(tuft, mat, spots.length); im.name = "grass";
     spots.forEach(([x, z, s], i) => { m.makeScale(s, s * (0.6 + rng() * 0.8), s).setPosition(x, groundHeight(x, z), z); im.setMatrixAt(i, m); groundColor(x, z, c); c.multiplyScalar(1.04); im.setColorAt(i, c); });
     im.computeBoundingSphere(); im.receiveShadow = true; scene.add(im); total += spots.length;
   }
   return total;
 }
+void isUnder; void mergePieces;

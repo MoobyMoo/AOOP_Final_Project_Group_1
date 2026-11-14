@@ -8,8 +8,8 @@ import * as THREE from "three";
 import { G, V, flat, type Enemy } from "../core/state";
 import { ENEMY } from "../combat/weapons";
 import { createRig } from "../actors/rig";
-import { SPAWNS, GROUP_RINGS, WALLS } from "../world/layout";
-import { path as findPath, los, collide, walkable, blockers, wallAt } from "../world/grid";
+import { SPAWNS, GROUP_RINGS } from "../world/layout";
+import { path as findPath, los, collide, walkable, ramAt, gates, straightWalk } from "../world/grid";
 import { groundHeight } from "../world/terrain";
 import { sfx } from "../core/audio";
 import { floatText, burst } from "../../fx";
@@ -53,7 +53,7 @@ export function alertEnemy(e: Enemy, direct = false) {
   if (e.kind === "sleeper") { if (e.state === "sleep") { e.zs = 0; wake(e); } return; }
   if (e.state === "patrol" || e.state === "return") {
     e.state = "notice"; e.t = e.kind === "bandit" ? ENEMY.bandit.notice : 0.35; mark(e); sfx("notice", 0.7);
-    if (e.group && GROUP_RINGS[e.group]) { const r = GROUP_RINGS[e.group]; for (const o of G.enemies) if (o !== e && o.group === e.group && flat(o.p, r) < r.r && (o.state === "patrol" || o.state === "return")) setTimeout(() => alertEnemy(o), 250 + Math.random() * 300); }
+    if (e.group && GROUP_RINGS[e.group]) { const r = GROUP_RINGS[e.group]; for (const o of G.enemies) if (o !== e && o.group === e.group && flat(o.p, r) < r.r && (o.state === "patrol" || o.state === "return")) setTimeout(() => alertEnemy(o), 250 + G.rng() * 300); }
   }
   void direct;
 }
@@ -77,7 +77,7 @@ function wake(e: Enemy) {
 }
 function goTo(e: Enemy, tx: number, tz: number, speed: number, dt: number) {
   e.repath -= dt;
-  if (e.repath <= 0 || !e.path.length) { e.repath = 0.45 + Math.random() * 0.2; e.path = los(e.p.x, e.p.z, tx, tz) ? [{ x: tx, z: tz }] : findPath(e.p.x, e.p.z, tx, tz, 4000); }
+  if (e.repath <= 0 || !e.path.length) { e.repath = 0.45 + G.rng() * 0.2; e.path = straightWalk(e.p.x, e.p.z, tx, tz) ? [{ x: tx, z: tz }] : findPath(e.p.x, e.p.z, tx, tz, 6000); } // A* sees door state: open doors are routes, shut ones are walls
   const w = e.path[0]; if (!w) { e.vel.multiplyScalar(0.8); return; }
   const d = Math.hypot(w.x - e.p.x, w.z - e.p.z); if (d < 0.5) { e.path.shift(); return; }
   const want = V((w.x - e.p.x) / d, (w.z - e.p.z) / d).multiplyScalar(speed);
@@ -133,7 +133,7 @@ function wild(e: Enemy, dt: number, d: number) {
   const s = ENEMY.wild;
   switch (e.state) {
     case "patrol": patrol(e, dt, 1.6); if (sees(e, s.sight)) alertEnemy(e); break;
-    case "notice": e.vel.set(0, 0, 0); e.face = Math.atan2(G.pp.x - e.p.x, G.pp.z - e.p.z); if (e.t <= 0) { e.state = "kite"; e.t = 0.8 + Math.random(); } break;
+    case "notice": e.vel.set(0, 0, 0); e.face = Math.atan2(G.pp.x - e.p.x, G.pp.z - e.p.z); if (e.t <= 0) { e.state = "kite"; e.t = 0.8 + G.rng(); } break;
     case "kite": {
       if (!G.alive) { e.state = "return"; break; }
       const tp = toPlayer(e).normalize(); e.face = Math.atan2(tp.x, tp.z);
@@ -146,7 +146,7 @@ function wild(e: Enemy, dt: number, d: number) {
     }
     case "windup": e.face = Math.atan2(G.pp.x - e.p.x, G.pp.z - e.p.z); if (e.t <= 0) { throwRang(e); e.state = "throwing"; e.t = 0.2; } break;
     case "throwing": if (e.t <= 0) e.state = "rooted"; break;
-    case "rooted": e.vel.set(0, 0, 0); if (!e.rang) { e.state = "kite"; e.t = s.recover + Math.random() * 1.2; } break;
+    case "rooted": e.vel.set(0, 0, 0); if (!e.rang) { e.state = "kite"; e.t = s.recover + G.rng() * 1.2; } break;
     case "return": goTo(e, e.home.x, e.home.z, 2.5, dt); if (flat(e.p, e.home) < 1) e.state = "patrol"; if (sees(e, 7)) alertEnemy(e); break;
   }
 }
@@ -216,7 +216,7 @@ function brute(e: Enemy, dt: number, d: number) {
       if (e.t <= 0) {
         e.state = "slam"; e.t = 0.25; e.ring!.visible = false; sfx("slam"); G.stage.trauma = Math.min(1, G.stage.trauma + 0.45); burst(e.p.clone().setY(0.3), 22, "#c9a46a", 1.4);
         if (flat(e.p, G.pp) < s.slam + 0.3) hurtPlayer(e.p, "slam", s.dmg);
-        for (const w of WALLS) if (w.breakable) for (const [x, z] of w.pts) if (Math.hypot(x - e.p.x, z - e.p.z) < s.slam + 1.5 && wallAt((w.pts[0][0] + w.pts[1][0]) / 2, (w.pts[0][1] + w.pts[1][1]) / 2)) hitWall(w.id, 3, V(x, z, 1));
+        for (const g of gates) if (g.hp !== undefined && !g.open && Math.hypot(g.x - e.p.x, g.z - e.p.z) < s.slam + 1.5 + g.w * 0.25) hitWall(g.id, 3, V(g.x, g.z, 1)); // the slam smashes breakable walls and boarded doors
         for (const o of G.enemies) if (o !== e && !o.down && flat(o.p, e.p) < s.slam) damage(o, 20, "slam", o.p.clone().sub(e.p).setY(0).normalize());
       }
       break;
@@ -247,7 +247,7 @@ function sleeper(e: Enemy, dt: number, d: number) {
     case "charge": {
       const fx = Math.sin(e.face), fz = Math.cos(e.face), step = s.charge * dt;
       const nx = e.p.x + fx * step, nz = e.p.z + fz * step;
-      const ram = blockers.find((b) => b.ram && Math.hypot(nx - b.x, nz - b.z) < b.r + 1.0);
+      const ram = ramAt(nx, nz, 1.0);
       if (ram || !walkable(nx + fx * 0.9, nz + fz * 0.9)) {
         if (ram || e.t < 2.0) { e.state = "stunned"; e.t = s.stun; sfx("thunk"); G.stage.trauma = Math.min(1, G.stage.trauma + 0.55); G.hitStop = 0.08; floatText("THUNK! Get him now!", e.p.clone().setY(4), "#8a5a34", 28); burst(e.p.clone().setY(2), 18, "#7cc24f", 1.2); }
         else { e.state = "aim"; e.t = s.aim; }
@@ -276,6 +276,6 @@ function stripe(e: Enemy, locked: boolean) {
   ((e.stripe.children[0] as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = locked ? 0.8 : 0.3 + Math.abs(Math.sin(G.time * 16)) * 0.3;
 }
 function patrol(e: Enemy, dt: number, speed: number) {
-  if (e.t <= 0) { e.t = 1.5 + Math.random() * 2.5; const a = Math.random() * 6.28; e.path = []; e.lastSeen = V(e.home.x + Math.cos(a) * 3, e.home.z + Math.sin(a) * 3); }
+  if (e.t <= 0) { e.t = 1.5 + G.rng() * 2.5; const a = G.rng() * 6.28; e.path = []; e.lastSeen = V(e.home.x + Math.cos(a) * 3, e.home.z + Math.sin(a) * 3); }
   if (e.lastSeen && flat(e.p, e.lastSeen) > 0.6 && walkable(e.lastSeen.x, e.lastSeen.z)) goTo(e, e.lastSeen.x, e.lastSeen.z, speed, dt); else e.vel.multiplyScalar(0.85);
 }

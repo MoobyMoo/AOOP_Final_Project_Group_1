@@ -1,122 +1,146 @@
-// Interactive and landmark props for the raid map. PLACEHOLDER visuals from the L1 kit until Fable C2's kit_build
-// lands; the gameplay hooks (break, open, exits, portals, zipline) stay here.
+// Interactive and animated props of the raid map, built from the structures kit (kit_build.ts): breakable wall
+// sections with debris, the vine door, exits (hatch, raft, tunnel), portals into the grotto, the zipline, readable
+// easter eggs, and the small motions that make set pieces alive (flames, flags, the hatch periscope).
+// Built once with the world; resetProps() puts every per-raid state back at the start of a raid.
 import * as THREE from "three";
 import { G, V } from "../core/state";
-import { WALLS, DOOR, POI, PORTALS, ZIPLINES, LANDMARKS, CLEARINGS } from "./layout";
+import { WALLS, DOOR, POI, PORTALS, ZIPLINES, PLACED, UNDER_X } from "./map/grove";
 import { groundHeight } from "./terrain";
-import { breakWall, setDoorOpen, block, state as gridState } from "./grid";
-import { mat } from "../render/shading";
-import { ruinBlock, rubble, vine, tent, campfire, barrel, crate, bananaPlant } from "./kit";
+import { setGate, gate } from "./grid";
+import { addPieces, placedParts } from "./dress";
+import { addLamp } from "./lights";
+import { mergePieces } from "./kitutil";
+import { breakDoorVisual } from "./buildings";
+import * as K from "./kit_build";
 import { burst } from "../../fx";
 
-const wallVis = new Map<string, THREE.Object3D>();
-const yawOf = (a: [number, number], b: [number, number]) => Math.atan2(b[0] - a[0], b[1] - a[1]);
-function wallSection(kind: string, a: [number, number], b: [number, number], breakable: boolean) {
-  const g = new THREE.Group(), len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-  g.position.set((a[0] + b[0]) / 2, groundHeight((a[0] + b[0]) / 2, (a[1] + b[1]) / 2), (a[1] + b[1]) / 2); g.rotation.y = yawOf(a, b);
-  if (kind === "palisade") for (let s = -len / 2; s <= len / 2; s += 0.32) { const h = 2.0 + Math.sin(s * 7) * 0.25; const p = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.15, h, 6), mat(breakable ? "#a07a48" : "#8a6a42", { flat: true })); p.position.set(0, h / 2, s); g.add(p); const tip = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.3, 6), mat("#8a6a42")); tip.position.set(0, h + 0.15, s); g.add(tip); }
-  else if (kind === "stone") for (let s = -len / 2; s < len / 2; s += 0.9) for (let r = 0; r < 4; r++) { const bl = ruinBlock(0.88, 0.5, 0.6); bl.position.set(0, 0.25 + r * 0.5, s + (r % 2) * 0.3); g.add(bl); }
-  else if (kind === "hull") for (let s = -len / 2; s < len / 2; s += 0.45) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.15, 2.4, 0.42), mat(breakable ? "#c9b48a" : (Math.round(s * 3) % 2 ? "#e8e2d4" : "#3f8f9a"), { rough: 0.7 })); p.position.set(0, 1.2, s); p.rotation.x = (Math.random() - 0.5) * 0.08; g.add(p); }
-  else if (kind === "rock") { for (let k = 0; k < 9; k++) { const r = new THREE.Mesh(new THREE.DodecahedronGeometry(0.5 + Math.random() * 0.4, 0), mat("#7a6f62", { flat: true })); r.position.set((Math.random() - 0.5) * 0.8, 0.4 + (k % 3) * 0.5, -len / 2 + (k / 9) * len); g.add(r); } }
-  if (breakable) { // the "you can break this" telltale: painted cracks + a warm X
-    const x = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), new THREE.MeshBasicMaterial({ map: crackTex(), transparent: true, depthWrite: false }));
-    x.position.set(-0.2, 1.1, 0); x.rotation.y = -Math.PI / 2; g.add(x); const x2 = x.clone(); x2.position.x = 0.2; x2.rotation.y = Math.PI / 2; g.add(x2);
-  }
-  g.traverse((m) => { (m as THREE.Mesh).castShadow = true; (m as THREE.Mesh).receiveShadow = true; });
-  return g;
-}
-let crackT: THREE.Texture | null = null;
-function crackTex() {
-  if (crackT) return crackT; const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d")!;
-  x.strokeStyle = "#ffcf6a"; x.lineWidth = 6; x.lineCap = "round"; x.beginPath(); x.moveTo(12, 12); x.lineTo(52, 52); x.moveTo(52, 12); x.lineTo(12, 52); x.stroke();
-  x.strokeStyle = "#3a2a1a"; x.lineWidth = 2; x.beginPath(); x.moveTo(32, 4); x.lineTo(28, 20); x.lineTo(36, 30); x.lineTo(30, 44); x.stroke();
-  crackT = new THREE.CanvasTexture(c); return crackT;
-}
-export function breakWallVisual(id: string) {
-  const v = wallVis.get(id); if (!v) return; const p = v.position.clone().setY(v.position.y + 1);
-  burst(p, 26, "#b08a5a", 1.4); burst(p, 10, "#e8dcc0", 1.0);
-  let k = 0; const f = () => { k += 0.08; v.scale.y = Math.max(0.05, 1 - k); v.position.y -= 0.03; if (k < 1) requestAnimationFrame(f); else v.visible = false; }; f();
-}
-let doorObj: THREE.Group;
-export function openDoorVisual() { if (!doorObj) return; let k = 0; const f = () => { k += 0.03; doorObj.children[0].rotation.y = -k * 1.6; if (k < 1) requestAnimationFrame(f); }; f(); }
+type Chunk = { o: THREE.Object3D; p0: THREE.Vector3; q0: THREE.Quaternion; v: THREE.Vector3; w: THREE.Vector3; rest: boolean };
+type BreakWall = { id: string; parts: Record<string, THREE.Object3D>; chunks: Chunk[]; t: number; mid: THREE.Vector3 };
+const walls = new Map<string, BreakWall>();
+const yawOf = (a: number[], b: number[]) => Math.atan2(b[0] - a[0], b[1] - a[1]);
 
 export type Exit = { id: "hatch" | "raft" | "tunnel"; x: number; z: number; ring: THREE.Mesh; fill: THREE.Mesh; bonus: number; open: boolean; armed?: boolean };
 export const exits: Exit[] = [];
 export const portalMarks: { id: string; x: number; z: number; to: { x: number; z: number }; label: string; oneWay?: boolean }[] = [];
+/** things you can read with E: the notes and gags from the Shorts (LORE.md) */
+export const reads: { x: number; z: number; label: string; text: () => string }[] = [];
+let vineLeaf: THREE.Object3D | null = null, vineK = 0, zipHandle: THREE.Object3D | null = null, zipA = new THREE.Vector3(), zipB = new THREE.Vector3();
+const flames: THREE.Object3D[] = [], flags: THREE.Object3D[] = [];
+let scope: THREE.Object3D | null = null, hatchLid: THREE.Object3D | null = null, lever: THREE.Object3D | null = null, bucket: THREE.Object3D | null = null;
+export const zipAnchors = () => ({ a: zipA, b: zipB, handle: zipHandle });
 
 export function buildProps(scene: THREE.Scene) {
-  // walls
-  for (const w of WALLS) for (let k = 0; k < w.pts.length - 1; k++) { const s = wallSection(w.kind, w.pts[k], w.pts[k + 1], !!w.breakable); scene.add(s); if (w.breakable) wallVis.set(w.id, s); }
-  // persistent openings from earlier raids
-  for (const w of WALLS) if (w.breakable?.persist && G.save.fixtures.includes("open:" + w.id)) { breakWall(w.id); const v = wallVis.get(w.id); if (v) v.visible = false; }
-  // the vine door
-  doorObj = new THREE.Group(); doorObj.position.set(DOOR.x, groundHeight(DOOR.x, DOOR.z), DOOR.z); doorObj.rotation.y = DOOR.yaw + Math.PI / 2;
-  const leaf = new THREE.Group(); leaf.position.x = -DOOR.w / 2; doorObj.add(leaf);
-  const slab = new THREE.Mesh(new THREE.BoxGeometry(DOOR.w, 2.8, 0.3), mat("#7a5230")); slab.position.set(DOOR.w / 2, 1.4, 0); leaf.add(slab);
-  for (let i = 0; i < 6; i++) { const v = vine(2.6); v.position.set(0.3 + i * 0.55, 0.2, 0.2); leaf.add(v); }
-  const hole = new THREE.Mesh(new THREE.CircleGeometry(0.22, 16), mat("#ffd84a", { emissive: "#ffb020", ei: 1.2 })); hole.position.set(DOOR.w / 2, 1.4, 0.17); leaf.add(hole);
-  for (const s of [-1, 1]) { const post = ruinBlock(0.8, 3.4, 0.8); post.position.set(s * (DOOR.w / 2 + 0.4), 1.7, 0); doorObj.add(post); }
-  const lintel = ruinBlock(DOOR.w + 1.8, 0.6, 0.9); lintel.position.y = 3.6; doorObj.add(lintel);
-  scene.add(doorObj);
-  const doorOpenNow = G.save.keys.includes("vine_key"); setDoorOpen(doorOpenNow); if (doorOpenNow) leaf.rotation.y = -1.6;
-  // exits
+  // ---- breakable wall sections: intact / debris / remains (kit_build wallSection)
+  for (const w of WALLS) {
+    if (!w.breakable) continue;
+    const [a, b] = w.pts, len = Math.hypot(b[0] - a[0], b[1] - a[1]), mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2, y = groundHeight(mx, mz) - 0.04, yaw = yawOf(a, b);
+    const built = K.wallSection(w.kind as K.WallKind, { length: len, breakable: true });
+    addPieces(built.pieces, mx, mz, yaw, 1, y);
+    built.parts.root.position.set(mx, y, mz); built.parts.root.rotation.y = yaw; scene.add(built.parts.root);
+    const chunks: Chunk[] = (built.parts.debris?.children ?? []).map((o) => ({ o, p0: o.position.clone(), q0: o.quaternion.clone(), v: new THREE.Vector3(), w: new THREE.Vector3(), rest: true }));
+    walls.set(w.id, { id: w.id, parts: built.parts, chunks, t: -1, mid: new THREE.Vector3(mx, y + 1, mz) });
+  }
+  // ---- the vine door: frame in the chunks, the leaf swings
+  { const d = K.door(), y = groundHeight(DOOR.x, DOOR.z) - 0.04; addPieces(d.pieces, DOOR.x, DOOR.z, DOOR.yaw, 1, y);
+    d.parts.root.position.set(DOOR.x, y, DOOR.z); d.parts.root.rotation.y = DOOR.yaw; scene.add(d.parts.root); vineLeaf = d.parts.leaf; }
+  // ---- exits: a ground ring that fills while you stand still in it
   exits.length = 0;
   const ring = (x: number, z: number, color: string) => {
-    const r = new THREE.Mesh(new THREE.RingGeometry(1.75, 2, 48), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85, depthWrite: false })); r.rotation.x = -Math.PI / 2; r.position.set(x, groundHeight(x, z) + 0.05, z); r.renderOrder = 2;
+    const r = new THREE.Mesh(new THREE.RingGeometry(1.75, 2, 48), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85, depthWrite: false })); r.rotation.x = -Math.PI / 2; r.position.set(x, groundHeight(x, z) + 0.07, z); r.renderOrder = 2;
     const f = new THREE.Mesh(new THREE.CircleGeometry(1.75, 48), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, depthWrite: false })); f.rotation.x = -Math.PI / 2; f.position.copy(r.position); f.scale.setScalar(0.01); f.renderOrder = 2;
     scene.add(r, f); return [r, f] as const;
   };
-  { const [r, f] = ring(POI.hatch.x, POI.hatch.z, "#ffe066"); exits.push({ id: "hatch", x: POI.hatch.x, z: POI.hatch.z, ring: r, fill: f, bonus: 0, open: true });
-    const h = new THREE.Group(); h.position.set(POI.hatch.x, groundHeight(POI.hatch.x, POI.hatch.z), POI.hatch.z);
-    const mound = new THREE.Mesh(new THREE.SphereGeometry(1.4, 20, 10, 0, 6.3, 0, 1.2), mat("#e0c48c")); mound.scale.y = 0.35; h.add(mound);
-    const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.85, 0.16, 24), mat("#6f7a80", { rough: 0.4 })); lid.position.y = 0.42; h.add(lid);
-    const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.05, 6, 18), mat("#c9302c")); wheel.rotation.x = Math.PI / 2; wheel.position.y = 0.55; h.add(wheel);
-    const scope = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.4, 8), mat("#4a5258")); scope.position.set(1.1, 0.7, -0.3); h.add(scope);
-    scene.add(h); block(POI.hatch.x + 1.1, POI.hatch.z - 0.3, 0.2, false); }
-  { const [r, f] = ring(POI.raft.x, POI.raft.z, "#7fd4ff"); exits.push({ id: "raft", x: POI.raft.x, z: POI.raft.z, ring: r, fill: f, bonus: 0.3, open: true });
-    const g = new THREE.Group(); g.position.set(POI.raft.x, -0.1, POI.raft.z - 2.6);
-    for (let i = 0; i < 5; i++) { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 2.6, 10), mat("#a8743f")); l.rotation.x = Math.PI / 2; l.position.set(-0.9 + i * 0.45, 0.25, 0); g.add(l); }
-    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.4, 6), mat("#5a3f28")); mast.position.set(0.6, 1.4, 0); g.add(mast);
-    const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.55), mat("#e8493a", { emissive: "#e8493a", ei: 0.3 })); (flag.material as THREE.Material).side = THREE.DoubleSide; flag.position.set(1.05, 2.25, 0); g.add(flag);
-    scene.add(g); }
-  { const open = G.save.fixtures.includes("open:grotto-rubble"); const [r, f] = ring(POI.tunnelExit.x, POI.tunnelExit.z, "#c9a0ff"); r.visible = f.visible = open; exits.push({ id: "tunnel", x: POI.tunnelExit.x, z: POI.tunnelExit.z, ring: r, fill: f, bonus: 0, open }); }
-  // portals
+  { const [r, f] = ring(POI.hatch.x, POI.hatch.z, "#ffe066"); exits.push({ id: "hatch", x: POI.hatch.x, z: POI.hatch.z, ring: r, fill: f, bonus: 0, open: true }); }
+  { const [r, f] = ring(POI.raft.x, POI.raft.z, "#7fd4ff"); exits.push({ id: "raft", x: POI.raft.x, z: POI.raft.z, ring: r, fill: f, bonus: 0.3, open: true }); }
+  { const [r, f] = ring(POI.tunnelExit.x, POI.tunnelExit.z, "#c9a0ff"); exits.push({ id: "tunnel", x: POI.tunnelExit.x, z: POI.tunnelExit.z, ring: r, fill: f, bonus: 0, open: false }); }
+  // ---- portals (the models are placed pieces; these are the stand-here marks)
   portalMarks.length = 0;
   for (const p of PORTALS) {
     portalMarks.push({ id: p.id, x: p.a.x, z: p.a.z, to: p.b, label: p.label, oneWay: p.oneWay });
     if (!p.oneWay) portalMarks.push({ id: p.id + "-back", x: p.b.x, z: p.b.z, to: p.a, label: "Climb back up" });
-    const mk = (x: number, z: number, kind: string) => {
-      const g = new THREE.Group(); g.position.set(x, groundHeight(x, z), z);
-      if (kind === "camp-well") { const r = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.05, 0.8, 18, 1, true), mat("#9a8f80", { flat: true })); (r.material as THREE.Material).side = THREE.DoubleSide; r.position.y = 0.4; g.add(r); const hole = new THREE.Mesh(new THREE.CircleGeometry(0.95, 18), new THREE.MeshBasicMaterial({ color: "#120c08" })); hole.rotation.x = -Math.PI / 2; hole.position.y = 0.3; g.add(hole); }
-      else { const arch = new THREE.Mesh(new THREE.TorusGeometry(1.4, 0.55, 8, 16, Math.PI), mat(x > 90 ? "#5d554c" : "#6f6458", { flat: true })); arch.position.y = 0.2; g.add(arch); const dark = new THREE.Mesh(new THREE.CircleGeometry(1.25, 16, 0, Math.PI), new THREE.MeshBasicMaterial({ color: "#0d0907" })); dark.position.set(0, 0.2, -0.1); g.add(dark); }
-      g.traverse((m) => { (m as THREE.Mesh).castShadow = true; }); scene.add(g);
-    };
-    mk(p.a.x, p.a.z, p.id); mk(p.b.x, p.b.z, "back");
   }
-  // zipline
+  // ---- the zipline: tower, landing, cable and trolley from the kit
   for (const z of ZIPLINES) {
-    const a = V(z.from.x, z.from.z, groundHeight(z.from.x, z.from.z) + z.from.h), b = V(z.to.x, z.to.z, groundHeight(z.to.x, z.to.z) + z.to.h + 1.4);
-    const plat = new THREE.Group(); plat.position.set(a.x, groundHeight(a.x, a.z), a.z);
-    for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, z.from.h, 6), mat("#6e4b2e")); leg.position.set(dx * 0.9, z.from.h / 2, dz * 0.9); plat.add(leg); }
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.2, 2.2), mat("#9a7348")); deck.position.y = z.from.h; plat.add(deck);
-    const ladder = new THREE.Mesh(new THREE.BoxGeometry(0.6, z.from.h, 0.1), mat("#7a5a3c")); ladder.position.set(0, z.from.h / 2, 1.2); ladder.rotation.x = -0.15; plat.add(ladder);
-    scene.add(plat); block(a.x, a.z, 1.2, false);
-    const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, a.distanceTo(b), 4), mat("#3a3a40")); cable.position.copy(a).lerp(b, 0.5); cable.lookAt(b); cable.rotateX(Math.PI / 2); scene.add(cable);
-    portalMarks.push({ id: "zip-" + z.id, x: a.x, z: a.z + 1.6, to: { x: b.x, z: b.z }, label: "Ride the zipline to the beach", oneWay: true });
+    const a = V(z.from.x, z.from.z, groundHeight(z.from.x, z.from.z)), b = V(z.to.x, z.to.z, groundHeight(z.to.x, z.to.z));
+    const zl = K.zipline(a, b, { h: z.from.h, endH: z.to.h });
+    scene.add(mergePieces(zl.pieces));
+    scene.add(zl.parts.root); zipHandle = zl.parts.handle; zipA.copy(zl.parts.a.position); zipB.copy(zl.parts.b.position);
+    portalMarks.push({ id: "zip-" + z.id, x: a.x, z: a.z + 3.2, to: { x: b.x, z: b.z }, label: "Ride the zipline to the beach", oneWay: true });
   }
-  // landmarks: quick stand-ins (Fable C2 replaces these)
-  const camp = CLEARINGS.find((c) => c.id === "camp")!;
-  scene.add(at(tent(), camp.x - 5, camp.z - 4, 0.5), at(campfire(), POI.campfire.x, POI.campfire.z, 0), at(barrel(), camp.x + 4, camp.z - 6, 0), at(barrel(), camp.x + 4.8, camp.z - 5.2, 0));
-  block(camp.x - 5, camp.z - 4, 1.6); block(POI.campfire.x, POI.campfire.z, 0.8, false);
-  for (const l of LANDMARKS) {
-    if (l.id === "watchtower") { const g = new THREE.Group(); for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 3.2, 6), mat("#6e4b2e")); leg.position.set(dx * 1.1, 1.6, dz * 1.1); g.add(leg); } const d = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.2, 2.8), mat("#9a7348")); d.position.y = 3.2; g.add(d); const roof = new THREE.Mesh(new THREE.ConeGeometry(2.2, 1.2, 4), mat("#c9b48a")); roof.position.y = 5.2; roof.rotation.y = Math.PI / 4; g.add(roof); scene.add(at(g, l.x, l.z + 2.2, 0)); }
-    else if (l.id === "vat") { const v = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.9, 3.2, 20, 1, true, 0.6, 5.2), mat("#8f7a5a", { rough: 0.5 })); (v.material as THREE.Material).side = THREE.DoubleSide; v.position.y = 1.6; const g = new THREE.Group(); g.add(v); const puddle = new THREE.Mesh(new THREE.CircleGeometry(3.4, 24), mat("#5a2f10", { rough: 0.2 })); puddle.rotation.x = -Math.PI / 2; puddle.position.set(1.2, 0.04, 1.5); g.add(puddle); scene.add(at(g, l.x, l.z, 0)); block(l.x, l.z, 1.9); }
-    else if (l.id === "bomber") { const g = new THREE.Group(); const body = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.7, 9, 14), mat("#7f8a6a")); body.rotation.z = Math.PI / 2; body.rotation.y = 0.3; body.position.y = 0.8; g.add(body); const wing = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.15, 12), mat("#7f8a6a")); wing.position.y = 0.9; wing.rotation.y = 0.3; g.add(wing); scene.add(at(g, l.x, l.z, 0)); block(l.x, l.z, 1.2); block(l.x - 2.6, l.z + 0.8, 1.0); block(l.x + 2.6, l.z - 0.8, 1.0); }
-    else if (l.id === "statue") { const g = new THREE.Group(); const b = new THREE.Mesh(new THREE.BoxGeometry(1, 0.8, 1), mat("#c4ab84")); b.position.y = 0.4; g.add(b); const s = new THREE.Mesh(new THREE.SphereGeometry(0.55, 16, 12), mat("#ffd84a", { rough: 0.25, emissive: "#ffb020", ei: 0.4 })); s.position.y = 1.4; g.add(s); scene.add(at(g, l.x, l.z, 0)); block(l.x, l.z, 0.7); }
-    else if (l.id === "tractor") { const g = new THREE.Group(); const b = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.1, 2.6), mat("#b8552e")); b.position.y = 1.0; g.add(b); for (const [x, z, r] of [[-1, -0.8, 0.8], [1, -0.8, 0.8], [-0.9, 1, 0.5], [0.9, 1, 0.5]] as const) { const w = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.4, 14), mat("#2f2a30")); w.rotation.z = Math.PI / 2; w.position.set(x, r, z); g.add(w); } scene.add(at(g, l.x, l.z, 0.4)); block(l.x, l.z, 1.5); }
-    else if (l.id === "falls") { const sheet = new THREE.Mesh(new THREE.PlaneGeometry(4, 6), new THREE.MeshBasicMaterial({ color: "#d8f4ff", transparent: true, opacity: 0.55, depthWrite: false })); sheet.position.set(l.x, 3, l.z - 0.6); scene.add(sheet); }
-    else if (l.id === "ferry") { /* the hull walls are the ferry for now */ const fun = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.8, 2.6, 14), mat("#e8493a")); fun.position.set(l.x + 1.5, 2.6, l.z); scene.add(fun); }
+  // ---- moving bits of placed set pieces, lamps for the light pool
+  for (const p of PLACED) {
+    const parts = p.id ? placedParts.get(p.id) : undefined;
+    if (p.k === "hatch" && parts) { scope = parts.scope ?? null; hatchLid = parts.lid ?? null; }
+    if (p.k === "fusebox" && parts) lever = parts.lever ?? null;
+    if (p.k === "well" && parts) bucket = parts.bucket ?? null;
+    if (p.k === "campfire") addLamp({ pos: new THREE.Vector3(p.x, groundHeight(p.x, p.z) + 1.0, p.z), color: "#ff9a4a", power: p.x > UNDER_X ? 26 : 14, range: 11, on: () => true });
+    if ((p.k === "lantern" || p.k === "lantern_post") && p.x > UNDER_X) addLamp({ pos: new THREE.Vector3(p.x, groundHeight(p.x, p.z) + (p.k === "lantern" ? 0.7 : 2.2), p.z), color: "#ffd08a", power: 12, range: 9, on: () => true });
+    if (p.k === "vault") for (const [lx, lz] of [[-3, -3], [3, -3]]) addLamp({ pos: new THREE.Vector3(p.x + lx, groundHeight(p.x, p.z) + 2.2, p.z + lz), color: "#ffb060", power: 14, range: 9, on: () => true });
   }
-  void rubble; void crate; void bananaPlant; void gridState;
+  for (const parts of placedParts.values()) { if (parts.flame) flames.push(parts.flame); if (parts.flag) flags.push(parts.flag); }
+  // ---- readable gags (LORE.md easter eggs)
+  const byId = (id: string) => PLACED.find((p) => p.id === id)!;
+  reads.length = 0;
+  { const p = byId("bottle"); reads.push({ x: p.x, z: p.z, label: "Read the note in the bottle", text: () => "“Day 40. They took my ledger. Tell my accountant I regret nothing.” — the last exile" }); }
+  { const p = byId("audit"); reads.push({ x: p.x, z: p.z + 1.2, label: "Read the notice", text: () => "NOTICE OF AUDIT. Subject: one (1) Monkey Businessman. “We know where the bananas went.”" }); }
+  { const p = byId("statue"); reads.push({ x: p.x + 1.6, z: p.z, label: "Read the plaque", text: () => "A golden monkey in a bowler hat. The plaque: IN BANANAS WE TRUST." }); }
+  { const p = byId("vat"); reads.push({ x: p.x + 2.6, z: p.z + 2.6, label: "Look at the vat", text: () => "MOLASSES. The tank split years ago; the spill never quite dried." }); }
+  { const p = byId("bomber"); reads.push({ x: p.x - 2.4, z: p.z + 3.4, label: "Look at the bomber", text: () => "Bullet holes all over the wings, none on the engines. The ones hit there never made it back." }); }
+  { const p = byId("fusebox"); reads.push({ x: p.x - 1.2, z: p.z + 1.2, label: "Pull the lever (PULL TO OPEN)", text: pullLever }); }
 }
-const at = (o: THREE.Object3D, x: number, z: number, yaw: number) => { o.position.set(x, groundHeight(x, z), z); o.rotation.y = yaw; o.traverse((m) => { (m as THREE.Mesh).castShadow = true; (m as THREE.Mesh).receiveShadow = true; }); return o; };
+let leverT = -1;
+function pullLever() {
+  leverT = 0;
+  if (!G.save.keys.includes("vine_key")) return "PULL TO OPEN. Something clunks behind the wall. Nothing opens.";
+  const open = !gate("vine")?.open; setGate("vine", open);
+  return open ? "Wired backwards: you pushed it back, and the vine door opens." : "PULL TO OPEN. The vine door slams shut. Someone wired this backwards.";
+}
+/** start of a raid: walls back up (unless the save keeps them open), doors per the keyring, exits disarmed */
+export function resetProps() {
+  for (const w of walls.values()) {
+    const open = !!gate(w.id)?.persist && G.save.fixtures.includes("open:" + w.id);
+    w.t = -1; w.parts.intact.visible = !open; w.parts.debris.visible = false; w.parts.remains.visible = open;
+    for (const c of w.chunks) { c.o.position.copy(c.p0); c.o.quaternion.copy(c.q0); c.o.visible = true; c.rest = true; }
+    setGate(w.id, open);
+  }
+  const vine = G.save.keys.includes("vine_key"); setGate("vine", vine); vineK = vine ? 1 : 0; if (vineLeaf) vineLeaf.rotation.y = vine ? K.DOOR_OPEN : 0;
+  const tunnel = G.save.fixtures.includes("open:grotto-rubble");
+  for (const e of exits) { e.armed = false; e.fill.scale.setScalar(0.01); if (e.id === "tunnel") { e.open = tunnel; e.ring.visible = e.fill.visible = tunnel; } }
+  if (hatchLid) hatchLid.rotation.x = 0; leverT = -1; if (lever) lever.rotation.x = 0;
+}
+/** a breakable wall (or a boarded door) just gave way */
+export function breakWallVisual(id: string) {
+  const w = walls.get(id); if (!w) { breakDoorVisual(id); return; }
+  burst(w.mid, 26, "#b08a5a", 1.4); burst(w.mid, 10, "#e8dcc0", 1.0);
+  w.parts.intact.visible = false; w.parts.debris.visible = true; w.parts.remains.visible = true; w.t = 0;
+  const hit = w.parts.root.worldToLocal(G.pp.clone().setY(w.mid.y));
+  for (const c of w.chunks) {
+    const dir = c.p0.clone().sub(hit); dir.y = 0; const l = dir.length() || 1; dir.multiplyScalar(1 / l);
+    c.v.copy(dir).multiplyScalar(2.2 + Math.random() * 3.2).setY(2.5 + Math.random() * 3.5); c.w.set((Math.random() - 0.5) * 9, (Math.random() - 0.5) * 9, (Math.random() - 0.5) * 9); c.rest = false;
+  }
+  if (id === "grotto-rubble") { const e = exits.find((q) => q.id === "tunnel"); if (e) { e.open = true; e.ring.visible = e.fill.visible = true; } }
+}
+export function openDoorVisual() { setGate("vine", true); }
+const dq = new THREE.Quaternion(), ev = new THREE.Euler();
+/** per render frame */
+export function updateProps(dt: number) {
+  const t = G.time;
+  for (const w of walls.values()) {
+    if (w.t < 0) continue; w.t += dt;
+    for (const c of w.chunks) {
+      if (c.rest) continue;
+      c.v.y -= 16 * dt; c.o.position.addScaledVector(c.v, dt);
+      c.o.quaternion.multiply(dq.setFromEuler(ev.set(c.w.x * dt, c.w.y * dt, c.w.z * dt)));
+      if (c.o.position.y < 0.12) { c.o.position.y = 0.12; if (Math.abs(c.v.y) < 1.4) c.rest = true; c.v.y *= -0.3; c.v.x *= 0.5; c.v.z *= 0.5; c.w.multiplyScalar(0.4); }
+    }
+    if (w.t > 9) { w.parts.debris.visible = false; w.t = -1; } // the stumps stay; the loose chunks are cleared away
+  }
+  const open = gate("vine")?.open ? 1 : 0;
+  if (vineLeaf && vineK !== open) { vineK += Math.sign(open - vineK) * Math.min(Math.abs(open - vineK), dt * 1.8); vineLeaf.rotation.y = K.DOOR_OPEN * vineK * vineK * (3 - 2 * vineK); }
+  for (let i = 0; i < flames.length; i++) { const f = flames[i], k = 1 + Math.sin(t * 11 + i * 2.1) * 0.08 + Math.sin(t * 23 + i) * 0.05; f.scale.set(1 + (k - 1) * 0.5, k, 1 + (k - 1) * 0.5); }
+  for (let i = 0; i < flags.length; i++) flags[i].rotation.y = Math.sin(t * 1.7 + i * 1.3) * 0.25;
+  if (scope) scope.rotation.y = Math.atan2(G.pp.x - POI.hatch.x, G.pp.z - POI.hatch.z);
+  if (hatchLid) { const want = G.extract.id === "hatch" && G.extract.t > 0.1 ? -1.9 : 0; hatchLid.rotation.x += (want - hatchLid.rotation.x) * Math.min(1, dt * 5); }
+  if (bucket) bucket.position.y += Math.sin(t * 1.3) * 0.0006;
+  if (lever && leverT >= 0) { leverT += dt; lever.rotation.x = 1.1 * Math.min(1, leverT * 6) * (leverT > 1.2 ? Math.max(0, 1 - (leverT - 1.2) * 3) : 1); if (leverT > 1.6) leverT = -1; }
+}

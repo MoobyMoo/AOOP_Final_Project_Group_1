@@ -5,10 +5,11 @@ import * as THREE from "three";
 import { G, V, flat, type Crate, type Pickup, type Enemy } from "../core/state";
 import { ITEMS, rollCrate, rollEnemyDrop, type LootContext } from "./tables";
 const WEAR_DROPS = ["tophat", "aviators", "pith", "eyepatch", "fedora", "goggles", "heartglasses", "crown", "hardhat", "beanie"];
-import { CRATES } from "../world/layout";
+import { CRATES, PLACED } from "../world/layout";
 import { groundHeight } from "../world/terrain";
-import { block } from "../world/grid";
-import { crate as crateModel } from "../world/kit";
+import { block, walkable, los } from "../world/grid";
+import { crate as crateKit, satchel as satchelKit, CRATE_LID_OPEN } from "../world/kit_build";
+import { mergePieces } from "../world/kitutil";
 import { sfx } from "../core/audio";
 import { burst, floatText, popIn } from "../../fx";
 import { hud } from "../ui/hud";
@@ -32,15 +33,18 @@ export function setupCrates() {
   const chosen = new Set<number>(); while (chosen.size < pickN) chosen.add(Math.floor(G.rng() * optional.length));
   const list = [...CRATES.filter((c) => c.fixed && (c.fixed !== "vault" || true)), ...[...chosen].map((i) => optional[i])];
   for (const s of list) {
-    const obj = crateModel(s.tier === "wood" ? "wood" : "gold"); if (s.tier === "green") obj.traverse((m) => { const mm = m as THREE.Mesh; if (mm.isMesh) { mm.material = (mm.material as THREE.MeshStandardMaterial).clone(); (mm.material as THREE.MeshStandardMaterial).color.multiply(new THREE.Color("#7fb06a")); } });
-    obj.position.set(s.x, groundHeight(s.x, s.z), s.z); obj.rotation.y = G.rng() * 6.28; obj.traverse((m) => { (m as THREE.Mesh).castShadow = true; });
+    // the kit crate: static body merged into one mesh, the lid is its own node (hinge on the back edge)
+    const b = crateKit(s.tier, { variant: nid }), obj = mergePieces(b.pieces); obj.add(b.parts.root); obj.userData.lid = b.parts.lid;
+    // a crate inside a building squares up with its walls; outdoors it sits at any angle
+    const host = s.in ? PLACED.find((p) => p.id === s.in) : undefined;
+    obj.position.set(s.x, groundHeight(s.x, s.z) + (s.y ?? 0), s.z); obj.rotation.y = host ? (host.yaw ?? 0) + (Math.floor(G.rng() * 2) * Math.PI) : G.rng() * 6.28;
     G.stage.scene.add(obj); block(s.x, s.z, 0.6, true);
     G.crates.push({ id: nid++, x: s.x, z: s.z, tier: s.tier, fixed: s.fixed, obj, opened: false, search: 0, items: null });
   }
   // your satchel from the last bonk-out: recoverable once (Duckov corpse rule, CODE_FINDINGS 4.2)
   const sat = G.save.satchel;
   if (sat) {
-    const obj = new THREE.Group(); const bag = new THREE.Mesh(new THREE.SphereGeometry(0.45, 14, 10), new THREE.MeshStandardMaterial({ color: "#8a5a34", roughness: 0.8 })); bag.scale.set(1.1, 0.75, 0.9); bag.position.y = 0.32; obj.add(bag);
+    const obj = mergePieces(satchelKit().pieces);
     const flag = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.5, 4), new THREE.MeshBasicMaterial({ color: "#ffd84a" })); flag.position.y = 1.0; flag.rotation.x = Math.PI; obj.add(flag);
     obj.position.set(sat.x, groundHeight(sat.x, sat.z), sat.z); G.stage.scene.add(obj); beam(new THREE.Vector3(sat.x, 0, sat.z), "#ffd84a");
     G.crates.push({ id: nid++, x: sat.x, z: sat.z, tier: "wood", fixed: "satchel", obj, opened: false, search: 0, items: [...sat.items] });
@@ -86,7 +90,13 @@ function openCrate(c: Crate) {
   items.forEach((id, k) => spawnPickup(id, V(c.x, c.z, 0.8), k, items.length));
 }
 const rank = (r: string) => ["common", "uncommon", "rare", "epic"].indexOf(r);
-function squashOpen(c: Crate) { const o = c.obj; let k = 0; const f = () => { k += 0.06; o.scale.set(1 + Math.sin(k * Math.PI) * 0.2, 1 - Math.sin(k * Math.PI) * 0.25, 1 + Math.sin(k * Math.PI) * 0.2); if (k < 1) requestAnimationFrame(f); else { o.scale.set(1, 0.55, 1); o.traverse((m) => { const mm = m as THREE.Mesh; if (mm.isMesh && !(mm.material as THREE.Material).transparent) { mm.material = (mm.material as THREE.MeshStandardMaterial).clone(); (mm.material as THREE.MeshStandardMaterial).color.multiplyScalar(0.6); } }); } }; f(); }
+/** the lid swings open on its hinge (with a small overshoot) and the box gives a squash pop */
+function squashOpen(c: Crate) {
+  const o = c.obj, lid = o.userData.lid as THREE.Object3D | undefined; let k = 0;
+  const f = () => { k += 0.045; const e = 1 - Math.pow(1 - Math.min(1, k), 3), pop = Math.sin(Math.min(1, k * 1.6) * Math.PI);
+    if (lid) lid.rotation.x = CRATE_LID_OPEN * (e + Math.sin(e * Math.PI) * 0.12); o.scale.set(1 + pop * 0.12, 1 - pop * 0.14, 1 + pop * 0.12);
+    if (k < 1) requestAnimationFrame(f); else { o.scale.set(1, 1, 1); if (lid) lid.rotation.x = CRATE_LID_OPEN; } }; f();
+}
 export function beam(at: THREE.Vector3, color: string) {
   const m = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.55, 7, 16, 1, true), new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(1.6), transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
   m.position.set(at.x, groundHeight(at.x, at.z) + 3.5, at.z); G.stage.scene.add(m); let k = 0; const f = () => { k += 0.012; (m.material as THREE.MeshBasicMaterial).opacity = 0.35 * (1 - k); if (k < 1) requestAnimationFrame(f); else m.removeFromParent(); }; f();
@@ -102,9 +112,11 @@ function iconTex(icon: string, color: string) {
 export function spawnPickup(id: string, from: THREE.Vector3, k = 0, n = 1, n2?: number) {
   const d = itemDef(id), s = new THREE.Sprite(new THREE.SpriteMaterial({ map: iconTex(d.icon, RAR_COLOR[d.rarity]), depthTest: true }));
   s.scale.setScalar(d.rarity === "epic" ? 0.95 : 0.75); s.renderOrder = 8;
-  const a = (k / Math.max(1, n)) * Math.PI * 2 + G.rng(), r = 1.2 + G.rng() * 0.5;
+  // land on open ground you can walk to from here: never inside a wall or on the far side of one (pacing report issue 3)
+  let a = (k / Math.max(1, n)) * Math.PI * 2 + G.rng(), r = 1.2 + G.rng() * 0.5, tx = from.x, tz = from.z;
+  for (let t = 0; t < 12; t++) { tx = from.x + Math.cos(a) * r; tz = from.z + Math.sin(a) * r; if (walkable(tx, tz) && los(from.x, from.z, tx, tz)) break; a += 2.4; if (t % 3 === 2) r = Math.max(0.9, r - 0.2); if (t === 11) { tx = G.pp.x; tz = G.pp.z; } }
   s.position.copy(from); G.stage.scene.add(s); popIn(s);
-  const p: Pickup = { id: nid++, item: id, p: V(from.x + Math.cos(a) * r, from.z + Math.sin(a) * r), obj: s, vy: 6 + G.rng() * 2, landed: false, t: 0, n: n2 };
+  const p: Pickup = { id: nid++, item: id, p: V(tx, tz), obj: s, vy: 6 + G.rng() * 2, landed: false, t: 0, n: n2 };
   G.pickups.push(p); return p;
 }
 /** returns true if the pickup was taken */
