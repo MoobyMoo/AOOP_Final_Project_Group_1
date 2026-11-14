@@ -1,7 +1,7 @@
 // Review page for the house kit: house.html?view=prefab|all|modules|plantation|colony|landing|selftest
 // Same Stage as the game (pitch 55, yaw -30, FOV 24, dist 40; sun elevation 50).
 //   id=<prefab>   roof=0 (hide roof + upper: the faded state)   fade=smart (hide roof + only the camera-side uppers)
-//   open=1 (doors open)   col=1 (collider + interior outlines)   lights=0 (no lamp lights)   yaw=<deg>   broken=1
+//   open=1 (doors open)   col=1 (collider + interior outlines)   lights=0 (no lamp lights)   ry=<deg> (turn the building)   broken=1   merge=1 (mergeUpper)
 //   dist=N  fx/fz = focus   t=<cookie time>   names=a,b (modules)   page=N cols=N rows=N cell=N
 import * as THREE from "three";
 import { Stage } from "../render/stage";
@@ -121,7 +121,7 @@ function house(id: string, x = 0, z = 0, yaw = 0, o: Opt = {}) {
 }
 
 function prefab() {
-  const id = QS.get("id") ?? "guard_hut", yaw = THREE.MathUtils.degToRad(Number(QS.get("yaw") ?? 0));
+  const id = QS.get("id") ?? "guard_hut", yaw = THREE.MathUtils.degToRad(Number(QS.get("ry") ?? 0));
   ground(QS.get("ground") ?? "#a8a565");
   patch("#c2a476", blob(0, 0, 12, 9), 0.01);
   const b = house(id, 0, 0, yaw);

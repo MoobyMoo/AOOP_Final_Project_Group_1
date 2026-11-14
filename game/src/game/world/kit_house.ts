@@ -15,11 +15,13 @@
 //        1.6 u wide (clear 1.48), windows 1.1 u. The floor top is y = 0.08, so flatten the terrain under a building.
 //
 // PARTS  (all under parts.root; local transforms are in building space)
-//   roof                 Group with every roof mesh (and whatever is mounted on it). Dither-fade it.
+//   roof                 Group holding ONE mesh per material with the whole roof and whatever is mounted on it (ridge
+//                        vents, the radio mast, the name boards). Dither-fade it.
 //   upper                Group with every wall part above y = 1.1: fade it with the roof and the plan reads from the
 //                        55 deg camera. Its children are also parts, so a smarter fade can keep the far walls:
 //                        upper_s / upper_w / upper_e / upper_n (by the wall's outward side in building space) and
 //                        upper_i (interior partitions). At yaw 0 the camera sees over upper_s, upper_w and upper_i.
+//                        building(id, { mergeUpper: true }) folds them into one mesh when the group fades as a whole.
 //   door<N>              one node per leaf, origin on the hinge. rotation.y: 0 = closed, doors[i].open = open.
 //   light<N>             empty anchors for warm interior PointLights (lamps, the stove, the radio dials).
 //   brk<N>               a cracked wall section, whole (hide on break). It never fades: it is the hint.
@@ -34,6 +36,10 @@
 //                        Drop or ignore the collider while the door is open.
 //   cracked wall         seg, move + shot, id = breakable id (remove on break)
 //   furniture            box / circle. Under about 1.3 u it is low cover; shelves and cabinets block shots too.
+//   Not collided: chairs, stools, buckets, rugs, the doorstep slabs, the boathouse pier and its ladder.
+//
+// DRAW CALLS  static pieces merge into the chunk. Per building the part meshes are: roof 1, upper 4-5 (1 merged), one
+//   per door leaf (+1 emissive on marked or locked doors), 3 for a cracked wall. Cellblock 16 (12 merged), hut 7 (4).
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
