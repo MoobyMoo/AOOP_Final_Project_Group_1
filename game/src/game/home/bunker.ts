@@ -75,7 +75,7 @@ export function enterBunker(deploy: () => void, mirror: () => void, summary?: st
   G.scene = "bunker"; G.stage.setScene(bunkerScene, false); bunkerScene.fog = null; initFx(bunkerScene, G.stage.camera);
   G.stage.hemi.intensity = 1.4; G.stage.sun.intensity = 2.5;
   if (!G.rig) { G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(bunkerScene); G.rig.sockets.handR.add(G.gun.root); }
-  G.rig.setLook?.(G.save.look); G.rig.setGear?.(G.save.gear); bunkerScene.add(G.rig.root);
+  G.rig.setLook?.(G.save.look); G.rig.setGear?.(G.save.gear); bunkerScene.add(G.rig.root); G.gun.root.visible = false; // holstered at home (the raid shows it each frame)
   pp.set(0, 0, 2.4); vel.set(0, 0, 0); G.rig.root.position.copy(pp);
   const ui = document.getElementById("ui")!; ui.innerHTML = `<div class="home-top"><div class="place"><b>The Bunker</b><span>Under Exile Beach</span></div><span class="home-money">🍌 <b>${G.save.money}</b></span></div><div class="hud-prompt" id="hp"></div><div class="home-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk &nbsp;<kbd>E</kbd> use a station</div>`;
   if (summary) showPanel(summary, "result");

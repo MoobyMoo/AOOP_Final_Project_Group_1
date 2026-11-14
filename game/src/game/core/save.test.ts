@@ -77,4 +77,13 @@ Reflect.deleteProperty(globalThis, "localStorage");
 assert(load().v === 1, "Node without storage recovers");
 save(partial);
 assert(reset().v === 1, "Node without storage resets");
+{ // creator extras (look.x) survive migration and are sanitized
+  const withX = migrate({ v: 1, look: { ...DEFAULT_LOOK, x: { build: 0.5, jacket: "vest", pocketSquare: true, colors: { shirt: "#AABBCC", eyes: "nope" } } } });
+  const x = (withX.look as unknown as { x?: { build?: number; jacket?: string; pocketSquare?: boolean; colors?: Record<string, string> } }).x;
+  assert(x?.build === 0.5 && x.jacket === "vest" && x.pocketSquare === true, "look.x survives migration");
+  assert(x?.colors?.shirt === "#aabbcc" && x.colors.eyes === undefined, "look.x colours are sanitized");
+  const bad = migrate({ v: 1, look: { ...DEFAULT_LOOK, x: { build: 9, jacket: "cape" } } });
+  const bx = (bad.look as unknown as { x?: { build?: number; jacket?: string } }).x;
+  assert(bx?.build === 1 && bx.jacket === "two", "look.x out-of-range values clamp to safe defaults");
+}
 console.log(`Save self-test: PASS (${checks} checks; migration, corrupt data, nested types, storage failures, reset)`);

@@ -1,6 +1,6 @@
 import type { MonkeyLook, SaveV1, Gear } from "../contracts";
 import { DEFAULT_GEAR, WEARABLES } from "../actors/wearables";
-import { DEFAULT_LOOK } from "../actors/look";
+import { DEFAULT_LOOK, sanitizeLook, type MonkeyLookX } from "../actors/look";
 import { KINGPIN } from "../combat/weapons";
 import { PRICES } from "../loot/tables";
 
@@ -28,6 +28,7 @@ function look(value: unknown): MonkeyLook {
   const raw = object(value);
   const ears = object(raw.ears), eyes = object(raw.eyes), brows = object(raw.brows);
   const tie = object(raw.tie), feet = object(raw.feet), tail = object(raw.tail);
+  const ext = (sanitizeLook({ ...raw, v: 2 }) as MonkeyLookX | null)?.x;
   return {
     v: 2, fur: color(raw.fur, defaults.fur), face: color(raw.face, defaults.face),
     headSize: scalar(raw.headSize, defaults.headSize, -0.25, 0.25),
@@ -39,7 +40,8 @@ function look(value: unknown): MonkeyLook {
     tie: { style: choice(tie.style, defaults.tie.style, ["tie", "bowtie", "none"]), color: color(tie.color, defaults.tie.color) },
     tail: { curl: scalar(tail.curl, defaults.tail.curl, 0, 1) },
     feet: { style: choice(feet.style, defaults.feet.style, ["round", "shoes"]), color: color(feet.color, defaults.feet.color) },
-  };
+    ...(ext ? { x: ext } : {}), // creator extras (build, jacket, pocket square, extra colour zones, gear tints): look.ts sanitizes them
+  } as MonkeyLook;
 }
 
 /** gear slots hold a known wearable id for that slot, or null; anything else falls back to the default */
