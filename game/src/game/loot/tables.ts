@@ -1,0 +1,132 @@
+import type { CrateTier, EnemyStyle, ItemDef, RaidLootCtx } from "../contracts";
+import type { CrateSocket } from "../world/layout";
+
+export type LootContext = RaidLootCtx & {
+  fixed?: CrateSocket["fixed"];
+  ownsExtendedMag?: boolean;
+  carried?: string[];
+};
+
+export const ITEMS: Record<string, ItemDef> = {
+  banana: { id: "banana", name: "Banana Bunch", icon: "🍌", rarity: "common", value: 9, kind: "sell" },
+  coconut: { id: "coconut", name: "Coconut", icon: "🥥", rarity: "common", value: 12, kind: "sell" },
+  vine_rope: { id: "vine_rope", name: "Vine Rope", icon: "🪢", rarity: "common", value: 16, kind: "sell" },
+  golden_banana: { id: "golden_banana", name: "Golden Banana", icon: "🌟", rarity: "epic", value: 96, kind: "sell" },
+  honey_pot: { id: "honey_pot", name: "Honey Pot", icon: "🍯", rarity: "uncommon", value: 27, kind: "sell" },
+  old_gear: { id: "old_gear", name: "Old Gear", icon: "⚙️", rarity: "uncommon", value: 23, kind: "sell" },
+  sunset_mango: { id: "sunset_mango", name: "Sunset Mango", icon: "🥭", rarity: "rare", value: 39, kind: "sell" },
+  brass_compass: { id: "brass_compass", name: "Brass Compass", icon: "🧭", rarity: "rare", value: 53, kind: "sell" },
+  banana_idol: { id: "banana_idol", name: "Banana Idol", icon: "🗿", rarity: "epic", value: 145, kind: "sell" },
+  smoothie: { id: "smoothie", name: "Banana Smoothie", icon: "🧃", rarity: "uncommon", value: 18, kind: "heal" },
+  ammo45: { id: "ammo45", name: ".45 Rounds", icon: "🔸", rarity: "common", value: 0, kind: "ammo", stack: 8 },
+  vine_key: { id: "vine_key", name: "Vine Key", icon: "🗝️", rarity: "rare", value: 0, kind: "key" },
+  extended_mag: { id: "extended_mag", name: "Kingpin Extended Mag", icon: "📎", rarity: "epic", value: 0, kind: "attachment" },
+  spring: { id: "spring", name: "Spring", icon: "🌀", rarity: "common", value: 11, kind: "part" },
+  plank: { id: "plank", name: "Plank", icon: "🪵", rarity: "common", value: 8, kind: "part" },
+};
+
+export const PRICES = {
+  upgrades: { mag: [240], pack: [480], heart: [650] },
+  ammo8: 24,
+  smoothie: 36,
+};
+
+type CrateTable = { empty: number; extra: number; items: Record<string, number> };
+export const CRATE_TABLES: Record<CrateTier, CrateTable> = {
+  wood: {
+    empty: 0.12, extra: 0.25,
+    items: { banana: 0.23, coconut: 0.17, vine_rope: 0.14, plank: 0.11, spring: 0.08, old_gear: 0.05, honey_pot: 0.03, smoothie: 0.04, ammo45: 0.15 },
+  },
+  green: {
+    empty: 0.04, extra: 0.55,
+    items: { banana: 0.07, coconut: 0.07, vine_rope: 0.10, spring: 0.08, old_gear: 0.14, honey_pot: 0.15, sunset_mango: 0.12, brass_compass: 0.07, smoothie: 0.06, ammo45: 0.12, golden_banana: 0.02 },
+  },
+  gold: {
+    empty: 0, extra: 1,
+    items: { old_gear: 0.05, honey_pot: 0.08, sunset_mango: 0.22, brass_compass: 0.29, golden_banana: 0.20, banana_idol: 0.04, smoothie: 0.07, ammo45: 0.05 },
+  },
+};
+const SLEEPER_POOL = { sunset_mango: 0.10, brass_compass: 0.17, golden_banana: 0.42, banana_idol: 0.28, smoothie: 0.03 };
+
+export function mulberry32(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let value = Math.imul(state ^ state >>> 15, state | 1);
+    value ^= value + Math.imul(value ^ value >>> 7, value | 61);
+    return ((value ^ value >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+export function isUseful(id: string, ctx: RaidLootCtx): boolean {
+  const item = ITEMS[id];
+  return Boolean(item && (item.kind !== "sell" || item.value >= 39 || ctx.orderNeeds.includes(id)));
+}
+
+function draw(pool: Record<string, number>, ctx: RaidLootCtx, rng: () => number): string {
+  const entries = Object.entries(pool).sort(([left], [right]) => left.localeCompare(right));
+  const weight = (id: string, probability: number) => probability * (ctx.orderNeeds.includes(id) ? 1.2 : 1);
+  let remaining = rng() * entries.reduce((sum, [id, probability]) => sum + weight(id, probability), 0);
+  for (const [id, probability] of entries) {
+    remaining -= weight(id, probability);
+    if (remaining < 0) return id;
+  }
+  return entries[entries.length - 1][0];
+}
+
+function randomContents(tier: CrateTier, ctx: RaidLootCtx, rng: () => number, epic = false): string[] {
+  const table = CRATE_TABLES[tier];
+  if (rng() < table.empty && ctx.emptyStreak === 0) return [];
+  const pool = epic ? SLEEPER_POOL : table.items;
+  const found = [draw(pool, ctx, rng)];
+  if (rng() < table.extra) found.push(draw(pool, ctx, rng));
+  return found;
+}
+
+function record(found: string[], ctx: LootContext): string[] {
+  return found.map(id => {
+    if (id === "ammo45") {
+      if (ctx.ammoFound >= 16) id = "banana";
+      else ctx.ammoFound += ITEMS.ammo45.stack!;
+    }
+    if (isUseful(id, ctx)) ctx.usefulFound++;
+    return id;
+  });
+}
+
+export function rollCrate(tier: CrateTier, ctx: LootContext, rng: () => number): string[] {
+  const special = ctx.fixed === "key" || ctx.fixed === "vault" || ctx.fixed === "sleeper";
+  const found = randomContents(special ? "gold" : tier, ctx, rng, ctx.fixed === "sleeper");
+  if (ctx.fixed === "key") found.unshift("vine_key");
+  if (ctx.fixed === "vault" && !ctx.ownsExtendedMag) {
+    found.unshift("extended_mag");
+    ctx.ownsExtendedMag = true;
+  }
+  if (ctx.cratesOpened >= 3 && ctx.usefulFound === 0 && !found.some(id => isUseful(id, ctx))) found.push("smoothie");
+  if (ctx.cratesOpened >= 7 && ctx.ammoFound < 8 && !found.includes("ammo45")) found.push("ammo45");
+  const result = record(found, ctx);
+  ctx.cratesOpened++;
+  ctx.emptyStreak = result.length ? 0 : ctx.emptyStreak + 1;
+  return result;
+}
+
+export function rollEnemyDrop(kind: EnemyStyle["kind"], ctx: LootContext, rng: () => number): string[] {
+  let found: string[];
+  switch (kind) {
+    case "wild":
+      found = rng() < 0.35 ? ["banana"] : [];
+      if (rng() < 0.16) found.push("ammo45");
+      break;
+    case "bandit":
+      found = ctx.carried ? ctx.carried.filter(id => ITEMS[id]?.kind === "sell") : [draw({ banana: 0.25, coconut: 0.20, vine_rope: 0.30, old_gear: 0.25 }, ctx, rng)];
+      if (rng() < 0.18) found.push("ammo45");
+      break;
+    case "brute":
+      found = randomContents("green", ctx, rng);
+      break;
+    case "sleeper":
+      found = ["banana_idol", ...randomContents("gold", ctx, rng)];
+      break;
+  }
+  return record(found, ctx);
+}
