@@ -23,7 +23,7 @@ ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; stage.scene.add(g
 
 function parseGear(s: string | null): Gear {
   if (s === null) return { ...DEFAULT_GEAR };
-  const g: Gear = { head: null, face: null, back: null };
+  const g: Gear = { head: null, face: null, body: null, back: null, ears: null };
   for (const id of s.split(",")) { const w = WEARABLES.find((x) => x.id === id); if (w) g[w.slot] = w.id; }
   return g;
 }
@@ -48,7 +48,7 @@ const look = (QS.get("look") && decodeLook(QS.get("look")!)) || LOOK_PRESETS[num
 const armed = (QS.get("armed") ?? (kind === "player" ? (action === "melee" ? "briefcase" : "pistol") : "none")) as RigState["armed"];
 let focus = new THREE.Vector3(0, 1.0, 0);
 if (view === "lineup") {
-  const gears: Gear[] = [{ ...DEFAULT_GEAR }, { head: "tophat", face: "monocle", back: "bigpack" }, { head: "fedora", face: "aviators", back: "cratepack" }, { head: "crown", face: "heartglasses", back: null }, { head: "hardhat", face: "goggles", back: "bigpack" }, { head: "pith", face: "eyepatch", back: "satchel" }];
+  const gears: Gear[] = [{ ...DEFAULT_GEAR }, { head: "tophat", face: "monocle", body: null, back: "bigpack", ears: null }, { head: "fedora", face: "aviators", body: null, back: "cratepack", ears: null }, { head: "crown", face: "heartglasses", body: null, back: null, ears: null }, { head: "hardhat", face: "goggles", body: null, back: "bigpack", ears: null }, { head: "pith", face: "eyepatch", body: null, back: "satchel", ears: null }];
   LOOK_PRESETS.forEach((p, i) => add("player", 9.8 - i * 1.95, -2.2, { look: p.look, gear: gears[i % gears.length], yaw, armed: i === 0 ? "pistol" : "none" }));
   add("wild", 8.6, 1.2, { seed: 1, yaw }); add("wild", 6.6, 1.2, { seed: 2, yaw }); add("wild", 4.6, 1.2, { seed: 5, yaw });
   add("bandit", 2.2, 1.2, { seed: 1, yaw }); add("bandit", 0.2, 1.2, { seed: 4, yaw }); add("bandit", -1.8, 1.2, { seed: 7, yaw });

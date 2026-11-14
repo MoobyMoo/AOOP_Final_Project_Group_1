@@ -76,7 +76,7 @@ function openCrate(c: Crate) {
   const ctx = G.lootCtx as LootContext; ctx.fixed = c.fixed as LootContext["fixed"]; ctx.ownsExtendedMag = G.save.upgrades.mag > 0 || G.save.fixtures.includes("extended_mag");
   let items = c.fixed === "satchel" ? [...(c.items ?? [])] : rollCrate(c.tier, ctx, G.rng); ctx.fixed = undefined;
   if (c.fixed === "satchel") { G.save.satchel = null; hud.toast("You got your satchel back!"); }
-  if ((c.tier === "gold" && G.rng() < 0.35) || (c.tier === "green" && G.rng() < 0.08)) { const free = WEAR_DROPS.filter((w) => !G.save.wardrobe.includes(w)); if (free.length) items.push(free[Math.floor(G.rng() * free.length)]); }
+  if ((c.tier === "gold" && G.rng() < 0.35) || (c.tier === "green" && G.rng() < 0.08)) { const free = WEAR_DROPS.filter((w) => !G.save.locker.includes(w)); if (free.length) items.push(free[Math.floor(G.rng() * free.length)]); }
   c.items = items;
   sfx("crate"); squashOpen(c);
   if (!items.length) { floatText("empty... 🕸️", V(c.x, c.z, 1.6), "#8a7d6a", 22); return; }
@@ -112,7 +112,7 @@ function collect(p: Pickup): boolean {
   const d = itemDef(p.item);
   if (d.kind === "ammo") { const n = p.n ?? d.stack ?? 8; G.ammo += n; sfx("pick"); floatText(`+${n} rounds`, G.pp.clone().setY(2.4), "#ffcf6a", 20); hud.ammo(); return true; }
   if (d.kind === "wear") { // an exciting find you use on the spot (advisor round 1); kept even on a bonk-out
-    const w = WEARABLES.find((q) => q.id === p.item); if (!G.save.wardrobe.includes(p.item)) G.save.wardrobe.push(p.item);
+    const w = WEARABLES.find((q) => q.id === p.item); if (!G.save.locker.includes(p.item)) G.save.locker.push(p.item);
     if (w) { G.gear = { ...G.gear, [w.slot]: w.id }; G.rig.setGear?.(G.gear); }
     sfx("rare"); hud.banner(`New look: ${d.name}!`); return true;
   }

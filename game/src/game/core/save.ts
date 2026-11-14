@@ -17,7 +17,7 @@ const choice = <Value extends string>(value: unknown, fallback: Value, choices: 
 function fresh(): SaveV1 {
   return {
     v: 1, createdAt: new Date().toISOString(), raids: 0, money: 0, ammo: KINGPIN.startAmmo,
-    look: structuredClone(DEFAULT_LOOK), lookDone: false, gear: { ...DEFAULT_GEAR }, wardrobe: [DEFAULT_GEAR.head!, DEFAULT_GEAR.face!, DEFAULT_GEAR.back!], satchel: null,
+    look: structuredClone(DEFAULT_LOOK), lookDone: false, gear: { ...DEFAULT_GEAR }, locker: [DEFAULT_GEAR.head!, DEFAULT_GEAR.face!, DEFAULT_GEAR.back!], satchel: null,
     upgrades: { mag: 0, pack: 0, heart: 0 }, keys: [], trophies: [], reserved: [], order: null,
     fixtures: [], salMovedIn: false, stats: { bonkOuts: 0, extracts: 0, best: 0 },
   };
@@ -45,12 +45,12 @@ function look(value: unknown): MonkeyLook {
 }
 
 /** gear slots hold a known wearable id for that slot, or null; anything else falls back to the default */
-function gear(value: unknown, wardrobe: string[]): Gear {
+function gear(value: unknown, locker: string[]): Gear {
   const raw = object(value), out: Gear = { ...DEFAULT_GEAR };
-  for (const slot of ["head", "face", "back"] as const) {
+  for (const slot of ["head", "face", "body", "back", "ears"] as const) {
     const id = raw[slot];
-    if (id === null && slot !== "back") out[slot] = null;
-    else if (typeof id === "string" && WEARABLES.some((w) => w.id === id && w.slot === slot) && wardrobe.includes(id)) out[slot] = id;
+    if (id === null && slot !== "back") out[slot] = null; // (body/ears default to null too)
+    else if (typeof id === "string" && WEARABLES.some((w) => w.id === id && w.slot === slot) && locker.includes(id)) out[slot] = id;
   }
   return out;
 }
@@ -64,12 +64,12 @@ export function migrate(value: unknown): SaveV1 {
     const raw = object(value);
     if (raw.v !== undefined && raw.v !== 0 && raw.v !== 1) return defaults;
     const upgrades = object(raw.upgrades), stats = object(raw.stats), order = object(raw.order);
-    const wardrobe = [...new Set([...defaults.wardrobe, ...strings(raw.wardrobe).filter((id) => WEARABLES.some((w) => w.id === id))])];
+    const locker = [...new Set([...defaults.locker, ...strings(raw.locker ?? raw.wardrobe).filter((id) => WEARABLES.some((w) => w.id === id))])]; // interim: owned ids (Sol G1-23 makes these instances)
     return {
       v: 1,
       createdAt: typeof raw.createdAt === "string" && Number.isFinite(Date.parse(raw.createdAt)) ? raw.createdAt : defaults.createdAt,
       raids: integer(raw.raids, defaults.raids), money: integer(raw.money, defaults.money), ammo: integer(raw.ammo, defaults.ammo),
-      look: look(raw.look), lookDone: boolean(raw.lookDone, defaults.lookDone), gear: gear(raw.gear, wardrobe), wardrobe, satchel: satchel(raw.satchel),
+      look: look(raw.look), lookDone: boolean(raw.lookDone, defaults.lookDone), gear: gear(raw.gear, locker), locker, satchel: satchel(raw.satchel),
       upgrades: {
         mag: integer(upgrades.mag, 0, PRICES.upgrades.mag.length),
         pack: integer(upgrades.pack, 0, PRICES.upgrades.pack.length),

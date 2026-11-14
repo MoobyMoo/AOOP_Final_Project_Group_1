@@ -38,7 +38,7 @@ const bad = migrate({
   upgrades: { mag: 1, pack: 900, heart: 0.5 }, keys: ["vine_key", null, 3, "vine_key"], trophies: false,
   reserved: ["vine_rope"], salMovedIn: true, fixtures: ["lamp"],
   look: { headSize: Infinity, ears: { style: "triangle", size: 8 }, brows: { style: "thin", tilt: -0.5 }, tie: { style: "bowtie", color: "red" }, tail: { curl: 2 } },
-  gear: { head: "crown", face: "nope", back: "satchel" }, wardrobe: ["crown", 5], satchel: { items: ["golden", 3], x: 4, z: "x" },
+  gear: { head: "crown", face: "nope", back: "satchel" }, locker: ["crown", 5], satchel: { items: ["golden", 3], x: 4, z: "x" },
   stats: { bonkOuts: -5, extracts: 3, best: "9" },
   order: { id: "sal", progress: { vine_rope: 2, old_gear: "3", bad: -2 }, done: "yes" },
 });
@@ -50,7 +50,7 @@ equal(bad.reserved, ["vine_rope"], "valid sibling list retained");
 assert(bad.look.headSize === DEFAULT_LOOK.headSize && bad.look.ears.size === DEFAULT_LOOK.ears.size, "invalid look numbers default");
 assert(bad.look.ears.style === DEFAULT_LOOK.ears.style && bad.look.tie.color === DEFAULT_LOOK.tie.color, "invalid enum/color defaults");
 assert(bad.look.tie.style === "bowtie" && bad.look.brows.tilt === -0.5 && bad.look.brows.style === "thin", "valid look siblings survive");
-assert(bad.gear.head === "crown" && bad.gear.face === "shades" && bad.wardrobe.includes("crown") && bad.satchel === null, "gear, wardrobe and satchel validated");
+assert(bad.gear.head === "crown" && bad.gear.face === "shades" && bad.locker.includes("crown") && bad.satchel === null, "gear, wardrobe and satchel validated");
 equal(bad.stats, { bonkOuts: 0, extracts: 3, best: 0 }, "stats validated field by field");
 equal(bad.order, { id: "sal", progress: { vine_rope: 2 }, done: false }, "order progress sanitized");
 assert(migrate({ order: { id: false } }).order === null, "invalid order id rejected");

@@ -17,7 +17,7 @@ export const WEARABLES: Wearable[] = [
   { id: "banditmask", slot: "face", name: "Bandit Mask", rarity: "uncommon", hidesBrows: true },
   { id: "satchel", slot: "back", name: "Satchel", rarity: "common" }, { id: "bigpack", slot: "back", name: "Big Backpack", rarity: "uncommon" }, { id: "cratepack", slot: "back", name: "Banana Crate Pack", rarity: "rare" },
 ];
-export const DEFAULT_GEAR: Gear = { head: "bowler", face: "shades", back: "satchel" };
+export const DEFAULT_GEAR: Gear = { head: "bowler", face: "shades", body: null, back: "satchel", ears: null }; // G1-23: body = the bound suit item once loot/equipment.ts lands
 /** recolourable zones of each wearable: main + accent map to palette regions (creator: LookExt.gear[slot].main / .accent) */
 export const WEAR_ZONES: Record<string, { main: Region; accent?: Region }> = {
   bowler: { main: "hat", accent: "band" }, tophat: { main: "hat", accent: "red" }, fedora: { main: "khaki", accent: "dark" }, cap: { main: "blue", accent: "banana" },
