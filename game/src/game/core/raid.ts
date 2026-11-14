@@ -46,7 +46,7 @@ export function startRaid(end: (r: RaidResult) => void) {
   buildProps(raidScene);
   // player
   if (!G.rig) { G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); }
-  G.rig.setLook?.(G.save.look); G.gear = { ...G.save.gear }; restoreBoundKit(); G.rig.setGear?.(visualGear(G.gear));
+  G.rig.setLook?.(G.save.look); G.gear = { ...G.save.gear }; restoreBoundKit(); G.rig.setGear?.(G.gear);
   raidScene.add(G.rig.root);
   G.pp = G.rig.root.position; G.pp.set(POI.hatch.x + 2.5, 0, POI.hatch.z - 4.5); // spawn just outside the hatch ring G.pp.y = groundHeight(G.pp.x, G.pp.z);
   G.vel.set(0, 0, 0); G.moveYaw = Math.PI; G.aimYaw = Math.PI;

@@ -28,7 +28,7 @@ export function spawnEnemies(set: number) {
     const plan = s.kind === "brute" || s.kind === "sleeper" ? "gorilla" : "monkey";
     const gearSeed = G.seed ^ Math.imul(index + 1, 7), gear = enemyGear(gearSeed, s.kind);
     const rig = createRig(plan, { kind: s.kind, seed: gearSeed });
-    rig.setGear?.(visualGear(gear));
+    rig.setGear?.(gear);
     const st = ENEMY[s.kind];
     const e: Enemy = { id: nextId++, kind: s.kind, rig, p: V(s.x, s.z), vel: new THREE.Vector3(), face: G.rng() * 6.28, hp: st.hp, max: st.hp,
       state: s.kind === "sleeper" ? "sleep" : "patrol", t: G.rng() * 2, actionT: 0, home: V(s.x, s.z), group: s.group, tag: s.tag, path: [], repath: 0, flash: 0,

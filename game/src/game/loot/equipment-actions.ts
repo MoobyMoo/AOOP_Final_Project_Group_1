@@ -17,7 +17,7 @@ function returnBound(inst: string) {
 export function refreshEquipment() {
   const gear = currentGear();
   G.packSlots = capacity(gear);
-  G.rig?.setGear?.(visualGear(gear));
+  G.rig?.setGear?.(gear); // raw instances everywhere: the rig strips "#dur" and dulls broken pieces
 }
 export function drainEquipmentEvents() { return G.equipmentEvents.splice(0); }
 export function interruptEquip() {
