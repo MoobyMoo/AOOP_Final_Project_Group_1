@@ -6,5 +6,7 @@ research/refs/**/*.mp4
 spikes/**/*.png
 .playwright-mcp/
 concept/tripo/**/attempts/
-tools/blender/build/
 __pycache__/
+# generated .blend files (character builds write tools/blender/build/*.blend; the kit writes build/blend/)
+tools/blender/build/*.blend
+tools/blender/build/blend/

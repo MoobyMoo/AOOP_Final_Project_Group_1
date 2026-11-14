@@ -1,0 +1,136 @@
+{
+ "group": "loot",
+ "glb_bytes": 532508,
+ "assets": {
+  "crate_wood": {
+   "tris": 1516,
+   "parts": [
+    "lid"
+   ],
+   "points": [],
+   "footprint": 0.7,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": false,
+   "glow": 1.8
+  },
+  "crate_wood_b": {
+   "tris": 1516,
+   "parts": [
+    "lid"
+   ],
+   "points": [],
+   "footprint": 0.7,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": false,
+   "glow": 1.8
+  },
+  "crate_green": {
+   "tris": 1900,
+   "parts": [
+    "lid"
+   ],
+   "points": [],
+   "footprint": 0.75,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": false,
+   "glow": 1.8
+  },
+  "crate_gold": {
+   "tris": 1654,
+   "parts": [
+    "lid"
+   ],
+   "points": [
+    "glint"
+   ],
+   "footprint": 0.72,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": false,
+   "glow": 1.8
+  },
+  "barrel_wood": {
+   "tris": 650,
+   "parts": [],
+   "points": [],
+   "footprint": 0.5,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": false,
+   "glow": 1.8
+  },
+  "barrel_rust": {
+   "tris": 432,
+   "parts": [],
+   "points": [],
+   "footprint": 0.5,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": false,
+   "glow": 1.8
+  },
+  "barrel_teal": {
+   "tris": 432,
+   "parts": [],
+   "points": [],
+   "footprint": 0.5,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": false,
+   "glow": 1.8
+  },
+  "sack": {
+   "tris": 198,
+   "parts": [],
+   "points": [],
+   "footprint": 0.45,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "sack_pile": {
+   "tris": 760,
+   "parts": [],
+   "points": [],
+   "footprint": 0.8,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "banana_stash": {
+   "tris": 1766,
+   "parts": [],
+   "points": [],
+   "footprint": 0.6,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "ammo_box": {
+   "tris": 323,
+   "parts": [],
+   "points": [],
+   "footprint": 0.4,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "satchel": {
+   "tris": 582,
+   "parts": [],
+   "points": [],
+   "footprint": 0.4,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  }
+ }
+}

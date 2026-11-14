@@ -1,0 +1,104 @@
+{
+ "group": "landmarks",
+ "glb_bytes": 946796,
+ "assets": {
+  "ferry": {
+   "tris": 6218,
+   "parts": [],
+   "points": [
+    "smoke"
+   ],
+   "footprint": 5.0,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.8
+  },
+  "bomber": {
+   "tris": 3445,
+   "parts": [
+    "prop_l",
+    "prop_r"
+   ],
+   "points": [
+    "loot"
+   ],
+   "footprint": 1.3,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": false,
+   "glow": 1.8
+  },
+  "vat": {
+   "tris": 3674,
+   "parts": [
+    "puddle"
+   ],
+   "points": [
+    "pour"
+   ],
+   "footprint": 1.95,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.8
+  },
+  "tractor": {
+   "tris": 3718,
+   "parts": [],
+   "points": [],
+   "footprint": 1.5,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": false,
+   "glow": 1.8
+  },
+  "audit": {
+   "tris": 458,
+   "parts": [],
+   "points": [],
+   "footprint": 0.2,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "falls": {
+   "tris": 3138,
+   "parts": [
+    "water"
+   ],
+   "points": [
+    "foam",
+    "nook"
+   ],
+   "footprint": 2.6,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  },
+  "bottle": {
+   "tris": 296,
+   "parts": [],
+   "points": [
+    "note"
+   ],
+   "footprint": 0.3,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "lemon_stand": {
+   "tris": 1199,
+   "parts": [],
+   "points": [],
+   "footprint": 0.6,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  }
+ }
+}

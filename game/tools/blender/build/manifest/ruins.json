@@ -1,0 +1,162 @@
+{
+ "group": "ruins",
+ "glb_bytes": 1009404,
+ "assets": {
+  "ruin_floor_a": {
+   "tris": 728,
+   "parts": [],
+   "points": [],
+   "footprint": 0.1,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "ruin_floor_b": {
+   "tris": 1216,
+   "parts": [],
+   "points": [],
+   "footprint": 0.1,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "ruin_floor_c": {
+   "tris": 520,
+   "parts": [],
+   "points": [],
+   "footprint": 0.1,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "ruin_steps": {
+   "tris": 440,
+   "parts": [],
+   "points": [],
+   "footprint": 1.0,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "pillar_a": {
+   "tris": 532,
+   "parts": [],
+   "points": [],
+   "footprint": 0.65,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.8
+  },
+  "pillar_b": {
+   "tris": 412,
+   "parts": [],
+   "points": [],
+   "footprint": 0.65,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.8
+  },
+  "pillar_c": {
+   "tris": 1052,
+   "parts": [],
+   "points": [],
+   "footprint": 0.65,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": false,
+   "glow": 1.8
+  },
+  "ruin_wall_broken": {
+   "tris": 1384,
+   "parts": [],
+   "points": [],
+   "footprint": 0.6,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.8
+  },
+  "ruin_arch": {
+   "tris": 1200,
+   "parts": [],
+   "points": [],
+   "footprint": 0.6,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  },
+  "vine_door": {
+   "tris": 3214,
+   "parts": [
+    "leaf"
+   ],
+   "points": [
+    "keyhole"
+   ],
+   "footprint": 2.2,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.6
+  },
+  "vault": {
+   "tris": 7876,
+   "parts": [],
+   "points": [
+    "crate",
+    "light0",
+    "light1"
+   ],
+   "footprint": 4.5,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 2.2
+  },
+  "vault_plinth": {
+   "tris": 132,
+   "parts": [],
+   "points": [
+    "crate"
+   ],
+   "footprint": 1.1,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "fusebox": {
+   "tris": 1332,
+   "parts": [
+    "lever"
+   ],
+   "points": [
+    "spark"
+   ],
+   "footprint": 0.5,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 2.4
+  },
+  "statue": {
+   "tris": 2410,
+   "parts": [],
+   "points": [
+    "glint"
+   ],
+   "footprint": 0.9,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 2.0
+  }
+ }
+}

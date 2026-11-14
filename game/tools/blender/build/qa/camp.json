@@ -1,0 +1,174 @@
+{
+ "group": "camp",
+ "assets": {
+  "bedroll_a": {
+   "pass": true,
+   "tris": 288,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.022 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.022
+  },
+  "bedroll_b": {
+   "pass": true,
+   "tris": 312,
+   "errors": [],
+   "warnings": [],
+   "ground_z": -0.01
+  },
+  "campfire": {
+   "pass": true,
+   "tris": 1418,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.03 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.03
+  },
+  "fence_a": {
+   "pass": true,
+   "tris": 800,
+   "errors": [],
+   "warnings": [
+    "fence_a__matte: duplicate verts=32 loose verts=0",
+    "asset lowest point z=-0.0507 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0507
+  },
+  "fence_b": {
+   "pass": true,
+   "tris": 848,
+   "errors": [],
+   "warnings": [
+    "fence_b__matte: duplicate verts=32 loose verts=0",
+    "asset lowest point z=-0.051 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.051
+  },
+  "gate": {
+   "pass": true,
+   "tris": 956,
+   "errors": [],
+   "warnings": [
+    "gate__matte: duplicate verts=32 loose verts=0",
+    "asset lowest point z=-0.05 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.05
+  },
+  "lantern": {
+   "pass": true,
+   "tris": 352,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "lantern_post": {
+   "pass": true,
+   "tris": 788,
+   "errors": [],
+   "warnings": [
+    "lantern_post__matte: duplicate verts=16 loose verts=0",
+    "asset lowest point z=-0.0226 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0226
+  },
+  "log_bench": {
+   "pass": true,
+   "tris": 260,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.04 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.04
+  },
+  "log_bench_b": {
+   "pass": true,
+   "tris": 260,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.04 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.04
+  },
+  "signpost_a": {
+   "pass": true,
+   "tris": 552,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: signpost_a__matte (1 pairs) - delete to save tris",
+    "asset lowest point z=-0.051 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.051
+  },
+  "signpost_key": {
+   "pass": true,
+   "tris": 446,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: signpost_key__matte (1 pairs) - delete to save tris",
+    "asset lowest point z=-0.051 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.051
+  },
+  "signpost_raft": {
+   "pass": true,
+   "tris": 525,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: signpost_raft__matte (1 pairs) - delete to save tris",
+    "asset lowest point z=-0.051 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.051
+  },
+  "tarp": {
+   "pass": true,
+   "tris": 1144,
+   "errors": [],
+   "warnings": [
+    "tarp__matte: duplicate verts=64 loose verts=0",
+    "asset lowest point z=-0.0267 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0267
+  },
+  "tent_a": {
+   "pass": true,
+   "tris": 684,
+   "errors": [],
+   "warnings": [
+    "tent_a__matte: duplicate verts=6 loose verts=0",
+    "asset lowest point z=-0.0301 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0301
+  },
+  "tent_b": {
+   "pass": true,
+   "tris": 800,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.0249 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0249
+  },
+  "watchtower": {
+   "pass": true,
+   "tris": 2288,
+   "errors": [],
+   "warnings": [
+    "watchtower__matte: duplicate verts=6 loose verts=0",
+    "asset lowest point z=-0.1148 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.1148
+  },
+  "well": {
+   "pass": true,
+   "tris": 1913,
+   "errors": [],
+   "warnings": [
+    "well__matte: duplicate verts=5 loose verts=0",
+    "asset lowest point z=-0.0501 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0501
+  }
+ }
+}

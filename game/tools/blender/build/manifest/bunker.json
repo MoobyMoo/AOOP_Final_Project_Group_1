@@ -1,0 +1,189 @@
+{
+ "group": "bunker",
+ "glb_bytes": 1147108,
+ "assets": {
+  "bunker_room": {
+   "tris": 9712,
+   "parts": [],
+   "points": [
+    "sal",
+    "spawn"
+   ],
+   "footprint": 8,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "bunker_counter": {
+   "tris": 1877,
+   "parts": [
+    "bell"
+   ],
+   "points": [
+    "counter"
+   ],
+   "footprint": 1.6,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 2.0
+  },
+  "bunker_workbench": {
+   "tris": 1712,
+   "parts": [],
+   "points": [
+    "light"
+   ],
+   "footprint": 1.4,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 2.2
+  },
+  "bunker_pinboard": {
+   "tris": 500,
+   "parts": [],
+   "points": [
+    "read"
+   ],
+   "footprint": 0.3,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "bunker_mirror": {
+   "tris": 900,
+   "parts": [
+    "glass"
+   ],
+   "points": [
+    "stand"
+   ],
+   "footprint": 0.7,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "bunker_ladder": {
+   "tris": 824,
+   "parts": [],
+   "points": [
+    "climb",
+    "light"
+   ],
+   "footprint": 0.5,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 2.0
+  },
+  "bunker_cot": {
+   "tris": 668,
+   "parts": [],
+   "points": [],
+   "footprint": 1.0,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "bunker_desk": {
+   "tris": 2338,
+   "parts": [],
+   "points": [
+    "light"
+   ],
+   "footprint": 1.2,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 2.2
+  },
+  "bunker_shelf": {
+   "tris": 322,
+   "parts": [],
+   "points": [
+    "slot0",
+    "slot1",
+    "slot2",
+    "slot3",
+    "slot4",
+    "slot5",
+    "slot6",
+    "slot7",
+    "slot8"
+   ],
+   "footprint": 0.5,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "bunker_lights": {
+   "tris": 900,
+   "parts": [
+    "bulbs"
+   ],
+   "points": [
+    "light0",
+    "light1",
+    "light2",
+    "light3",
+    "light4",
+    "light5",
+    "light6",
+    "light7"
+   ],
+   "footprint": 0.1,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 2.4
+  },
+  "bunker_fx_mag": {
+   "tris": 780,
+   "parts": [],
+   "points": [],
+   "footprint": 0.2,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "bunker_fx_pack": {
+   "tris": 634,
+   "parts": [],
+   "points": [],
+   "footprint": 0.2,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "bunker_fx_heart": {
+   "tris": 1714,
+   "parts": [],
+   "points": [],
+   "footprint": 0.9,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "bunker_fx_neon": {
+   "tris": 812,
+   "parts": [],
+   "points": [
+    "light"
+   ],
+   "footprint": 0.2,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 2.6
+  }
+ }
+}

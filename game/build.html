@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bananaville: structures + landmarks kit review</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #d9cfa8; font-family: "Trebuchet MS", system-ui, sans-serif; }
+      canvas { display: block; width: 100vw; height: 100vh; }
+      #tag { position: fixed; left: 14px; top: 10px; color: #fff8ec; text-shadow: 0 2px 3px #0009; font-size: 15px; pointer-events: none; }
+      #tag b { font-size: 20px; }
+      #nav { position: fixed; right: 14px; top: 10px; display: flex; gap: 6px; }
+      #nav a { color: #fff8ec; background: #1d1a22aa; padding: 4px 10px; border-radius: 999px; text-decoration: none; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div id="tag"></div>
+    <div id="nav"></div>
+    <script type="module" src="/src/game/world/build_review.ts"></script>
+  </body>
+</html>
