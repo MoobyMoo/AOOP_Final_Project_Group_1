@@ -1,33 +1,24 @@
-// The Kingpin .45: the Businessman's sidearm (fictional; no real make or model). Code-built, three draw calls.
-// Chunky two-tone pistol: dark gunmetal slide, lighter frame, ivory grips with a gold banana, gold trigger guard,
-// pinstripe and sights. Grip at the origin, barrel along +z, ejection port on +x (the handR side, away from the body).
-// GunView.pose() is a pure function of {fireT, reloadT}; GunFx is pooled (no allocation after createGunFx).
+// The Kingpin .45: the Businessman's sidearm (fictional; no real make or model).
+// The model and its fire/reload motion are authored in Blender by tools/blender/kingpin/build_kingpin.py and shipped as
+// public/models/kingpin45.glb: nodes body > { frame, slide, hammer, trigger, mag, mag_ext, muzzle, eject }, clips "fire"
+// and "reload" baked at 100 fps. Grip at the origin, barrel along +z, ejection port on +x (the handR side).
+// preloadKingpin() loads the file once (await it at boot); createKingpin() is synchronous after that.
+// Two draw calls per gun: frame + slide + hammer + trigger are merged into one rigidly skinned mesh (one bone per
+// moving part) and the magazine is its own mesh (it swaps geometry and dissolves when dropped).
+// GunView.pose() samples the clips by normalised time, so it is still a pure function of {fireT, reloadT} and gameplay
+// owns the clock. No allocation after createKingpin(). GunFx is pooled (no allocation after createGunFx).
 // FX sources: research/look/FINDINGS.md VFX row (punchy flash, ejected brass, bright tracers, directional impact
 // bursts) and research/duckov-re/CODE_FINDINGS.md 2.5 (flash-class feedback fades in 56-125 ms).
 import * as THREE from "three";
-import { mergeGeometries, toCreasedNormals } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { GunView, GunFx } from "../contracts";
-import { patch, surf } from "../render/shading";
+import { patch, surf, TOON } from "../render/shading";
 
-// ------------------------------------------------------------------------------------------------ palette
-const GUNMETAL = "#2c303d", FRAME = "#525a70", DARK = "#15161c", STEEL = "#b9c0cc", GOLD = "#f5b72e", IVORY = "#f6ead0";
-const BANANA = "#ffd83d", BRASS = "#f0b548", RIB = "#454b5e";
+const BRASS = "#f0b548";
+const KINGPIN_URL = `${import.meta.env.BASE_URL}models/kingpin45.glb`;
 
-// ------------------------------------------------------------------------------------------------ geometry helpers
-type P = [z: number, y: number, r?: number];
-/** closed side profile in the (z, y) plane with rounded corners */
-function outline(pts: P[]): THREE.Shape {
-  const n = pts.length, sh = new THREE.Shape(), a: number[][] = [], b: number[][] = [];
-  for (let i = 0; i < n; i++) {
-    const p0 = pts[(i + n - 1) % n], p1 = pts[i], p2 = pts[(i + 1) % n];
-    const l0 = Math.hypot(p0[0] - p1[0], p0[1] - p1[1]), l2 = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]), r = Math.min(p1[2] ?? 0, l0 * 0.45, l2 * 0.45);
-    a.push([p1[0] + (p0[0] - p1[0]) / l0 * r, p1[1] + (p0[1] - p1[1]) / l0 * r]);
-    b.push([p1[0] + (p2[0] - p1[0]) / l2 * r, p1[1] + (p2[1] - p1[1]) / l2 * r]);
-  }
-  sh.moveTo(b[0][0], b[0][1]);
-  for (let k = 1; k <= n; k++) { const i = k % n; sh.lineTo(a[i][0], a[i][1]); if ((pts[i][2] ?? 0) > 0) sh.quadraticCurveTo(pts[i][0], pts[i][1], b[i][0], b[i][1]); }
-  return sh;
-}
+// ------------------------------------------------------------------------------------------------ geometry helpers (brass)
 /** paint a geometry one colour (vertex colours), non-indexed, no uv, so every part merges into one buffer */
 function tint(g: THREE.BufferGeometry, hex: string): THREE.BufferGeometry {
   const gg = g.index ? g.toNonIndexed() : g; gg.deleteAttribute("uv");
@@ -35,90 +26,60 @@ function tint(g: THREE.BufferGeometry, hex: string): THREE.BufferGeometry {
   for (let i = 0; i < n; i++) { arr[i * 3] = c.r; arr[i * 3 + 1] = c.g; arr[i * 3 + 2] = c.b; }
   gg.setAttribute("color", new THREE.BufferAttribute(arr, 3)); return gg;
 }
-/** a profile extruded across x (centred), with chamfered edges; `holes` cut through */
-function slab(hex: string, pts: P[], width: number, bevel: number, holes: P[][] = [], crease = 0.36): THREE.BufferGeometry {
-  const sh = outline(pts); for (const h of holes) sh.holes.push(outline(h));
-  const depth = width - bevel * 2;
-  const g = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelOffset: -bevel, bevelSegments: 2, curveSegments: 5 });
-  g.translate(0, 0, -depth / 2); g.rotateY(-Math.PI / 2); // shape x -> +z, extrusion -> x
-  return tint(toCreasedNormals(g, crease), hex);
-}
-function box(hex: string, w: number, h: number, d: number, x: number, y: number, z: number, rx = 0): THREE.BufferGeometry {
-  const g = new THREE.BoxGeometry(w, h, d); if (rx) g.rotateX(rx); g.translate(x, y, z); return tint(g, hex);
-}
-/** cylinder along z (or along x with `across`) */
-function rod(hex: string, r: number, len: number, x: number, y: number, z: number, seg = 12, across = false): THREE.BufferGeometry {
-  const g = new THREE.CylinderGeometry(r, r, len, seg); if (across) g.rotateZ(Math.PI / 2); else g.rotateX(Math.PI / 2);
-  g.translate(x, y, z); return tint(g, hex);
+/** cylinder along z */
+function rod(hex: string, r: number, len: number, x: number, y: number, z: number, seg = 12): THREE.BufferGeometry {
+  const g = new THREE.CylinderGeometry(r, r, len, seg); g.rotateX(Math.PI / 2); g.translate(x, y, z); return tint(g, hex);
 }
 const merged = (parts: THREE.BufferGeometry[]) => { const g = mergeGeometries(parts, false)!; for (const p of parts) p.dispose(); g.computeBoundingSphere(); return g; };
 
-// ------------------------------------------------------------------------------------------------ the model
-const SLIDE_W = 0.19, FRAME_W = 0.16;
-const RAKE = 0.1529;                                   // grip rake: z change per unit y
-const MAG_AXIS = new THREE.Vector3(0, -1, -RAKE).normalize(); // the way a magazine leaves the grip
-
-function slideGeo() {
-  const g: THREE.BufferGeometry[] = [];
-  g.push(slab(GUNMETAL, [[-0.285, 0.215, 0.012], [-0.295, 0.415, 0.045], [0.622, 0.415, 0.025], [0.665, 0.385, 0.015], [0.665, 0.235, 0.02], [0.645, 0.215]], SLIDE_W, 0.026));
-  for (let i = 0; i < 6; i++) g.push(box(RIB, SLIDE_W + 0.014, 0.125, 0.013, 0, 0.317, -0.245 + i * 0.03, 0.2));  // rear cocking ribs
-  g.push(box(GOLD, SLIDE_W + 0.008, 0.015, 0.5, 0, 0.257, 0.33));                                                // the pinstripe, both sides
-  g.push(box(GOLD, 0.026, 0.01, 0.69, 0, 0.4165, 0.175));                                                        // and one down the spine: what the game camera sees
-  g.push(box(DARK, 0.077, 0.087, 0.21, 0.0585, 0.3735, 0.175));                                                  // ejection port
-  g.push(box("#98a1b2", 0.0695, 0.0815, 0.15, 0.06475, 0.37875, 0.19));                                              // polished chamber in the port
-  g.push(box(DARK, 0.135, 0.036, 0.055, 0, 0.431, -0.225));                                                      // rear sight
-  g.push(box(IVORY, 0.03, 0.012, 0.012, -0.04, 0.444, -0.252), box(IVORY, 0.03, 0.012, 0.012, 0.04, 0.444, -0.252));
-  g.push(box(GOLD, 0.036, 0.04, 0.06, 0, 0.433, 0.578));                                                         // front sight
-  g.push(rod(GOLD, 0.058, 0.024, 0, 0.315, 0.668, 14));                                                          // muzzle bushing
-  return merged(g);
-}
-function frameGeo() {
-  const g: THREE.BufferGeometry[] = [];
-  g.push(slab(FRAME, [[-0.265, 0.218], [0.575, 0.218, 0.01], [0.575, 0.125, 0.035], [0.15, 0.125, 0.03], [0.085, -0.3, 0.025], [-0.215, -0.3, 0.035], [-0.15, 0.07, 0.06], [-0.325, 0.15, 0.02], [-0.315, 0.205, 0.02]], FRAME_W, 0.02));
-  g.push(slab(IVORY, [[0.095, 0.04, 0.03], [0.05, -0.255, 0.03], [-0.185, -0.255, 0.03], [-0.135, 0.04, 0.03]], FRAME_W + 0.034, 0.015, [], 0.5)); // grip panels, both sides (softer shading: pillowed)
-  // the gold banana set into each grip panel
-  const ban: P[] = [], cz = -0.045, cy = -0.02, R = 0.105, a0 = 3.6, a1 = 5.82, tilt = -0.3, N = 10;
-  const put = (ang: number, rad: number) => { const x = Math.cos(ang) * rad, y = Math.sin(ang) * rad; ban.push([cz + x * Math.cos(tilt) - y * Math.sin(tilt), cy + x * Math.sin(tilt) + y * Math.cos(tilt)]); };
-  for (let i = 0; i <= N; i++) put(a0 + (a1 - a0) * i / N, R);
-  put(a1 + 0.14, R - 0.004); put(a1 + 0.14, R - 0.018);                                                          // the stem
-  for (let i = N; i >= 0; i--) { const t = i / N; put(a0 + (a1 - a0) * t, R - 0.015 - 0.03 * Math.pow(Math.sin(Math.PI * t), 0.4)); }
-  g.push(slab(GOLD, ban, FRAME_W + 0.05, 0.005, [], 0.9));
-  g.push(slab(GOLD, [[0.12, 0.14], [0.44, 0.14, 0.02], [0.44, -0.09, 0.085], [0.095, -0.09, 0.02]], 0.08, 0.015,
-    [[[0.155, 0.1, 0.02], [0.39, 0.1, 0.03], [0.39, -0.045, 0.06], [0.13, -0.045, 0.02]]]));                      // trigger guard
-  g.push(slab(DARK, [[0.27, 0.115], [0.305, 0.115], [0.277, 0.0, 0.012], [0.239, -0.022, 0.012], [0.253, 0.03, 0.02]], 0.038, 0.006)); // trigger
-  g.push(slab(GOLD, [[-0.272, 0.2], [-0.356, 0.27, 0.02], [-0.348, 0.35, 0.025], [-0.296, 0.34, 0.015], [-0.292, 0.24, 0.01]], 0.06, 0.009)); // hammer, cocked
-  g.push(rod(STEEL, 0.042, 0.55, 0, 0.315, 0.425, 12));                                                          // barrel (stays put when the slide runs back)
-  const bore = new THREE.CircleGeometry(0.024, 12); bore.translate(0, 0.315, 0.7008); g.push(tint(bore, DARK));
-  g.push(rod(DARK, 0.02, 0.2, 0, 0.247, 0.574, 8));                                                              // recoil rod
-  g.push(box(DARK, FRAME_W + 0.014, 0.026, 0.115, 0, 0.186, 0.21));                                              // slide stop
-  g.push(box(GOLD, FRAME_W + 0.014, 0.03, 0.06, 0, 0.186, -0.19));                                               // safety
-  g.push(rod(GOLD, 0.018, FRAME_W + 0.018, 0, 0.078, 0.147, 10, true));                                          // magazine button
-  g.push(box(DARK, 0.104, 0.006, 0.22, 0, -0.2985, -0.065));                                                     // the magazine well, seen when the mag is out
-  return merged(g);
-}
-function magGeo(ext: boolean) {
-  const g: THREE.BufferGeometry[] = [], bottom = ext ? -0.462 : -0.296, dz = (bottom + 0.296) * RAKE;
-  g.push(slab(STEEL, [[0.105, 0.1], [0.045 + dz, bottom], [-0.175 + dz, bottom], [-0.115, 0.1]], 0.105, 0.008));
-  g.push(rod(BRASS, 0.028, 0.125, 0, 0.108, -0.005, 8));                                                         // the top round
-  if (!ext) g.push(slab(GUNMETAL, [[0.1, -0.297, 0.01], [0.09, -0.35, 0.022], [-0.235, -0.35, 0.022], [-0.225, -0.297, 0.01]], 0.168, 0.012));
-  else {
-    for (const y of [-0.335, -0.375, -0.415]) g.push(box(DARK, 0.109, 0.02, 0.028, 0, y, -0.125 + (y + 0.296) * RAKE)); // witness holes
-    g.push(slab(BANANA, [[0.075, -0.455, 0.012], [0.062, -0.535, 0.03], [-0.265, -0.535, 0.03], [-0.252, -0.455, 0.012]], 0.185, 0.017));
+// ------------------------------------------------------------------------------------------------ material
+/** A small studio sky for the gun's metal to reflect (the stage has no environment map, and metal with nothing to
+ *  reflect goes black). Equirect, linear. It is built for contrast, not for light: a bright warm horizon over a cool
+ *  zenith, dark ground below (the dark band is what makes a facet read as metal), a soft key where the stage sun sits
+ *  (elevation 50, azimuth 160) and a cool fill opposite. The renderer prefilters it on first use. */
+let ENV: THREE.DataTexture | null = null;
+function studioEnv(): THREE.DataTexture {
+  if (ENV) return ENV;
+  const W = 64, H = 32, px = new Uint16Array(W * H * 4), d = new THREE.Vector3();
+  const sun = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(40), THREE.MathUtils.degToRad(160));
+  const fill = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(62), THREE.MathUtils.degToRad(340));
+  const hor = [0.95, 0.90, 0.80], zen = [0.22, 0.32, 0.60], sand = [0.26, 0.21, 0.14], nadir = [0.06, 0.05, 0.04];
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    const el = ((j + 0.5) / H - 0.5) * Math.PI, az = ((i + 0.5) / W - 0.5) * 2 * Math.PI, sy = Math.sin(el);
+    d.set(Math.cos(el) * Math.cos(az), sy, Math.cos(el) * Math.sin(az));
+    const from = sy >= 0 ? hor : sand, to = sy >= 0 ? zen : nadir, k = Math.pow(Math.abs(sy), sy >= 0 ? 0.5 : 0.4);
+    const key = 5 * Math.exp(-Math.pow(Math.acos(Math.min(1, d.dot(sun))) / 0.38, 2)), cool = 1.2 * Math.exp(-Math.pow(Math.acos(Math.min(1, d.dot(fill))) / 0.6, 2));
+    const o = (j * W + i) * 4;
+    px[o] = THREE.DataUtils.toHalfFloat(from[0] + (to[0] - from[0]) * k + key + cool * 0.7);
+    px[o + 1] = THREE.DataUtils.toHalfFloat(from[1] + (to[1] - from[1]) * k + key * 0.86 + cool * 0.85);
+    px[o + 2] = THREE.DataUtils.toHalfFloat(from[2] + (to[2] - from[2]) * k + key * 0.62 + cool);
+    px[o + 3] = THREE.DataUtils.toHalfFloat(1);
   }
-  return merged(g);
+  ENV = new THREE.DataTexture(px, W, H, THREE.RGBAFormat, THREE.HalfFloatType);
+  ENV.mapping = THREE.EquirectangularReflectionMapping; ENV.colorSpace = THREE.LinearSRGBColorSpace;
+  ENV.minFilter = ENV.magFilter = THREE.LinearFilter; ENV.needsUpdate = true;
+  return ENV;
 }
+const ENV_I = 1;
 
-/** vertex-coloured gun material in the shared look (rim light + canopy cookie from patch()), plus a little self-fill
- *  so the gold and ivory stay warm when the sun is behind the gun (the monkeys do the same with emissive).
+/** Gun material in the shared look (rim light + canopy cookie from patch()), plus a little self-fill so the gold and
+ *  ivory stay warm when the sun is behind the gun (the monkeys do the same with emissive).
+ *  With `pbr` (the Kingpin): base colour and metal/roughness from the model's palette texture, ambient occlusion in the
+ *  vertex colours, and the studio sky to reflect. Without (the brass): vertex colours only.
  *  Fading parts (the dropped magazine, old brass) dissolve with a screen-door dither, so they stay opaque: no sorting,
  *  no blending state, same program for every gun. "uniform": one fade per material; "attr": one per instance. */
-function gunMat(rough: number, fade: "none" | "uniform" | "attr" = "none") {
-  const m = patch(surf({ color: "#ffffff", vertexColors: true, roughness: rough, metalness: 0 }), { rim: 0.9 });
-  const base = m.onBeforeCompile, key = m.customProgramCacheKey, uFade = { value: 1 };
+function gunMat(rough: number, fade: "none" | "uniform" | "attr" = "none", pbr?: { map: THREE.Texture; orm: THREE.Texture }) {
+  const p: THREE.MeshStandardMaterialParameters = { color: "#ffffff", vertexColors: true, roughness: rough, metalness: 0 };
+  if (pbr) {
+    p.map = pbr.map;
+    if (!TOON) { p.roughnessMap = p.metalnessMap = pbr.orm; p.roughness = p.metalness = 1; p.envMap = studioEnv(); p.envMapIntensity = ENV_I; }
+  }
+  const m = patch(surf(p), { rim: pbr ? 0.55 : 0.9 });
+  const base = m.onBeforeCompile, key = m.customProgramCacheKey, uFade = { value: 1 }, fill = pbr ? "0.12" : "0.2";
   m.userData.uFade = uFade;
   m.onBeforeCompile = (sh, r) => {
     base.call(m, sh, r);
-    sh.fragmentShader = sh.fragmentShader.replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n  totalEmissiveRadiance += diffuseColor.rgb * 0.2;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>\n  totalEmissiveRadiance += diffuseColor.rgb * ${fill};`);
     if (fade === "none") return;
     const DITHER = "\n  if (kpFade < 0.999 && kpFade < fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))))) discard;";
     if (fade === "attr") {
@@ -127,65 +88,130 @@ function gunMat(rough: number, fade: "none" | "uniform" | "attr" = "none") {
     } else { sh.uniforms.kpFade = uFade; sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform float kpFade;"); }
     sh.fragmentShader = sh.fragmentShader.replace("#include <color_fragment>", "#include <color_fragment>" + DITHER);
   };
-  m.customProgramCacheKey = () => key.call(m) + "|kp-" + fade;
+  m.customProgramCacheKey = () => key.call(m) + "|kp-" + fade + fill;
   return m;
 }
-let bodyMat: THREE.Material | null = null, GEO: { slide: THREE.BufferGeometry; frame: THREE.BufferGeometry; mag: THREE.BufferGeometry; magExt: THREE.BufferGeometry } | null = null;
 
 const sstep = (x: number) => { x = x < 0 ? 0 : x > 1 ? 1 : x; return x * x * (3 - 2 * x); };
 const seg = (t: number, a: number, b: number) => { const x = (t - a) / (b - a); return x < 0 ? 0 : x > 1 ? 1 : x; };
-const SLIDE_TRAVEL = 0.12, _q = new THREE.Quaternion(), _down = new THREE.Vector3();
+
+// ------------------------------------------------------------------------------------------------ the asset
+const PARTS = ["body", "slide", "hammer", "trigger", "mag"];   // the animated nodes, in table order
+const SLIDE = 1, NP = PARTS.length, S7 = 7;            // per sample: px py pz qx qy qz qw
+const SKIN = ["frame", "slide", "hammer", "trigger"];          // merged into the skinned body; bone i moves part i
+/** a clip resampled to a uniform table: data[(part * n + i) * 7] */
+type Clip = { n: number; has: boolean[]; data: Float32Array };
+type Asset = {
+  body: THREE.BufferGeometry; mag: THREE.BufferGeometry; magExt: THREE.BufferGeometry; sphere: THREE.Sphere;
+  rest: Float32Array; restInv: THREE.Quaternion[]; boneInv: THREE.Matrix4[]; fire: Clip; reload: Clip;
+  muzzle: THREE.Vector3; eject: THREE.Vector3; map: THREE.Texture; orm: THREE.Texture;
+  /** reloadT: the old magazine dissolves over [0], [1]; the new one appears over [2], [3] */ magFade: number[]; slideMin: number;
+};
+let ASSET: Asset | null = null, loading: Promise<void> | null = null, bodyMat: THREE.Material | null = null;
+
+function table(clip: THREE.AnimationClip, rest: Float32Array): Clip {
+  const n = Math.round(clip.duration * 100) + 1, data = new Float32Array(NP * n * S7), has = PARTS.map(() => false);
+  for (let p = 0; p < NP; p++) for (let i = 0; i < n; i++) data.set(rest.subarray(p * S7, p * S7 + S7), (p * n + i) * S7);
+  for (const tr of clip.tracks) {
+    const dot = tr.name.lastIndexOf("."), p = PARTS.indexOf(tr.name.slice(0, dot)), prop = tr.name.slice(dot + 1);
+    if (p < 0 || (prop !== "position" && prop !== "quaternion")) continue;
+    has[p] = true;
+    const off = prop === "position" ? 0 : 3, len = prop === "position" ? 3 : 4, T = tr.times, V = tr.values;
+    for (let i = 0, j = 0; i < n; i++) {   // the keys are dense (one per baked frame), so linear between them is exact enough for both
+      const t = clip.duration * i / (n - 1);
+      while (j < T.length - 2 && T[j + 1] < t) j++;
+      const j1 = Math.min(j + 1, T.length - 1), f = T[j1] > T[j] ? Math.min(1, Math.max(0, (t - T[j]) / (T[j1] - T[j]))) : 0;
+      for (let k = 0; k < len; k++) data[(p * n + i) * S7 + off + k] = V[j * len + k] + (V[j1 * len + k] - V[j * len + k]) * f;
+    }
+  }
+  for (let i = 0; i < NP * n; i++) {       // renormalise the rotations
+    const o = i * S7 + 3, l = Math.hypot(data[o], data[o + 1], data[o + 2], data[o + 3]) || 1;
+    for (let k = 0; k < 4; k++) data[o + k] /= l;
+  }
+  return { n, has, data };
+}
+/** table lookup at normalised time t: lerp the position, nlerp the rotation along the short way */
+function sample(c: Clip, p: number, t: number, out: Float32Array) {
+  const x = (t <= 0 ? 0 : t >= 1 ? 1 : t) * (c.n - 1), i = Math.min(c.n - 2, x | 0), f = x - i, o = (p * c.n + i) * S7, d = c.data;
+  for (let k = 0; k < 3; k++) out[k] = d[o + k] + (d[o + S7 + k] - d[o + k]) * f;
+  const sg = d[o + 3] * d[o + 10] + d[o + 4] * d[o + 11] + d[o + 5] * d[o + 12] + d[o + 6] * d[o + 13] < 0 ? -1 : 1;
+  let l = 0;
+  for (let k = 3; k < 7; k++) { out[k] = d[o + k] + (sg * d[o + S7 + k] - d[o + k]) * f; l += out[k] * out[k]; }
+  l = 1 / Math.sqrt(l); for (let k = 3; k < 7; k++) out[k] *= l;
+}
+
+async function load(): Promise<void> {
+  const gltf = await new GLTFLoader().loadAsync(KINGPIN_URL);
+  const node = (name: string) => { const o = gltf.scene.getObjectByName(name); if (!o) throw new Error(`kingpin45.glb: no node "${name}"`); return o; };
+  const mesh = (name: string) => { const o = node(name) as THREE.Mesh; if (!o.isMesh) throw new Error(`kingpin45.glb: "${name}" is not a mesh`); return o; };
+  const clip = (name: string) => { const c = gltf.animations.find((a) => a.name === name); if (!c) throw new Error(`kingpin45.glb: no clip "${name}"`); return c; };
+  const rest = new Float32Array(NP * S7), restInv: THREE.Quaternion[] = [];
+  PARTS.forEach((name, p) => { const o = node(name); o.position.toArray(rest, p * S7); o.quaternion.toArray(rest, p * S7 + 3); restInv.push(o.quaternion.clone().invert()); });
+  // the rigid parts, each brought into body space at rest and tagged with its bone
+  const boneInv: THREE.Matrix4[] = [];
+  const body = mergeGeometries(SKIN.map((name, bone) => {
+    const o = mesh(name), g = o.geometry.clone(); o.updateMatrix(); g.applyMatrix4(o.matrix); boneInv.push(o.matrix.clone().invert());
+    const n = g.attributes.position.count, si = new Uint16Array(n * 4), sw = new Float32Array(n * 4);
+    for (let i = 0; i < n; i++) { si[i * 4] = bone; sw[i * 4] = 1; }
+    g.setAttribute("skinIndex", new THREE.BufferAttribute(si, 4)); g.setAttribute("skinWeight", new THREE.BufferAttribute(sw, 4));
+    return g;
+  }), false);
+  if (!body) throw new Error("kingpin45.glb: the body parts do not merge (attribute sets differ)");
+  body.computeBoundingSphere();
+  const sphere = body.boundingSphere!.clone(); sphere.radius += 0.25;               // room for the slide, hammer and recoil
+  const src = mesh("frame").material as THREE.MeshStandardMaterial, map = src.map, orm = src.metalnessMap;
+  if (!map || !orm) throw new Error("kingpin45.glb: palette textures missing");
+  for (const t of [map, orm]) { t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true; } // flat palette cells: no filtering across them
+  const extras = node("kingpin45").userData as { magFade?: number[]; slideTravel?: number };
+  ASSET = {
+    body, mag: mesh("mag").geometry, magExt: mesh("mag_ext").geometry, sphere, rest, restInv, boneInv,
+    fire: table(clip("fire"), rest), reload: table(clip("reload"), rest),
+    muzzle: node("muzzle").position.clone(), eject: node("eject").position.clone(), map, orm,
+    magFade: extras.magFade ?? [0.27, 0.42, 0.45, 0.5], slideMin: rest[SLIDE * S7 + 2] - (extras.slideTravel ?? 0.13),
+  };
+}
+/** Load the Kingpin's GLB (once). Await this at boot, before the first createKingpin(). */
+export function preloadKingpin(): Promise<void> { return (loading ??= load()); }
+
+const IDENT = new THREE.Matrix4(), _a = new Float32Array(S7), _b = new Float32Array(S7), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion();
 
 export function createKingpin(): GunView {
-  GEO ??= { slide: slideGeo(), frame: frameGeo(), mag: magGeo(false), magExt: magGeo(true) };
-  bodyMat ??= gunMat(0.4);
+  if (!ASSET) throw new Error("createKingpin(): await preloadKingpin() first");
+  const A = ASSET;
+  bodyMat ??= gunMat(0.4, "none", A);
   const root = new THREE.Group(); root.name = "kingpin45";
-  const body = new THREE.Group(); root.add(body);            // recoil + reload motion live here, never on root
-  const mk = (g: THREE.BufferGeometry, m: THREE.Material) => { const o = new THREE.Mesh(g, m); o.castShadow = true; o.receiveShadow = true; body.add(o); return o; };
-  const frame = mk(GEO.frame, bodyMat), slide = mk(GEO.slide, bodyMat);
-  const magMat = gunMat(0.4, "uniform"), magFade = magMat.userData.uFade as { value: number }; // per gun: the dropped magazine dissolves
-  const mag = mk(GEO.mag, magMat);
-  void frame;
-  const muzzle = new THREE.Object3D(); muzzle.name = "muzzle"; muzzle.position.set(0, 0.315, 0.74); body.add(muzzle);
-  const eject = new THREE.Object3D(); eject.name = "eject"; eject.position.set(0.115, 0.4, 0.17); body.add(eject);
-  return {
+  const body = new THREE.Group(); body.name = "body"; root.add(body);            // recoil + reload motion live here, never on root
+  const bones = SKIN.map((name) => { const b = new THREE.Bone(); b.name = name; body.add(b); return b; });
+  const skin = new THREE.SkinnedMesh(A.body, bodyMat); skin.name = "kingpinBody"; skin.castShadow = true; skin.receiveShadow = true;
+  body.add(skin); skin.bind(new THREE.Skeleton(bones, A.boneInv), IDENT); skin.boundingSphere = A.sphere;
+  const magMat = gunMat(0.4, "uniform", A), magFade = magMat.userData.uFade as { value: number }; // per gun: the dropped magazine dissolves
+  const mag = new THREE.Mesh(A.mag, magMat); mag.name = "mag"; mag.castShadow = true; mag.receiveShadow = true; body.add(mag);
+  const muzzle = new THREE.Object3D(); muzzle.name = "muzzle"; muzzle.position.copy(A.muzzle); body.add(muzzle);
+  const eject = new THREE.Object3D(); eject.name = "eject"; eject.position.copy(A.eject); body.add(eject);
+  const target: THREE.Object3D[] = [body, bones[1], bones[2], bones[3], mag];      // PARTS order
+  const view: GunView = {
     root, muzzle, eject,
-    setVariant(v) { mag.geometry = v.extMag ? GEO!.magExt : GEO!.mag; },
+    setVariant(v) { mag.geometry = v.extMag ? A.magExt : A.mag; },
     pose(s) {
-      const f = s.fireT, r = s.reloadT;
-      let back = 0, tilt = 0, kick = 0, cant = 0, lift = 0, magOut = 0, fall = 0, alpha = 1, side = 0;
-      if (f >= 0 && f < 1) {
-        // slide: fully back on the shot frame, home again by 35% of the interval
-        back = f < 0.06 ? 1 : 1 - sstep(seg(f, 0.06, 0.35));
-        // muzzle climb: peaks ~11 ms in, settles by ~120 ms (55% of 0.22 s) with a small dip on the way back
-        const u = seg(f, 0.05, 0.55), k = f < 0.05 ? 0.7 + 0.3 * (f / 0.05) : (1 - u) * (1 - u) * Math.cos(u * 3.77);
-        tilt = k * 0.115; kick = k * 0.04;
-      }
-      if (r >= 0 && r <= 1) {
-        cant = sstep(seg(r, 0, 0.1)) * (1 - sstep(seg(r, 0.7, 0.8)));       // tip the gun to show the magazine well
-        if (r < 0.1) { magOut = 0; }
-        else if (r < 0.45) {                                               // old magazine: slides out, falls away, fades
-          magOut = 0.36 * sstep(seg(r, 0.1, 0.2)); const u = seg(r, 0.14, 0.42); fall = u * u * 0.6; // stays above the ground from hand height
-          alpha = 1 - sstep(seg(r, 0.26, 0.42));
-        } else {                                                           // new magazine: rises into the grip and seats
-          const u = 1 - seg(r, 0.45, 0.68); magOut = 0.62 * u * u * u + 0.1 * u; side = -0.12 * u * u;
-          alpha = sstep(seg(r, 0.45, 0.5));
+      const f = s.fireT, r = s.reloadT, firing = f >= 0 && f < 1, reloading = r >= 0 && r <= 1, rest = A.rest;
+      for (let p = 0; p < NP; p++) {
+        const o = p * S7, t = target[p];
+        if (reloading && A.reload.has[p]) sample(A.reload, p, r, _a); else for (let k = 0; k < S7; k++) _a[k] = rest[o + k];
+        t.position.set(_a[0], _a[1], _a[2]); t.quaternion.set(_a[3], _a[4], _a[5], _a[6]);
+        if (firing && A.fire.has[p]) {   // the shot rides on top as its difference from rest (so alone it is exactly the fire clip)
+          sample(A.fire, p, f, _b);
+          t.position.x += _b[0] - rest[o]; t.position.y += _b[1] - rest[o + 1]; t.position.z += _b[2] - rest[o + 2];
+          t.quaternion.multiply(_q.copy(A.restInv[p]).multiply(_q2.set(_b[3], _b[4], _b[5], _b[6])));
         }
-        lift = Math.sin(Math.PI * seg(r, 0.66, 0.76)) * 0.035;             // the seat bump
-        const rack = sstep(seg(r, 0.8, 0.86)) * (1 - sstep(seg(r, 0.9, 0.95)));
-        back = Math.max(back, rack); tilt += rack * 0.07; kick += rack * 0.025;
       }
-      slide.position.z = -SLIDE_TRAVEL * back;
-      body.rotation.set(-tilt - cant * 0.42, 0, -cant * 0.5);
-      body.position.set(0, kick * 0.35 + lift, -kick);
-      mag.position.copy(MAG_AXIS).multiplyScalar(magOut); mag.position.x += side;
-      if (fall > 0) { // fall along world down, whatever way the hand holds the gun
-        body.getWorldQuaternion(_q).invert(); _down.set(0, -1, 0).applyQuaternion(_q);
-        mag.position.addScaledVector(_down, fall); mag.rotation.set(fall * 1.3, 0, fall * 0.7);
-      } else mag.rotation.set(0, 0, 0);
+      const sl = target[SLIDE]; if (sl.position.z < A.slideMin) sl.position.z = A.slideMin; // a shot during the rack can't push it past its stop
+      let alpha = 1;
+      if (reloading) { const m = A.magFade; alpha = r < m[0] ? 1 : r < m[1] ? 1 - sstep(seg(r, m[0], m[1])) : r < m[2] ? 0 : sstep(seg(r, m[2], m[3])); }
       magFade.value = alpha; mag.visible = alpha > 0.01; mag.castShadow = alpha > 0.5;
     },
   };
+  view.pose({ fireT: 1, reloadT: -1 });
+  return view;
 }
 
 // ================================================================================================ FX
