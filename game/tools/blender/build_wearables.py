@@ -2,7 +2,10 @@
 
 Socket space (see build_monkey.py): origin at the socket, Blender +Z up, -Y forward, +X the character's left.
   head socket = top of the head; face socket = on the face between the eyes; back socket = upper back;
-  hand socket = fist centre, -Y along the barrel, +Z gun-up (thumb side).
+  hand socket = fist centre, -Y along the barrel, +Z gun-up (thumb side);
+  body socket = the chest joint (body armour: the runtime skins it with the torso's weights, src/game/actors/rig.ts);
+  ears socket = the point between the two ears, on the head bone (headsets; "<id>_nb" = the neckband variant the
+  runtime swaps in under a hat).
 Run: blender -b --factory-startup --python tools/blender/build_wearables.py -- [--sheet out.png]
 """
 import os
@@ -451,6 +454,481 @@ def p_sack():
     return [(back_local(bag), 0, None), (back_local(neck), 0, None), (back_local(st), 0, None)]
 
 
+# ================================================================ G1-23 LOOT GEAR
+# Original pieces for the five equipment slots (head, face, body, back, ears). Style: chunky, bevelled, flat colour
+# regions that read from the 55 deg / 40 u game camera.
+BODY0 = V(0, 0, 0.78)                  # body socket = the chest joint
+EARS0 = V(0, -0.035, 1.425)            # ears socket = between the ears
+EAR_C = V(0.585, -0.035, P.HC.z + 0.025)                 # left ear centre (monkey_parts.ear)
+EAR_N = Matrix.Rotation(math.radians(-12), 3, "Z") @ Vector((0, -1, 0))     # the way the left ear's dish faces
+
+
+def body_local(m):
+    return m.move(-BODY0)
+
+
+def ears_local(m):
+    return m.move(-EARS0)
+
+
+def mirx(p):
+    return Vector((-p.x, p.y, p.z))
+
+
+def wrap(zb, zt, off, reg, na=24, nz=5, a0=0.0, a1=None, edge=0.16, aedge=0.07, sink=0.006):
+    """a panel wrapped round the torso, at final resolution. a0..a1 = angle range (0 = front, pi/2 = the character's
+    left, pi = back); a1 None = a closed ring. zb(a), zt(a) = bottom / top height; off(a, t, z) = lift off the suit;
+    reg(a, t, z) = colour region of a cell. The border rows (and the end columns of an open panel) sink into the suit,
+    which gives the slab a thick rounded edge and leaves no gap."""
+    closed = a1 is None
+    m, g = M(), []
+    for i in range(na if closed else na + 1):
+        a = a0 + math.tau * i / na if closed else lerp(a0, a1, C.tight(i, na, aedge))
+        col = []
+        for j in range(nz + 1):
+            t = C.tight(j, nz, edge)
+            z = lerp(zb(a), zt(a), t)
+            border = j in (0, nz) or (not closed and i in (0, na))
+            col.append(len(m.v))
+            m.v.append(torso_at(a, z, -sink if border else off(a, t, z)))
+        g.append(col)
+    n = len(g)
+    for i in range(n if closed else n - 1):
+        i2 = (i + 1) % n
+        for j in range(nz):
+            m.f.append((g[i][j], g[i2][j], g[i2][j + 1], g[i][j + 1]))
+            c = sum((m.v[k] for k in m.f[-1]), Vector()) / 4
+            am = math.atan2(c.x, -c.y)
+            tm = (C.tight(j, nz, edge) + C.tight(j + 1, nz, edge)) / 2
+            m.r.append(C.REG[reg(am, tm, c.z)])
+    return C._orient(m, lambda c: Vector((c.x, c.y, 0)))
+
+
+def arm_dip(a, lo, hi, w=0.62):
+    """top edge of a vest: hi on the chest and back, dipping to lo under the arms"""
+    return lerp(hi, lo, smooth(w, 0.12, abs(abs(a) - math.pi / 2)))
+
+
+def neck_dip(a, d, w=0.5):
+    """V of a neckline at the front"""
+    return d * smooth(w, 0.0, abs(a))
+
+
+def side_thin(a, thick, thin=0.02, w=0.5):
+    """vests are thick on the chest and back and thin under the arms, so the sleeves do not sink into them"""
+    return lerp(thick, thin, smooth(w, 0.1, abs(abs(a) - math.pi / 2)))
+
+
+def belt(z, off, r, reg, n=20, flat=0.55, a_phase=0.0):
+    """a cord or strap right round the torso"""
+    pts = [torso_at(a_phase + math.tau * k / n, z, off) for k in range(n)]
+    return tube(pts + [pts[0]], [r] * (n + 1), 4, reg, up=Vector((0, 0, 1)), flat=flat, cap0=False, cap1=False)
+
+
+def on_torso(a, z, off, half, r, reg, n=3, tilt=0.0):
+    """a bevelled box sitting on the torso, facing out"""
+    R = Matrix.Rotation(a, 3, "Z") @ Matrix.Rotation(tilt, 3, "X")
+    return C.rbox(torso_at(a, z, off), half, r, reg, n, rot=R)
+
+
+# our own 5-row stencil face (not a copy of any typeface)
+STENCIL = {
+    "W": ["#...#", "#...#", "#.#.#", "#.#.#", ".#.#."], "A": [".##.", "#..#", "####", "#..#", "#..#"], "R": ["###.", "#..#", "###.", "#.#.", "#..#"],
+    "D": ["###.", "#..#", "#..#", "#..#", "###."], "E": ["####", "#...", "###.", "#...", "####"], "N": ["#..#", "##.#", "#.##", "#..#", "#..#"],
+    "F": ["####", "#...", "###.", "#...", "#..."], "Y": ["#.#", "#.#", ".#.", ".#.", ".#."], "7": ["###", "..#", ".#.", ".#.", ".#."],
+}
+
+
+def stencil(pieces, text, z, px, lift, on, bg, back=True, a_c=None, pad=1, surf_off=0.0):
+    """stencilled letters as a raised patch on a built shell (back of the torso, or the front). One quad per stencil
+    pixel; the border ring sinks into the shell under it. pieces = the (M, levels...) list the patch sits on."""
+    ob = C.assemble("_st", pieces, None, True)
+    bvh = C.bvh_of([ob])
+    rows = ["" for _ in range(5)]
+    for ch in text:
+        for r in range(5):
+            rows[r] += STENCIL[ch][r] + "."
+    rows = [r[:-1] for r in rows]
+    w = len(rows[0])
+    grid = ["." * (w + 2 * pad)] * pad + ["." * pad + r + "." * pad for r in rows] + ["." * (w + 2 * pad)] * pad
+    nx, nz = len(grid[0]), len(grid)
+    a_c = (math.pi if back else 0.0) if a_c is None else a_c
+    rad = (torso_at(a_c, z, 0.0) - Vector((0, 0, z))).length
+    m, g = M(), []
+    for j in range(nz + 1):
+        row = []
+        for i in range(nx + 1):
+            a = a_c + (i - nx / 2) * px / rad          # increasing angle = reading direction, seen from outside
+            zz = z + (nz / 2 - j) * px
+            d = Vector((math.sin(a), -math.cos(a), 0))
+            loc, _n, _i, _d = bvh.ray_cast(Vector((0, 0, zz)) + d * 2.0, -d)
+            if loc is None:
+                raise ValueError("stencil %s runs off its shell at z=%.3f" % (text, zz))
+            border = i in (0, nx) or j in (0, nz)
+            row.append(len(m.v))
+            m.v.append(loc + d * (-0.004 if border else lift) + d * surf_off)
+        g.append(row)
+    for j in range(nz):
+        for i in range(nx):
+            m.f.append((g[j][i], g[j + 1][i], g[j + 1][i + 1], g[j][i + 1]))
+            m.r.append(C.REG[on if grid[j][i] == "#" else bg])
+    bpy.data.objects.remove(ob)
+    return C._orient(m, lambda c: Vector((c.x, c.y, 0)))
+
+
+# ---------------------------------------------------------------- body armour (body socket space: subtract BODY0)
+HEM = 0.527                              # vests reach down to the jacket hem
+
+
+def leaf_blade(p, d, dn, ln, w, reg="leaf", rib="banana", curl=0.05):
+    """a banana-leaf blade lying on the body: p = root, d = outward, dn = the way it points, pointed at both ends"""
+    sd = d.cross(dn).normalized()
+    lf = qsphere(2, reg).xf(lambda q: p + dn * ((q.z + 1) * 0.5 * ln) + sd * (q.x * w * (1 - abs(q.z) ** 1.7)) + d * (q.y * 0.022 - curl * (q.z + 1) * 0.5 * (q.z + 1) * 0.5))
+    lf.reg_where(rib, lambda c: abs((c - p).dot(sd)) < w * 0.17 and (c - p).dot(d) > 0.0)
+    return lf
+
+
+def b_leaf_vest():
+    """Banana-Leaf Vest: two greens woven in a basket check, a ragged leaf-tip hem, a V neck that keeps the tie showing,
+    a collar of big leaves and a vine belt"""
+    na = 24
+    zt = lambda a: arm_dip(a, 0.72, 0.905) - neck_dip(a, 0.1)
+    zb = lambda a: HEM - 0.012 + 0.038 * math.cos(a * na / 2)       # leaf tips
+    off = lambda a, t, z: side_thin(a, 0.056, 0.026) + 0.008 * math.sin(a * na / 2) * math.sin(t * 9.0)
+    weave = lambda a, t, z: "green" if (int((a % math.tau) / (math.tau / na) + 0.5) + int(t * 4.99)) % 2 == 0 else "leaf"
+    m = wrap(zb, zt, off, weave, na, 5)
+    leaves = M()
+    for a, z, ln, w, rot in ((0.52, 0.9, 0.27, 0.1, 0.3), (-0.52, 0.9, 0.27, 0.1, -0.3), (1.05, 0.83, 0.2, 0.08, 0.75), (-1.05, 0.83, 0.2, 0.08, -0.75),
+                             (math.pi - 0.5, 0.905, 0.27, 0.1, -0.3), (math.pi + 0.5, 0.905, 0.27, 0.1, 0.3), (math.pi, 0.91, 0.3, 0.1, 0.0)):
+        d = Vector((math.sin(a), -math.cos(a), 0))
+        u = Vector((0, 0, 1)).cross(d).normalized()
+        leaves.add(leaf_blade(torso_at(a, z, 0.085), d, (Vector((0, 0, -1)) * math.cos(rot) + u * math.sin(rot)).normalized(), ln, w))
+    vine = belt(0.612, 0.074, 0.026, "prop2", 20, 0.8)
+    knot = ell(2, torso_at(0.0, 0.612, 0.1), (0.045, 0.035, 0.045), "prop2")
+    return [(body_local(m), 0, None), (body_local(leaves), 0, None), (body_local(vine), 0, None), (body_local(knot), 0, None)]
+
+
+def b_life_jacket():
+    """Ferry Life Jacket: fat orange foam blocks, two black webbing straps with buckles, two front pockets, a faded
+    FERRY stencil across the back. Rides high, so the tie goes under it."""
+    band = lambda t: 0.17 < t < 0.3 or 0.56 < t < 0.69
+
+    def off(a, t, z):
+        seg = abs(math.sin(a * 3.0)) ** 0.35                        # grooves between the foam blocks (one down the front)
+        return side_thin(a, 0.06 + 0.045 * seg, 0.034, 0.42) + (0.012 if band(t) else 0.0)
+    m = wrap(lambda a: HEM + 0.008, lambda a: arm_dip(a, 0.74, 0.95, 0.55), off, lambda a, t, z: "hat" if band(t) else "band", 30, 7, edge=0.1)
+    bits = M()
+    for z in (0.626, 0.79):
+        bits.add(on_torso(0.0, z, 0.084, (0.055, 0.024, 0.036), 0.012, "metal", 2))
+    for sx in (1, -1):
+        bits.add(on_torso(sx * 0.52, 0.705, 0.118, (0.074, 0.03, 0.05), 0.02, "band"))
+        bits.add(on_torso(sx * 0.52, 0.742, 0.15, (0.08, 0.024, 0.02), 0.012, "red", 2))             # pocket flap
+    st = stencil([(m, 0, None)], "FERRY", 0.838, 0.0185, 0.007, "khaki", "band")
+    return [(body_local(m), 0, None), (body_local(bits), 0, None), (body_local(st), 0, None)]
+
+
+def b_peel_jacket():
+    """Peel Gang Padded Jacket: banana-yellow quilted rolls, a dark collar and zip, sewn-on patches (the gang wears
+    whatever it could stitch back together)"""
+    def off(a, t, z):
+        return side_thin(a, 0.046 + 0.04 * abs(math.sin(t * math.pi * 4)) ** 0.55, 0.028, 0.42)
+
+    def reg(a, t, z):
+        return "prop2" if (t > 0.9 or abs(a) < 0.05) else "yellow"   # collar + zip
+    m = wrap(lambda a: HEM, lambda a: arm_dip(a, 0.73, 0.93, 0.55) - neck_dip(a, 0.075, 0.42), off, reg, 28, 8, edge=0.07)
+    patches = M()
+    for a, z, hw, hh, rg, tw in ((0.55, 0.64, 0.085, 0.066, "prop2", 0.2), (-0.6, 0.79, 0.066, 0.056, "red", -0.25), (math.pi - 0.45, 0.67, 0.09, 0.07, "prop2", -0.15),
+                                 (math.pi + 0.55, 0.85, 0.07, 0.056, "leather", 0.3), (-0.5, 0.6, 0.05, 0.04, "leather", 0.1)):
+        R = Matrix.Rotation(a, 3, "Z") @ Matrix.Rotation(tw, 3, "Y")
+        patches.add(C.rbox(torso_at(a, z, 0.082), (hw, 0.018, hh), 0.014, rg, 2, rot=R))
+    pull = on_torso(0.0, 0.8, 0.095, (0.018, 0.012, 0.034), 0.008, "metal", 2)
+    return [(body_local(m), 0, None), (body_local(patches), 0, None), (body_local(pull), 0, None)]
+
+
+def b_bamboo_plate():
+    """Bamboo Plate Vest: split bamboo slats side by side on a hide backing, front and back, lashed with two cords"""
+    back = wrap(lambda a: HEM + 0.02, lambda a: arm_dip(a, 0.69, 0.84) - neck_dip(a, 0.05, 0.4), lambda a, t, z: side_thin(a, 0.03, 0.02), lambda a, t, z: "leather2", 20, 3)
+    slats = M()
+    for a_c in (0.0, math.pi):
+        for k in range(-3, 4):
+            a = a_c + k * 0.27
+            top = (0.925 if a_c else 0.915) - 0.03 * abs(k) - (0.07 if (k == 0 and not a_c) else 0.0)
+            zs = [HEM - 0.004 + 0.014 * (k % 2), 0.6, 0.675, 0.75, top - 0.04, top]
+            pts = [torso_at(a, z, 0.06) for z in zs]
+            sl = tube(pts, [0.038, 0.043, 0.043, 0.043, 0.043, 0.036], 5, "khaki", up=Vector((math.sin(a), -math.cos(a), 0)), flat=0.62)
+            sl.reg_where("wood", lambda c, k=k: abs(((c.z + 0.035 * (k % 3)) % 0.12) - 0.06) < 0.016)       # the nodes
+            slats.add(sl)
+    cords = M()
+    for z in (0.61, 0.79):
+        cords.add(belt(z, 0.096 if z < 0.7 else 0.09, 0.024, "leather2", 20, 0.7))
+    return [(body_local(back), 0, None), (body_local(slats), 0, None), (body_local(cords), 0, None)]
+
+
+def shell_plate(a, z, ru, rv, h, seg=8, eyes=False):
+    """one coconut half-shell on the body: a brown dome with the pale cut rim showing all round"""
+    p = torso_at(a, z, 0.034)
+    d = Vector((math.sin(a), -math.cos(a), 0))
+    u = Vector((0, 0, 1)).cross(d).normalized()
+    rings = [ring(p + d * hh, u, Vector((0, 0, 1)), ru * k, rv * k, seg) for k, hh in ((1.0, -0.034), (1.0, 0.014), (0.84, 0.03), (0.8, 0.044), (0.56, h * 0.84), (0.24, h))]
+    m = loft(rings, ["vest2", "vest2", "prop2", "prop2", "prop2"], None, p + d * (h + 0.006))
+    if eyes:
+        for da, dz in ((0.0, 0.03), (-0.11, -0.025), (0.11, -0.025)):
+            q = torso_at(a + da, z + dz, 0.034) + d * (h * 0.9 - 0.004)
+            m.add(ell(2, q, (0.024, 0.016, 0.024), "nail", rot=Matrix.Rotation(a, 4, "Z")))
+    return m
+
+
+def b_coconut_cuirass():
+    """Coconut Cuirass: big half-shells laced onto a leather harness, a chest shell over two belly shells (front and
+    back), each with its white rim; the chest shell shows the three eyes"""
+    har = wrap(lambda a: HEM + 0.006, lambda a: arm_dip(a, 0.7, 0.92) - neck_dip(a, 0.07, 0.4), lambda a, t, z: side_thin(a, 0.036, 0.022), lambda a, t, z: "leather2", 20, 3)
+    plates = M()
+    for a_c in (0.0, math.pi):
+        for da, z, ru, rv, h, eyes in ((-0.36, 0.635, 0.13, 0.1, 0.075, False), (0.36, 0.635, 0.13, 0.1, 0.075, False), (-0.95, 0.66, 0.085, 0.085, 0.05, False),
+                                       (0.95, 0.66, 0.085, 0.085, 0.05, False), (0.0, 0.79, 0.165, 0.115, 0.095, True)):
+            plates.add(shell_plate(a_c + da, z, ru, rv, h, 10 if eyes else 8, eyes))
+    lace = belt(0.71, 0.05, 0.016, "prop", 16, 0.7, 0.2)
+    return [(body_local(har), 0, None), (body_local(plates), 0, None), (body_local(lace), 0, None)]
+
+
+def b_warden_vest():
+    """Warden's Kevlar: navy plate carrier with a high collar, a slate cummerbund, three belt pouches, a yellow name
+    bar on the chest and WARDEN stencilled across the back"""
+    def off(a, t, z):
+        return side_thin(a, 0.066, 0.034, 0.42) + (0.012 if t > 0.86 else 0.0)
+
+    def reg(a, t, z):
+        return "cloth" if abs(abs(a) - math.pi / 2) < 0.52 or t < 0.13 else "navy"
+    m = wrap(lambda a: HEM, lambda a: arm_dip(a, 0.72, 0.955, 0.5), off, reg, 24, 6, edge=0.1)
+    bits = M()
+    for a in (-0.5, 0.0, 0.5):
+        bits.add(on_torso(a, 0.618, 0.108, (0.064, 0.036, 0.064), 0.018, "cloth", 2))
+        bits.add(on_torso(a, 0.668, 0.138, (0.07, 0.03, 0.024), 0.012, "navy", 2))
+        bits.add(on_torso(a, 0.652, 0.17, (0.015, 0.008, 0.015), 0.006, "banana", 2))
+    bits.add(on_torso(0.3, 0.83, 0.08, (0.09, 0.012, 0.028), 0.008, "banana", 2))
+    bits.add(on_torso(-0.34, 0.815, 0.086, (0.052, 0.02, 0.05), 0.014, "cloth"))                    # radio pouch
+    st = stencil([(m, 0, None)], "WARDEN", 0.846, 0.0138, 0.008, "banana", "navy")
+    return [(body_local(m), 0, None), (body_local(bits), 0, None), (body_local(st), 0, None)]
+
+
+# ---------------------------------------------------------------- helmets (head socket space)
+def hat_pot():
+    """Cooking Pot: a dented steel pot worn upside down, rolled rim, long handle sticking out to the side"""
+    cut = 0.25
+    R = head_r(cut)[0] + 0.05
+    prof = [(R + 0.014, -cut - 0.014, None), (R + 0.046, -cut + 0.004, "metal"), (R + 0.04, -cut + 0.034, "metal"), (R + 0.008, -cut + 0.044, "skin2"),
+            (R + 0.004, -0.1, "skin2"), (R, 0.06, "skin2"), (R - 0.024, 0.105, "skin2"), (R - 0.07, 0.124, "skin2"), (R * 0.5, 0.128, "skin"), (0.03, 0.125, "skin")]
+    m = lathe(prof, MH, 0.95).add(liner(prof, R - 0.03, -cut + 0.02, "skin", 0.95))
+    m.xf(lambda p: Vector((p.x, p.y, p.z - 0.035 * math.exp(-((p.x + 0.3) ** 2 + (p.y + 0.28) ** 2) / 0.02) * (p.z > 0))))      # a dent
+    ah = 2.25                                                    # handle direction: out to the character's left and back
+    dirh = Vector((math.sin(ah), -math.cos(ah) * 0.95, 0.12)).normalized()
+    h0 = Vector((math.sin(ah) * (R - 0.02), -math.cos(ah) * (R - 0.02) * 0.95, -cut + 0.085))
+    handle = tube([h0, h0 + dirh * 0.14, h0 + dirh * 0.28, h0 + dirh * 0.5, h0 + dirh * 0.6], [0.036, 0.03, 0.04, 0.046, 0.034], 6, "hat", up=Vector((0, 0, 1)), flat=0.6)
+    handle.reg_where("metal", lambda c: (c - h0).dot(dirh) < 0.15)
+    lug = ell(2, Vector((-math.sin(ah) * (R + 0.01), math.cos(ah) * (R + 0.01) * 0.95, -cut + 0.1)), (0.045, 0.045, 0.034), "metal")   # the stub of the lost second handle
+    return [(tilt(m, 8, 0.0, 0.0), 0, None, True), (tilt(handle, 8), 0, None, True), (tilt(lug, 8), 0, None, True)]
+
+
+def hat_coconut():
+    """Coconut Helmet: half a big coconut, dark husk, a rough broken edge with a thick white rim of flesh, the three
+    eyes on top, a hide chin strap"""
+    cut = 0.25
+    rx, _ = head_r(cut)
+    R, H, z0 = rx * 1.05 + 0.06, 0.45, -cut + 0.085
+    prof = [(rx * 1.05, -cut - 0.01, None), (R + 0.006, -cut - 0.006, "vest2"), (R + 0.022, -cut + 0.03, "vest2"), (R + 0.012, z0, "vest2")] + \
+        [(R * math.cos(math.radians(a)) ** 0.7, z0 + H * math.sin(math.radians(a)), "prop2") for a in (12, 28, 45, 62, 78)] + [(0.03, z0 + H, "prop2")]
+    m = lathe(prof, MH, SY * 1.05).add(liner(prof, rx * 0.97, -cut + 0.03, "vest2"))
+    m.xf(lambda p: Vector((p.x, p.y, p.z + 0.02 * math.sin(math.atan2(p.x, p.y) * 5) * smooth(z0 + 0.03, -cut - 0.01, p.z))))          # the broken edge
+    eyes3 = M()
+    for a in (0.0, 2.1, -2.1):
+        eyes3.add(ell(2, Vector((0.095 * math.sin(a), -0.095 * math.cos(a) - 0.03, z0 + H - 0.016)), (0.046, 0.046, 0.022), "nail"))
+    straps = M()
+    for sx in (1, -1):
+        pts = []
+        for z in (TOP.z - cut + 0.04, TOP.z - 0.42, TOP.z - 0.58, TOP.z - 0.74, TOP.z - 0.86):
+            d = Vector((sx * 0.955, -0.3, 0)).normalized()
+            loc, _n, _i, _d = bvhF.ray_cast(Vector((0, P.HC.y, z)) + d * 2.0, -d)
+            pts.append(loc + d * 0.014 - TOP)
+        straps.add(tube(pts, [0.03] * len(pts), 4, "leather2", up=Vector((0, -1, 0)), flat=0.4))
+    return [(tilt(m, 6), 0, None), (tilt(eyes3, 6), 0, None), (straps, 0, None)]
+
+
+def hat_warden():
+    """Warden's Riot Helmet: a tall prison-guard blue shell with a neck guard, a banana-yellow band, a stencilled W on
+    the back, and a clear visor flipped up on the brow (so the face and any face gear stay clear)"""
+    cut = 0.27
+    rx, rf = head_r(cut)
+    R, H, z0 = rx * 1.07 + 0.03, 0.34, -cut + 0.1
+    prof = [(rx * 1.05, -cut - 0.008, None), (R - 0.006, -cut + 0.0, "navy"), (R, -cut + 0.04, "navy"), (R + 0.012, -cut + 0.052, "banana"), (R + 0.012, z0 - 0.012, "banana"), (R, z0, "navy")] + \
+        [(R * math.cos(math.radians(a)), z0 + H * math.sin(math.radians(a)), "navy") for a in (16, 34, 52, 68, 80)] + [(0.03, z0 + H, "navy")]
+    m = lathe(prof, MH, SY * 1.03).add(liner(prof, rx * 0.96, -cut + 0.03, "hat"))
+    m.xf(lambda p: Vector((p.x, p.y + 0.07 * smooth(0.1, 0.45, p.y) * smooth(-cut + 0.1, -cut, p.z), p.z - 0.07 * smooth(0.15, 0.45, p.y) * smooth(-cut + 0.06, -cut, p.z))))  # neck guard
+    # visor: a thin closed strip hinged at the temples, flipped up over the brow
+    rings = []
+    for k in range(11):
+        a = lerp(-1.12, 1.12, k / 10)
+        d = Vector((math.sin(a), -math.cos(a) * SY * 1.03, 0))
+        front = math.cos(a * 1.3) ** 1.3
+        lo = Vector((0, 0, -cut + 0.085 + 0.02 * (1 - front))) + d * (R + 0.02 + 0.03 * front)
+        hi = lo + Vector((0, 0, 0.035 + 0.1 * front)) + d * (0.006 + 0.085 * front)
+        t = (hi - lo).normalized()
+        nrm = (d - t * d.dot(t)).normalized()
+        rings.append([lo + nrm * 0.011, hi + nrm * 0.011, hi + t * 0.012, hi - nrm * 0.011, lo - nrm * 0.011, lo - t * 0.012])
+    visor = loft(rings, "glass", sum(rings[0], Vector()) / 6, sum(rings[-1], Vector()) / 6)
+    piv = M()
+    for sx in (1, -1):
+        piv.add(ell(2, Vector((sx * (R + 0.02) * math.sin(1.12), -(R + 0.02) * math.cos(1.12) * SY * 1.03, -cut + 0.115)), (0.04, 0.05, 0.05), "metal"))
+    return [(tilt(m, 4), 0, None), (tilt(visor, 4), 0, None, True), (tilt(piv, 4), 0, None)]
+
+
+def helmet_w(pieces):
+    """the stencilled W on the back of the riot helmet (a raised patch, like the vest's)"""
+    ob = C.assemble("_hw", [(pc[0], 0, None) for pc in pieces[:1]], None, True)
+    bvh = C.bvh_of([ob])
+    grid = [".......", ".#...#.", ".#...#.", ".#.#.#.", ".#.#.#.", "..#.#..", "......."]
+    m, g, px = M(), [], 0.052
+    for j in range(8):
+        row = []
+        for i in range(8):
+            a = math.pi + (i - 3.5) * px / 0.47
+            d = Vector((math.sin(a), -math.cos(a), 0))
+            zz = -0.02 + (3.5 - j) * px * 0.82
+            loc, _n, _i, _d = bvh.ray_cast(Vector((0, 0, zz)) + d * 2.0, -d)
+            row.append(len(m.v))
+            m.v.append(loc + d * (-0.004 if i in (0, 7) or j in (0, 7) else 0.008))
+        g.append(row)
+    for j in range(7):
+        for i in range(7):
+            m.f.append((g[j][i], g[j + 1][i], g[j + 1][i + 1], g[j][i + 1]))
+            m.r.append(C.REG["banana" if grid[j][i] == "#" else "navy"])
+    bpy.data.objects.remove(ob)
+    return C._orient(m, lambda c: Vector((c.x, c.y, 0)))
+
+
+def hat_warden_full():
+    pcs = hat_warden()
+    return pcs + [(helmet_w(pcs), 0, None)]
+
+
+# ---------------------------------------------------------------- face: snorkel mask
+def g_snorkel():
+    """Snorkel Mask: one wide window in a blue rubber frame with a nose pocket, black strap, and the tube clipped to
+    the strap by the left temple, orange tip standing clear of any hat brim"""
+    def rfn(a):
+        c, sn = abs(math.cos(a)), abs(math.sin(a))
+        return 1.0 / ((c / 0.29) ** 3.2 + (sn / 0.135) ** 3.2) ** (1 / 3.2)
+    cz = EZ - 0.012
+    lens = disc_plate(surfF, 0, cz, rfn, 8, lambda x, z, rr: 0.07 + 0.012 * (1 - rr * rr), "glass", sink=-0.045, rows=[0, 0.3, 0.6, 0.86, 1.0])
+    n = 18
+    pts = []
+    for k in range(n):
+        a = math.tau * k / n
+        R = rfn(a) * 1.03
+        p, nn = surfF.at(R * math.cos(a), cz + R * math.sin(a))
+        pts.append(p + nn * 0.045)
+    frame = tube(pts + [pts[0]], [0.04] * (n + 1), 4, "blue", up=Vector((0, -1, 0)), cap0=False, cap1=False)
+    nose = C.blob_on(surfF, 0.0, cz - 0.115, 0.075, 0.07, 0.07, 2, "blue", 0.2)
+    band = around_head(EZ + 0.0, 0.014, 12, 0.8, math.tau - 0.8)
+    strap = tube(band, [0.05] * len(band), 4, "hat", up=Vector((0, 0, 1)), flat=0.22)
+    # the tube: from the cheek up past the temple; leans out so its top clears hat brims
+    x0 = 0.55
+    tpts = [Vector((x0 - 0.1, -0.3, P.HC.z - 0.2)), Vector((x0 - 0.02, -0.24, P.HC.z - 0.1)), Vector((x0 + 0.03, -0.2, P.HC.z + 0.06)), Vector((x0 + 0.075, -0.18, P.HC.z + 0.26)),
+            Vector((x0 + 0.11, -0.16, P.HC.z + 0.46)), Vector((x0 + 0.13, -0.15, P.HC.z + 0.64)), Vector((x0 + 0.14, -0.15, P.HC.z + 0.72))]
+    pipe = tube(tpts, [0.034, 0.036, 0.036, 0.036, 0.036, 0.04, 0.04], 6, regs=["blue", "blue", "blue", "blue", "band", "band"], up=Vector((0, -1, 0)))
+    clip = ell(2, Vector((x0 + 0.0, -0.2, P.HC.z + 0.06)), (0.06, 0.05, 0.035), "hat")
+    return [(face_local(lens), 0, None, True), (face_local(frame), 0, None), (face_local(nose), 0, None), (face_local(strap), 0, None), (face_local(pipe), 0, None), (face_local(clip), 0, None)]
+
+
+# ---------------------------------------------------------------- ears: headsets (ears socket space)
+def _cup(prof, sx=1, m=12):
+    """a lathe along the ear's facing direction: profile [(radius, depth in front of the ear (negative = behind), region)]"""
+    n = EAR_N if sx > 0 else mirx(EAR_N)
+    c = EAR_C if sx > 0 else mirx(EAR_C)
+    u = Vector((0, 0, 1)).cross(n).normalized()
+    w = n.cross(u)
+    mm = lathe([(r, d, rg) for r, d, rg in prof], m, 1.0)
+    return mm.xf(lambda p: c + u * p.x + w * p.y + n * p.z)
+
+
+def _cup_pt(sx, depth, up=0.0, side=0.0):
+    """a point by an ear: depth in front of it (negative = behind), up, and side = outward from the head"""
+    n = EAR_N if sx > 0 else mirx(EAR_N)
+    c = EAR_C if sx > 0 else mirx(EAR_C)
+    return c + n * depth + Vector((0, 0, up)) + Vector((sx * side, 0, 0))
+
+
+def _over_band(r, reg, d_cap, n=11, a_end=1.22, off=0.03, flat=0.4):
+    """headband over the bare head, from one front cap to the other"""
+    yb = _cup_pt(1, d_cap).y
+    pts = [_cup_pt(-1, d_cap, 0.0, -0.01), _cup_pt(-1, d_cap + 0.004, 0.13, -0.02)]
+    for k in range(n):
+        ph = lerp(-a_end, a_end, k / (n - 1))
+        d = Vector((math.sin(ph), 0, math.cos(ph)))
+        loc, _n, _i, _d = bvhF.ray_cast(Vector((0, yb, P.HC.z)) + d * 2.0, -d)
+        pts.append(loc + d * off)
+    pts += [_cup_pt(1, d_cap + 0.004, 0.13, -0.02), _cup_pt(1, d_cap, 0.0, -0.01)]
+    return tube(pts, [r] * len(pts), 4, reg, up=Vector((0, -1, 0)), flat=flat)
+
+
+def head_at(a, z, off):
+    d = Vector((math.sin(a), -math.cos(a), 0))
+    loc, _n, _i, _d = bvhF.ray_cast(Vector((0, P.HC.y, z)) + d * 2.0, -d)
+    return loc + d * off
+
+
+def _neck_band(r, reg, d_back, z=1.235, off=0.028, a_side=1.86, flat=0.5, n=14):
+    """the same headset with the band dropped round the back of the head, from one rear shell to the other: it hugs
+    the head all the way and stays clear of every hat and brim"""
+    pts = [_cup_pt(1, d_back, 0.0, -0.02)]
+    for k in range(n + 1):
+        a = lerp(a_side, math.tau - a_side, k / n)
+        pts.append(head_at(a, z + 0.165 * smooth(0.55, math.pi - a_side, abs(a - math.pi)), off))
+    pts.append(_cup_pt(-1, d_back, 0.0, -0.02))
+    return tube(pts, [r] * len(pts), 4, reg, up=Vector((0, 0, 1)), flat=flat)
+
+
+# one lathe per ear, back to front: a small clamp plate behind the ear, an axle through it, then the foam pad and
+# the driver cap in front (the ear sits between plate and pad)
+WALK_CUP = [(0.02, -0.1, None), (0.06, -0.098, "hat"), (0.082, -0.08, "hat"), (0.075, -0.056, "hat"), (0.03, -0.05, "hat"), (0.03, 0.012, "hat"),
+            (0.142, 0.016, "band"), (0.16, 0.042, "band"), (0.156, 0.078, "band"), (0.126, 0.094, "band"), (0.118, 0.096, "hat"),
+            (0.112, 0.124, "hat"), (0.07, 0.136, "hat"), (0.064, 0.137, "metal"), (0.02, 0.142, "metal")]
+
+
+def e_walkman(neck=False):
+    """Walkman Headphones: fat orange foam pads under black driver caps, on a thin steel band"""
+    def build():
+        m = M()
+        for sx in (1, -1):
+            m.add(_cup(WALK_CUP, sx))
+        band = _neck_band(0.022, "metal", -0.085) if neck else _over_band(0.026, "metal", 0.118)
+        return [(ears_local(m), 0, None), (ears_local(band), 0, None)]
+    return build
+
+
+RADIO_CUP = [(0.02, -0.106, None), (0.09, -0.1, "green"), (0.12, -0.075, "green"), (0.11, -0.05, "green"), (0.03, -0.045, "green"), (0.03, 0.01, "hat"),
+             (0.15, 0.014, "hat"), (0.168, 0.036, "hat"), (0.166, 0.06, "hat"), (0.15, 0.07, "green"), (0.156, 0.115, "green"),
+             (0.13, 0.142, "green"), (0.06, 0.152, "green"), (0.02, 0.153, "hat")]
+
+
+def e_radio(neck=False):
+    """Radio Headset: olive ear cups with black cushions, a padded band, a stub aerial and a boom mic round to the mouth"""
+    def build():
+        m = M()
+        for sx in (1, -1):
+            m.add(_cup(RADIO_CUP, sx))
+        band = _neck_band(0.028, "hat", -0.09) if neck else _over_band(0.036, "hat", 0.12, flat=0.45)
+        b0 = _cup_pt(1, 0.135, -0.07, 0.02)
+        mouth = surfF.at(0.12, P.HC.z + P.MOUTH_Z + 0.0)[0] + Vector((0, -0.09, 0))
+        boom = tube([b0, b0 + Vector((-0.02, -0.1, -0.1)), lerp(b0, mouth, 0.55) + Vector((0.04, -0.1, -0.07)), mouth + Vector((0.08, -0.01, -0.01)), mouth],
+                    [0.018, 0.016, 0.016, 0.016, 0.016], 4, "hat", up=Vector((0, 0, 1)))
+        mic = ell(2, mouth, (0.048, 0.04, 0.04), "hat")
+        a0 = _cup_pt(-1, -0.07, 0.07, 0.03)
+        aerial = tube([a0, a0 + Vector((-0.03, 0.02, 0.16)), a0 + Vector((-0.07, 0.04, 0.36))], [0.016, 0.012, 0.01], 4, "metal", up=Vector((0, -1, 0)))
+        tip = ell(2, a0 + Vector((-0.07, 0.04, 0.36)), (0.024, 0.024, 0.024), "red")
+        return [(ears_local(m), 0, None), (ears_local(band), 0, None), (ears_local(boom), 0, None), (ears_local(mic), 0, None), (ears_local(aerial), 0, None), (ears_local(tip), 0, None)]
+    return build
+
+
 # ================================================================ HAND PROPS (hand socket space: -Y barrel, +Z gun-up)
 def p_briefcase():
     c = Vector((0, -0.04, -0.3))
@@ -477,7 +955,17 @@ def p_boomerang():
 BUILD = {"bowler": hat_bowler, "tophat": hat_tophat, "fedora": hat_fedora, "cap": hat_cap, "hardhat": hat_hardhat, "pith": hat_pith,
          "beanie": hat_beanie, "crown": hat_crown, "shades": g_shades, "aviators": g_aviators, "monocle": g_monocle, "eyepatch": g_eyepatch,
          "goggles": g_goggles, "heartglasses": g_heart, "banditmask": g_banditmask, "satchel": p_satchel, "bigpack": p_bigpack,
-         "cratepack": p_cratepack, "prop_briefcase": p_briefcase, "prop_boomerang": p_boomerang, "prop_sack": p_sack, "prop_bandana": g_bandana}
+         "cratepack": p_cratepack, "prop_briefcase": p_briefcase, "prop_boomerang": p_boomerang, "prop_sack": p_sack, "prop_bandana": g_bandana,
+         # G1-23 loot gear
+         "pot_helmet": hat_pot, "coconut_helmet": hat_coconut, "warden_helmet": hat_warden_full, "snorkel": g_snorkel,
+         "leaf_vest": b_leaf_vest, "life_jacket": b_life_jacket, "peel_jacket": b_peel_jacket, "bamboo_plate": b_bamboo_plate,
+         "coconut_cuirass": b_coconut_cuirass, "warden_vest": b_warden_vest, "sack": p_sack,
+         "walkman": e_walkman(), "walkman_nb": e_walkman(True), "radio_headset": e_radio(), "radio_headset_nb": e_radio(True)}
+SLOT = {"head": ("bowler", "tophat", "fedora", "cap", "hardhat", "pith", "beanie", "crown", "pot_helmet", "coconut_helmet", "warden_helmet"),
+        "back": ("satchel", "bigpack", "cratepack", "prop_sack", "sack"), "hand": ("prop_briefcase", "prop_boomerang"),
+        "body": ("leaf_vest", "life_jacket", "peel_jacket", "bamboo_plate", "coconut_cuirass", "warden_vest"),
+        "ears": ("walkman", "walkman_nb", "radio_headset", "radio_headset_nb")}
+slot_of = lambda name: next((k for k, v in SLOT.items() if name in v), "face")
 only = ARGS[ARGS.index("--only") + 1].split(",") if "--only" in ARGS else list(BUILD)
 for name in only:
     add(name, BUILD[name]())
@@ -486,32 +974,37 @@ for name, ob in OUT.items():
     C.write_uv_and_col(ob)
 print("@@TRIS", json.dumps({n: C.tris(o) for n, o in OUT.items()}))
 
-SOCK = {"head": TOP, "face": FACE0, "back": BACK0}
+SOCK = {"head": TOP, "face": FACE0, "back": BACK0, "body": BODY0, "ears": EARS0}
+ear_obs = []
+RES = int(ARGS[ARGS.index("--res") + 1]) if "--res" in ARGS else 300
 if "--sheet" in ARGS:
     out = ARGS[ARGS.index("--sheet") + 1]
     C.setup_studio()
+    ear_obs = [C.build("_ears", P.ear("round").both(), 0), C.build("_arms", P.arm("suit").both(), 1)]
     # lay the wearables out on reference heads/torsos
     torso_ob.hide_render = True
     import subprocess
     files = []
     for name, ob in OUT.items():
-        slot = "head" if name in ("bowler", "tophat", "fedora", "cap", "hardhat", "pith", "beanie", "crown") else "back" if name in ("satchel", "bigpack", "cratepack", "prop_sack") else "hand" if name in ("prop_briefcase", "prop_boomerang") else "face"
+        slot = slot_of(name)
         for o in OUT.values():
             o.hide_render = o is not ob
         ob.location = SOCK.get(slot, Vector((0, 0, 1.2)))
-        head_ob.hide_render = face_ob.hide_render = slot not in ("head", "face")
-        torso_ob.hide_render = slot != "back"
-        ctr = {"head": (0, 0, 1.6), "face": (0, 0, 1.5), "back": (0, 0, 0.8), "hand": (0, -0.25, 1.0)}[slot]
-        az = {"head": 30, "face": 25, "back": 150, "hand": 70}[slot]
+        head_ob.hide_render = face_ob.hide_render = slot not in ("head", "face", "ears")
+        ear_obs[0].hide_render = slot not in ("head", "face", "ears")
+        ear_obs[1].hide_render = slot != "body"
+        torso_ob.hide_render = slot not in ("back", "body")
+        ctr = {"head": (0, 0, 1.6), "face": (0, 0, 1.5), "back": (0, 0, 0.8), "hand": (0, -0.25, 1.0), "body": (0, 0, 0.76), "ears": (0, 0, 1.5)}[slot]
+        az = {"head": 30, "face": 25, "back": 150, "hand": 70, "body": 25, "ears": 25}[slot]
         f = out.replace(".png", "_%s.png" % name)
-        C.render_views(f, ctr, 4.2 if slot != "hand" else 3.0, [("a", az, 14), ("b", az + (150 if slot != "back" else 60), 30)], res=(300, 300))
+        C.render_views(f, ctr, 4.2 if slot != "hand" else 3.0, [("a", az, 14), ("b", az + (150 if slot not in ("back",) else 60), 30)], res=(RES, RES))
         files.append(f)
         ob.location = (0, 0, 0)
     subprocess.run(["montage", *files, "-tile", "6x", "-geometry", "+2+2", "-background", "#222", out], check=True)
     for f in files:
         os.remove(f)
 
-for o in (head_ob, face_ob, torso_ob):
+for o in [head_ob, face_ob, torso_ob] + ear_obs:
     bpy.data.objects.remove(o)
 for o in OUT.values():
     o.hide_render = False

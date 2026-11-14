@@ -49,7 +49,7 @@ export function startRaid(end: (r: RaidResult) => void) {
   const before = new Set(raidScene.children); resetRaidColliders(); resetWalls(); resetHouses(); resetProps();
   // player
   if (!G.rig) { G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); }
-  G.rig.setLook?.(G.save.look); G.gear = { ...G.save.gear }; restoreBoundKit(); G.rig.setGear?.(visualGear(G.gear));
+  G.rig.setLook?.(G.save.look); G.gear = { ...G.save.gear }; restoreBoundKit(); G.rig.setGear?.(G.gear);
   raidScene.add(G.rig.root);
   G.pp = G.rig.root.position; G.pp.set(START.x, 0, START.z); // just outside the hatch ring
   { const at = QS.get("at")?.split(",").map(Number); if (at && at.length === 2 && at.every(Number.isFinite) && walkable(at[0], at[1])) G.pp.set(at[0], 0, at[1]); } // ?at=x,z: start somewhere else (captures, tests)

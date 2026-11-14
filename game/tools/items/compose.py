@@ -105,7 +105,7 @@ bad = [i for i, r in report.items() if not r["ok"]]
 if not tag:                                                   # src/game/ui/icons.ts must list exactly this set
     import re
     ts = open(os.path.join(ROOT, "src", "game", "ui", "icons.ts")).read()
-    listed = re.findall(r'"([a-z0-9]+)"', ts[ts.index("ICON_IDS"):ts.index("];")])
+    listed = re.findall(r'"([a-z0-9_]+)"', ts[ts.index("ICON_IDS"):ts.index("];")])
     if sorted(listed) != sorted(ids):
         sys.exit(f"ICON_IDS mismatch: only in icons.ts {sorted(set(listed) - set(ids))}, only rendered {sorted(set(ids) - set(listed))}")
 print(f"composited {len(ids)} icons; min fill {min(r['fill'] for r in report.values()):.2f}; below {MIN_FILL}: {bad or 'none'}")

@@ -3,13 +3,23 @@
 //   t=<seconds, freezes the clock>  loop=1 (replay timed actions)  speed=<u/s>  yaw=<deg facing>  aim=<deg twist>
 //   preset=<index into LOOK_PRESETS>  look=<share code>  gear=bowler,shades,satchel | none  armed=pistol|none|briefcase
 //   seed=<enemy seed>  old=1 (the old primitive monkey beside it)  gun=0 (hide the stand-in pistol)  bg=<hex>
+//   gear accepts equipment instances too ("warden_vest#0" = broken).
+// view=gear is the G1-23 equipment matrix:
+//   set=body    every body piece on the default Businessman (front row: satchel; back row: big backpack)
+//   set=hats    every hat x every headset (plus a bare-headed column and a no-headset row)
+//   set=builds  a stocky and a slim Businessman in every vest
+//   set=bandit  Peel Gang bandits in peel_jacket + pot_helmet, beside a plain bandit and one with a headset
+//   set=face    every face piece with the helmets and headsets it has to clear
+//   set=broken  each new piece at durability 0 beside the same piece intact
+//   cam=close|game (game = the real 55 deg / 40 u camera)  turn=<deg> (180 = backs)  row=<i> from=<col> n=<cols> (zoom on a few)
+//   action / speed / t / armed work as in the other views.
 // The gameplay view is the real camera (Stage: 55 deg pitch, -30 deg yaw, FOV 24, distance 40).
 import * as THREE from "three";
 import { Stage } from "../render/stage";
 import { U, patch } from "../render/shading";
 import { preloadCharacters, createRig, rigStats, CLIP_INFO, type RigActionX } from "./rig";
 import { LOOK_PRESETS, decodeLook } from "./look";
-import { WEARABLES, DEFAULT_GEAR } from "./wearables";
+import { WEARABLES, DEFAULT_GEAR, WEAR_ZONES, baseId } from "./wearables";
 import { createKingpin, preloadKingpin } from "../combat/kingpin";
 import { Monkey3D } from "./monkey3d";
 import type { Rig, Gear, RigState, EnemyStyle, MonkeyLook } from "../contracts";
@@ -24,7 +34,7 @@ ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; stage.scene.add(g
 function parseGear(s: string | null): Gear {
   if (s === null) return { ...DEFAULT_GEAR };
   const g: Gear = { head: null, face: null, body: null, back: null, ears: null };
-  for (const id of s.split(",")) { const w = WEARABLES.find((x) => x.id === id); if (w) g[w.slot] = w.id; }
+  for (const inst of s.split(",")) { const w = WEARABLES.find((x) => x.id === baseId(inst)); if (w) g[w.slot] = inst; }
   return g;
 }
 type Actor = { rig: Rig; action: RigActionX; speed: number; yaw: number; aim: number; armed: RigState["armed"]; off: number };
@@ -34,7 +44,7 @@ function add(k: string, x: number, z: number, o: Partial<Actor> & { look?: Monke
   const rig = player ? createRig("monkey", o.look ?? LOOK_PRESETS[0].look) : createRig(k === "brute" || k === "sleeper" ? "gorilla" : "monkey", { kind: k, seed: o.seed ?? 3 } as EnemyStyle);
   if (player) {
     rig.setGear?.(o.gear ?? { ...DEFAULT_GEAR });
-    if (QS.get("gun") !== "0") rig.sockets.handR.add(createKingpin().root);
+    if (QS.get("gun") !== "0" && (view !== "gear" || QS.get("armed") === "pistol")) rig.sockets.handR.add(createKingpin().root);
   }
   rig.root.position.set(x, 0, z); stage.scene.add(rig.root);
   const a: Actor = { rig, action: o.action ?? "idle", speed: o.speed ?? 0, yaw: o.yaw ?? 0, aim: o.aim ?? 0, armed: o.armed ?? (player ? "pistol" : "none"), off: actors.length * 0.37 };
@@ -55,6 +65,33 @@ if (view === "lineup") {
   if (QS.get("gorillas") !== "0") { add("brute", -5.2, 1.6, { seed: 2, yaw }); add("sleeper", -9.6, 1.8, { seed: 1, yaw }); }
   for (const a of actors) { a.action = action; a.speed = num("speed", defSpeed(action)); }
   focus.set(0, 1.3, -0.4); stage.cam.dist = num("dist", 31); stage.cam.pitch = THREE.MathUtils.degToRad(num("pitch", 16)); stage.cam.yaw = THREE.MathUtils.degToRad(num("camyaw", 172));
+} else if (view === "gear") {
+  const set = QS.get("set") ?? "body", game = QS.get("cam") === "game", camYaw = num("camyaw", game ? -30 : 172), th = THREE.MathUtils.degToRad(camYaw);
+  const g = (o: Partial<Gear>): Gear => ({ head: null, face: null, body: null, back: null, ears: null, ...o });
+  const ids = (slot: string) => WEARABLES.filter((w) => w.slot === slot).map((w) => w.id);
+  const BODY = ids("body").filter((id) => id !== "suit"), HATS = [null, ...ids("head")], EARS = ids("ears"), FACE = ids("face");
+  type Cell = { k?: string; look?: MonkeyLook; gear: Gear; seed?: number };
+  const withBuild = (b: number): MonkeyLook => ({ ...structuredClone(LOOK_PRESETS[0].look), x: { build: b } } as MonkeyLook);
+  let rows: Cell[][] = [];
+  if (set === "body") rows = [[null, ...BODY].map((b) => ({ gear: g({ ...DEFAULT_GEAR, body: b }) })), [null, ...BODY].map((b, i) => ({ look: LOOK_PRESETS[i % LOOK_PRESETS.length].look, gear: g({ head: "fedora", face: "aviators", body: b, back: i % 2 ? "bigpack" : "cratepack" }) }))];
+  else if (set === "hats") rows = [null, ...EARS].map((e) => HATS.map((h) => ({ gear: g({ head: h, face: "shades", ears: e }) })));
+  else if (set === "builds") rows = [1, -1].map((b) => BODY.map((id) => ({ look: withBuild(b), gear: g({ ...DEFAULT_GEAR, body: id }) })));
+  else if (set === "bandit") rows = [[1, 4, 7, 9].map((seed, i) => ({ k: "bandit", seed, gear: i === 3 ? g({}) : g({ head: "pot_helmet", body: "peel_jacket", ears: i === 2 ? "radio_headset" : null }) })),
+    [2, 5].map((seed, i) => ({ k: i ? "wild" : "bandit", seed, gear: g({ head: i ? "coconut_helmet" : "warden_helmet", body: i ? "leaf_vest" : "warden_vest", back: i ? null : "sack" }) }))];
+  else if (set === "face") rows = [FACE.map((f) => ({ gear: g({ head: "warden_helmet", face: f, ears: "walkman" }) })), FACE.map((f, i) => ({ gear: g({ head: ["pot_helmet", "coconut_helmet", "bowler", "pith"][i % 4], face: f, ears: "radio_headset" }) }))];
+  else if (set === "broken") { const NEW = WEARABLES.filter((w) => !!WEAR_ZONES[w.id] && ["pot_helmet", "coconut_helmet", "warden_helmet", "snorkel", ...BODY, "sack", ...EARS].includes(w.id)); rows = [NEW.map((w) => ({ gear: g({ [w.slot]: w.id }) })), NEW.map((w) => ({ gear: g({ [w.slot]: w.id + "#0" }) }))]; }
+  const from = num("from", 0), n = num("n", 99);
+  if (QS.has("row")) rows = [rows[num("row", 0)] ?? rows[0]];
+  rows = rows.map((r) => r.slice(from, from + n));
+  const cols = Math.max(...rows.map((r) => r.length)), dx = num("dx", 2.15), dz = num("dz", game ? 3.2 : 2.7);
+  const face = THREE.MathUtils.degToRad(num("yaw", camYaw) + num("turn", 0));
+  rows.forEach((r, j) => r.forEach((c, i) => {
+    const u = (i - (cols - 1) / 2) * dx, v = (j - (rows.length - 1) / 2) * dz;
+    const a = add(c.k ?? "player", Math.cos(th) * u + Math.sin(th) * v, -Math.sin(th) * u + Math.cos(th) * v, { look: c.look, gear: c.k ? undefined : c.gear, seed: c.seed, yaw: face, action, speed: num("speed", defSpeed(action)), armed: (QS.get("armed") ?? "none") as RigState["armed"] });
+    if (c.k) a.rig.setGear?.(c.gear);
+  }));
+  focus.set(0, game ? 0.9 : 1.05, 0);
+  stage.cam.dist = num("dist", game ? 40 : Math.max(8.6, cols * dx * 1.5, rows.length * 7.5)); stage.cam.pitch = THREE.MathUtils.degToRad(num("pitch", game ? 55 : 14)); stage.cam.yaw = th;
 } else {
   const big = kind === "brute" || kind === "sleeper";
   add(kind, 0, 0, { look, gear: parseGear(QS.get("gear")), seed: num("seed", 3), action, speed: num("speed", defSpeed(action)), yaw, aim, armed });

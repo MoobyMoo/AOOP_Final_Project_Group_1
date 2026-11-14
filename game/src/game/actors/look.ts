@@ -29,8 +29,9 @@ export const JACKETS: JacketStyle[] = ["two", "double", "vest", "open"];
 export type LookExt = {
   build?: number; jacket?: JacketStyle; pocketSquare?: boolean;
   colors?: { innerEar?: string; eyes?: string; shirt?: string; brows?: string; buttons?: string; square?: string };
-  gear?: { head?: { main?: string; accent?: string }; face?: { main?: string; accent?: string }; back?: { main?: string; accent?: string } };
+  gear?: { head?: GearTint; face?: GearTint; back?: GearTint; body?: GearTint; ears?: GearTint };
 };
+export type GearTint = { main?: string; accent?: string };
 export type MonkeyLookX = MonkeyLook & { x?: LookExt };
 export const lookExt = (l: MonkeyLook): LookExt => (l as MonkeyLookX).x ?? {};
 
@@ -86,7 +87,7 @@ function sanitizeExt(x: LookExt | undefined): LookExt | undefined {
   return JSON.parse(JSON.stringify({
     build: clamp(x.build, -1, 1, 0), jacket: one(x.jacket, JACKETS, "two"), pocketSquare: !!x.pocketSquare,
     colors: { innerEar: optCol(c.innerEar), eyes: optCol(c.eyes), shirt: optCol(c.shirt), brows: optCol(c.brows), buttons: optCol(c.buttons), square: optCol(c.square) },
-    gear: { head: zone(g.head), face: zone(g.face), back: zone(g.back) },
+    gear: { head: zone(g.head), face: zone(g.face), back: zone(g.back), body: zone(g.body), ears: zone(g.ears) },
   }));
 }
 const r3 = (n: number) => Math.round(n * 1000) / 1000;
@@ -101,7 +102,9 @@ export function mulberry(seed: number) {
   let a = (seed | 0) + 0x6d2b79f5;
   return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 }
-export type MonkeyEnemySpec = { look: MonkeyLook; torso: "fur" | "tee"; scale: number; build: number; tuft: boolean; hand: string | null; face: string | null; back: string | null; head: string | null; bandana?: string };
+/** head / face / body / back / ears are the kind's own props (wearables.glb ids). They are not loot: the rig keeps them
+ *  in any slot the enemy's loot gear leaves empty (rig.setGear, createRig's gear argument). */
+export type MonkeyEnemySpec = { look: MonkeyLook; torso: "fur" | "tee"; scale: number; build: number; tuft: boolean; hand: string | null; face: string | null; back: string | null; head: string | null; body: string | null; ears: string | null; bandana?: string };
 /** wild monkeys: no clothes, scrappy tuft, boomerang. Bandits (Peel Gang): striped shirt, bandana, loot sack, mean brows. */
 export function monkeyEnemy(style: EnemyStyle): MonkeyEnemySpec {
   const rng = mulberry(style.seed * 2654435761), vary = (c: string, dh: number, dl: number) => { const k = shade(c, (rng() - 0.5) * dl), h = { h: 0, s: 0, l: 0 }; k.getHSL(h); return "#" + k.setHSL((h.h + (rng() - 0.5) * dh + 1) % 1, h.s, h.l).getHexString(); };
@@ -112,7 +115,7 @@ export function monkeyEnemy(style: EnemyStyle): MonkeyEnemySpec {
       look: { v: 2, fur, face: vary("#e6b483", 0.01, 0.06), headSize: (rng() - 0.5) * 0.1, ears: { style: pick(rng, ["round", "pointy"] as const), size: 0.9 + rng() * 0.2 },
         eyes: { style: pick(rng, ["sleepy", "round", "beady"] as const), spacing: 0.94 + rng() * 0.12 }, brows: { style: "bold", tilt: 1 }, mouth: pick(rng, ["smirk", "grin"] as const),
         suit: "#f3eadb", pants: vary("#3a3340", 0.05, 0.06), tie: { style: "none", color: "#d9493a" }, tail: { curl: 0.3 + rng() * 0.5 }, feet: { style: "round", color: "#" + shade(fur, -0.1).getHexString() } },
-      torso: "tee", scale: 0.92 * size, build: (rng() - 0.3) * 0.9, bandana: pick(rng, ["#d9493a", "#d9493a", "#7a4ea0", "#3a6ad1", "#2f7a4a"] as const), tuft: false, hand: null, face: "prop_bandana", back: "prop_sack", head: null,
+      torso: "tee", scale: 0.92 * size, build: (rng() - 0.3) * 0.9, bandana: pick(rng, ["#d9493a", "#d9493a", "#7a4ea0", "#3a6ad1", "#2f7a4a"] as const), tuft: false, hand: null, face: "prop_bandana", back: "prop_sack", head: null, body: null, ears: null,
     };
   }
   const fur = vary("#9a6a3a", 0.05, 0.2);
@@ -121,6 +124,6 @@ export function monkeyEnemy(style: EnemyStyle): MonkeyEnemySpec {
       eyes: { style: pick(rng, ["beady", "round", "beady"] as const), spacing: 0.95 + rng() * 0.18 }, brows: { style: pick(rng, ["bushy", "bold"] as const), tilt: 0.2 + rng() * 0.5 },
       mouth: pick(rng, ["toothy", "smirk", "whistle", "toothy"] as const), suit: fur, pants: fur, tie: { style: "none", color: fur }, tail: { curl: rng() },
       feet: { style: "round", color: "#" + shade(fur, -0.08).getHexString() } },
-    torso: "fur", scale: 0.85 * size, build: (rng() - 0.5) * 1.2, tuft: true, hand: "prop_boomerang", face: null, back: null, head: null,
+    torso: "fur", scale: 0.85 * size, build: (rng() - 0.5) * 1.2, tuft: true, hand: "prop_boomerang", face: null, back: null, head: null, body: null, ears: null,
   };
 }

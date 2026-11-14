@@ -40,7 +40,7 @@ export function openCreator(done: () => void, scene: THREE.Scene) {
   c.onpointermove = (e) => { if (G.scene === "creator" && drag !== null) { spin += (e.clientX - drag) * 0.012; drag = e.clientX; } };
   if (P.has("bot")) setTimeout(finish, 300);
 }
-function apply() { G.rig.setLook?.(look); G.rig.setGear?.(visualGear(gear)); }
+function apply() { G.rig.setLook?.(look); G.rig.setGear?.(gear) /* raw instances: the rig strips "#dur" and dulls broken pieces */; }
 const sw = (cols: string[], cur: string, key: string) => `<div class="sw">${cols.map((c) => `<i data-k="${key}" data-v="${c}" style="background:${c}" class="${c === cur ? "on" : ""}"></i>`).join("")}<label><input type="color" data-k="${key}" value="${cur}"></label></div>`;
 const chips = (opts: string[], cur: string, key: string) => `<div class="chips">${opts.map((o) => `<b data-k="${key}" data-v="${o}" class="${o === cur ? "on" : ""}">${o === "bowtie" ? "Bow tie" : o[0].toUpperCase() + o.slice(1)}</b>`).join("")}</div>`;
 const chipsL = (opts: [string, string][], cur: string, key: string) => `<div class="chips">${opts.map(([v, n]) => `<b data-k="${key}" data-v="${v}" class="${v === cur ? "on" : ""}">${n}</b>`).join("")}</div>`;

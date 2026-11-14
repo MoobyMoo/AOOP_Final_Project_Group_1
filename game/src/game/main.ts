@@ -45,7 +45,7 @@ await preloadBuild().catch((e) => console.warn("build kit missing, bunker uses t
 await preloadCharacters(); // character GLBs (rig v2): createRig() is synchronous once this resolves
 await Promise.all([preloadNature(), preloadHouse()]); // nature + building kits (the structures kit is loaded above): the raid world builds from them
 buildRaidWorld(); G.stage.setScene(raidScene); buildMapShots(raidScene);
-G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); G.rig.setGear?.(visualGear(G.save.gear));
+G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); G.rig.setGear?.(G.save.gear);
 
 function goHome(summary?: string) { enterBunker(goRaid, goMirror, summary); }
 function goMirror() { leaveBunker(); openCreator(() => goHome(), bunkerScene); }

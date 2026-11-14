@@ -25,6 +25,7 @@ export const ITEMS: Record<string, ItemDef> = {
   boomerang: { id: "boomerang", name: "Banana Boomerang", icon: "🪃", rarity: "uncommon", value: 20, kind: "sell", weight: 0.7 },
   ammo45: { id: "ammo45", name: ".45 Rounds", icon: "🔸", rarity: "common", value: 0, kind: "ammo", weight: 0, stack: 8 },
   vine_key: { id: "vine_key", name: "Vine Key", icon: "🗝️", rarity: "rare", value: 0, kind: "key", weight: 0.1 },
+  radio_key: { id: "radio_key", name: "Radio Shack Key", icon: "🗝️", rarity: "rare", value: 0, kind: "key", weight: 0.1 },
   extended_mag: { id: "extended_mag", name: "Kingpin Extended Mag", icon: "📎", rarity: "epic", value: 0, kind: "attachment", weight: 0.2 },
   spring: { id: "spring", name: "Spring", icon: "🌀", rarity: "common", value: 11, kind: "part", weight: 0.5 },
   plank: { id: "plank", name: "Plank", icon: "🪵", rarity: "common", value: 8, kind: "part", weight: 2.0 },

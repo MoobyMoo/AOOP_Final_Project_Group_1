@@ -93,7 +93,7 @@ export function enterBunker(deploy: () => void, mirror: () => void, summary?: st
   G.scene = "bunker"; G.stage.setScene(bunkerScene, false); bunkerScene.fog = null; initFx(bunkerScene, G.stage.camera);
   G.stage.hemi.intensity = 1.4; G.stage.sun.intensity = 2.5;
   if (!G.rig) { G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(bunkerScene); G.rig.sockets.handR.add(G.gun.root); }
-  G.rig.setLook?.(G.save.look); G.gear = { ...G.save.gear }; G.rig.setGear?.(visualGear(G.save.gear)); G.pack = []; bunkerScene.add(G.rig.root); G.gun.root.visible = false; // holstered at home (the raid shows it each frame)
+  G.rig.setLook?.(G.save.look); G.gear = { ...G.save.gear }; G.rig.setGear?.(G.save.gear); G.pack = []; bunkerScene.add(G.rig.root); G.gun.root.visible = false; // holstered at home (the raid shows it each frame)
   pp.set(0, 0, 2.4); vel.set(0, 0, 0); G.rig.root.position.copy(pp);
   const ui = document.getElementById("ui")!; ui.innerHTML = `<div class="home-top"><div class="place"><b>The Bunker</b><span>Under Exile Beach</span></div><span class="home-money">🍌 <b>${G.save.money}</b></span></div><div class="hud-prompt" id="hp"></div><div class="home-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk &nbsp;<kbd>E</kbd> use a station</div>`;
   if (summary) showPanel(summary, "result");
@@ -146,9 +146,9 @@ function openLocker() {
     <div class="inv-detail">${detailsHtml(null)}</div><div class="actions"><button data-a="look">Change your look</button></div><p class="dim" style="margin-top:8px">Found gear is lost to your satchel if you get bonked. Pieces marked ★ are yours for good.</p>`, "inv");
   const p = panel!, detail = p.querySelector(".inv-detail") as HTMLElement;
   p.querySelectorAll<HTMLElement>("[data-locker]").forEach((b) => { const i = +b.dataset.locker!, inst = sv.locker[i];
-    b.onmouseenter = () => { detail.innerHTML = detailsHtml(inst, "Click to wear it"); }; b.onclick = () => { if (equipFromLocker(i)) { sfx("ui"); G.rig.setGear?.(visualGear(sv.gear)); save(sv); openLocker(); } else sfx("nope"); }; });
+    b.onmouseenter = () => { detail.innerHTML = detailsHtml(inst, "Click to wear it"); }; b.onclick = () => { if (equipFromLocker(i)) { sfx("ui"); G.rig.setGear?.(sv.gear); save(sv); openLocker(); } else sfx("nope"); }; });
   p.querySelectorAll<HTMLElement>("[data-slot]").forEach((b) => { const slot = b.dataset.slot as WearSlot, inst = sv.gear[slot];
-    b.onmouseenter = () => { detail.innerHTML = detailsHtml(inst, inst ? "Click to put it in the locker" : ""); }; b.onclick = () => { if (inst && unequip(slot)) { sfx("ui"); G.rig.setGear?.(visualGear(sv.gear)); save(sv); openLocker(); } else sfx("nope"); }; });
+    b.onmouseenter = () => { detail.innerHTML = detailsHtml(inst, inst ? "Click to put it in the locker" : ""); }; b.onclick = () => { if (inst && unequip(slot)) { sfx("ui"); G.rig.setGear?.(sv.gear); save(sv); openLocker(); } else sfx("nope"); }; });
 }
 function gearSaleHtml() {
   const rows = G.save.locker.map((inst, i) => ({ inst, i, d: equipDef(inst) })).filter((r) => r.d && !r.d.bound);

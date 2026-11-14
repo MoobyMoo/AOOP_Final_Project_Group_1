@@ -65,7 +65,7 @@ export type RigState = {
 };
 export interface Rig {
   root: THREE.Group;     // gameplay sets root.position and root.rotation.y = moveYaw; pose() never moves root.position
-  sockets: { handR: THREE.Object3D; handL: THREE.Object3D; back: THREE.Object3D; head: THREE.Object3D };
+  sockets: { handR: THREE.Object3D; handL: THREE.Object3D; back: THREE.Object3D; head: THREE.Object3D; face?: THREE.Object3D; body?: THREE.Object3D; ears?: THREE.Object3D }; // monkeys also expose face/body/ears (G1-23); body armor is skinned, the body socket is for rigid extras
   bounds: { radius: number; height: number };
   pose(s: RigState): void;
   setLook?(look: MonkeyLook): void;   // monkeys: rebuild the changed parts live (creator)
@@ -115,6 +115,7 @@ export type BuildingDef = {
   interiors: { x: number; z: number; w: number; d: number; h: number }[];   // inside volumes: roof fade + dark tint
   doors: { id: string; leaf: string /* parts key */; axis: "y"; open: number; breakable?: boolean; locked?: string /* key item id */ }[];
   lights: string[];                           // parts keys of point-light anchors inside
+  breakables?: { id: string; intact: string; debris: string; remains: string }[]; // breakable wall parts (collider carries the id)
 };
 // world/kit_house.ts (Fable W2) exports preloadHouse(), building(id, opts?): BuildingDef, houseModule(name, opts?) for
 //   one-off assembly. Each kit (nature/build/house) also exports collidersFor(k, o?): Collider[] for its placed pieces.

@@ -10,6 +10,10 @@ export const ICON_IDS: string[] = [
   "bowler", "tophat", "fedora", "cap", "hardhat", "pith", "beanie", "crown",
   "shades", "aviators", "monocle", "eyepatch", "goggles", "heartglasses", "banditmask",
   "satchel", "bigpack", "cratepack",
+  // G1-23 loot gear: head, face, body, back, ears (tools/items/icon_gear.py stages the rig meshes), plus the bound suit
+  "pot_helmet", "coconut_helmet", "warden_helmet", "snorkel",
+  "leaf_vest", "life_jacket", "peel_jacket", "bamboo_plate", "coconut_cuirass", "warden_vest",
+  "sack", "walkman", "radio_headset", "suit",
   // weapons (tools/items/icon_kingpin.py stages the game GLB)
   "kingpin",
 ];

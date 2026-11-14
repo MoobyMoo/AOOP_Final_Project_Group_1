@@ -17,7 +17,7 @@ from mathutils.bvhtree import BVHTree
 REGIONS = ["fur", "face", "suit", "pants", "tie", "feet", "shirt", "dark", "white", "pupil", "gold", "mouth",
            "tongue", "suit2", "stripeA", "stripeB", "sole", "prop", "prop2", "fur2", "skin", "metal", "red",
            "cloth", "chain", "mask", "hat", "band", "lens", "leather", "leather2", "banana", "green", "blue", "pink",
-           "yellow", "khaki", "wood", "wood2", "glass", "skin2", "vest", "vest2", "nail", "ear", "square"]
+           "yellow", "khaki", "wood", "wood2", "glass", "skin2", "vest", "vest2", "nail", "ear", "square", "navy", "leaf"]
 REG = {n: i for i, n in enumerate(REGIONS)}
 NREG = 48
 # preview palette (Blender turnarounds only; the game sets these from MonkeyLook)
@@ -30,7 +30,7 @@ PALETTE = {
     "hat": "#343036", "band": "#f46a10", "lens": "#15131a", "leather": "#8a5a34", "leather2": "#6a4226", "banana": "#ffd84a",
     "green": "#5a9a4a", "blue": "#3a6ad1", "pink": "#ff6aa0", "yellow": "#ffc93a", "khaki": "#cdbd8c", "wood": "#b98a52",
     "wood2": "#8f6638", "glass": "#bfe6f2", "skin2": "#6a6674", "vest": "#4a4458", "vest2": "#d9d2c4", "nail": "#2c2a33",
-    "ear": "#f0a468", "square": "#f6f2ea",
+    "ear": "#f0a468", "square": "#f6f2ea", "navy": "#2b4170", "leaf": "#3c7a3a",
 }
 
 
