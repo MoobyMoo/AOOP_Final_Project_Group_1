@@ -1,0 +1,941 @@
+{
+  "generated": "2026-11-14T23:08:48.237Z",
+  "build": {
+    "entry": "game-IlIz7cad.js",
+    "sha256": "20340f17ab28b38695b3598f6c2e51ffbe5bda0581138967cf53d721b0fe5665",
+    "sourceHashes": {
+      "src/game/core/bot.ts": "f05588746fdd0c472d67f5befafceb5c406b83b711e821594b5df3cbcb5987ec",
+      "src/game/core/botdrive.ts": "5c06a35128b621b19e3ff3589d51267581c7fa0b7212030c577cb5fc516b76dc",
+      "src/game/core/raid.ts": "25d7e11137770a038d2eccd5b68ea27c56b0c27327cca6d4604cd1a0170d1834",
+      "src/game/combat/combat.ts": "40e71bc05240139af707dd8f069ab8ae1ed828b2fb780646fd99c24eab26dbfa",
+      "src/game/main.ts": "378c107d1a4a4e12d24b5de1c515026c6820e35f3380a07c7efab000b99ec05a"
+    }
+  },
+  "inputs": [
+    "g0.3-s1.json",
+    "g0.5-s2.json",
+    "g0.8-s3.json"
+  ],
+  "gates": [
+    {
+      "name": "Human-estimated raid length 4–8 min",
+      "pass": false,
+      "measured": "0/18 in range; 1.63–3.97 min; mean 2.78 min"
+    },
+    {
+      "name": "Briefcase ≥30% of all kills",
+      "pass": true,
+      "measured": "104/169 = 61.5%"
+    },
+    {
+      "name": "<20% of raids end with zero ammo",
+      "pass": false,
+      "measured": "5/18 = 27.8%; loaded + reserve"
+    },
+    {
+      "name": "Every raid yields a useful find",
+      "pass": true,
+      "measured": "18/18 raids rolled ≥1 useful item; minimum 1"
+    },
+    {
+      "name": "10–30% bonk-out at greed 0.8 / 250 ms lag",
+      "pass": false,
+      "measured": "0/10 = 0.0%"
+    },
+    {
+      "name": "Zero softlocks",
+      "pass": true,
+      "measured": "0/18; longest raid 179.30 s <900 s"
+    }
+  ],
+  "rows": [
+    {
+      "greed": 0.3,
+      "botSeed": 1,
+      "lag": 0.25,
+      "raid": 0,
+      "seed": 2654435774,
+      "how": "hatch",
+      "t": 112.76666666666155,
+      "value": 104,
+      "bonus": 0,
+      "kept": 5,
+      "lost": 0,
+      "log": {
+        "crates": 6,
+        "kills": {
+          "wild": 4,
+          "bandit": 3
+        },
+        "killsBy": {
+          "pistol": 4,
+          "briefcase": 3
+        },
+        "shots": 8,
+        "hits": 8,
+        "hurt": 0,
+        "rolls": 5,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 4.899999999999988,
+        "firstCrate": 12.90000000000022,
+        "firstRoll": 10.966666666666791,
+        "breaks": [],
+        "value": 104
+      },
+      "ammo": 24,
+      "hp": 100,
+      "maxHp": 100,
+      "usefulFound": 4,
+      "upgrades": {
+        "mag": 0,
+        "pack": 0,
+        "heart": 0
+      },
+      "humanSeconds": 149.97966666665988,
+      "kills": 7,
+      "hpLost": 0,
+      "upgradesBought": []
+    },
+    {
+      "greed": 0.3,
+      "botSeed": 1,
+      "lag": 0.25,
+      "raid": 1,
+      "seed": 2654443693,
+      "how": "hatch",
+      "t": 100.2499999999956,
+      "value": 311,
+      "bonus": 0,
+      "kept": 9,
+      "lost": 0,
+      "log": {
+        "crates": 4,
+        "kills": {
+          "bandit": 6,
+          "wild": 1
+        },
+        "killsBy": {
+          "pistol": 1,
+          "briefcase": 6
+        },
+        "shots": 2,
+        "hits": 2,
+        "hurt": 12,
+        "rolls": 5,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 85.53333333332976,
+        "firstCrate": 12.933333333333556,
+        "firstRoll": 3.816666666666658,
+        "breaks": [],
+        "value": 311
+      },
+      "ammo": 38,
+      "hp": 88,
+      "maxHp": 100,
+      "usefulFound": 4,
+      "upgrades": {
+        "mag": 0,
+        "pack": 0,
+        "heart": 0
+      },
+      "humanSeconds": 133.33249999999416,
+      "kills": 7,
+      "hpLost": 12,
+      "upgradesBought": [
+        "mag 1 (240)"
+      ]
+    },
+    {
+      "greed": 0.3,
+      "botSeed": 1,
+      "lag": 0.25,
+      "raid": 2,
+      "seed": 2654451612,
+      "how": "hatch",
+      "t": 73.38333333333046,
+      "value": 147,
+      "bonus": 0,
+      "kept": 8,
+      "lost": 0,
+      "log": {
+        "crates": 4,
+        "kills": {
+          "wild": 3,
+          "bandit": 1,
+          "brute": 1
+        },
+        "killsBy": {
+          "pistol": 4,
+          "briefcase": 1
+        },
+        "shots": 17,
+        "hits": 17,
+        "hurt": 0,
+        "rolls": 2,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 5.999999999999984,
+        "firstCrate": 13.316666666666908,
+        "firstRoll": 10.233333333333421,
+        "breaks": [],
+        "value": 147
+      },
+      "ammo": 21,
+      "hp": 100,
+      "maxHp": 100,
+      "usefulFound": 2,
+      "upgrades": {
+        "mag": 1,
+        "pack": 0,
+        "heart": 0
+      },
+      "humanSeconds": 97.59983333332951,
+      "kills": 5,
+      "hpLost": 0,
+      "upgradesBought": []
+    },
+    {
+      "greed": 0.3,
+      "botSeed": 1,
+      "lag": 0.25,
+      "raid": 3,
+      "seed": 2654459531,
+      "how": "hatch",
+      "t": 85.74999999999642,
+      "value": 129,
+      "bonus": 0,
+      "kept": 7,
+      "lost": 0,
+      "log": {
+        "crates": 4,
+        "kills": {
+          "bandit": 4,
+          "brute": 1,
+          "wild": 1
+        },
+        "killsBy": {
+          "pistol": 2,
+          "briefcase": 4
+        },
+        "shots": 13,
+        "hits": 13,
+        "hurt": 0,
+        "rolls": 5,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 18.50000000000023,
+        "firstCrate": 12.933333333333556,
+        "firstRoll": 3.866666666666658,
+        "breaks": [],
+        "value": 129
+      },
+      "ammo": 8,
+      "hp": 100,
+      "maxHp": 100,
+      "usefulFound": 1,
+      "upgrades": {
+        "mag": 1,
+        "pack": 0,
+        "heart": 0
+      },
+      "humanSeconds": 114.04749999999524,
+      "kills": 6,
+      "hpLost": 0,
+      "upgradesBought": []
+    },
+    {
+      "greed": 0.5,
+      "botSeed": 2,
+      "lag": 0.25,
+      "raid": 0,
+      "seed": 1013904239,
+      "how": "raft",
+      "t": 134.26666666666566,
+      "value": 151,
+      "bonus": 45,
+      "kept": 8,
+      "lost": 0,
+      "log": {
+        "crates": 6,
+        "kills": {
+          "bandit": 10,
+          "wild": 2,
+          "brute": 1
+        },
+        "killsBy": {
+          "pistol": 3,
+          "briefcase": 10
+        },
+        "shots": 15,
+        "hits": 15,
+        "hurt": 8,
+        "rolls": 12,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 7.733333333333311,
+        "firstCrate": 19.883333333333486,
+        "firstRoll": 3.816666666666658,
+        "breaks": [],
+        "value": 151
+      },
+      "ammo": 17,
+      "hp": 92,
+      "maxHp": 100,
+      "usefulFound": 9,
+      "upgrades": {
+        "mag": 0,
+        "pack": 0,
+        "heart": 0
+      },
+      "humanSeconds": 178.57466666666534,
+      "kills": 13,
+      "hpLost": 8,
+      "upgradesBought": []
+    },
+    {
+      "greed": 0.5,
+      "botSeed": 2,
+      "lag": 0.25,
+      "raid": 1,
+      "seed": 1013912158,
+      "how": "hatch",
+      "t": 101.4166666666622,
+      "value": 306,
+      "bonus": 0,
+      "kept": 9,
+      "lost": 0,
+      "log": {
+        "crates": 5,
+        "kills": {
+          "wild": 3,
+          "bandit": 3
+        },
+        "killsBy": {
+          "pistol": 3,
+          "briefcase": 3
+        },
+        "shots": 6,
+        "hits": 6,
+        "hurt": 0,
+        "rolls": 3,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 4.2833333333333234,
+        "firstCrate": 12.950000000000223,
+        "firstRoll": 11.066666666666796,
+        "breaks": [],
+        "value": 306
+      },
+      "ammo": 19,
+      "hp": 100,
+      "maxHp": 100,
+      "usefulFound": 6,
+      "upgrades": {
+        "mag": 0,
+        "pack": 0,
+        "heart": 0
+      },
+      "humanSeconds": 134.88416666666072,
+      "kills": 6,
+      "hpLost": 0,
+      "upgradesBought": [
+        "mag 1 (240)"
+      ]
+    },
+    {
+      "greed": 0.5,
+      "botSeed": 2,
+      "lag": 0.25,
+      "raid": 2,
+      "seed": 1013920077,
+      "how": "hatch",
+      "t": 91.16666666666278,
+      "value": 188,
+      "bonus": 0,
+      "kept": 9,
+      "lost": 0,
+      "log": {
+        "crates": 4,
+        "kills": {
+          "bandit": 4,
+          "wild": 1,
+          "brute": 1
+        },
+        "killsBy": {
+          "pistol": 2,
+          "briefcase": 4
+        },
+        "shots": 14,
+        "hits": 13,
+        "hurt": 8,
+        "rolls": 6,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 7.449999999999979,
+        "firstCrate": 17.166666666666973,
+        "firstRoll": 3.949999999999991,
+        "breaks": [],
+        "value": 188
+      },
+      "ammo": 13,
+      "hp": 92,
+      "maxHp": 100,
+      "usefulFound": 3,
+      "upgrades": {
+        "mag": 1,
+        "pack": 0,
+        "heart": 0
+      },
+      "humanSeconds": 121.2516666666615,
+      "kills": 6,
+      "hpLost": 8,
+      "upgradesBought": []
+    },
+    {
+      "greed": 0.5,
+      "botSeed": 2,
+      "lag": 0.25,
+      "raid": 3,
+      "seed": 1013927996,
+      "how": "hatch",
+      "t": 133.63333333333182,
+      "value": 252,
+      "bonus": 0,
+      "kept": 8,
+      "lost": 0,
+      "log": {
+        "crates": 7,
+        "kills": {
+          "wild": 4,
+          "bandit": 3
+        },
+        "killsBy": {
+          "pistol": 4,
+          "briefcase": 3
+        },
+        "shots": 8,
+        "hits": 8,
+        "hurt": 0,
+        "rolls": 2,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 4.8333333333333215,
+        "firstCrate": 12.866666666666886,
+        "firstRoll": 48.433333333331866,
+        "breaks": [],
+        "value": 252
+      },
+      "ammo": 32,
+      "hp": 100,
+      "maxHp": 100,
+      "usefulFound": 7,
+      "upgrades": {
+        "mag": 1,
+        "pack": 0,
+        "heart": 0
+      },
+      "humanSeconds": 177.73233333333133,
+      "kills": 7,
+      "hpLost": 0,
+      "upgradesBought": []
+    },
+    {
+      "greed": 0.8,
+      "botSeed": 3,
+      "lag": 0.25,
+      "raid": 0,
+      "seed": 3668340000,
+      "how": "raft",
+      "t": 137.06666666666789,
+      "value": 130,
+      "bonus": 39,
+      "kept": 7,
+      "lost": 0,
+      "log": {
+        "crates": 6,
+        "kills": {
+          "wild": 6,
+          "bandit": 6,
+          "brute": 2
+        },
+        "killsBy": {
+          "pistol": 8,
+          "briefcase": 6
+        },
+        "shots": 38,
+        "hits": 34,
+        "hurt": 10,
+        "rolls": 9,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 4.783333333333322,
+        "firstCrate": 12.56666666666687,
+        "firstRoll": 10.733333333333446,
+        "breaks": [],
+        "value": 130
+      },
+      "ammo": 10,
+      "hp": 90,
+      "maxHp": 100,
+      "usefulFound": 2,
+      "upgrades": {
+        "mag": 0,
+        "pack": 0,
+        "heart": 0
+      },
+      "humanSeconds": 182.2986666666683,
+      "kills": 14,
+      "hpLost": 10,
+      "upgradesBought": []
+    },
+    {
+      "greed": 0.8,
+      "botSeed": 3,
+      "lag": 0.25,
+      "raid": 1,
+      "seed": 3668347919,
+      "how": "raft",
+      "t": 128.1666666666608,
+      "value": 185,
+      "bonus": 56,
+      "kept": 10,
+      "lost": 0,
+      "log": {
+        "crates": 5,
+        "kills": {
+          "bandit": 7,
+          "wild": 4,
+          "brute": 2
+        },
+        "killsBy": {
+          "pistol": 6,
+          "briefcase": 7
+        },
+        "shots": 30,
+        "hits": 30,
+        "hurt": 10,
+        "rolls": 10,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 9.366666666666712,
+        "firstCrate": 13.816666666666933,
+        "firstRoll": 3.7999999999999914,
+        "breaks": [],
+        "value": 185
+      },
+      "ammo": 2,
+      "hp": 90,
+      "maxHp": 100,
+      "usefulFound": 3,
+      "upgrades": {
+        "mag": 0,
+        "pack": 0,
+        "heart": 0
+      },
+      "humanSeconds": 170.46166666665889,
+      "kills": 13,
+      "hpLost": 10,
+      "upgradesBought": [
+        "mag 1 (240)"
+      ]
+    },
+    {
+      "greed": 0.8,
+      "botSeed": 3,
+      "lag": 0.25,
+      "raid": 2,
+      "seed": 3668355838,
+      "how": "raft",
+      "t": 127.78333333332736,
+      "value": 139,
+      "bonus": 42,
+      "kept": 9,
+      "lost": 0,
+      "log": {
+        "crates": 4,
+        "kills": {
+          "wild": 2,
+          "bandit": 7,
+          "brute": 1
+        },
+        "killsBy": {
+          "pistol": 2,
+          "briefcase": 8
+        },
+        "shots": 16,
+        "hits": 15,
+        "hurt": 12,
+        "rolls": 9,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 4.766666666666655,
+        "firstCrate": 13.56666666666692,
+        "firstRoll": 9.716666666666729,
+        "breaks": [],
+        "value": 139
+      },
+      "ammo": 0,
+      "hp": 88,
+      "maxHp": 100,
+      "usefulFound": 1,
+      "upgrades": {
+        "mag": 1,
+        "pack": 0,
+        "heart": 0
+      },
+      "humanSeconds": 169.9518333333254,
+      "kills": 10,
+      "hpLost": 12,
+      "upgradesBought": []
+    },
+    {
+      "greed": 0.8,
+      "botSeed": 3,
+      "lag": 0.25,
+      "raid": 3,
+      "seed": 3668363757,
+      "how": "raft",
+      "t": 122.316666666661,
+      "value": 235,
+      "bonus": 71,
+      "kept": 10,
+      "lost": 0,
+      "log": {
+        "crates": 7,
+        "kills": {
+          "bandit": 6,
+          "wild": 2,
+          "brute": 1
+        },
+        "killsBy": {
+          "pistol": 3,
+          "briefcase": 6
+        },
+        "shots": 15,
+        "hits": 15,
+        "hurt": 0,
+        "rolls": 7,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 19.933333333333483,
+        "firstCrate": 12.56666666666687,
+        "firstRoll": 3.2333333333333267,
+        "breaks": [],
+        "value": 235
+      },
+      "ammo": 17,
+      "hp": 100,
+      "maxHp": 100,
+      "usefulFound": 6,
+      "upgrades": {
+        "mag": 1,
+        "pack": 0,
+        "heart": 0
+      },
+      "humanSeconds": 162.68116666665915,
+      "kills": 9,
+      "hpLost": 0,
+      "upgradesBought": []
+    },
+    {
+      "greed": 0.8,
+      "botSeed": 3,
+      "lag": 0.25,
+      "raid": 4,
+      "seed": 3668371676,
+      "how": "raft",
+      "t": 141.31666666667127,
+      "value": 430,
+      "bonus": 129,
+      "kept": 10,
+      "lost": 0,
+      "log": {
+        "crates": 7,
+        "kills": {
+          "wild": 4,
+          "bandit": 5,
+          "brute": 2
+        },
+        "killsBy": {
+          "pistol": 4,
+          "briefcase": 7
+        },
+        "shots": 25,
+        "hits": 25,
+        "hurt": 7,
+        "rolls": 8,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 5.983333333333317,
+        "firstCrate": 13.30000000000024,
+        "firstRoll": 10.616666666666774,
+        "breaks": [],
+        "value": 430
+      },
+      "ammo": 0,
+      "hp": 93,
+      "maxHp": 100,
+      "usefulFound": 8,
+      "upgrades": {
+        "mag": 1,
+        "pack": 0,
+        "heart": 0
+      },
+      "humanSeconds": 187.9511666666728,
+      "kills": 11,
+      "hpLost": 7,
+      "upgradesBought": [
+        "pack 1 (720)"
+      ]
+    },
+    {
+      "greed": 0.8,
+      "botSeed": 3,
+      "lag": 0.25,
+      "raid": 5,
+      "seed": 3668379595,
+      "how": "raft",
+      "t": 179.30000000003483,
+      "value": 485,
+      "bonus": 146,
+      "kept": 12,
+      "lost": 0,
+      "log": {
+        "crates": 9,
+        "kills": {
+          "bandit": 9,
+          "wild": 2,
+          "brute": 2
+        },
+        "killsBy": {
+          "pistol": 3,
+          "briefcase": 10
+        },
+        "shots": 24,
+        "hits": 23,
+        "hurt": 0,
+        "rolls": 12,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 9.150000000000034,
+        "firstCrate": 13.383333333333578,
+        "firstRoll": 3.816666666666658,
+        "breaks": [],
+        "value": 485
+      },
+      "ammo": 0,
+      "hp": 100,
+      "maxHp": 100,
+      "usefulFound": 6,
+      "upgrades": {
+        "mag": 1,
+        "pack": 1,
+        "heart": 0
+      },
+      "humanSeconds": 238.46900000004632,
+      "kills": 13,
+      "hpLost": 0,
+      "upgradesBought": [
+        "heart 1 (1050)"
+      ]
+    },
+    {
+      "greed": 0.8,
+      "botSeed": 3,
+      "lag": 0.25,
+      "raid": 6,
+      "seed": 3668387514,
+      "how": "raft",
+      "t": 159.9000000000194,
+      "value": 313,
+      "bonus": 94,
+      "kept": 11,
+      "lost": 0,
+      "log": {
+        "crates": 8,
+        "kills": {
+          "wild": 3,
+          "bandit": 5,
+          "brute": 2
+        },
+        "killsBy": {
+          "pistol": 4,
+          "briefcase": 6
+        },
+        "shots": 24,
+        "hits": 23,
+        "hurt": 0,
+        "rolls": 7,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 4.083333333333324,
+        "firstCrate": 18.85000000000021,
+        "firstRoll": 11.683333333333493,
+        "breaks": [],
+        "value": 313
+      },
+      "ammo": 0,
+      "hp": 125,
+      "maxHp": 125,
+      "usefulFound": 10,
+      "upgrades": {
+        "mag": 1,
+        "pack": 1,
+        "heart": 1
+      },
+      "humanSeconds": 212.6670000000258,
+      "kills": 10,
+      "hpLost": 0,
+      "upgradesBought": []
+    },
+    {
+      "greed": 0.8,
+      "botSeed": 3,
+      "lag": 0.25,
+      "raid": 7,
+      "seed": 3668395433,
+      "how": "raft",
+      "t": 133.94999999999874,
+      "value": 466,
+      "bonus": 140,
+      "kept": 12,
+      "lost": 0,
+      "log": {
+        "crates": 7,
+        "kills": {
+          "bandit": 6,
+          "wild": 2,
+          "brute": 1
+        },
+        "killsBy": {
+          "pistol": 3,
+          "briefcase": 6
+        },
+        "shots": 15,
+        "hits": 15,
+        "hurt": 7,
+        "rolls": 10,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 35.59999999999926,
+        "firstCrate": 12.883333333333553,
+        "firstRoll": 3.816666666666658,
+        "breaks": [],
+        "value": 466
+      },
+      "ammo": 9,
+      "hp": 118,
+      "maxHp": 125,
+      "usefulFound": 6,
+      "upgrades": {
+        "mag": 1,
+        "pack": 1,
+        "heart": 1
+      },
+      "humanSeconds": 178.15349999999833,
+      "kills": 9,
+      "hpLost": 7,
+      "upgradesBought": []
+    },
+    {
+      "greed": 0.8,
+      "botSeed": 3,
+      "lag": 0.25,
+      "raid": 8,
+      "seed": 3668403352,
+      "how": "raft",
+      "t": 163.58333333335565,
+      "value": 383,
+      "bonus": 115,
+      "kept": 12,
+      "lost": 0,
+      "log": {
+        "crates": 8,
+        "kills": {
+          "wild": 4,
+          "bandit": 5,
+          "brute": 2
+        },
+        "killsBy": {
+          "pistol": 6,
+          "briefcase": 5
+        },
+        "shots": 31,
+        "hits": 29,
+        "hurt": 14,
+        "rolls": 7,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 4.699999999999989,
+        "firstCrate": 13.350000000000243,
+        "firstRoll": 10.466666666666766,
+        "breaks": [],
+        "value": 383
+      },
+      "ammo": 9,
+      "hp": 111,
+      "maxHp": 125,
+      "usefulFound": 8,
+      "upgrades": {
+        "mag": 1,
+        "pack": 1,
+        "heart": 1
+      },
+      "humanSeconds": 217.56583333336303,
+      "kills": 11,
+      "hpLost": 14,
+      "upgradesBought": []
+    },
+    {
+      "greed": 0.8,
+      "botSeed": 3,
+      "lag": 0.25,
+      "raid": 9,
+      "seed": 3668411271,
+      "how": "raft",
+      "t": 134.58333333333258,
+      "value": 382,
+      "bonus": 115,
+      "kept": 12,
+      "lost": 0,
+      "log": {
+        "crates": 7,
+        "kills": {
+          "bandit": 7,
+          "wild": 3,
+          "brute": 2
+        },
+        "killsBy": {
+          "pistol": 3,
+          "briefcase": 9
+        },
+        "shots": 24,
+        "hits": 23,
+        "hurt": 16,
+        "rolls": 11,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 10.616666666666774,
+        "firstCrate": 12.600000000000206,
+        "firstRoll": 2.8999999999999946,
+        "breaks": [],
+        "value": 382
+      },
+      "ammo": 0,
+      "hp": 109,
+      "maxHp": 125,
+      "usefulFound": 6,
+      "upgrades": {
+        "mag": 1,
+        "pack": 1,
+        "heart": 1
+      },
+      "humanSeconds": 178.99583333333234,
+      "kills": 12,
+      "hpLost": 16,
+      "upgradesBought": []
+    }
+  ]
+}

@@ -60,7 +60,8 @@ export function groundColor(x: number, z: number, out = new THREE.Color()) {
   out.copy(G2.grassMoist).lerp(G2.grassDry, sstep(n, 0.35, 0.7)).lerp(G2.worn, sstep(m, 0.62, 0.82) * 0.5);
   for (const p of PAINT) {
     if (!inBB(p.bb, x, z)) continue;
-    const k = sstep(polySigned(p.z.pts, x, z) + wob, -1.6, 1.4); if (k <= 0) continue;
+    let k = sstep(polySigned(p.z.pts, x, z) + wob, -1.6, 1.4); if (k <= 0) continue;
+    if (p.z.ground === "dirt" || p.z.ground === "stone") k *= 1 - grassPatch(x, z) * 0.85; // worn yards keep islands of grass (Duckov frames: dirt and turf interleave round buildings)
     const g = p.z.ground; tmp.copy(GROUND_C[g]); if (g === "dirt") tmp.lerp(G2.dirtD, m); else if (g === "stone") tmp.lerp(G2.worn, m * 0.35); else if (g === "sand") tmp.lerp(G2.dirtD, sstep(m, 0.6, 0.9) * 0.25); else if (g === "mud") tmp.lerp(G2.deep, sstep(m, 0.3, 0.8) * 0.4);
     out.lerp(tmp, k);
   }
@@ -73,8 +74,10 @@ export function groundColor(x: number, z: number, out = new THREE.Color()) {
   }
   return out;
 }
+/** 0..1 mask of the grass islands inside dirt and stone yards (off the roads) */
+export function grassPatch(x: number, z: number) { return sstep(fbm(x * 0.085 + 31, z * 0.085 + 17), 0.56, 0.68) * sstep(roadDist(x, z), 0.6, 2.6); }
 /** is the ground under a point grass (tufts grow there)? */
-export function isGrass(x: number, z: number) { const zn = zoneAt(x, z); return !zn || zn.ground === "grass"; }
+export function isGrass(x: number, z: number) { const zn = zoneAt(x, z); return !zn || zn.ground === "grass" || ((zn.ground === "dirt" || zn.ground === "stone") && !zn.under && grassPatch(x, z) > 0.6); }
 
 const TILE = 32, STEP = 0.8;
 function tile(x0: number, z0: number, mat: THREE.Material) {

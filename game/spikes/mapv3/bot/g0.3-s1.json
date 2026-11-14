@@ -1,0 +1,4436 @@
+{
+  "config": {
+    "raids": 4,
+    "ts": 4,
+    "greed": 0.3,
+    "seed": 1,
+    "lag": 0.25,
+    "url": "http://127.0.0.1:5340/game.html?fresh=1&bot=1&ts=4&post=0&dpr=1&fixdpr=1&greed=0.3&lag=0.25&seed=1"
+  },
+  "started": "2026-11-14T22:50:36.013Z",
+  "errors": [],
+  "raids": [
+    {
+      "raid": 0,
+      "seed": 2654435774,
+      "how": "hatch",
+      "t": 112.76666666666155,
+      "value": 104,
+      "bonus": 0,
+      "kept": 5,
+      "lost": 0,
+      "log": {
+        "crates": 6,
+        "kills": {
+          "wild": 4,
+          "bandit": 3
+        },
+        "killsBy": {
+          "pistol": 4,
+          "briefcase": 3
+        },
+        "shots": 8,
+        "hits": 8,
+        "hurt": 0,
+        "rolls": 5,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 4.899999999999988,
+        "firstCrate": 12.90000000000022,
+        "firstRoll": 10.966666666666791,
+        "breaks": [],
+        "value": 104
+      },
+      "ammo": 24,
+      "hp": 100,
+      "maxHp": 100,
+      "usefulFound": 4,
+      "upgrades": {
+        "mag": 0,
+        "pack": 0,
+        "heart": 0
+      }
+    },
+    {
+      "raid": 1,
+      "seed": 2654443693,
+      "how": "hatch",
+      "t": 100.2499999999956,
+      "value": 311,
+      "bonus": 0,
+      "kept": 9,
+      "lost": 0,
+      "log": {
+        "crates": 4,
+        "kills": {
+          "bandit": 6,
+          "wild": 1
+        },
+        "killsBy": {
+          "pistol": 1,
+          "briefcase": 6
+        },
+        "shots": 2,
+        "hits": 2,
+        "hurt": 12,
+        "rolls": 5,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 85.53333333332976,
+        "firstCrate": 12.933333333333556,
+        "firstRoll": 3.816666666666658,
+        "breaks": [],
+        "value": 311
+      },
+      "ammo": 38,
+      "hp": 88,
+      "maxHp": 100,
+      "usefulFound": 4,
+      "upgrades": {
+        "mag": 0,
+        "pack": 0,
+        "heart": 0
+      }
+    },
+    {
+      "raid": 2,
+      "seed": 2654451612,
+      "how": "hatch",
+      "t": 73.38333333333046,
+      "value": 147,
+      "bonus": 0,
+      "kept": 8,
+      "lost": 0,
+      "log": {
+        "crates": 4,
+        "kills": {
+          "wild": 3,
+          "bandit": 1,
+          "brute": 1
+        },
+        "killsBy": {
+          "pistol": 4,
+          "briefcase": 1
+        },
+        "shots": 17,
+        "hits": 17,
+        "hurt": 0,
+        "rolls": 2,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 5.999999999999984,
+        "firstCrate": 13.316666666666908,
+        "firstRoll": 10.233333333333421,
+        "breaks": [],
+        "value": 147
+      },
+      "ammo": 21,
+      "hp": 100,
+      "maxHp": 100,
+      "usefulFound": 2,
+      "upgrades": {
+        "mag": 1,
+        "pack": 0,
+        "heart": 0
+      }
+    },
+    {
+      "raid": 3,
+      "seed": 2654459531,
+      "how": "hatch",
+      "t": 85.74999999999642,
+      "value": 129,
+      "bonus": 0,
+      "kept": 7,
+      "lost": 0,
+      "log": {
+        "crates": 4,
+        "kills": {
+          "bandit": 4,
+          "brute": 1,
+          "wild": 1
+        },
+        "killsBy": {
+          "pistol": 2,
+          "briefcase": 4
+        },
+        "shots": 13,
+        "hits": 13,
+        "hurt": 0,
+        "rolls": 5,
+        "swaps": 0,
+        "missed": 0,
+        "firstShot": 18.50000000000023,
+        "firstCrate": 12.933333333333556,
+        "firstRoll": 3.866666666666658,
+        "breaks": [],
+        "value": 129
+      },
+      "ammo": 8,
+      "hp": 100,
+      "maxHp": 100,
+      "usefulFound": 1,
+      "upgrades": {
+        "mag": 1,
+        "pack": 0,
+        "heart": 0
+      }
+    }
+  ],
+  "events": [
+    {
+      "type": "shot",
+      "t": 7.044133333524048,
+      "raidT": 4.899999999999988,
+      "raid": 0,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 7.27746666685738,
+      "raidT": 5.13333333333332,
+      "raid": 0,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "kill",
+      "t": 7.42746666685738,
+      "raidT": 5.28333333333332,
+      "raid": 0,
+      "id": 7,
+      "weapon": "pistol",
+      "inferred": false
+    },
+    {
+      "type": "roll",
+      "t": 13.110800000190965,
+      "raidT": 10.966666666666791,
+      "raid": 0
+    },
+    {
+      "type": "kill",
+      "t": 13.594133333524322,
+      "raidT": 11.450000000000149,
+      "raid": 0,
+      "id": 11,
+      "weapon": "melee",
+      "inferred": false
+    },
+    {
+      "type": "crate-opened",
+      "t": 15.044133333524394,
+      "raidT": 12.90000000000022,
+      "raid": 0,
+      "id": 15,
+      "tier": "wood"
+    },
+    {
+      "type": "crate-opened",
+      "t": 24.21080000019064,
+      "raidT": 22.066666666666695,
+      "raid": 0,
+      "id": 13,
+      "tier": "wood"
+    },
+    {
+      "type": "crate-opened",
+      "t": 35.97746666685664,
+      "raidT": 33.833333333332696,
+      "raid": 0,
+      "id": 20,
+      "tier": "wood"
+    },
+    {
+      "type": "roll",
+      "t": 40.46080000018972,
+      "raidT": 38.316666666665775,
+      "raid": 0
+    },
+    {
+      "type": "kill",
+      "t": 41.727466666856316,
+      "raidT": 39.58333333333237,
+      "raid": 0,
+      "id": 13,
+      "weapon": "melee",
+      "inferred": false
+    },
+    {
+      "type": "stuck",
+      "t": 46.19413333352273,
+      "raidT": 44.04999999999878,
+      "raid": 0,
+      "goal": "crate:23",
+      "x": 65.71567139944075,
+      "z": -4.4500015844254115,
+      "seconds": 4.016666666666438,
+      "action": "repath"
+    },
+    {
+      "type": "roll",
+      "t": 48.61080000018926,
+      "raidT": 46.46666666666531,
+      "raid": 0
+    },
+    {
+      "type": "shot",
+      "t": 51.21080000018911,
+      "raidT": 49.066666666665164,
+      "raid": 0,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 51.44413333352243,
+      "raidT": 49.299999999998484,
+      "raid": 0,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "kill",
+      "t": 51.59413333352242,
+      "raidT": 49.449999999998475,
+      "raid": 0,
+      "id": 12,
+      "weapon": "pistol",
+      "inferred": false
+    },
+    {
+      "type": "stuck",
+      "t": 54.06080000018895,
+      "raidT": 51.916666666665,
+      "raid": 0,
+      "goal": "crate:23",
+      "x": 69.73,
+      "z": -6.50000000000001,
+      "seconds": 4.016666666666438,
+      "action": "drop"
+    },
+    {
+      "type": "roll",
+      "t": 59.12746666685533,
+      "raidT": 56.98333333333138,
+      "raid": 0
+    },
+    {
+      "type": "roll",
+      "t": 61.044133333521884,
+      "raidT": 58.89999999999794,
+      "raid": 0
+    },
+    {
+      "type": "kill",
+      "t": 62.31080000018848,
+      "raidT": 60.16666666666453,
+      "raid": 0,
+      "id": 14,
+      "weapon": "melee",
+      "inferred": false
+    },
+    {
+      "type": "equipment-start",
+      "t": 63.0774666668551,
+      "inst": "sack"
+    },
+    {
+      "type": "crate-opened",
+      "t": 69.32746666685475,
+      "raidT": 67.18333333333081,
+      "raid": 0,
+      "id": 14,
+      "tier": "wood"
+    },
+    {
+      "type": "crate-opened",
+      "t": 88.02746666685368,
+      "raidT": 85.88333333332974,
+      "raid": 0,
+      "id": 10,
+      "tier": "wood"
+    },
+    {
+      "type": "shot",
+      "t": 88.9941333335203,
+      "raidT": 86.84999999999636,
+      "raid": 0,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 89.22746666685362,
+      "raidT": 87.08333333332968,
+      "raid": 0,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "kill",
+      "t": 89.36080000018694,
+      "raidT": 87.216666666663,
+      "raid": 0,
+      "id": 10,
+      "weapon": "pistol",
+      "inferred": false
+    },
+    {
+      "type": "crate-opened",
+      "t": 94.51080000018665,
+      "raidT": 92.36666666666271,
+      "raid": 0,
+      "id": 9,
+      "tier": "green"
+    },
+    {
+      "type": "shot",
+      "t": 95.77746666685324,
+      "raidT": 93.6333333333293,
+      "raid": 0,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 96.01080000018656,
+      "raidT": 93.86666666666262,
+      "raid": 0,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "kill",
+      "t": 96.14413333351989,
+      "raidT": 93.99999999999595,
+      "raid": 0,
+      "id": 9,
+      "weapon": "pistol",
+      "inferred": false
+    },
+    {
+      "type": "extract",
+      "t": 114.91080000018549,
+      "raidT": 112.76666666666155,
+      "raid": 0,
+      "exit": "hatch",
+      "value": 104,
+      "inferred": false
+    },
+    {
+      "type": "ammo-at-end",
+      "t": 114.91080000018549,
+      "raidT": 112.76666666666155,
+      "raid": 0,
+      "ammo": 24,
+      "reserve": 16,
+      "loaded": 8
+    },
+    {
+      "type": "equipment-sold",
+      "t": 114.92746666685215,
+      "inst": "banditmask",
+      "value": 50
+    },
+    {
+      "type": "roll",
+      "t": 120.26080000018518,
+      "raidT": 3.816666666666658,
+      "raid": 1
+    },
+    {
+      "type": "kill",
+      "t": 121.54413333351845,
+      "raidT": 5.099999999999987,
+      "raid": 1,
+      "id": 34,
+      "weapon": "melee",
+      "inferred": false
+    },
+    {
+      "type": "crate-opened",
+      "t": 129.3774666668525,
+      "raidT": 12.933333333333556,
+      "raid": 1,
+      "id": 43,
+      "tier": "wood"
+    },
+    {
+      "type": "roll",
+      "t": 140.2608000001945,
+      "raidT": 23.816666666666595,
+      "raid": 1
+    },
+    {
+      "type": "kill",
+      "t": 141.54413333352886,
+      "raidT": 25.099999999999856,
+      "raid": 1,
+      "id": 37,
+      "weapon": "melee",
+      "inferred": false
+    },
+    {
+      "type": "crate-opened",
+      "t": 143.39413333353033,
+      "raidT": 26.94999999999975,
+      "raid": 1,
+      "id": 58,
+      "tier": "wood"
+    },
+    {
+      "type": "equipment-start",
+      "t": 145.81080000019892,
+      "inst": "peel_jacket"
+    },
+    {
+      "type": "equipment-start",
+      "t": 146.81080000019972,
+      "inst": "pot_helmet"
+    },
+    {
+      "type": "roll",
+      "t": 156.47746666687408,
+      "raidT": 40.033333333332344,
+      "raid": 1
+    },
+    {
+      "type": "roll",
+      "t": 158.7941333335426,
+      "raidT": 42.34999999999888,
+      "raid": 1
+    },
+    {
+      "type": "hurt",
+      "t": 159.1274666668762,
+      "raidT": 42.68333333333219,
+      "raid": 1,
+      "hp": 6,
+      "hearts": 0
+    },
+    {
+      "type": "kill",
+      "t": 160.56080000021066,
+      "raidT": 44.116666666665445,
+      "raid": 1,
+      "id": 31,
+      "weapon": "melee",
+      "inferred": false
+    },
+    {
+      "type": "roll",
+      "t": 160.99413333354434,
+      "raidT": 44.549999999998754,
+      "raid": 1
+    },
+    {
+      "type": "kill",
+      "t": 162.24413333354534,
+      "raidT": 45.79999999999868,
+      "raid": 1,
+      "id": 30,
+      "weapon": "melee",
+      "inferred": false
+    },
+    {
+      "type": "hurt",
+      "t": 164.16080000021353,
+      "raidT": 47.71666666666524,
+      "raid": 1,
+      "hp": 6,
+      "hearts": 0
+    },
+    {
+      "type": "kill",
+      "t": 167.56080000021623,
+      "raidT": 51.11666666666505,
+      "raid": 1,
+      "id": 29,
+      "weapon": "melee",
+      "inferred": false
+    },
+    {
+      "type": "kill",
+      "t": 168.1608000002167,
+      "raidT": 51.71666666666501,
+      "raid": 1,
+      "id": 28,
+      "weapon": "melee",
+      "inferred": false
+    },
+    {
+      "type": "crate-opened",
+      "t": 173.04413333355393,
+      "raidT": 56.59999999999807,
+      "raid": 1,
+      "id": 47,
+      "tier": "wood"
+    },
+    {
+      "type": "crate-opened",
+      "t": 183.07746666689525,
+      "raidT": 66.63333333333084,
+      "raid": 1,
+      "id": 38,
+      "tier": "gold"
+    },
+    {
+      "type": "shot",
+      "t": 201.9774666669103,
+      "raidT": 85.53333333332976,
+      "raid": 1,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 202.2108000002438,
+      "raidT": 85.76666666666308,
+      "raid": 1,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "kill",
+      "t": 202.34413333357725,
+      "raidT": 85.89999999999641,
+      "raid": 1,
+      "id": 35,
+      "weapon": "pistol",
+      "inferred": false
+    },
+    {
+      "type": "extract",
+      "t": 216.69413333358867,
+      "raidT": 100.2499999999956,
+      "raid": 1,
+      "exit": "hatch",
+      "value": 311,
+      "inferred": false
+    },
+    {
+      "type": "ammo-at-end",
+      "t": 216.69413333358867,
+      "raidT": 100.2499999999956,
+      "raid": 1,
+      "ammo": 38,
+      "reserve": 32,
+      "loaded": 6
+    },
+    {
+      "type": "equipment-sold",
+      "t": 216.71080000025535,
+      "inst": "sack",
+      "value": 20
+    },
+    {
+      "type": "equipment-sold",
+      "t": 216.71080000025535,
+      "inst": "banditmask",
+      "value": 50
+    },
+    {
+      "type": "equipment-sold",
+      "t": 216.71080000025535,
+      "inst": "peel_jacket",
+      "value": 110
+    },
+    {
+      "type": "upgrade-bought",
+      "t": 216.72746666692203,
+      "raid": 1,
+      "upgrade": "mag",
+      "level": 1,
+      "cost": 240
+    },
+    {
+      "type": "equipment-repaired",
+      "t": 216.7441333335887,
+      "slot": "body",
+      "cost": 5
+    },
+    {
+      "type": "shot",
+      "t": 224.227466666928,
+      "raidT": 5.999999999999984,
+      "raid": 2,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 224.46080000026151,
+      "raidT": 6.2333333333333165,
+      "raid": 2,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "kill",
+      "t": 224.61080000026163,
+      "raidT": 6.383333333333316,
+      "raid": 2,
+      "id": 59,
+      "weapon": "pistol",
+      "inferred": false
+    },
+    {
+      "type": "roll",
+      "t": 228.4608000002647,
+      "raidT": 10.233333333333421,
+      "raid": 2
+    },
+    {
+      "type": "kill",
+      "t": 229.74413333359905,
+      "raidT": 11.516666666666818,
+      "raid": 2,
+      "id": 63,
+      "weapon": "melee",
+      "inferred": false
+    },
+    {
+      "type": "crate-opened",
+      "t": 231.54413333360048,
+      "raidT": 13.316666666666908,
+      "raid": 2,
+      "id": 96,
+      "tier": "wood"
+    },
+    {
+      "type": "shot",
+      "t": 238.27746666693918,
+      "raidT": 20.050000000000143,
+      "raid": 2,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 238.5108000002727,
+      "raidT": 20.283333333333463,
+      "raid": 2,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 238.74413333360621,
+      "raidT": 20.516666666666783,
+      "raid": 2,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 238.97746666693973,
+      "raidT": 20.750000000000103,
+      "raid": 2,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 239.21080000027325,
+      "raidT": 20.983333333333423,
+      "raid": 2,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 239.44413333360677,
+      "raidT": 21.216666666666743,
+      "raid": 2,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 239.6774666669403,
+      "raidT": 21.450000000000063,
+      "raid": 2,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 239.9108000002738,
+      "raidT": 21.683333333333383,
+      "raid": 2,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "roll",
+      "t": 240.36080000027417,
+      "raidT": 22.133333333333358,
+      "raid": 2
+    },
+    {
+      "type": "shot",
+      "t": 240.71080000027445,
+      "raidT": 22.483333333333338,
+      "raid": 2,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 240.94413333360797,
+      "raidT": 22.716666666666658,
+      "raid": 2,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 242.19413333360896,
+      "raidT": 23.966666666666587,
+      "raid": 2,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "kill",
+      "t": 242.29413333360904,
+      "raidT": 24.06666666666658,
+      "raid": 2,
+      "id": 57,
+      "weapon": "pistol",
+      "inferred": false
+    },
+    {
+      "type": "crate-opened",
+      "t": 243.6608000002768,
+      "raidT": 25.43333333333317,
+      "raid": 2,
+      "id": 92,
+      "tier": "wood"
+    },
+    {
+      "type": "equipment-start",
+      "t": 244.86080000027775,
+      "inst": "coconut_helmet"
+    },
+    {
+      "type": "crate-opened",
+      "t": 257.2608000002855,
+      "raidT": 39.0333333333324,
+      "raid": 2,
+      "id": 86,
+      "tier": "green"
+    },
+    {
+      "type": "shot",
+      "t": 260.3774666669493,
+      "raidT": 42.14999999999889,
+      "raid": 2,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 260.61080000028244,
+      "raidT": 42.38333333333221,
+      "raid": 2,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "kill",
+      "t": 260.74413333361565,
+      "raidT": 42.516666666665536,
+      "raid": 2,
+      "id": 62,
+      "weapon": "pistol",
+      "inferred": false
+    },
+    {
+      "type": "crate-opened",
+      "t": 263.7608000002796,
+      "raidT": 45.53333333333203,
+      "raid": 2,
+      "id": 88,
+      "tier": "wood"
+    },
+    {
+      "type": "shot",
+      "t": 270.12746666694045,
+      "raidT": 51.899999999998336,
+      "raid": 2,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 270.36080000027357,
+      "raidT": 52.133333333331656,
+      "raid": 2,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "kill",
+      "t": 270.4941333336068,
+      "raidT": 52.26666666666498,
+      "raid": 2,
+      "id": 61,
+      "weapon": "pistol",
+      "inferred": false
+    },
+    {
+      "type": "extract",
+      "t": 291.61080000025424,
+      "raidT": 73.38333333333046,
+      "raid": 2,
+      "exit": "hatch",
+      "value": 147,
+      "inferred": false
+    },
+    {
+      "type": "ammo-at-end",
+      "t": 291.61080000025424,
+      "raidT": 73.38333333333046,
+      "raid": 2,
+      "ammo": 21,
+      "reserve": 14,
+      "loaded": 7
+    },
+    {
+      "type": "equipment-sold",
+      "t": 291.6274666669209,
+      "inst": "pot_helmet",
+      "value": 25
+    },
+    {
+      "type": "equipment-sold",
+      "t": 291.6274666669209,
+      "inst": "pot_helmet",
+      "value": 25
+    },
+    {
+      "type": "roll",
+      "t": 297.01080000024933,
+      "raidT": 3.866666666666658,
+      "raid": 3
+    },
+    {
+      "type": "kill",
+      "t": 298.2941333335815,
+      "raidT": 5.149999999999987,
+      "raid": 3,
+      "id": 86,
+      "weapon": "melee",
+      "inferred": false
+    },
+    {
+      "type": "crate-opened",
+      "t": 306.07746666690775,
+      "raidT": 12.933333333333556,
+      "raid": 3,
+      "id": 125,
+      "tier": "wood"
+    },
+    {
+      "type": "shot",
+      "t": 311.64413333356936,
+      "raidT": 18.50000000000023,
+      "raid": 3,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 311.8774666669025,
+      "raidT": 18.73333333333355,
+      "raid": 3,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "crate-opened",
+      "t": 311.89413333356913,
+      "raidT": 18.750000000000217,
+      "raid": 3,
+      "id": 121,
+      "tier": "wood"
+    },
+    {
+      "type": "shot",
+      "t": 312.1108000002356,
+      "raidT": 18.96666666666687,
+      "raid": 3,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 312.3441333335687,
+      "raidT": 19.20000000000019,
+      "raid": 3,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 312.57746666690184,
+      "raidT": 19.43333333333351,
+      "raid": 3,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 312.81080000023496,
+      "raidT": 19.66666666666683,
+      "raid": 3,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 313.0441333335681,
+      "raidT": 19.90000000000015,
+      "raid": 3,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 313.2774666669012,
+      "raidT": 20.13333333333347,
+      "raid": 3,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 313.5108000002343,
+      "raidT": 20.36666666666679,
+      "raid": 3,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 313.74413333356745,
+      "raidT": 20.60000000000011,
+      "raid": 3,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "roll",
+      "t": 314.26080000023364,
+      "raidT": 21.11666666666675,
+      "raid": 3
+    },
+    {
+      "type": "shot",
+      "t": 314.6108000002333,
+      "raidT": 21.46666666666673,
+      "raid": 3,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "kill",
+      "t": 314.7274666668999,
+      "raidT": 21.58333333333339,
+      "raid": 3,
+      "id": 84,
+      "weapon": "pistol",
+      "inferred": false
+    },
+    {
+      "type": "crate-opened",
+      "t": 319.4941333335622,
+      "raidT": 26.349999999999785,
+      "raid": 3,
+      "id": 123,
+      "tier": "wood"
+    },
+    {
+      "type": "roll",
+      "t": 332.7941333335501,
+      "raidT": 39.64999999999903,
+      "raid": 3
+    },
+    {
+      "type": "kill",
+      "t": 335.0441333335481,
+      "raidT": 41.899999999998904,
+      "raid": 3,
+      "id": 92,
+      "weapon": "melee",
+      "inferred": false
+    },
+    {
+      "type": "roll",
+      "t": 337.42746666687924,
+      "raidT": 44.2833333333321,
+      "raid": 3
+    },
+    {
+      "type": "kill",
+      "t": 338.777466666878,
+      "raidT": 45.633333333332025,
+      "raid": 3,
+      "id": 93,
+      "weapon": "melee",
+      "inferred": false
+    },
+    {
+      "type": "crate-opened",
+      "t": 340.0941333335435,
+      "raidT": 46.94999999999862,
+      "raid": 3,
+      "id": 131,
+      "tier": "wood"
+    },
+    {
+      "type": "roll",
+      "t": 342.9108000002076,
+      "raidT": 49.766666666665124,
+      "raid": 3
+    },
+    {
+      "type": "kill",
+      "t": 344.26080000020636,
+      "raidT": 51.11666666666505,
+      "raid": 3,
+      "id": 94,
+      "weapon": "melee",
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 362.2274666668567,
+      "raidT": 69.0833333333307,
+      "raid": 3,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "shot",
+      "t": 363.47746666685555,
+      "raidT": 70.33333333333063,
+      "raid": 3,
+      "weapon": "pistol",
+      "count": 1,
+      "inferred": false
+    },
+    {
+      "type": "kill",
+      "t": 363.61080000018876,
+      "raidT": 70.46666666666395,
+      "raid": 3,
+      "id": 88,
+      "weapon": "pistol",
+      "inferred": false
+    },
+    {
+      "type": "extract",
+      "t": 378.8941333335082,
+      "raidT": 85.74999999999642,
+      "raid": 3,
+      "exit": "hatch",
+      "value": 129,
+      "inferred": false
+    },
+    {
+      "type": "ammo-at-end",
+      "t": 378.8941333335082,
+      "raidT": 85.74999999999642,
+      "raid": 3,
+      "ammo": 8,
+      "reserve": 0,
+      "loaded": 8
+    },
+    {
+      "type": "equipment-sold",
+      "t": 378.91080000017485,
+      "inst": "sack",
+      "value": 20
+    },
+    {
+      "type": "equipment-sold",
+      "t": 378.91080000017485,
+      "inst": "pot_helmet",
+      "value": 25
+    }
+  ],
+  "monitor": {
+    "samples": [
+      {
+        "raid": 0,
+        "t": 0.39999999999999997,
+        "x": -5.1316100624146515,
+        "z": 95.80978343608992,
+        "hp": 100,
+        "ammo": 16,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 1.566666666666666,
+        "x": -3.7388911792559263,
+        "z": 89.80182808330183,
+        "hp": 100,
+        "ammo": 16,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 2.7666666666666617,
+        "x": -2.2537914123589426,
+        "z": 83.62999516159213,
+        "hp": 100,
+        "ammo": 16,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 3.9666666666666575,
+        "x": -0.9429865492704342,
+        "z": 77.49085043435709,
+        "hp": 100,
+        "ammo": 16,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 5.166666666666654,
+        "x": -0.11172149923606743,
+        "z": 72.42287828064369,
+        "hp": 100,
+        "ammo": 14,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 6.366666666666649,
+        "x": 0.6726241405029784,
+        "z": 67.29028225940955,
+        "hp": 100,
+        "ammo": 14,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 7.566666666666645,
+        "x": 1.4451095887625995,
+        "z": 60.990025240269915,
+        "hp": 100,
+        "ammo": 14,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 8.766666666666682,
+        "x": 2.417116078358861,
+        "z": 54.80141731216566,
+        "hp": 100,
+        "ammo": 14,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 9.966666666666741,
+        "x": 2.4317708290334195,
+        "z": 52.84339959954923,
+        "hp": 100,
+        "ammo": 14,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 11.166666666666801,
+        "x": 1.8162725921226923,
+        "z": 50.937387475473415,
+        "hp": 100,
+        "ammo": 14,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 12.30000000000019,
+        "x": 5.227140154927715,
+        "z": 50.19569069880523,
+        "hp": 100,
+        "ammo": 14,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 13.50000000000025,
+        "x": 5.937640418778849,
+        "z": 50.36555354750096,
+        "hp": 100,
+        "ammo": 14,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 14.533333333333635,
+        "x": 5.725824682522542,
+        "z": 50.38979290025743,
+        "hp": 100,
+        "ammo": 14,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 15.733333333333695,
+        "x": 10.471358592973266,
+        "z": 46.36705678643917,
+        "hp": 100,
+        "ammo": 14,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 16.933333333333653,
+        "x": 14.064882743773241,
+        "z": 41.13453479831383,
+        "hp": 100,
+        "ammo": 14,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 18.133333333333585,
+        "x": 12.923521486056334,
+        "z": 35.167955320315606,
+        "hp": 100,
+        "ammo": 14,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 19.333333333333517,
+        "x": 11.019170915723418,
+        "z": 29.112527149204237,
+        "hp": 100,
+        "ammo": 14,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 20.53333333333345,
+        "x": 13.10284729777708,
+        "z": 25.17742529640145,
+        "hp": 100,
+        "ammo": 14,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 21.73333333333338,
+        "x": 18.723655134132557,
+        "z": 24.582202254325328,
+        "hp": 100,
+        "ammo": 14,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 22.86666666666665,
+        "x": 18.66280898281913,
+        "z": 24.507958311208746,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 24.133333333333244,
+        "x": 16.16079234151279,
+        "z": 19.41444744357025,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 25.333333333333176,
+        "x": 20.961862607431637,
+        "z": 15.514408737868935,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 26.533333333333108,
+        "x": 26.371712820980605,
+        "z": 12.284956879417601,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 27.73333333333304,
+        "x": 32.44482945498262,
+        "z": 10.534003745370232,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 28.93333333333297,
+        "x": 38.19610645247836,
+        "z": 7.8470576385402095,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 30.133333333332903,
+        "x": 43.92612369747584,
+        "z": 5.240787939559879,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 31.333333333332835,
+        "x": 49.632603095718416,
+        "z": 2.558289845107603,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 32.53333333333277,
+        "x": 54.8436298774018,
+        "z": 5.815027890702415,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 33.7333333333327,
+        "x": 57.966101127036545,
+        "z": 8.961923531897973,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 34.76666666666598,
+        "x": 59.99564867617662,
+        "z": 4.780971523009977,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 35.96666666666591,
+        "x": 62.5767112266383,
+        "z": -1.0015065931036353,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 37.16666666666584,
+        "x": 63.78637467108246,
+        "z": -3.968191188578244,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 38.33333333333244,
+        "x": 63.55862018290231,
+        "z": -3.7533143874172192,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 39.566666666665704,
+        "x": 63.787457563854794,
+        "z": -3.8053767522644883,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 40.69999999999897,
+        "x": 65.71567139951584,
+        "z": -4.450001584425412,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 41.899999999998904,
+        "x": 65.71567139944075,
+        "z": -4.4500015844254115,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 43.099999999998836,
+        "x": 65.71567139944075,
+        "z": -4.4500015844254115,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 44.29999999999877,
+        "x": 65.71566174194344,
+        "z": -4.450001584354464,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 45.4999999999987,
+        "x": 65.7156713994407,
+        "z": -4.4500015844254115,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 46.69999999999863,
+        "x": 64.89429468564737,
+        "z": -6.653998257037493,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 47.89999999999856,
+        "x": 69.6312140593137,
+        "z": -6.5975720111268235,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 49.099999999998495,
+        "x": 69.73,
+        "z": -6.500000246054149,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 50.28333333333176,
+        "x": 69.73,
+        "z": -6.500000002227156,
+        "hp": 100,
+        "ammo": 20,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 51.49999999999836,
+        "x": 69.73,
+        "z": -6.499999999999714,
+        "hp": 100,
+        "ammo": 20,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 52.89999999999828,
+        "x": 65.2803518950915,
+        "z": -6.134928394210495,
+        "hp": 100,
+        "ammo": 20,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 54.09999999999821,
+        "x": 65.55833869558441,
+        "z": -2.2366542956049416,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 55.29999999999814,
+        "x": 71.88203537896898,
+        "z": -1.6872507627990843,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 56.499999999998074,
+        "x": 76.08853743860303,
+        "z": -5.348429583358027,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 57.699999999998006,
+        "x": 76.03484787250551,
+        "z": -3.2859479664386457,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 58.89999999999794,
+        "x": 76.43424398957954,
+        "z": -7.4454120368994605,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 60.09999999999787,
+        "x": 76.58974020655626,
+        "z": -7.411232918132727,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 61.23333333333114,
+        "x": 75.57638000692637,
+        "z": -12.147769838759828,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 62.43333333333107,
+        "x": 71.55878892448453,
+        "z": -13.711353927017807,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 63.633333333331,
+        "x": 71.48725052186205,
+        "z": -20.002719889552136,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 64.83333333333094,
+        "x": 71.49283320018456,
+        "z": -26.350717434460535,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 66.03333333333087,
+        "x": 71.49841587906081,
+        "z": -32.69871497964721,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 67.2333333333308,
+        "x": 72.75952313787711,
+        "z": -35.80881009650031,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 68.29999999999741,
+        "x": 74.69816761560575,
+        "z": -35.30535332552182,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 69.34999999999735,
+        "x": 80.07403584185751,
+        "z": -33.909181891880394,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 70.54999999999728,
+        "x": 86.27418271913731,
+        "z": -32.548798959362664,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 71.74999999999721,
+        "x": 86.82360253657626,
+        "z": -26.435182910153127,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 72.94999999999715,
+        "x": 87.05362580870246,
+        "z": -20.09153445789933,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 74.14999999999708,
+        "x": 87.31803318476467,
+        "z": -13.753456009209012,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 75.34999999999701,
+        "x": 88.17788665771792,
+        "z": -7.464015242146973,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 76.54999999999694,
+        "x": 89.03880220532191,
+        "z": -1.1746648448570922,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 77.74999999999687,
+        "x": 89.89971775293309,
+        "z": 5.114685552432059,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 78.9499999999968,
+        "x": 89.83891878380709,
+        "z": 11.200608033848482,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 80.14999999999674,
+        "x": 87.95538975830948,
+        "z": 17.259955912390186,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 81.34999999999667,
+        "x": 84.97523823937397,
+        "z": 22.67758987826735,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 82.5499999999966,
+        "x": 81.05521126023399,
+        "z": 27.67054221859946,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 83.74999999999653,
+        "x": 76.52521072556148,
+        "z": 32.04485057461311,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 84.94999999999646,
+        "x": 71.70256805665818,
+        "z": 36.148414747059476,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 86.1499999999964,
+        "x": 69.99773687219961,
+        "z": 37.96853504567577,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 5,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 87.49999999999632,
+        "x": 68.03791355070203,
+        "z": 38.36884307943753,
+        "hp": 100,
+        "ammo": 26,
+        "crates": 5,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 88.69999999999625,
+        "x": 62.22325972444642,
+        "z": 40.436496511295964,
+        "hp": 100,
+        "ammo": 26,
+        "crates": 5,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 89.89999999999618,
+        "x": 57.60362409805159,
+        "z": 44.707719925606575,
+        "hp": 100,
+        "ammo": 26,
+        "crates": 5,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 91.09999999999611,
+        "x": 53.36065815058898,
+        "z": 49.42940858746893,
+        "hp": 100,
+        "ammo": 26,
+        "crates": 5,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 92.29999999999605,
+        "x": 51.92949928384353,
+        "z": 51.02204141930472,
+        "hp": 100,
+        "ammo": 26,
+        "crates": 5,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 93.49999999999598,
+        "x": 48.752687940225364,
+        "z": 55.481008558454455,
+        "hp": 100,
+        "ammo": 26,
+        "crates": 6,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 94.69999999999591,
+        "x": 46.205987005470675,
+        "z": 58.63744322511565,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 6,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 95.89999999999584,
+        "x": 42.191208850653425,
+        "z": 63.55348241896579,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 6,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 97.09999999999577,
+        "x": 38.1103617284505,
+        "z": 68.39909991166029,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 6,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 98.2999999999957,
+        "x": 35.64851611370695,
+        "z": 74.21419477433541,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 6,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 99.49999999999564,
+        "x": 32.80554996646885,
+        "z": 79.88998963891662,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 6,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 100.69999999999557,
+        "x": 27.99793712921952,
+        "z": 83.93153909512375,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 6,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 101.8999999999955,
+        "x": 22.824608249844115,
+        "z": 87.58457355020823,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 6,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 103.09999999999543,
+        "x": 17.207925206804006,
+        "z": 90.54255423986275,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 6,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 104.29999999999536,
+        "x": 11.591066556751299,
+        "z": 93.50025654153664,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 6,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 105.4999999999953,
+        "x": 5.974207906697522,
+        "z": 96.4579588432088,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 6,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 106.69999999999523,
+        "x": 0.3024990859415969,
+        "z": 99.3054953113862,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 6,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 107.89999999999516,
+        "x": -5.493556900130504,
+        "z": 101.87569289238577,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 6,
+        "extracting": false
+      },
+      {
+        "raid": 0,
+        "t": 109.09999999999509,
+        "x": -7.05078157307667,
+        "z": 102.45284706639754,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 6,
+        "extracting": true
+      },
+      {
+        "raid": 0,
+        "t": 110.29999999999502,
+        "x": -7.0507816703326105,
+        "z": 102.45284708890567,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 6,
+        "extracting": true
+      },
+      {
+        "raid": 0,
+        "t": 111.49999999999496,
+        "x": -7.0507816703326105,
+        "z": 102.45284708890567,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 6,
+        "extracting": true
+      },
+      {
+        "raid": 0,
+        "t": 112.69999999999489,
+        "x": -7.0507816703326105,
+        "z": 102.45284708890567,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 6,
+        "extracting": true
+      },
+      {
+        "raid": 1,
+        "t": 0.6166666666666669,
+        "x": -4.873899632703577,
+        "z": 94.69733341450377,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 1.6666666666666656,
+        "x": -3.1501006552201063,
+        "z": 89.51189916271915,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 2.8666666666666614,
+        "x": -1.750894628450648,
+        "z": 87.78799817739322,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 4.0666666666666575,
+        "x": -3.2444469406887197,
+        "z": 89.80499914659094,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 5.199999999999987,
+        "x": -1.6075087486608142,
+        "z": 87.62456359443523,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 6.399999999999983,
+        "x": -0.7567052406756289,
+        "z": 81.38855757870222,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 7.599999999999978,
+        "x": 0.07052112203967546,
+        "z": 75.09475185731955,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 8.800000000000017,
+        "x": 0.7894320535182987,
+        "z": 68.78904793067932,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 10.000000000000076,
+        "x": 1.4442459411448436,
+        "z": 62.483312197260304,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 11.200000000000136,
+        "x": 3.026519878648852,
+        "z": 56.33589242494656,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 12.400000000000196,
+        "x": 5.558318555033547,
+        "z": 50.58002787989046,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 14.000000000000275,
+        "x": 3.8546606010861737,
+        "z": 50.44799700247724,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 15.016666666666993,
+        "x": -1.5108318036440278,
+        "z": 50.548289994797805,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 16.216666666667027,
+        "x": -7.481895620657615,
+        "z": 52.53992897201662,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 17.41666666666696,
+        "x": -13.614931511918948,
+        "z": 52.721616506616954,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 18.61666666666689,
+        "x": -19.80876276182523,
+        "z": 53.37770428415714,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 19.816666666666823,
+        "x": -25.795512036730834,
+        "z": 55.48860286408767,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 21.016666666666755,
+        "x": -31.793233212990266,
+        "z": 57.55984540710753,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 22.216666666666686,
+        "x": -34.248308665548706,
+        "z": 61.58698709616188,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 23.416666666666618,
+        "x": -34.28405237924943,
+        "z": 61.85829787684967,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 24.61666666666655,
+        "x": -33.67437840580189,
+        "z": 59.86022309184396,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 25.74999999999982,
+        "x": -36.35905371923196,
+        "z": 59.637896429543545,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 26.94999999999975,
+        "x": -39.792557564224026,
+        "z": 58.48921516548474,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 28.149999999999682,
+        "x": -41.39874904352825,
+        "z": 60.4324364079452,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 29.349999999999614,
+        "x": -37.372951907608154,
+        "z": 63.33562831887294,
+        "hp": 100,
+        "ammo": 24,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 30.549999999999546,
+        "x": -34.12139305361379,
+        "z": 64.13531002767682,
+        "hp": 100,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 31.69999999999948,
+        "x": -35.45210975782132,
+        "z": 60.669647535534835,
+        "hp": 100,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 32.899999999999416,
+        "x": -39.01945346107582,
+        "z": 55.42040449087863,
+        "hp": 100,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 34.09999999999935,
+        "x": -42.94884084734885,
+        "z": 50.4992483927081,
+        "hp": 100,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 35.29999999999928,
+        "x": -48.10707242833727,
+        "z": 46.79967133015745,
+        "hp": 100,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 36.49999999999921,
+        "x": -53.836206027383895,
+        "z": 44.084572603289146,
+        "hp": 100,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 37.69999999999914,
+        "x": -59.16826500902077,
+        "z": 40.829719240799406,
+        "hp": 100,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 38.899999999999075,
+        "x": -61.51801930841771,
+        "z": 38.573756002948265,
+        "hp": 100,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 40.09999999999901,
+        "x": -61.19385478162845,
+        "z": 37.85951955319514,
+        "hp": 100,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 41.29999999999894,
+        "x": -60.301085761000735,
+        "z": 33.975023095938525,
+        "hp": 100,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 42.49999999999887,
+        "x": -59.58148845936831,
+        "z": 32.55084333611648,
+        "hp": 100,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 43.649999999998805,
+        "x": -58.31178928613104,
+        "z": 30.5201850910111,
+        "hp": 94,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 44.76666666666541,
+        "x": -56.973171228166514,
+        "z": 29.672428638550144,
+        "hp": 94,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 45.89999999999868,
+        "x": -58.21781201261568,
+        "z": 31.26954441729554,
+        "hp": 94,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 47.09999999999861,
+        "x": -58.53214677693512,
+        "z": 31.440585191493167,
+        "hp": 94,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 48.23333333333188,
+        "x": -58.1380152083064,
+        "z": 31.30546521638723,
+        "hp": 88,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 49.43333333333181,
+        "x": -63.99758010456036,
+        "z": 32.21477848652234,
+        "hp": 88,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 50.63333333333174,
+        "x": -70.26390115447641,
+        "z": 32.993676610214465,
+        "hp": 88,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 51.71666666666501,
+        "x": -69.94282989523343,
+        "z": 32.96115600648741,
+        "hp": 88,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 52.89999999999828,
+        "x": -64.28765580838987,
+        "z": 32.60974734861094,
+        "hp": 88,
+        "ammo": 32,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 54.09999999999821,
+        "x": -58.792275425958806,
+        "z": 32.948861183689424,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 55.29999999999814,
+        "x": -53.44709675835008,
+        "z": 34.158822407643015,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 56.499999999998074,
+        "x": -49.79796717167566,
+        "z": 35.40079813462763,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 57.63333333333134,
+        "x": -51.46256391637242,
+        "z": 35.42551852824741,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 58.98333333333127,
+        "x": -57.454450928542826,
+        "z": 34.8088953511896,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 60.1833333333312,
+        "x": -61.98206434889509,
+        "z": 31.65172059514773,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 61.38333333333113,
+        "x": -65.87141173701272,
+        "z": 28.143775800249365,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 62.58333333333106,
+        "x": -67.4018240935231,
+        "z": 22.84037248129218,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 63.783333333330994,
+        "x": -72.10271964886394,
+        "z": 20.461089838090608,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 64.98333333333093,
+        "x": -75.41538079934794,
+        "z": 17.60712380735322,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 66.18333333333086,
+        "x": -74.20021841083744,
+        "z": 17.476865973191124,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 67.3833333333308,
+        "x": -74.45942610552893,
+        "z": 17.481479455044003,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 68.58333333333073,
+        "x": -73.14583089567003,
+        "z": 20.090668142622338,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 69.78333333333066,
+        "x": -67.79018682605627,
+        "z": 21.427564418795203,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 70.98333333333059,
+        "x": -66.2483672658643,
+        "z": 26.47787936898861,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 72.18333333333052,
+        "x": -64.00934563170172,
+        "z": 31.441499162602696,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 73.38333333333046,
+        "x": -61.54784442639942,
+        "z": 36.38228976599159,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 74.58333333333039,
+        "x": -59.086341911925985,
+        "z": 41.32307972016311,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 75.78333333333032,
+        "x": -54.563320451974185,
+        "z": 44.0756289958849,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 76.98333333333025,
+        "x": -49.24932736955757,
+        "z": 45.20565641694006,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 78.18333333333018,
+        "x": -43.7456957614208,
+        "z": 45.57690092866605,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 79.38333333333011,
+        "x": -38.291463197908435,
+        "z": 46.34977518029403,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 80.58333333333005,
+        "x": -33.28420448687704,
+        "z": 48.667344364092195,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 81.78333333332998,
+        "x": -28.904553494806184,
+        "z": 51.97342258664948,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 82.98333333332991,
+        "x": -24.693148594118238,
+        "z": 55.541961328315494,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 84.18333333332984,
+        "x": -20.48174369850292,
+        "z": 59.110500077605764,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 85.38333333332977,
+        "x": -16.277715749880148,
+        "z": 62.687375043252544,
+        "hp": 88,
+        "ammo": 40,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 86.5833333333297,
+        "x": -13.686782930389322,
+        "z": 65.08010254064376,
+        "hp": 88,
+        "ammo": 38,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 87.78333333332964,
+        "x": -9.634091145957127,
+        "z": 68.82769795957817,
+        "hp": 88,
+        "ammo": 38,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 88.98333333332957,
+        "x": -5.318133506728892,
+        "z": 72.2468370492342,
+        "hp": 88,
+        "ammo": 38,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 90.1833333333295,
+        "x": -2.4569872947190494,
+        "z": 76.6516078402408,
+        "hp": 88,
+        "ammo": 38,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 91.38333333332943,
+        "x": -1.5789808699799157,
+        "z": 82.00122708237252,
+        "hp": 88,
+        "ammo": 38,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 92.58333333332936,
+        "x": -3.332076567548456,
+        "z": 87.23269852697379,
+        "hp": 88,
+        "ammo": 38,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 93.7833333333293,
+        "x": -5.101930021299569,
+        "z": 92.46127565197636,
+        "hp": 88,
+        "ammo": 38,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 94.98333333332923,
+        "x": -6.871783475160858,
+        "z": 97.68985277695512,
+        "hp": 88,
+        "ammo": 38,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 1,
+        "t": 96.18333333332916,
+        "x": -7.984937222873153,
+        "z": 100.97837941127919,
+        "hp": 88,
+        "ammo": 38,
+        "crates": 4,
+        "extracting": true
+      },
+      {
+        "raid": 1,
+        "t": 97.38333333332909,
+        "x": -7.984965111815469,
+        "z": 100.97846180199099,
+        "hp": 88,
+        "ammo": 38,
+        "crates": 4,
+        "extracting": true
+      },
+      {
+        "raid": 1,
+        "t": 98.58333333332902,
+        "x": -7.984965111815605,
+        "z": 100.97846180199137,
+        "hp": 88,
+        "ammo": 38,
+        "crates": 4,
+        "extracting": true
+      },
+      {
+        "raid": 1,
+        "t": 99.78333333332895,
+        "x": -7.984965111815605,
+        "z": 100.97846180199137,
+        "hp": 88,
+        "ammo": 38,
+        "crates": 4,
+        "extracting": true
+      },
+      {
+        "raid": 2,
+        "t": 0.6000000000000002,
+        "x": -4.893787855391067,
+        "z": 94.78318424243811,
+        "hp": 100,
+        "ammo": 38,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 1.7166666666666655,
+        "x": -3.5535183751361483,
+        "z": 89.03028589846365,
+        "hp": 100,
+        "ammo": 38,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 2.916666666666661,
+        "x": -2.0678170785082175,
+        "z": 82.85859315200936,
+        "hp": 100,
+        "ammo": 38,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 4.116666666666657,
+        "x": -0.8161734917819138,
+        "z": 76.71562232174921,
+        "hp": 100,
+        "ammo": 38,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 5.316666666666653,
+        "x": 0.21141925787187704,
+        "z": 70.45134605544102,
+        "hp": 100,
+        "ammo": 38,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 6.516666666666649,
+        "x": 0.891136764965475,
+        "z": 66.30774124970178,
+        "hp": 100,
+        "ammo": 36,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 7.716666666666645,
+        "x": 1.8833982917744028,
+        "z": 60.2588465425223,
+        "hp": 100,
+        "ammo": 36,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 8.91666666666669,
+        "x": 2.3122344502744947,
+        "z": 56.03432990926657,
+        "hp": 100,
+        "ammo": 36,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 10.116666666666749,
+        "x": 2.313285512157501,
+        "z": 56.02573394778486,
+        "hp": 100,
+        "ammo": 36,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 11.316666666666809,
+        "x": 2.2822056038901795,
+        "z": 56.6156930888536,
+        "hp": 100,
+        "ammo": 36,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 12.450000000000198,
+        "x": 4.634445551472138,
+        "z": 52.023244100762476,
+        "hp": 100,
+        "ammo": 36,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 13.650000000000258,
+        "x": 5.867447771035368,
+        "z": 50.42319871762463,
+        "hp": 100,
+        "ammo": 36,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 15.183333333333668,
+        "x": 4.730581057418461,
+        "z": 52.44256335506358,
+        "hp": 100,
+        "ammo": 36,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 16.31666666666702,
+        "x": 8.854683828207932,
+        "z": 48.59650469430727,
+        "hp": 100,
+        "ammo": 36,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 17.516666666666953,
+        "x": 12.435314497231547,
+        "z": 43.393253943556665,
+        "hp": 100,
+        "ammo": 36,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 18.716666666666885,
+        "x": 13.738911859070171,
+        "z": 37.81117209067043,
+        "hp": 100,
+        "ammo": 36,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 19.916666666666817,
+        "x": 11.14651111370362,
+        "z": 32.08729853790525,
+        "hp": 100,
+        "ammo": 36,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 21.11666666666675,
+        "x": 10.659634773565411,
+        "z": 31.32222287610792,
+        "hp": 100,
+        "ammo": 31,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 22.31666666666668,
+        "x": 11.495550839611083,
+        "z": 32.41750024746024,
+        "hp": 100,
+        "ammo": 28,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 23.516666666666612,
+        "x": 12.753103960880033,
+        "z": 33.87782473066818,
+        "hp": 100,
+        "ammo": 26,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 24.716666666666544,
+        "x": 11.04826651511793,
+        "z": 31.58356065957182,
+        "hp": 100,
+        "ammo": 25,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 25.916666666666476,
+        "x": 10.244733969106006,
+        "z": 30.502216598191985,
+        "hp": 100,
+        "ammo": 25,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 27.049999999999745,
+        "x": 8.885900109216287,
+        "z": 29.825625798945868,
+        "hp": 100,
+        "ammo": 25,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 28.166666666666348,
+        "x": 11.246424001696822,
+        "z": 32.86686340239552,
+        "hp": 100,
+        "ammo": 25,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 29.36666666666628,
+        "x": 14.631111612862195,
+        "z": 37.22737885862428,
+        "hp": 100,
+        "ammo": 25,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 30.56666666666621,
+        "x": 17.830558319572347,
+        "z": 41.66988286357468,
+        "hp": 100,
+        "ammo": 25,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 31.766666666666143,
+        "x": 22.985578772731014,
+        "z": 42.874817724461266,
+        "hp": 100,
+        "ammo": 25,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 32.96666666666608,
+        "x": 28.495772769682233,
+        "z": 42.57614407110341,
+        "hp": 100,
+        "ammo": 25,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 34.16666666666601,
+        "x": 34.015264359832706,
+        "z": 42.53538280627828,
+        "hp": 100,
+        "ammo": 25,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 35.36666666666594,
+        "x": 39.49889200199509,
+        "z": 43.14095838681914,
+        "hp": 100,
+        "ammo": 25,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 36.566666666665874,
+        "x": 44.37173016038633,
+        "z": 45.49392997205019,
+        "hp": 100,
+        "ammo": 25,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 37.766666666665806,
+        "x": 48.713306259336,
+        "z": 48.864014987465374,
+        "hp": 100,
+        "ammo": 25,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 38.96666666666574,
+        "x": 50.06594085055041,
+        "z": 50.143494219146305,
+        "hp": 100,
+        "ammo": 25,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 40.23333333333233,
+        "x": 51.37106051258697,
+        "z": 49.10947848372616,
+        "hp": 100,
+        "ammo": 25,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 41.316666666665604,
+        "x": 55.27680455335463,
+        "z": 46.01504773307001,
+        "hp": 100,
+        "ammo": 25,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 42.516666666665536,
+        "x": 58.41833701988455,
+        "z": 43.52608415349457,
+        "hp": 100,
+        "ammo": 23,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 43.71666666666547,
+        "x": 62.36769951217572,
+        "z": 40.3970955116193,
+        "hp": 100,
+        "ammo": 23,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 44.9166666666654,
+        "x": 67.52585080145076,
+        "z": 38.83345043812,
+        "hp": 100,
+        "ammo": 23,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 46.11666666666533,
+        "x": 68.22781245174507,
+        "z": 38.71488311090108,
+        "hp": 100,
+        "ammo": 23,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 47.31666666666526,
+        "x": 65.5207234765238,
+        "z": 43.0545211836921,
+        "hp": 100,
+        "ammo": 23,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 48.516666666665195,
+        "x": 63.03173609305059,
+        "z": 47.891280181779955,
+        "hp": 100,
+        "ammo": 23,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 49.71666666666513,
+        "x": 58.78475389590117,
+        "z": 51.41439142122388,
+        "hp": 100,
+        "ammo": 23,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 50.91666666666506,
+        "x": 54.4691188169071,
+        "z": 54.8390499551445,
+        "hp": 100,
+        "ammo": 23,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 52.11666666666499,
+        "x": 50.77221990593443,
+        "z": 57.56624661228777,
+        "hp": 100,
+        "ammo": 22,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 53.31666666666492,
+        "x": 48.35938835500171,
+        "z": 61.1907802363626,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 54.516666666664854,
+        "x": 45.30065307760848,
+        "z": 65.78583560298122,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 55.716666666664786,
+        "x": 42.19452827679618,
+        "z": 70.348149354305,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 56.91666666666472,
+        "x": 38.92639617637317,
+        "z": 74.78531296528408,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 58.11666666666465,
+        "x": 34.61954957944313,
+        "z": 78.23499615253623,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 59.31666666666458,
+        "x": 30.271634697570967,
+        "z": 81.63243810135486,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 60.51666666666451,
+        "x": 25.297237634991273,
+        "z": 83.93548384530654,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 61.716666666664445,
+        "x": 20.029801385548403,
+        "z": 85.57952992024725,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 62.916666666664376,
+        "x": 15.1378984422265,
+        "z": 87.78843215695166,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 64.11666666666432,
+        "x": 11.117212749601942,
+        "z": 91.5705324774503,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 65.31666666666425,
+        "x": 7.09679239744569,
+        "z": 95.3529417879252,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 66.51666666666418,
+        "x": 2.613065758780483,
+        "z": 98.43960757415834,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 67.71666666666411,
+        "x": -2.4290871131830354,
+        "z": 100.68617907783351,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 2,
+        "t": 68.91666666666404,
+        "x": -7.100800027119637,
+        "z": 102.52332937391249,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 4,
+        "extracting": true
+      },
+      {
+        "raid": 2,
+        "t": 70.11666666666397,
+        "x": -7.123604488245749,
+        "z": 102.52480170470872,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 4,
+        "extracting": true
+      },
+      {
+        "raid": 2,
+        "t": 71.3166666666639,
+        "x": -7.123604488357871,
+        "z": 102.52480170471594,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 4,
+        "extracting": true
+      },
+      {
+        "raid": 2,
+        "t": 72.51666666666384,
+        "x": -7.123604488357871,
+        "z": 102.52480170471594,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 4,
+        "extracting": true
+      },
+      {
+        "raid": 3,
+        "t": 0.5833333333333335,
+        "x": -4.913673173450273,
+        "z": 94.86902253206036,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 1.949999999999998,
+        "x": -2.2730547855630716,
+        "z": 88.30098904657707,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 3.1499999999999937,
+        "x": -1.623021442654305,
+        "z": 87.55536458426425,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 4.34999999999999,
+        "x": -3.740716263563048,
+        "z": 90.27200540202826,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 5.483333333333319,
+        "x": -1.3364116162047255,
+        "z": 86.22374538991788,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 6.683333333333315,
+        "x": -0.552937791437547,
+        "z": 79.92560656296465,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 7.883333333333311,
+        "x": 0.2584076532345489,
+        "z": 73.62973880380687,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 9.083333333333364,
+        "x": 0.9207176385093008,
+        "z": 67.31798738500763,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 10.283333333333424,
+        "x": 1.7802115667559135,
+        "z": 61.04813185150593,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 11.483333333333483,
+        "x": 3.4415177528169254,
+        "z": 54.92582763583454,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 12.683333333333543,
+        "x": 5.840733614586259,
+        "z": 50.44953506914659,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 0,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 14.016666666666943,
+        "x": 7.556527274635668,
+        "z": 49.372374416611024,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 15.03333333333366,
+        "x": 11.227489237081897,
+        "z": 45.752057405809715,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 16.233333333333693,
+        "x": 14.401830680637856,
+        "z": 40.33855308101244,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 17.433333333333625,
+        "x": 11.952635582188305,
+        "z": 34.53062048130611,
+        "hp": 100,
+        "ammo": 21,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 18.633333333333557,
+        "x": 10.062491950367447,
+        "z": 30.430892310499207,
+        "hp": 100,
+        "ammo": 20,
+        "crates": 1,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 19.83333333333349,
+        "x": 10.062338449155598,
+        "z": 30.43042512814654,
+        "hp": 100,
+        "ammo": 15,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 21.03333333333342,
+        "x": 9.747926726594423,
+        "z": 30.04193805599794,
+        "hp": 100,
+        "ammo": 11,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 22.233333333333352,
+        "x": 11.247500629939719,
+        "z": 30.296330904008826,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 23.433333333333284,
+        "x": 9.485727543009055,
+        "z": 30.05485110384212,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 24.633333333333216,
+        "x": 12.220774302858189,
+        "z": 25.389617412125723,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 25.833333333333147,
+        "x": 18.520975975308772,
+        "z": 24.618846954185756,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 2,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 27.03333333333308,
+        "x": 18.80855526733363,
+        "z": 24.583936755584723,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 28.216666666666345,
+        "x": 15.484449643420062,
+        "z": 21.2185010692572,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 29.416666666666277,
+        "x": 18.61839462242653,
+        "z": 17.319426175861,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 30.61666666666621,
+        "x": 23.139843901392986,
+        "z": 14.152898814903315,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 31.81666666666614,
+        "x": 28.073756411074015,
+        "z": 11.911092165304606,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 33.016666666666076,
+        "x": 33.4518248020731,
+        "z": 10.667399259664231,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 34.21666666666601,
+        "x": 38.87080105338856,
+        "z": 9.61862146911814,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 35.41666666666594,
+        "x": 43.49827815758299,
+        "z": 6.701838072042113,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 36.61666666666587,
+        "x": 48.020214364868465,
+        "z": 3.5360059645769466,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 37.8166666666658,
+        "x": 52.88770539283972,
+        "z": 3.910089542192105,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 39.016666666665735,
+        "x": 57.72438503313847,
+        "z": 6.506332367360132,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 40.21666666666567,
+        "x": 55.24209884592534,
+        "z": 5.022486248774369,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 41.4166666666656,
+        "x": 57.99945339533476,
+        "z": 6.62364140290314,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 42.54999999999887,
+        "x": 59.49598557342919,
+        "z": 4.6543648842010885,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 43.7499999999988,
+        "x": 59.6541465012074,
+        "z": 4.33463902552521,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 44.94999999999873,
+        "x": 57.73149483424232,
+        "z": 6.522675506706439,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 46.083333333332,
+        "x": 59.02454749702828,
+        "z": 6.154205635144818,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 3,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 47.28333333333193,
+        "x": 58.76102430576308,
+        "z": 7.950618259880587,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 48.48333333333186,
+        "x": 60.472761241298606,
+        "z": 5.111107837359912,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 49.683333333331795,
+        "x": 60.47442429179803,
+        "z": 5.108499022986608,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 50.88333333333173,
+        "x": 60.046392622135905,
+        "z": 5.851026997165882,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 52.016666666664996,
+        "x": 59.599611523777796,
+        "z": 6.574938775349594,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 53.21666666666493,
+        "x": 54.403882276021754,
+        "z": 4.730698051550213,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 54.41666666666486,
+        "x": 49.520263981976356,
+        "z": 2.827902081298595,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 55.61666666666479,
+        "x": 47.55778234248605,
+        "z": 7.498599631610711,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 56.81666666666472,
+        "x": 45.39894800213009,
+        "z": 12.43679306673755,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 58.016666666664655,
+        "x": 42.27770531670713,
+        "z": 16.989620905952915,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 59.21666666666459,
+        "x": 39.146010069374555,
+        "z": 21.534549207396935,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 60.41666666666452,
+        "x": 36.178253019363396,
+        "z": 26.14433253108833,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 61.61666666666445,
+        "x": 33.70932471206062,
+        "z": 31.081415869909527,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 62.81666666666438,
+        "x": 30.440687201675637,
+        "z": 35.51987936160042,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 64.01666666666432,
+        "x": 27.257441703275624,
+        "z": 40.00898687313034,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 65.21666666666425,
+        "x": 25.312883208167282,
+        "z": 45.099217627376504,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 66.41666666666418,
+        "x": 24.710157100660638,
+        "z": 50.58618609550615,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 67.61666666666412,
+        "x": 21.901503236268503,
+        "z": 55.05064210316539,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 68.81666666666405,
+        "x": 18.135330069146047,
+        "z": 59.08593507406496,
+        "hp": 100,
+        "ammo": 10,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 70.01666666666398,
+        "x": 17.190167783283258,
+        "z": 60.12131182306688,
+        "hp": 100,
+        "ammo": 9,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 71.21666666666391,
+        "x": 15.183952541054483,
+        "z": 62.308773985797544,
+        "hp": 100,
+        "ammo": 8,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 72.41666666666384,
+        "x": 11.475627138892575,
+        "z": 66.39731136887022,
+        "hp": 100,
+        "ammo": 8,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 73.61666666666378,
+        "x": 7.885297873954785,
+        "z": 70.58980767106769,
+        "hp": 100,
+        "ammo": 8,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 74.8166666666637,
+        "x": 4.319758520933002,
+        "z": 74.80375227462119,
+        "hp": 100,
+        "ammo": 8,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 76.01666666666364,
+        "x": 0.7542191699111614,
+        "z": 79.01769687989469,
+        "hp": 100,
+        "ammo": 8,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 77.21666666666357,
+        "x": -1.7740778266979578,
+        "z": 83.84395885592185,
+        "hp": 100,
+        "ammo": 8,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 78.4166666666635,
+        "x": -3.7391239880174916,
+        "z": 89.0023494301211,
+        "hp": 100,
+        "ammo": 8,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 79.61666666666343,
+        "x": -5.700752305971014,
+        "z": 94.16196504388995,
+        "hp": 100,
+        "ammo": 8,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 80.81666666666337,
+        "x": -7.459279483918864,
+        "z": 99.39426579015982,
+        "hp": 100,
+        "ammo": 8,
+        "crates": 4,
+        "extracting": false
+      },
+      {
+        "raid": 3,
+        "t": 82.0166666666633,
+        "x": -8.002147151154375,
+        "z": 101.01429985250303,
+        "hp": 100,
+        "ammo": 8,
+        "crates": 4,
+        "extracting": true
+      },
+      {
+        "raid": 3,
+        "t": 83.21666666666323,
+        "x": -8.002147212452341,
+        "z": 101.01430003542939,
+        "hp": 100,
+        "ammo": 8,
+        "crates": 4,
+        "extracting": true
+      },
+      {
+        "raid": 3,
+        "t": 84.41666666666316,
+        "x": -8.002147212452341,
+        "z": 101.01430003542939,
+        "hp": 100,
+        "ammo": 8,
+        "crates": 4,
+        "extracting": true
+      },
+      {
+        "raid": 3,
+        "t": 85.6166666666631,
+        "x": -8.002147212452341,
+        "z": 101.01430003542939,
+        "hp": 100,
+        "ammo": 8,
+        "crates": 4,
+        "extracting": true
+      }
+    ],
+    "softlocks": [],
+    "scenes": [
+      {
+        "scene": "creator",
+        "raid": 0,
+        "t": 0
+      },
+      {
+        "scene": "bunker",
+        "raid": 0,
+        "t": 1.010800000190736
+      },
+      {
+        "scene": "raid",
+        "raid": 0,
+        "t": 2.544133333524064
+      },
+      {
+        "scene": "bunker",
+        "raid": 1,
+        "t": 115.2441333335188
+      },
+      {
+        "scene": "raid",
+        "raid": 1,
+        "t": 117.06080000018537
+      },
+      {
+        "scene": "bunker",
+        "raid": 2,
+        "t": 217.02746666692227
+      },
+      {
+        "scene": "raid",
+        "raid": 2,
+        "t": 218.8274666669237
+      },
+      {
+        "scene": "bunker",
+        "raid": 3,
+        "t": 291.9441333335873
+      },
+      {
+        "scene": "raid",
+        "raid": 3,
+        "t": 293.727466666919
+      },
+      {
+        "scene": "bunker",
+        "raid": 4,
+        "t": 379.1608000001746
+      }
+    ],
+    "starts": [
+      {
+        "raid": 0,
+        "seed": 2654435774,
+        "hp": 100,
+        "upgrades": {
+          "mag": 0,
+          "pack": 0,
+          "heart": 0
+        }
+      },
+      {
+        "raid": 1,
+        "seed": 2654443693,
+        "hp": 100,
+        "upgrades": {
+          "mag": 0,
+          "pack": 0,
+          "heart": 0
+        }
+      },
+      {
+        "raid": 2,
+        "seed": 2654451612,
+        "hp": 100,
+        "upgrades": {
+          "mag": 1,
+          "pack": 0,
+          "heart": 0
+        }
+      },
+      {
+        "raid": 3,
+        "seed": 2654459531,
+        "hp": 100,
+        "upgrades": {
+          "mag": 1,
+          "pack": 0,
+          "heart": 0
+        }
+      }
+    ]
+  },
+  "current": {
+    "scene": "raid",
+    "t": 0.21666666666666665,
+    "raid": 4,
+    "x": -5.2773654802182115,
+    "z": 96.69870126268736,
+    "hp": 100,
+    "ammo": 16,
+    "crates": 0
+  },
+  "elapsedSeconds": 112.364,
+  "complete": true
+}

@@ -181,6 +181,8 @@ group(-34, 107, 0, [["driftwood", 2.5, -0.5, 1.1, 1.3], ["shells", -2, 0.5], ["r
 // a beached rowboat's worth of flotsam at each end of the sand: the reason to walk the beach
 group(-40, 100, 0.3, [["crate_wood_b", 2.2, 0.6, 0.5], ["barrel_wood", -1.6, 1.2], ["sack_pile", 0.4, -2.0, 0.2], ["driftwood", 3, 2.6, 2], ["palm", -3.5, -2.6], ["rockl", -5.2, 0.8, 1, 1.1], ["beachgrass", 4.5, -1.5]]);
 group(34, 104, -0.2, [["barrel_rust", 1.8, 0.4], ["barrel_teal", 2.6, 1.2], ["driftwood", -2.5, 1.5, 0.7, 1.4], ["log", -0.5, -2.4, 1.3], ["palmlean", 3.5, -3, 4], ["rockm", -4, -0.5], ["shells", 0.5, 2.8]]);
+group(1, 95, 0.2, [["driftwood", -2.4, 0.6, 0.4, 1.3], ["rockm", 2.6, 1.4], ["crate_wood_b", 3.4, -1.6, 0.5], ["barrel_rust", -3.6, -1.4], ["log", 0.4, -3.2, 1.1], ["rockl", -5.5, 2.5, 0, 1.1], ["sack", 2.2, -2.6]]); // what the tide left by the hatch road
+group(-12, 97, 0, [["rockm", -1.4, 1.2], ["driftwood", 1.6, -1.2, 2, 1.2], ["palm", -3.4, -2.4], ["rocks", 2.4, 2.2, 0, 1.3], ["barrel_wood", -4.6, 1.6]]);
 put("zip_end", 20, 99, 0, 1, undefined, "zip-end");
 group(20, 99, 0, [["barrel_wood", 3.2, 1.5], ["signpost_a", -2.6, 1.8, 0.4], ["rockm", 4.5, -1.5], ["beachgrass", -3.5, -1]]);
 for (const [x, z] of [[-58, 104], [-22, 96], [10, 106], [46, 97], [78, 104], [-66, 108], [56, 108], [-14, 108], [86, 99]]) group(x, z, rr(0, 6), [[rnd() < 0.5 ? "palmlean" : "palm", 0, 0, rr(0, 6), rr(0.9, 1.2)], ["beachgrass", 1.6, 0.8], ["rockm", -1.8, 1.2, rr(0, 6), rr(0.8, 1.2)], ["driftwood", 0.5, -2.2, rr(0, 6)]]);
@@ -223,6 +225,7 @@ put("watchtower", -73, 17, 0.25, 1, undefined, "watchtower");
 put("well", -52, 22, 0.3, 1, undefined, "camp-well");
 put("campfire", -62, 27, 0, 1, undefined, "campfire");
 group(-62, 27, 0, [["log_bench", -2.3, 0.7, 1.25], ["log_bench_b", 1.3, 2.3, 0.15], ["log_bench_b", 1.9, -1.6, -0.9], ["lantern", -1.9, 1.9], ["bedroll_a", -3.6, -1.6, 0.6], ["satchel", -0.9, 3.6, 0.7]]);
+group(-60, 22, 0, [["stump", -2.4, 0.6], ["barrel_wood", 3.2, -1.4], ["barrel_teal", 4.1, -0.8], ["sack_pile", -4.4, -2.2, 0.6], ["log", 1.4, -3.4, 0.4], ["crate_wood_b", -5.6, 1.4, 0.3], ["lantern", 0.6, 1.6], ["bedroll_b", 4.6, 2.4, 1.2]]); // the yard between the fire and the north gate
 put("tent_a", -71, 26, 0.5); put("tent_b", -66.5, 16.5, 0.35); put("tent_b", -55.5, 16, -0.3);
 group(-52, 34, -0.4, [["tarp", 0, 0], ["bedroll_b", -0.3, -0.3, 0.4], ["crate_wood_b", 1.4, -1.0, 0.3], ["lantern_post", -3.2, 2.2, 0.4]]);
 group(-56, 30, 0, [["crate_green", 1.7, -0.8, -0.25], ["barrel_wood", 0.4, 1.6], ["barrel_rust", 1.4, 1.3], ["sack_pile", 2.8, 1.4, 0.4], ["ammo_box", -0.8, 1.6, 0.5], ["sack", 0.7, -1.7, 1]]);
@@ -298,6 +301,7 @@ wall("stone", 73.7, -22, 76.4, -22); wall("stone", 83.6, -22, 86, -22);
 // ---------------------------------------------------------------- Bomber Wreck (EGG ep03) and the road from the camp
 put("bomber", -66, -44, 0.3, 1, undefined, "bomber");
 group(-66, -44, 0.3, [["rubble_pile_rock", -7.6, 1.2], ["rubble_pile_rock", -8.4, -1.4, 1], ["barrel_rust", 3.4, 3.2], ["barrel_rust", 4.4, 3.8], ["crate_wood_b", 2.2, -3.4, 0.4], ["sack_pile", 5.6, -3.2, 0.3], ["stump", -4.4, 5.6], ["stump", -2.4, -6.4], ["log", 9.5, 5, 0.6], ["tarp", 9, -5.5, 0.4], ["bedroll_a", 9.2, -5.6, 1], ["campfire", 6.5, -8.5], ["log_bench_b", 4.6, -9.6, 0.4], ["rockl", -10, 6, 0, 1.3], ["lantern_post", 11.5, -2.4, 2]]);
+group(-58, -40, 0, [["rubble_pile_rock", 0, 0], ["stump", 2.4, 1.6], ["stump", -1.6, 2.6], ["log", 3.6, -1.6, 0.6], ["rockm", -3.2, -1.4], ["barrel_rust", 1.2, -2.8], ["sack", -2.4, -2.6], ["rubble_pile_rock", 4.6, 2.6, 1]]); // what the bomber shed along its furrow
 group(-70, -6, 0, [["tarp", 0, 0, 1.1], ["crate_wood_b", 0.4, 0.2, 0.3], ["barrel_wood", -2.6, 1.6], ["sack_pile", 2.4, -2, 0.4], ["bedroll_b", -0.6, -0.8, 1.2], ["lantern_post", 3.4, 2.4, 1], ["rockl", -4.5, -2.5, 0, 1.2]]); // a smuggler stash on the way
 group(-64, -22, 0, [["log", -3.6, 0.6, 0.2], ["log", 3.4, -0.4, -0.2], ["stump", -5.2, -1.8], ["rockl", 5.6, 2, 0, 1.3], ["rockm", -6, 2.4], ["signpost_a", 2.4, 2.6, 0.5]]); // a log barricade
 ridge([[-48, -30], [-40, -38], [-32, -42]], 1.8);
@@ -385,9 +389,9 @@ export const LANDMARKS = [
 /** 35 authored sockets; the 5 fixed ones always spawn (key, vault, sleeper, secret, the radio shack's headset crate),
  *  18 of the rest per raid. Tiers rise with distance from the hatch */
 export const CRATES: CrateSocket[] = [
-  // beach, ferry, cove: wood near the sand, green only inside the hull and behind the cove rocks
-  { x: -38.4, z: 100.8, tier: "wood" }, { ...at("ferry", 2.4, 1.2), tier: "green", in: "ferry" }, { ...at("ferry", -1.4, -0.4), tier: "wood", in: "ferry" },
-  { x: -88, z: 100, tier: "green" }, { x: -76, z: 91.5, tier: "wood" },
+  // the south is thin on purpose (pacing report: raids ended on the first three crates by the hatch): one crate in
+  // the ferry hull, one behind the cove rocks; the beach itself holds nothing
+  { ...at("ferry", 2.4, 1.2), tier: "green", in: "ferry" }, { x: -88, z: 100, tier: "green" },
   // the checkpoint hut and the lookout
   { x: 7.4, z: 50.6, tier: "wood" }, { x: -41, z: 57.6, tier: "wood" }, // the checkpoint hut itself holds nothing: it is 23 u from the hatch, the first guard's post
   // Peel Gang camp: the key is up the tower, the far corner from both gates
@@ -395,18 +399,18 @@ export const CRATES: CrateSocket[] = [
   // Old Plantation: one in each building, one by the tractor
   { ...at("farmhouse", 3.6, 1.7), tier: "green", in: "farmhouse" }, { ...at("barn", -0.6, -2.6), tier: "wood", in: "barn" }, { x: 10.4, z: 29, tier: "wood" },
   // Mangrove: on the boardwalk hub and the jetty
-  { x: 50.6, z: 51.6, tier: "green" }, { x: 46.5, z: 72.4, tier: "wood" },
+  { x: 50.6, z: 51.6, tier: "green" }, { x: 69.6, z: 39.4, tier: "wood" },
   // Penal Colony: the yard, the locked evidence cell, the back yard; the vault and the shrine are gated
   { x: 59.4, z: 9.4, tier: "wood" }, { ...at("cellblock", 5.4, 2.8), tier: "green", in: "cellblock" }, { x: 79, z: 9, tier: "wood" },
   { x: 82.2, z: -28.4, tier: "gold", fixed: "vault", y: 0.44 }, { x: 64.2, z: -19.6, tier: "gold", fixed: "secret" },
   // the radio shack, the stash on the camp's north road, the bomber
   { ...at("radio", 0.3, 0.2), tier: "green", fixed: "radio", in: "radio" }, { x: -72.6, z: -8.4, tier: "wood" }, { x: -60, z: -49.4, tier: "green" }, { x: -73.5, z: -39, tier: "wood" },
   // the hollow: the Sleeper's own chest and a stash at the tree's back
-  { x: 8, z: -64, tier: "gold", fixed: "sleeper" }, { x: -13, z: -54, tier: "green" },
+  { x: 8, z: -64, tier: "gold", fixed: "sleeper" }, { x: -13, z: -54, tier: "green" }, { x: -33.4, z: -55.6, tier: "wood" },
   // the falls: beside the pool, and in the nook behind the water
-  { x: 55.4, z: -58.6, tier: "wood" }, { x: 68.6, z: -83, tier: "green" },
+  { x: 55.4, z: -58.6, tier: "wood" }, { x: 68.6, z: -83, tier: "green" }, { x: 74.6, z: -40.4, tier: "wood" },
   // the river checkpoint and the landing
-  { ...at("hut-north", -0.7, 0), tier: "wood", in: "hut-north" }, { ...at("boathouse", 1.1, 0.4), tier: "green", in: "boathouse" }, { x: 31.5, z: -104.5, tier: "wood" },
+  { ...at("hut-north", -0.7, 0), tier: "wood", in: "hut-north" }, { ...at("boathouse", 1.1, 0.4), tier: "green", in: "boathouse" }, { x: 31.5, z: -104.5, tier: "wood" }, { x: -54.4, z: -100.6, tier: "wood" },
   // the grotto
   { x: 173.6, z: 33, tier: "green" }, { x: 157.6, z: -27.6, tier: "green" }, { x: 146.6, z: 67.4, tier: "wood" },
 ];
@@ -415,18 +419,19 @@ const base: Spawn[] = [
   { kind: "brute", x: 4, z: 24 }, { kind: "sleeper", x: 2, z: -57.4 },
 ];
 /** two patrol sets; one is picked per raid. Only enemies within 32 u simulate; at most 6 awake at once. Reward
- *  routes are contested: the colony's cells, the bomber, both ways into the raft landing (pacing report issue 2). */
+ *  routes are contested: the colony's cells, the bomber, both ways into the raft landing (pacing report issue 2): a
+ *  brute holds the river checkpoint and the landing gang stands in sight of the raft ring, so the 3 s stand-still is earned. */
 export const SPAWNS: Spawn[][] = [[...base,
   { kind: "bandit", x: 0.6, z: 84.6 }, { kind: "wild", x: -9.5, z: 67.5 }, { kind: "wild", x: 12, z: 66 }, { kind: "bandit", x: -39, z: 63 },
   { kind: "wild", x: 50.5, z: 58.5 }, { kind: "wild", x: 66, z: 20 }, { kind: "bandit", x: 62, z: 6, group: "ruin" }, { kind: "bandit", x: 65.5, z: -5.4, group: "ruin" }, { kind: "bandit", x: 77.5, z: -14, group: "ruin" },
   { kind: "bandit", x: -62, z: -40, group: "plane" }, { kind: "bandit", x: -58, z: -51, group: "plane" }, { kind: "wild", x: 60, z: -56 },
-  { kind: "bandit", x: 8, z: -88.6, group: "landing" }, { kind: "bandit", x: -7.7, z: -111.5, group: "landing" }, { kind: "wild", x: 26, z: -100 },
+  { kind: "brute", x: 8, z: -90.5 }, { kind: "bandit", x: -7.7, z: -111.5, group: "landing" }, { kind: "bandit", x: 16.5, z: -106, group: "landing" }, { kind: "bandit", x: 28, z: -107.5, group: "landing" }, { kind: "wild", x: 30, z: -99 },
   { kind: "bandit", x: 166, z: 24, group: "grotto" }, { kind: "bandit", x: 172, z: 29, group: "grotto" },
 ], [...base,
   { kind: "wild", x: 8, z: 70 }, { kind: "wild", x: -80, z: 95 }, { kind: "wild", x: 42, z: 58 }, { kind: "wild", x: 64, z: 46 }, { kind: "bandit", x: 4, z: 50 },
   { kind: "wild", x: 72, z: 8 }, { kind: "bandit", x: 69.5, z: -5.4, group: "ruin" }, { kind: "bandit", x: 76, z: -15, group: "ruin" },
   { kind: "bandit", x: -24, z: -11 }, { kind: "wild", x: -60, z: -16.5 }, { kind: "bandit", x: -70, z: -48, group: "plane" }, { kind: "wild", x: -56, z: -40 },
-  { kind: "wild", x: 36, z: -58 }, { kind: "brute", x: 8, z: -90 }, { kind: "bandit", x: 16, z: -102, group: "landing" }, { kind: "bandit", x: -7.7, z: -111.5, group: "landing" }, { kind: "wild", x: -40, z: -101 },
+  { kind: "wild", x: 36, z: -58 }, { kind: "brute", x: 8, z: -90 }, { kind: "bandit", x: 16.5, z: -105, group: "landing" }, { kind: "bandit", x: 27, z: -108, group: "landing" }, { kind: "bandit", x: -7.7, z: -111.5, group: "landing" }, { kind: "wild", x: -40, z: -101 }, { kind: "wild", x: 33, z: -100 },
   { kind: "bandit", x: 165, z: 32, group: "grotto" }, { kind: "wild", x: 153, z: -21 },
 ]];
 /** allies share an alert only inside their group's ring (CODE_FINDINGS rule 11) */
