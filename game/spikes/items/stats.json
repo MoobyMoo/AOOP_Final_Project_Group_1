@@ -431,6 +431,18 @@
   ],
   "glb_bytes": 51656
  },
+ "suit": {
+  "name": "Businessman's Suit",
+  "kind": "wearable",
+  "tris": 1168,
+  "materials": 2,
+  "dims_m": [
+   0.64,
+   0.098,
+   0.593
+  ],
+  "glb_bytes": 50964
+ },
  "kingpin": {
   "name": "Kingpin .45",
   "kind": "weapon",
@@ -440,6 +452,149 @@
    0.237,
    1.152,
    0.831
+  ]
+ },
+ "pot_helmet": {
+  "name": "Cooking Pot",
+  "kind": "wearable",
+  "tris": 588,
+  "materials": 2,
+  "dims_m": [
+   1.451,
+   1.237,
+   0.515
+  ]
+ },
+ "coconut_helmet": {
+  "name": "Coconut Helmet",
+  "kind": "wearable",
+  "tris": 704,
+  "materials": 1,
+  "dims_m": [
+   1.154,
+   1.069,
+   1.185
+  ]
+ },
+ "warden_helmet": {
+  "name": "Warden's Riot Helmet",
+  "kind": "wearable",
+  "tris": 886,
+  "materials": 2,
+  "dims_m": [
+   1.117,
+   1.178,
+   0.556
+  ]
+ },
+ "snorkel": {
+  "name": "Snorkel Mask",
+  "kind": "wearable",
+  "tris": 556,
+  "materials": 2,
+  "dims_m": [
+   1.294,
+   1.095,
+   0.965
+  ]
+ },
+ "leaf_vest": {
+  "name": "Banana-Leaf Vest",
+  "kind": "wearable",
+  "tris": 784,
+  "materials": 1,
+  "dims_m": [
+   0.848,
+   0.8,
+   0.433
+  ]
+ },
+ "life_jacket": {
+  "name": "Ferry Life Jacket",
+  "kind": "wearable",
+  "tris": 1178,
+  "materials": 1,
+  "dims_m": [
+   0.834,
+   0.795,
+   0.415
+  ]
+ },
+ "peel_jacket": {
+  "name": "Peel Gang Padded Jacket",
+  "kind": "wearable",
+  "tris": 736,
+  "materials": 1,
+  "dims_m": [
+   0.781,
+   0.757,
+   0.403
+  ]
+ },
+ "bamboo_plate": {
+  "name": "Bamboo Plate Vest",
+  "kind": "wearable",
+  "tris": 1280,
+  "materials": 1,
+  "dims_m": [
+   0.889,
+   0.805,
+   0.444
+  ]
+ },
+ "coconut_cuirass": {
+  "name": "Coconut Cuirass",
+  "kind": "wearable",
+  "tris": 1460,
+  "materials": 1,
+  "dims_m": [
+   0.726,
+   0.77,
+   0.387
+  ]
+ },
+ "warden_vest": {
+  "name": "Warden's Kevlar",
+  "kind": "wearable",
+  "tris": 1324,
+  "materials": 1,
+  "dims_m": [
+   0.764,
+   0.809,
+   0.428
+  ]
+ },
+ "sack": {
+  "name": "Loot Sack",
+  "kind": "wearable",
+  "tris": 212,
+  "materials": 1,
+  "dims_m": [
+   0.598,
+   0.94,
+   0.68
+  ]
+ },
+ "walkman": {
+  "name": "Walkman Headphones",
+  "kind": "wearable",
+  "tris": 840,
+  "materials": 1,
+  "dims_m": [
+   1.466,
+   0.256,
+   0.623
+  ]
+ },
+ "radio_headset": {
+  "name": "Radio Headset",
+  "kind": "wearable",
+  "tris": 952,
+  "materials": 1,
+  "dims_m": [
+   1.484,
+   0.757,
+   0.783
   ]
  }
 }

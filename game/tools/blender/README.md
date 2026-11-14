@@ -54,7 +54,10 @@ Bind pose: relaxed A-pose, arms ~35 deg from vertical, legs straight, palms towa
 **Colour zones.** Colour is not baked. Each face carries a zone id and each vertex an AO value, exported in the UV channel:
 `u = (zone + 0.5) / 48`, `v = ao`. Zone ids (index = id; append only, never reorder; mirrored in `src/game/actors/charmat.ts`):
 
-`fur face suit pants tie feet shirt dark white pupil gold mouth tongue suit2 stripeA stripeB sole prop prop2 fur2 skin metal red cloth chain mask hat band lens leather leather2 banana green blue pink yellow khaki wood wood2 glass skin2 vest vest2 nail ear square`
+`fur face suit pants tie feet shirt dark white pupil gold mouth tongue suit2 stripeA stripeB sole prop prop2 fur2 skin metal red cloth chain mask hat band lens leather leather2 banana green blue pink yellow khaki wood wood2 glass skin2 vest vest2 nail ear square navy leaf`
+
+`navy` and `leaf` were added for the G1-23 gear (48 slots, 48 used: the palette is full; a 49th zone needs `NREG` raised in
+`bv_common.py` and `charmat.ts` together).
 
 Body zones a replacement body mesh must use: `fur` (head, tail, bare limbs), `face` (face plate, muzzle, hands), `ear` (inner ear),
 `pupil` (eyes), `dark` (brows, nostrils, mouth line), `suit` (jacket), `suit2` (lapels, hem underside), `shirt`, `tie`, `gold` (buttons),
@@ -70,6 +73,19 @@ Body zones a replacement body mesh must use: `fur` (head, tail, bare limbs), `fa
 rotations in the runtime, so hats, glasses and sockets follow.
 
 **Wearables** sit in socket space (origin at the socket, same axes as the character) as one node per id in `wearables.glb`.
+
+| Slot | Socket | Origin (x, forward, up) | How the runtime wears it |
+|---|---|---|---|
+| head | bone `sk_head` | top of the head | rigid on the socket |
+| face | bone `sk_face` | on the face between the eyes | rigid on the socket |
+| back | bone `sk_back` | 0, -0.255, 0.80 | rigid; the socket scales with the build, and a little more over body armour |
+| body | the `chest` joint | 0, 0, 0.78 | skinned: `rig.ts` gives every vertex the torso's weights (hips / spine / chest by height) and the torso's `build` shape key, then merges the piece into the character mesh. A rigid vest would tear at the belly whenever the chest twists against the hips. |
+| ears | on bone `head` | 0, 0.035, 1.425 (between the ears) | rigid; headsets ship two meshes: `<id>` (band over the bare head) and `<id>_nb` (band round the back of the head), and the runtime picks `_nb` whenever a hat is worn |
+
+Body pieces must stay outside the suit with its lapels, buttons and tie (lift >= 0.03 on the chest) and must use zones
+the body does not use (not `fur face suit pants tie feet shirt dark white pupil gold mouth tongue suit2 stripeA stripeB
+sole fur2 ear square`), because they share the character's palette: the runtime recolours and dulls (broken armour) every
+other zone as armour.
 
 ## Clips
 Monkey (30 fps samples): loops `idle walk run runBack strafeL strafeR cheer`, poses `aim carry`, timed `fire reload melee roll hurt throw use defeat`.

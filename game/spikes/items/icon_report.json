@@ -142,5 +142,65 @@
  "cratepack": {
   "fill": 0.828,
   "ok": true
+ },
+ "suit": {
+  "fill": 0.883,
+  "ok": true
+ },
+ "kingpin": {
+  "fill": 0.863,
+  "ok": true
+ },
+ "pot_helmet": {
+  "fill": 0.863,
+  "ok": true
+ },
+ "coconut_helmet": {
+  "fill": 0.803,
+  "ok": true
+ },
+ "warden_helmet": {
+  "fill": 0.824,
+  "ok": true
+ },
+ "snorkel": {
+  "fill": 0.844,
+  "ok": true
+ },
+ "leaf_vest": {
+  "fill": 0.844,
+  "ok": true
+ },
+ "life_jacket": {
+  "fill": 0.844,
+  "ok": true
+ },
+ "peel_jacket": {
+  "fill": 0.844,
+  "ok": true
+ },
+ "bamboo_plate": {
+  "fill": 0.844,
+  "ok": true
+ },
+ "coconut_cuirass": {
+  "fill": 0.844,
+  "ok": true
+ },
+ "warden_vest": {
+  "fill": 0.844,
+  "ok": true
+ },
+ "sack": {
+  "fill": 0.844,
+  "ok": true
+ },
+ "walkman": {
+  "fill": 0.863,
+  "ok": true
+ },
+ "radio_headset": {
+  "fill": 0.863,
+  "ok": true
  }
 }

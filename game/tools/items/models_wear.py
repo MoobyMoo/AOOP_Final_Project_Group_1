@@ -1,4 +1,5 @@
-"""The 18 wearables (ids match src/game/actors/wearables.ts). Worn orientation: front faces -Y, Z up.
+"""The 18 first wearables plus the suit icon (ids match src/game/actors/wearables.ts; the G1-23 loot gear icons are
+staged from the rig meshes by icon_gear.py). Worn orientation: front faces -Y, Z up.
 
 Hats are sized for a ~0.1 m head radius and have a closed underside (they are icon / ground-pickup
 props, not the fitted rig meshes).
@@ -500,5 +501,37 @@ def cratepack():
     return m
 
 
+# ---------------------------------------------------------------- body
+def suit():
+    """The Businessman's Suit (G1-23: the bound body piece): the charcoal jacket on a wooden hanger, white shirt,
+    wide orange tie, gold buttons. Icon only: on the rig the suit is the body itself, tailored in the creator."""
+    m = Model("suit", "Businessman's Suit")
+    c0, c1, lap, shirt, tie = "#3f3b3b", "#5a5454", "#343030", "#f6f2ea", "#f46a10"
+    body = plate([(-0.17, 0.0), (0.17, 0.0), (0.19, 0.03), (0.195, 0.3), (0.215, 0.365), (0.14, 0.42), (0.065, 0.445), (-0.065, 0.445),
+                  (-0.14, 0.42), (-0.215, 0.365), (-0.195, 0.3), (-0.19, 0.03)], h=0.075, bevel=0.016).rot(rx=90)
+    body.grad(c0, c1, axis=2)
+    m.add(body, mat="satin")
+    for sx in (-1, 1):
+        sl = rbox(0.092, 0.066, 0.36, 0.014, 2, rv=0.028, segv=2).rot(ry=sx * -11).at(sx * 0.243, 0.004, 0.2)
+        sl.grad(c0, c1, axis=2)
+        m.add(sl, mat="satin")
+        m.add(rbox(0.07, 0.05, 0.022, 0.006, 1, rv=0.02, segv=2).rot(ry=sx * -11).at(sx * 0.277, 0.004, 0.022), shirt, "satin")
+        lp = plate([(sx * 0.008, 0.2), (sx * 0.085, 0.3), (sx * 0.112, 0.442), (sx * 0.06, 0.45)], h=0.018, bevel=0.004).rot(rx=90).at(0, -0.042, 0)
+        m.add(lp, lap, "satin")
+        m.add(rbox(0.085, 0.012, 0.02, 0.004, 1).at(sx * 0.1, -0.04, 0.115), lap, "satin")            # pocket flap
+    m.add(plate([(-0.062, 0.447), (0.062, 0.447), (0.0, 0.215)], h=0.012, bevel=0.002).rot(rx=90).at(0, -0.037, 0), shirt, "satin")
+    m.add(plate([(-0.02, 0.41), (0.02, 0.41), (0.036, 0.275), (0.0, 0.232), (-0.036, 0.275)], h=0.014, bevel=0.003).rot(rx=90).at(0, -0.047, 0), tie, "satin")
+    m.add(rbox(0.05, 0.022, 0.04, 0.008, 1).at(0, -0.05, 0.424), tie, "satin")
+    for z in (0.17, 0.115):
+        m.add(ball(0.013, 10, 6).at(0.004, -0.043, z), GOLD, "metal")
+    m.add(plate([(0.095, 0.3), (0.15, 0.3), (0.155, 0.325), (0.125, 0.345), (0.098, 0.325)], h=0.012, bevel=0.002).rot(rx=90).at(0, -0.042, 0), tie, "satin")   # pocket square
+    hanger = tube([(-0.2, 0.0, 0.385), (-0.1, 0.0, 0.445), (0.0, 0.0, 0.468), (0.1, 0.0, 0.445), (0.2, 0.0, 0.385)], 0.017, 6, cap="round")
+    m.add(hanger, "#b98a52", "satin")
+    hook = tube([(0.0, 0.0, 0.46), (0.0, 0.0, 0.53), (0.012, 0.0, 0.565), (0.04, 0.0, 0.585), (0.066, 0.0, 0.565), (0.07, 0.0, 0.535)], 0.008, 6, cap="round")
+    m.add(hook, "#c9ccd6", "metal")
+    m.size_class = 0.88
+    return m
+
+
 ALL = [bowler, tophat, fedora, cap, hardhat, pith, beanie, crown, shades, aviators, monocle, eyepatch, goggles,
-       heartglasses, banditmask, satchel, bigpack, cratepack]
+       heartglasses, banditmask, satchel, bigpack, cratepack, suit]
