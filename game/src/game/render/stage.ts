@@ -67,7 +67,18 @@ export class Stage {
     this.sun.position.copy(sp).addScaledVector(this.sunDir, 45); this.sun.target.position.copy(sp);
     U.uRimDir.value.set(-0.55, 0.65, 0.35).normalize();
   }
-  render(dt: number) { this.renderer.info.reset(); if (this.post) this.composer.render(dt); else this.renderer.render(this.scene, this.camera); }
+  /** adaptive pixel ratio (advisor 32): step down when frames run long, back up when there's headroom */
+  private ft: number[] = []; private dprMax = Math.min(devicePixelRatio, Number(QS.get("dpr") ?? 2)); private dprNow = Math.min(devicePixelRatio, Number(QS.get("dpr") ?? 1.5)); private lastT = performance.now();
+  adapt() {
+    const now = performance.now(); this.ft.push(now - this.lastT); this.lastT = now;
+    if (this.ft.length < 90 || QS.has("fixdpr")) return;
+    const s = [...this.ft].sort((a, b) => a - b), med = s[45]; this.ft.length = 0;
+    const steps = [1, 1.25, 1.5, 1.75, 2].filter((v) => v <= this.dprMax + 1e-3);
+    const i = steps.findIndex((v) => Math.abs(v - this.dprNow) < 1e-3);
+    if (med > 18 && i > 0) this.dprNow = steps[i - 1]; else if (med < 11 && i >= 0 && i < steps.length - 1) this.dprNow = steps[i + 1]; else return;
+    this.renderer.setPixelRatio(this.dprNow); this.resize();
+  }
+  render(dt: number) { this.adapt(); this.renderer.info.reset(); if (this.post) this.composer.render(dt); else this.renderer.render(this.scene, this.camera); }
   /** world point under the mouse on the plane y = h */
   pick(ndcX: number, ndcY: number, h = 0.9) {
     const rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2(ndcX, ndcY), this.camera);
