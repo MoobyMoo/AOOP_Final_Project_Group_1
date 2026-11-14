@@ -913,10 +913,10 @@
    ]
   },
   "boulders_0": {
-   "tris": 401,
-   "budget": 1500,
+   "tris": 360,
+   "budget": 600,
    "parts": {
-    "matte": 401
+    "matte": 360
    },
    "size": [
     3.06,
@@ -925,10 +925,10 @@
    ]
   },
   "boulders_1": {
-   "tris": 554,
-   "budget": 1500,
+   "tris": 509,
+   "budget": 600,
    "parts": {
-    "matte": 554
+    "matte": 509
    },
    "size": [
     2.94,
@@ -937,10 +937,10 @@
    ]
   },
   "boulders_2": {
-   "tris": 391,
-   "budget": 1500,
+   "tris": 352,
+   "budget": 600,
    "parts": {
-    "matte": 391
+    "matte": 352
    },
    "size": [
     3.1,
@@ -1326,8 +1326,8 @@
    },
    "size": [
     2.04,
-    1.8,
-    4.72
+    1.74,
+    4.64
    ]
   },
   "roots_1": {
@@ -1338,8 +1338,8 @@
    },
    "size": [
     2.29,
-    1.51,
-    4.77
+    1.34,
+    4.68
    ]
   },
   "roots_2": {
@@ -1350,21 +1350,21 @@
    },
    "size": [
     2.08,
-    1.65,
-    4.6
+    1.58,
+    4.53
    ]
   },
   "cliff_0": {
-   "tris": 4733,
+   "tris": 5093,
    "budget": 6000,
    "parts": {
-    "matte": 3219,
-    "foliage": 1514
+    "matte": 3779,
+    "foliage": 1314
    },
    "size": [
-    14.38,
-    4.82,
-    6.97
+    14.77,
+    5.52,
+    7.22
    ]
   },
   "water_0": {
@@ -1413,20 +1413,20 @@
   },
   "rocks": {
    "file": "public/models/nature/rocks.glb",
-   "bytes": 499664,
-   "tris": 8600,
+   "bytes": 492132,
+   "tris": 8475,
    "nodes": 34
   },
   "cave": {
    "file": "public/models/nature/cave.glb",
-   "bytes": 206740,
+   "bytes": 206736,
    "tris": 5698,
    "nodes": 24
   },
   "waterfall": {
    "file": "public/models/nature/waterfall.glb",
-   "bytes": 346520,
-   "tris": 5405,
+   "bytes": 377128,
+   "tris": 5765,
    "nodes": 4
   }
  },
@@ -1989,12 +1989,12 @@
    "pass": true,
    "errors": [],
    "warnings": [
-    "cliff_0__foliage: duplicate verts=16 loose verts=0",
+    "cliff_0__foliage: duplicate verts=12 loose verts=0",
     "foam_0__matte: duplicate verts=13 loose verts=0",
-    "12 parts fully enclosed, not touching (eyes/internals?): ['cliff_0__foliage', 'cliff_0__foliage', 'cliff_0__foliage', 'cliff_0__foliage', 'cliff_0__foliage']"
+    "3 parts fully enclosed, not touching (eyes/internals?): ['cliff_0__foliage', 'cliff_0__foliage', 'cliff_0__foliage']"
    ]
   }
  },
- "total_bytes": 3330008,
+ "total_bytes": 3353080,
  "blender": "5.2.2 LTS"
 }

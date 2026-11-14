@@ -57,7 +57,7 @@ def reg():
     T.append(("rocks", "rocks", [k(R.rock, cls="s")] * 4, dict(budget=600)))
     T.append(("rockm", "rocks", [k(R.rock, cls="m")] * 4, dict(budget=600)))
     T.append(("rockl", "rocks", [k(R.rock, cls="l")] * 4, dict(budget=600)))
-    T.append(("boulders", "rocks", [R.boulders] * 3, dict(budget=1500)))
+    T.append(("boulders", "rocks", [R.boulders] * 3, dict(budget=600)))
     T.append(("pebbles", "rocks", [k(R.pebbles, sand=s) for s in (False, False, True)], dict(budget=600)))
     T.append(("log", "rocks", [k(R.log, kind=i) for i in range(4)], dict(budget=800)))
     T.append(("stump", "rocks", [k(R.stump, kind=i) for i in range(3)], dict(budget=800)))

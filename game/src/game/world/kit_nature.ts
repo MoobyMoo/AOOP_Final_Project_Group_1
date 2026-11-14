@@ -157,7 +157,7 @@ function waterMaterial(kind: "sheet" | "foam") {
   return m;
 }
 /** the falls as one object. Origin = the middle of the 2.6 u wide walk-through gap at ground level; the sheet faces +z
- *  (south, the camera side). The cliff spans x -7.5..7.5, z -3.6..1.2, 6.7 u tall; the gap runs along z from 1 to -3.6.
+ *  (south, the camera side). The cliff spans x -7.4..7.4, z -3.7..1.8, 6.9 u above the ground; the gap runs along z.
  *  Children: "cliff" (matte + foliage, hero cutout), "water", "foam". Collision is the caller's (block the two piers). */
 export function waterfall(): THREE.Object3D {
   const g = new THREE.Group(); g.name = "waterfall";

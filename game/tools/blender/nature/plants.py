@@ -19,7 +19,7 @@ LEAF_SETS = [  # (dark, mid, light) families so neighbouring trees differ
 ]
 PALM_D, PALM_M, PALM_L, PALM_R = lin("#446c48"), lin("#668f54"), lin("#8aa868"), lin("#a6b474")
 FERN_D, FERN_M, FERN_L = lin("#3f6a46"), lin("#5e8e5a"), lin("#90b278")
-TEAL_D, TEAL_M, TEAL_L, TEAL_V = lin("#3a7a60"), lin("#55a07a"), lin("#74b88c"), lin("#a8d6a4")
+TEAL_D, TEAL_M, TEAL_L, TEAL_V = lin("#35745c"), lin("#4a9470"), lin("#62a880"), lin("#9cce9c")
 BAN_D, BAN_M, BAN_L, BAN_R = lin("#4a7a3c"), lin("#6d9a4a"), lin("#8fb058"), lin("#b4c672")
 BARK_D, BARK_M, BARK_L = lin("#5a4330"), lin("#8a6a48"), lin("#a98a62")
 PTRUNK_A, PTRUNK_B, PTRUNK_D = lin("#a08060"), lin("#8a6c4a"), lin("#5e4832")

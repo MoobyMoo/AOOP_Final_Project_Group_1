@@ -18,14 +18,15 @@ DRIFT_L, DRIFT_M, DRIFT_D = lin("#cdbfa6"), lin("#a89a82"), lin("#7d705e")
 def rock_col(seed, light=ROCK_L, mid=ROCK_M, dark=ROCK_D, moss=0.5, moss_c=MOSS, scale=1.0, wet=None):
     def f(p, n):
         up = float(n[2])
-        c = mix(mid, light, sstep(up, 0.0, 0.85))
-        c = mix(c, dark, sstep(-up, -0.1, 0.7) * 0.55)
-        c = c * (1 + 0.08 * fbm(p, 1.9 / scale, seed, 2))
+        c = mix(mid, light, sstep(up, 0.15, 0.9))
+        c = mix(c, dark, sstep(-up, -0.35, 0.6) * 0.6)
+        c = c * (1 + 0.16 * fbm(p, 2.4 / scale, seed, 2))                     # mottling
+        c = tone(c, 1.0, 0.05 * nz(p, 0.9 / scale, seed + 7))                 # warm and cool patches
         c = mix(c, dark, sstep(p[2], 0.22 * scale, -0.05) * 0.45)            # darker toward the ground line
         if moss > 0:
             cover = sstep(fbm(p, 1.15 / scale, seed + 5, 2), 0.35 - moss * 0.7, 0.6 - moss * 0.5)
             m = sstep(up, 0.35, 0.8) * cover
-            c = mix(c, moss_c * (0.92 + 0.16 * nz(p, 3.0 / scale, seed + 2)), m * 0.88)
+            c = mix(c, moss_c * (0.9 + 0.2 * nz(p, 3.0 / scale, seed + 2)), m * 0.92)
         if wet is not None:
             c = mix(c, c * np.array([0.55, 0.6, 0.66]), wet(p))
         return c
@@ -35,7 +36,7 @@ def rock_col(seed, light=ROCK_L, mid=ROCK_M, dark=ROCK_D, moss=0.5, moss_c=MOSS,
 def rock(rng, cls="m"):
     g = Geo("matte")
     seed = rng.u(0, 80)
-    ms = rng.u(0.25, 0.75)
+    ms = rng.u(0.35, 0.85)
     if cls == "s":
         r = V(rng.u(0.38, 0.5), rng.u(0.3, 0.42), rng.u(0.3, 0.4))
         hull_rock(g, rng, r, V(0, 0, -0.02), npts=10, bevel=0.13, cut=-0.1, col=rock_col(seed, moss=ms, scale=0.5), R=rotz(rng.u(0, TAU)), subdiv=0.4, seed=seed)
@@ -61,13 +62,13 @@ def boulders(rng):
     ms = rng.u(0.35, 0.8)
     a0 = rng.u(0, TAU)
     r = V(rng.u(1.0, 1.2), rng.u(0.9, 1.05), rng.u(1.25, 1.55))
-    hull_rock(g, rng, r, V(0, 0, 0.05), npts=13, bevel=0.1, cut=-0.25, col=rock_col(seed, moss=ms, scale=1.3), R=rot(rng.vec(1), rng.u(0, 0.3)), subdiv=0.8, rough=0.04, seed=seed)
+    hull_rock(g, rng, r, V(0, 0, 0.05), npts=13, bevel=0.1, cut=-0.25, col=rock_col(seed, moss=ms, scale=1.3), R=rot(rng.vec(1), rng.u(0, 0.3)), subdiv=0.95, rough=0.04, seed=seed)
     n = rng.i(2, 3)
     for k in range(n):
         a = a0 + k * TAU / n + rng.u(-0.5, 0.5)
         rr = rng.u(0.5, 0.8)
         hull_rock(g, rng, V(rr, rr * rng.u(0.75, 0.95), rr * rng.u(0.9, 1.25)), pol(r[0] * 0.75 + rr * 0.55, a, 0.0), npts=11, bevel=0.12, cut=-0.2,
-                  col=rock_col(seed + k + 1, moss=ms, scale=0.8), R=rot(rng.vec(1), rng.u(0, 0.4)) @ rotz(a), subdiv=0.7, seed=seed + k)
+                  col=rock_col(seed + k + 1, moss=ms, scale=0.8), R=rot(rng.vec(1), rng.u(0, 0.4)) @ rotz(a), subdiv=0.95, seed=seed + k)
     for k in range(rng.i(1, 2)):
         a = a0 + rng.u(0, TAU)
         hull_rock(g, rng, V(0.3, 0.26, 0.26), pol(r[0] + rng.u(0.5, 0.9), a, -0.02), npts=8, bevel=0.14, cut=-0.1, col=rock_col(seed + 9 + k, moss=ms * 0.5, scale=0.4), R=rotz(a), seed=seed)
@@ -420,8 +421,8 @@ def hanging_roots(rng):
 
     def col(t, a2, p):
         return mix(rd, mix(rm, rl, clamp(0.5 + 1.2 * nz(V(a2 * 2.5, p[2] * 0.7, 0), 1.0, seed))), 0.35 + 0.65 * sstep(p[2], 0.0, 2.2))
-    tube(gm, main, [0.62, 0.4, 0.31, 0.28, 0.26, 0.2], 8, col, smooth=True, cap0="flat", capcol=lin("#2a211a"), twist=0.2,
-         rmod=lambda t, a2: 1 + (0.16 + 0.35 * (1 - sstep(t, 0.0, 0.3))) * math.sin(a2 * 3 + t * 5))
+    tube(gm, main, [0.5, 0.38, 0.31, 0.28, 0.26, 0.2], 8, col, smooth=True, cap0="flat", capcol=lin("#2a211a"), twist=0.2,
+         rmod=lambda t, a2: 1 + (0.14 + 0.12 * (1 - sstep(t, 0.0, 0.3))) * math.sin(a2 * 3 + t * 5))
     n = rng.i(6, 8)
     for k in range(n):
         a = k * TAU / n + rng.u(-0.3, 0.3)
@@ -448,7 +449,7 @@ def hanging_roots(rng):
 
 
 # ------------------------------------------------------------------ waterfall: cliff, water sheet, foam
-def block_rock(g, rng, center, size, seed, col, bevel=0.07, cut=None, jitter=0.12, extra=5, subdiv=1.3, rough=0.035, R=None):
+def block_rock(g, rng, center, size, seed, col, bevel=0.1, cut=None, jitter=0.12, extra=8, subdiv=1.3, rough=0.05, R=None):
     hx, hy, hz = size[0] / 2, size[1] / 2, size[2] / 2
     pts = []
     for sx in (-1, 1):
@@ -458,9 +459,9 @@ def block_rock(g, rng, center, size, seed, col, bevel=0.07, cut=None, jitter=0.1
     for _ in range(extra):
         ax = rng.i(0, 2)
         p = V(rng.u(-hx, hx) * 0.7, rng.u(-hy, hy) * 0.7, rng.u(-hz, hz) * 0.7)
-        p[ax] = (hx, hy, hz)[ax] * rng.pick([-1, 1]) * rng.u(1.0, 1.12)
+        p[ax] = (hx, hy, hz)[ax] * rng.pick([-1, 1]) * rng.u(1.02, 1.28)
         pts.append(p)
-    hull_rock(g, rng, V(hx, hy, hz), center, bevel=bevel, cut=cut, col=col, planar=10.0, R=R, subdiv=subdiv, rough=rough, seed=seed, pts=pts)
+    hull_rock(g, rng, V(hx, hy, hz), center, bevel=bevel, cut=cut, col=col, planar=13.0, R=R, subdiv=subdiv, rough=rough, seed=seed, pts=pts)
 
 
 WATER_PROFILE = [(1.95, 5.45), (1.0, 5.72), (0.72, 5.3), (0.5, 4.6), (0.15, 4.5), (-0.38, 4.44), (-0.58, 4.05), (-0.7, 3.2), (-0.8, 2.3), (-0.87, 1.4), (-0.92, 0.6), (-0.95, 0.04)]
@@ -486,20 +487,41 @@ def cliff(rng):
     for i, (c, s) in enumerate(B):
         jc = V(c[0] + rng.u(-0.12, 0.12), c[1] + rng.u(-0.12, 0.12), c[2] + rng.u(-0.08, 0.08))
         lint = i >= len(B) - 2
-        block_rock(gm, rng, jc, s, seed + i, col, cut=-0.3 if jc[2] - s[2] / 2 < 0.1 else None, R=None if lint else rot(rng.vec(1), rng.u(0, 0.09)) @ rotz(rng.u(-0.12, 0.12)),
-                   subdiv=1.25, jitter=0.07 if lint else 0.14)
+        block_rock(gm, rng, jc, s, seed + i, col, cut=-0.3 if jc[2] - s[2] / 2 < 0.1 else None, R=rot(rng.vec(1), rng.u(0, 0.05)) if lint else rot(rng.vec(1), rng.u(0.03, 0.17)) @ rotz(rng.u(-0.25, 0.25)),
+                   subdiv=1.7, jitter=0.1 if lint else 0.24)
+    for k in range(6):  # loose boulders at the foot of the piers break the block rhythm
+        sgn = -1 if k % 2 else 1
+        rr = rng.u(0.45, 0.85)
+        hull_rock(gm, rng, V(rr, rr * rng.u(0.8, 1.0), rr * rng.u(0.9, 1.2)), V(sgn * rng.u(2.0, 6.8), rng.u(-1.3, -0.4), 0.0), npts=11, bevel=0.12, cut=-0.3, col=col,
+                  R=rot(rng.vec(1), rng.u(0, 0.4)), subdiv=0.8, seed=seed + 40 + k)
     # greenery on the ledges: fern tufts and a few hanging vines
-    spots = [(-2.6, 0.1, 3.35), (2.9, 0.25, 3.3), (-4.6, 0.7, 2.75), (4.9, 0.9, 2.7), (-1.9, 0.9, 5.45), (2.2, 1.2, 5.4), (-3.3, 1.6, 4.65), (3.9, 1.5, 4.6), (-5.9, 1.4, 1.95)]
-    for (x, y, z) in spots:
-        o = V(x + rng.u(-0.2, 0.2), y, z - 0.12)
+    from mathutils import Vector
+    from mathutils.bvhtree import BVHTree
+    bvh = BVHTree.FromPolygons([tuple(p) for p in gm.v], gm.f)
+
+    def top(x, y):  # the rock surface under (x, y), so the greenery always roots in a ledge whatever the block jitter did
+        hit = bvh.ray_cast(Vector((x, y, 12.0)), Vector((0, 0, -1)))
+        return None if hit[0] is None else float(hit[0][2])
+    for (x, y) in [(-2.6, 0.1), (2.9, 0.25), (-4.6, 0.7), (4.9, 0.9), (-1.9, 0.9), (2.2, 1.2), (-3.3, 1.6), (3.9, 1.5), (-5.9, 1.4)]:
+        x += rng.u(-0.2, 0.2)
+        z = top(x, y)
+        if z is None or z < 0.8:
+            continue
+        o = V(x, y, z - 0.07)
         nq, y0 = rng.i(3, 4), rng.u(0, TAU)
         for q in range(nq):
-            frond(gf, o + pol(0.02, y0 + q * TAU / nq), y0 + q * TAU / nq + rng.u(-0.3, 0.3), rng.u(0.6, 1.0), rng.u(0.5, 1.1), rng.u(1.3, 2.0), 0.17, n=7, crach=lin("#6f8a4c"), cmid=jit(rng, FERN_M), ctip=jit(rng, FERN_L), hang=0.3,
-                  start=0.1, rng=rng)
-    for (x, z, L) in ((-2.2, 3.3, 2.0), (2.5, 3.3, 1.6), (-3.9, 2.8, 1.5), (1.75, 4.9, 1.3)):
-        vp = [V(x, 0.3, z + 0.15), V(x, -0.28, z + 0.05)]
+            frond(gf, o + pol(0.02, y0 + q * TAU / nq), y0 + q * TAU / nq + rng.u(-0.3, 0.3), rng.u(0.6, 1.0), rng.u(0.5, 1.1), rng.u(1.3, 2.0), 0.17, n=7, crach=lin("#6f8a4c"),
+                  cmid=jit(rng, FERN_M), ctip=jit(rng, FERN_L), hang=0.3, start=0.1, rng=rng)
+    for (x, L) in ((-2.2, 2.0), (2.5, 1.6), (-3.9, 1.5), (1.75, 1.3)):
+        y = 0.25
+        z = top(x, y)
+        if z is None or z < 1.5:
+            continue
+        hit = bvh.ray_cast(Vector((x, -6.0, z - 0.25)), Vector((0, 1, 0)))   # the front face below the ledge
+        yf = float(hit[0][1]) if hit[0] is not None else -0.3
+        vp = [V(x, yf + 0.5, z - 0.12), V(x, yf - 0.06, z - 0.1)]
         for q in range(1, 5):
-            vp.append(V(x + 0.07 * math.sin(q * 1.9 + x), -0.32 - 0.03 * q, z - L * q / 4))
+            vp.append(V(x + 0.07 * math.sin(q * 1.9 + x), yf - 0.1 - 0.03 * q, z - 0.1 - L * q / 4))
         tube(gm, vp, [0.04, 0.04, 0.035, 0.03, 0.025, 0.018], 3, lin("#4d5a34"), smooth=True, cap1="point")
         for q in range(2, 6):
             for sgn in (-1, 1):
@@ -538,7 +560,7 @@ def water_sheet(rng):
         rows.append(row)
     for i in range(len(rows) - 1):
         for c in range(cols):
-            g.quad(rows[i][c], rows[i][c + 1], rows[i + 1][c + 1], rows[i + 1][c], True)
+            g.quad(rows[i][c], rows[i + 1][c], rows[i + 1][c + 1], rows[i][c + 1], True)   # faces the camera side (-y)
     return [g]
 
 
