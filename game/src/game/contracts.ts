@@ -80,6 +80,28 @@ export interface GunFx {   // pooled; no per-shot allocation
 export type MatId = "matte" | "foliage" | "emissive";
 /** geometry, not meshes: the world merges pieces per 16 u chunk (draw-call budget <= 700 per frame) */
 export type KitPiece = { geo: THREE.BufferGeometry /* position, normal, color (vertex colours) */; mat: MatId; footprint: number; blocksMove: boolean; blocksShot: boolean; tall: boolean };
+// ---------------------------------------------------------------- map v3 (G1-22, lead-owned)
+/** collision shapes in a piece's local space (+y up, front +z, origin on the ground). move = blocks walking;
+ *  shot = blocks bullets and LOS; low = waist-high cover (blocks walking, not shots or sight over it). */
+export type Collider =
+  | { t: "box"; x: number; z: number; w: number; d: number; yaw?: number; move: boolean; shot: boolean; low?: boolean; id?: string }
+  | { t: "circle"; x: number; z: number; r: number; move: boolean; shot: boolean; low?: boolean; id?: string }
+  | { t: "seg"; ax: number; az: number; bx: number; bz: number; thick: number; move: boolean; shot: boolean; low?: boolean; id?: string };
+/** one placed kit instance in a map file. k = builder id ("palm", "building:cellblock", "wall:stone"...), o = builder options */
+export type Placed = { k: string; x: number; z: number; yaw?: number; s?: number; o?: Record<string, unknown>; id?: string };
+/** an enterable building (Duckov OcclusionFade + DarkRoomFade + Door, our implementation). All transforms in the
+ *  building's local space; parts live under parts.root. */
+export type BuildingDef = {
+  pieces: KitPiece[];                         // static merged geometry: floors, lower walls, interior props
+  parts: Record<string, THREE.Object3D>;      // must include root, roof (fades), upper (upper walls/front walls that fade)
+  colliders: Collider[];                      // walls, interior furniture, door leaves (door colliders carry the door id)
+  interiors: { x: number; z: number; w: number; d: number; h: number }[];   // inside volumes: roof fade + dark tint
+  doors: { id: string; leaf: string /* parts key */; axis: "y"; open: number; breakable?: boolean; locked?: string /* key item id */ }[];
+  lights: string[];                           // parts keys of point-light anchors inside
+};
+// world/kit_house.ts (Fable W2) exports preloadHouse(), building(id, opts?): BuildingDef, houseModule(name, opts?) for
+//   one-off assembly. Each kit (nature/build/house) also exports collidersFor(k, o?): Collider[] for its placed pieces.
+
 // world/kit2.ts exports builders (seeded rng param) returning KitPiece[] for: palm, broadTree, bush, fern, bigLeaf, bananaPlant,
 //   rock, log, stump, crate(tier), barrel, sack, tent, campfire, lantern, fence, tarp, ruin pieces, vine door, raft,
 //   hatch, driftwood/shells, plus the bunker room set. Lights/animated parts are returned separately as Object3D.
