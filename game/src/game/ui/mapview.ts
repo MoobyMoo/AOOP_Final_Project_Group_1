@@ -56,6 +56,13 @@ export const mapOpen = () => !!el;
 /** breadcrumb trail of this raid (research/duckov-map rule 4): a point every ~3 u walked */
 const trail: { x: number; z: number }[] = [];
 export function resetTrail() { trail.length = 0; }
+const SEEN_R = 16; // u around every step you took: the ground between areas clears as you walk it, not only the named areas
+function clearTrail(x: CanvasRenderingContext2D, c: HTMLCanvasElement, s: Shot) {
+  const rx = (SEEN_R / (s.maxX - s.minX)) * c.width, rz = (SEEN_R / (s.maxZ - s.minZ)) * c.height;
+  const g = x.createRadialGradient(0, 0, 0, 0, 0, 1); g.addColorStop(0.5, "rgba(0,0,0,1)"); g.addColorStop(1, "rgba(0,0,0,0)");
+  for (let i = 0; i < trail.length; i += 2) { const q = trail[i]; if ((q.x > UNDER_X) !== (s === under)) continue; const p = pos(s, q.x, q.z);
+    x.save(); x.translate((p.l / 100) * c.width, (p.t / 100) * c.height); x.scale(rx, rz); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 1, 0, 7); x.fill(); x.restore(); }
+}
 export function recordTrail() { const l = trail[trail.length - 1]; if (!l || Math.hypot(l.x - G.pp.x, l.z - G.pp.z) > 3) trail.push({ x: G.pp.x, z: G.pp.z }); }
 let miniOn = localStorage.getItem("bv_minimap") !== "0";
 export function toggleMinimap() { miniOn = !miniOn; localStorage.setItem("bv_minimap", miniOn ? "1" : "0"); if (mini) mini.style.display = miniOn ? "block" : "none"; }
@@ -72,6 +79,7 @@ function open() {
     for (const c of areas) if (G.discovered.has(c.id)) { const p = pos(s, c.x, c.z), rx = (c.rx * 1.7 / (s.maxX - s.minX)) * fc.width, rz = (c.rz * 1.7 / (s.maxZ - s.minZ)) * fc.height;
       const g = fx.createRadialGradient(0, 0, 0, 0, 0, 1); g.addColorStop(0.6, "rgba(0,0,0,1)"); g.addColorStop(1, "rgba(0,0,0,0)");
       fx.save(); fx.translate((p.l / 100) * fc.width, (p.t / 100) * fc.height); fx.scale(rx, rz); fx.fillStyle = g; fx.beginPath(); fx.arc(0, 0, 1, 0, 7); fx.fill(); fx.restore(); }
+    clearTrail(fx, fc, s);
     const fog = `<img class="fogimg" src="${fc.toDataURL()}">`;
     const labels = areas.map((c) => { const p = pos(s, c.x, c.z); const known = G.discovered.has(c.id); return `<span class="lab ${known ? "" : "unk"}" style="left:${p.l}%;top:${p.t}%;transform:translate(-50%,-50%) rotate(${(-G.stage.cam.yaw * 180) / Math.PI}deg)">${known ? c.name : "?"}</span>`; }).join("");
     const icons = [
@@ -122,7 +130,7 @@ export function updateMinimap() {
   const ox = (G.pp.x - shot.minX) * scale, oz = (G.pp.z - shot.minZ) * scale;
   for (const el of [miniImg, miniFog]) { el.style.width = W * scale + "px"; el.style.height = H * scale + "px"; el.style.left = MINI_PX / 2 - ox + "px"; el.style.top = MINI_PX / 2 - oz + "px"; }
   miniImg.style.backgroundImage = `url(${shot.url})`;
-  const key = (isUnder ? "u" : "o") + [...G.discovered].join(",");
+  const key = (isUnder ? "u" : "o") + [...G.discovered].join(",") + "|" + (trail.length >> 2); // redraw every ~12 u walked
   if (key !== fogKey) { fogKey = key; drawFog(miniFog, shot); }
   // nearby icons: exits, the door, pins
   const icons = [...exits.filter((e) => e.open).map((e) => ({ x: e.x, z: e.z, i: e.id === "raft" ? "🛶" : e.id === "tunnel" ? "🕳️" : "🏠" })), { x: DOOR.x, z: DOOR.z, i: gridState.doorOpen ? "🚪" : "🔒" }, ...pins.map((q) => ({ x: q.x, z: q.z, i: "📍" }))]
@@ -139,4 +147,5 @@ function drawFog(c: HTMLCanvasElement, s: Shot) {
     const g = x.createRadialGradient(0, 0, 0, 0, 0, 1); g.addColorStop(0.55, "rgba(0,0,0,1)"); g.addColorStop(1, "rgba(0,0,0,0)");
     x.save(); x.translate((p.l / 100) * c.width, (p.t / 100) * c.height); x.scale(rx, rz); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 1, 0, 7); x.fill(); x.restore();
   }
+  clearTrail(x, c, s);
 }
