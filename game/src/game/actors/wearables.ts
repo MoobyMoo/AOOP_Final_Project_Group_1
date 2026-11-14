@@ -10,17 +10,18 @@ import type { Wearable, Gear } from "../contracts";
 import { charMaterial, prepGeometry, STATIC_PALETTE, type Region } from "./charmat";
 
 export const WEARABLES: Wearable[] = [
-  { id: "suit", slot: "body", name: "Businessman's Suit", rarity: "common" },
+  // ---- G1-23 equipment (names and rarities mirror loot/equipment.ts EQUIP; stats live there)
+  { id: "suit", slot: "body", name: "Businessman's Suit", rarity: "common" },   // the body itself: no extra mesh
   { id: "pot_helmet", slot: "head", name: "Cooking Pot", rarity: "common" },
   { id: "coconut_helmet", slot: "head", name: "Coconut Helmet", rarity: "uncommon" },
   { id: "warden_helmet", slot: "head", name: "Warden's Riot Helmet", rarity: "epic" },
-  { id: "snorkel", slot: "face", name: "Snorkel Mask", rarity: "common" },
+  { id: "snorkel", slot: "face", name: "Snorkel Mask", rarity: "common", hidesBrows: true },
   { id: "leaf_vest", slot: "body", name: "Banana-Leaf Vest", rarity: "common" },
-  { id: "life_jacket", slot: "body", name: "Ferry Life Jacket", rarity: "uncommon" },
+  { id: "life_jacket", slot: "body", name: "Ferry Life Jacket", rarity: "uncommon", hidesTie: true },
   { id: "peel_jacket", slot: "body", name: "Peel Gang Padded Jacket", rarity: "uncommon" },
   { id: "bamboo_plate", slot: "body", name: "Bamboo Plate Vest", rarity: "uncommon" },
   { id: "coconut_cuirass", slot: "body", name: "Coconut Cuirass", rarity: "rare" },
-  { id: "warden_vest", slot: "body", name: "Warden's Kevlar", rarity: "epic" },
+  { id: "warden_vest", slot: "body", name: "Warden's Kevlar", rarity: "epic", hidesTie: true },
   { id: "sack", slot: "back", name: "Loot Sack", rarity: "common" },
   { id: "walkman", slot: "ears", name: "Walkman Headphones", rarity: "rare" },
   { id: "radio_headset", slot: "ears", name: "Radio Headset", rarity: "epic" },
@@ -33,17 +34,8 @@ export const WEARABLES: Wearable[] = [
   { id: "goggles", slot: "face", name: "Ski Goggles", rarity: "uncommon" }, { id: "heartglasses", slot: "face", name: "Heart Glasses", rarity: "rare" },
   { id: "banditmask", slot: "face", name: "Bandit Mask", rarity: "uncommon", hidesBrows: true },
   { id: "satchel", slot: "back", name: "Satchel", rarity: "common" }, { id: "bigpack", slot: "back", name: "Big Backpack", rarity: "uncommon" }, { id: "cratepack", slot: "back", name: "Banana Crate Pack", rarity: "rare" },
-  // ---- G1-23 loot gear
-  { id: "pot_helmet", slot: "head", name: "Cooking Pot", rarity: "common" }, { id: "coconut_helmet", slot: "head", name: "Coconut Helmet", rarity: "uncommon" },
-  { id: "warden_helmet", slot: "head", name: "Warden's Riot Helmet", rarity: "rare" },
-  { id: "snorkel", slot: "face", name: "Snorkel Mask", rarity: "uncommon", hidesBrows: true },
-  { id: "leaf_vest", slot: "body", name: "Banana-Leaf Vest", rarity: "common" }, { id: "life_jacket", slot: "body", name: "Ferry Life Jacket", rarity: "common", hidesTie: true },
-  { id: "peel_jacket", slot: "body", name: "Peel Gang Padded Jacket", rarity: "uncommon" }, { id: "bamboo_plate", slot: "body", name: "Bamboo Plate Vest", rarity: "uncommon" },
-  { id: "coconut_cuirass", slot: "body", name: "Coconut Cuirass", rarity: "rare" }, { id: "warden_vest", slot: "body", name: "Warden's Kevlar", rarity: "epic", hidesTie: true },
-  { id: "sack", slot: "back", name: "Loot Sack", rarity: "common" },
-  { id: "walkman", slot: "ears", name: "Walkman Headphones", rarity: "uncommon" }, { id: "radio_headset", slot: "ears", name: "Radio Headset", rarity: "rare" },
 ];
-export const DEFAULT_GEAR: Gear = { head: "bowler", face: "shades", body: null, back: "satchel", ears: null }; // G1-23: body = the bound suit item once loot/equipment.ts lands
+export const DEFAULT_GEAR: Gear = { head: "bowler", face: "shades", body: "suit", back: "satchel", ears: null }; // the bound kit (loot/equipment.ts BOUND_KIT); the suit is the body itself
 /** recolourable zones of each wearable: main + accent map to palette regions (creator: LookExt.gear[slot].main / .accent) */
 export const WEAR_ZONES: Record<string, { main: Region; accent?: Region }> = {
   bowler: { main: "hat", accent: "band" }, tophat: { main: "hat", accent: "red" }, fedora: { main: "khaki", accent: "dark" }, cap: { main: "blue", accent: "banana" },

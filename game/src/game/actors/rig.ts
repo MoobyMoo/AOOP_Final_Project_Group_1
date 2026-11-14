@@ -29,6 +29,7 @@ import type { Rig, RigState, RigAction, MonkeyLook, EnemyStyle, Gear, WearSlot }
 import { charMaterial, newPalette, setRegion, shade, regionBytes, regionDefault, STATIC_PALETTE, REGIONS, type Region } from "./charmat";
 import { preloadWearables, instWearable, wearable, wearableGeos, hasWearable, baseId, instDur, WEAR_ZONES } from "./wearables";
 import { monkeyEnemy, mulberry, DEFAULT_LOOK, lookExt, type MonkeyEnemySpec } from "./look";
+import { EQUIP, enemyGear, visualGear } from "../loot/equipment";
 
 /** actions the rigs can play beyond the contract's RigAction (report: contracts.ts lacks these) */
 export type RigActionX = RigAction | "use" | "cheer";
@@ -330,7 +331,6 @@ const TW_MAX = 1.3;   // the gun arm can lead or trail the body by up to ~75 deg
 
 /** how far a pack moves out when body armour is worn under it (fractions added to the back socket's x / z scale) */
 const ARMOR_FIT = { x: 0.1, z: 0.09 };
-const NO_GEAR: Gear = { head: null, face: null, body: null, back: null, ears: null };
 class MonkeyRig extends CharRig {
   private look: MonkeyLook = DEFAULT_LOOK; private spec: MonkeyEnemySpec | null;
   private gear: Gear = { head: null, face: null, body: null, back: null, ears: null };
@@ -353,7 +353,8 @@ class MonkeyRig extends CharRig {
     this.bounds = { radius: 0.45 * this.scale, height: 2.0 * this.scale };
     this.setLook(this.spec ? this.spec.look : (style as MonkeyLook));
     if (this.spec) {
-      this.setGear(NO_GEAR);          // an enemy wears its kind's props until the game hands it loot gear (setGear)
+      const es = style as EnemyStyle;
+      this.setGear(visualGear(enemyGear(es.seed, es.kind)));   // what it wears is what it drops (loot/equipment.ts)
       if (this.spec.hand) { this.handProp = instWearable(this.spec.hand, this.matsFor("prop")); this.bone("sk_hand_R").add(this.handProp); }
     } else {
       this.briefcase = instWearable("prop_briefcase", this.matsFor("prop")); this.briefcase.visible = false; this.bone("sk_hand_R").add(this.briefcase);
@@ -369,14 +370,15 @@ class MonkeyRig extends CharRig {
     const o = instWearable(mesh, this.matsFor(slot)); o.name = id; this.sockets[slot].add(o); this.gearObj[slot] = o;
   }
   /** gear colours. Socket pieces have a palette copy per slot; body armour uses the non-body regions of the rig's own
-   *  palette. LookExt.gear[slot].main / .accent recolour a piece's zones (the player's own tailoring only); a broken
-   *  piece (durability 0) goes dull and dark. */
+   *  palette. The creator's tints (LookExt.gear[slot].main / .accent) recolour a piece's zones only when the piece is
+   *  one of the player's own bound pieces (EQUIP[id].bound: bowler, shades, satchel); found gear keeps the colours it
+   *  was made with. A broken piece (durability 0) goes dull and dark. */
   private gearColors() {
     const g = lookExt(this.look).gear;
     for (const slot of SLOTS) {
       const inst = this.gear[slot], id = baseId(inst), body = slot === "body";
       if (!id && !body) continue;
-      const pal = body ? this.pal : this.matsFor(slot).pal, z = id ? WEAR_ZONES[id] : undefined, c = this.spec ? undefined : g?.[slot];
+      const pal = body ? this.pal : this.matsFor(slot).pal, z = id ? WEAR_ZONES[id] : undefined, c = !this.spec && id && EQUIP[id]?.bound ? g?.[slot] : undefined;
       if (body) for (const i of ARMOR_REGS) { pal[i * 3] = STATIC_PALETTE[i * 3]; pal[i * 3 + 1] = STATIC_PALETTE[i * 3 + 1]; pal[i * 3 + 2] = STATIC_PALETTE[i * 3 + 2]; }
       else pal.set(STATIC_PALETTE);
       if (z && c?.main) setRegion(pal, z.main, c.main);
@@ -426,8 +428,8 @@ class MonkeyRig extends CharRig {
     this.refresh();
   }
   /** Wear this gear. Slots hold equipment instances ("id" or "id#durability"); durability 0 shows the piece broken.
-   *  On an enemy rig a null slot keeps the kind's own prop (the bandit's bandana and sack), so the game can pass the
-   *  loot gear an enemy carries (loot/equipment.ts enemyGear) straight in. */
+   *  An unknown id or one with no mesh (the suit: it is the body) shows nothing. An enemy rig starts in
+   *  enemyGear(seed, kind); on it a null slot keeps the kind's own prop (the bandit's bandana and sack). */
   setGear(gear: Gear) {
     const prev = this.gear, sp = this.spec;
     const next: Gear = sp ? { head: gear.head ?? sp.head, face: gear.face ?? sp.face, body: gear.body ?? sp.body, back: gear.back ?? sp.back, ears: gear.ears ?? sp.ears } : { ...gear };
@@ -574,8 +576,8 @@ class GorillaRig extends CharRig {
 
 export function createRig(plan: "monkey", look: MonkeyLook): Rig;
 export function createRig(plan: "monkey" | "gorilla", style: EnemyStyle, gear?: Gear): Rig;
-/** gear (monkey enemies only): the loot gear this enemy wears, e.g. loot/equipment.ts enemyGear(seed, kind). Same as
- *  calling rig.setGear(gear) afterwards: null slots keep the kind's own props. */
+/** gear (monkey enemies only) overrides the loot gear the enemy would wear by default, enemyGear(style.seed, style.kind).
+ *  Same as calling rig.setGear(gear) afterwards: null slots keep the kind's own props. */
 export function createRig(plan: "monkey" | "gorilla", style: MonkeyLook | EnemyStyle, gear?: Gear): Rig {
   const gorilla = "kind" in style && (style.kind === "brute" || style.kind === "sleeper"), model = gorilla ? MODELS.gorilla : MODELS.monkey;
   if (!model) throw new Error("createRig: await preloadCharacters() first");

@@ -69,7 +69,7 @@ if (view === "lineup") {
   const set = QS.get("set") ?? "body", game = QS.get("cam") === "game", camYaw = num("camyaw", game ? -30 : 172), th = THREE.MathUtils.degToRad(camYaw);
   const g = (o: Partial<Gear>): Gear => ({ head: null, face: null, body: null, back: null, ears: null, ...o });
   const ids = (slot: string) => WEARABLES.filter((w) => w.slot === slot).map((w) => w.id);
-  const BODY = ids("body"), HATS = [null, ...ids("head")], EARS = ids("ears"), FACE = ids("face");
+  const BODY = ids("body").filter((id) => id !== "suit"), HATS = [null, ...ids("head")], EARS = ids("ears"), FACE = ids("face");
   type Cell = { k?: string; look?: MonkeyLook; gear: Gear; seed?: number };
   const withBuild = (b: number): MonkeyLook => ({ ...structuredClone(LOOK_PRESETS[0].look), x: { build: b } } as MonkeyLook);
   let rows: Cell[][] = [];
