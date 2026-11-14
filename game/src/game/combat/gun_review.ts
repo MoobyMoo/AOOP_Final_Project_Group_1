@@ -10,7 +10,7 @@
 import * as THREE from "three";
 import { Stage } from "../render/stage";
 import { U, mat } from "../render/shading";
-import { createKingpin, createGunFx } from "./kingpin";
+import { createKingpin, createGunFx, preloadKingpin } from "./kingpin";
 import { KINGPIN, FEEL } from "./weapons";
 import { createRig } from "../actors/rig";
 import { DEFAULT_LOOK } from "../actors/look";
@@ -30,6 +30,7 @@ let ext = QS.get("ext") === "1";
 const stage = new Stage(document.getElementById("game") as HTMLCanvasElement);
 const scene = stage.scene, rad = THREE.MathUtils.degToRad;
 stage.renderer.info.autoReset = false;
+await preloadKingpin();
 const gun = createKingpin(), fx = createGunFx(scene);
 gun.setVariant({ extMag: ext });
 const target = new THREE.Vector3(), focus = new THREE.Vector3(), aimDir = new THREE.Vector3();

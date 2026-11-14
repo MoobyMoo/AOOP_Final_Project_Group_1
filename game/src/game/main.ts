@@ -13,7 +13,7 @@ import { openCreator, renderCreator } from "./ui/creator";
 import { buildMapShots, toggleMap, mapOpen } from "./ui/mapview";
 import { itemDef } from "./loot/raidloot";
 import { createRig } from "./actors/rig";
-import { createKingpin, createGunFx } from "./combat/kingpin";
+import { createKingpin, createGunFx, preloadKingpin } from "./combat/kingpin";
 import { fadeTo } from "./world/interact";
 import { botTick } from "./core/botdrive";
 
@@ -24,7 +24,8 @@ if (QS.has("fresh")) localStorage.removeItem("bv_g1");
 G.save = load(); G.bot = QS.has("bot"); G.intent = G.input.read(0);
 addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlockAudio);
 
-// world + rig up front (the map snapshot needs the raid scene built)
+// world + rig up front (the map snapshot needs the raid scene built); the gun model is a GLB, loaded before anything asks for it
+await preloadKingpin();
 buildRaidWorld(); G.stage.setScene(raidScene); buildMapShots(raidScene);
 G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); G.rig.setGear?.(G.save.gear);
 
