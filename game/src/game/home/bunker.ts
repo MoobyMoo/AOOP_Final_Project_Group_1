@@ -15,7 +15,10 @@ import { U } from "../render/shading";
 import { PLAYER } from "../combat/weapons";
 import { iconHtml } from "../ui/itemicon";
 import { PRICES as LOOT_PRICES } from "../loot/tables";
-import { visualGear } from "../loot/equipment";
+import { visualGear, equipDef } from "../loot/equipment";
+import { equipFromLocker, unequip, sellEquip, repairAll } from "../loot/equipment-actions";
+import { dollHtml, itemCell, detailsHtml, gearSummary, repairBill } from "../ui/equipui";
+import type { WearSlot } from "../contracts";
 
 export const bunkerScene = new THREE.Scene();
 bunkerScene.background = new THREE.Color("#2a2420");
@@ -27,7 +30,7 @@ export const stations: Station[] = [
   { id: "sell", x: -4.5, z: -2.6, label: "The Fence: sell your haul" },
   { id: "bench", x: 0.5, z: -3.4, label: "Workbench: upgrades" },
   { id: "orders", x: 4.6, z: -2.8, label: "Order board" },
-  { id: "mirror", x: -6.2, z: 1.6, label: "Mirror: change your look" },
+  { id: "mirror", x: -6.2, z: 1.6, label: "Mirror and locker: your look and your gear" },
   { id: "trophies", x: 6.4, z: 1.4, label: "Trophy shelf" },
   { id: "ladder", x: 0, z: 3.4, label: "Ladder: back to the island" },
 ];
@@ -109,11 +112,11 @@ const cell = (i: string) => `<div class="cell" style="--rbg:var(--r-${itemDef(i)
 function open(s: Station) {
   const sv = G.save;
   if (s.id === "ladder") return showPanel(islandMap());
-  if (s.id === "mirror") return onMirror();
+  if (s.id === "mirror") return openLocker();
   if (s.id === "trophies") return showPanel(`${head("Trophy shelf", `${sv.raids} raids`)}${sv.trophies.length ? `<div class="grid">${sv.trophies.map(cell).join("")}</div>` : `<p class="dim">Nothing yet. Bring home something legendary.</p>`}
     <div class="stats" style="margin-top:12px"><div class="stat"><b>${sv.stats.extracts}</b><span>made it home</span></div><div class="stat"><b>${sv.stats.bonkOuts}</b><span>bonked</span></div><div class="stat"><b>🍌 ${sv.stats.best}</b><span>best haul</span></div></div>`);
   if (s.id === "sell") { const items = sv.reserved.filter((i) => itemDef(i).kind !== "key"); const v = items.reduce((a, i) => a + itemDef(i).value, 0);
-    return showPanel(`${head("The Fence", `${items.length} items in your stash`)}<p class="quote">"I don't ask where it came from."</p>${items.length ? `<div class="grid">${items.map(cell).join("")}</div><div class="total"><span>Stash value</span><b>🍌 ${v}</b></div><div class="actions"><button data-a="sellAll">Sell everything for 🍌 ${v}</button></div>` : `<p class="dim">Your stash is empty. Go get some loot.</p>`}`); }
+    return showPanel(`${head("The Fence", `${items.length} items in your stash`)}<p class="quote">"I don't ask where it came from."</p>${items.length ? `<div class="grid">${items.map(cell).join("")}</div><div class="total"><span>Stash value</span><b>🍌 ${v}</b></div><div class="actions"><button data-a="sellAll">Sell everything for 🍌 ${v}</button></div>` : `<p class="dim">Your stash is empty. Go get some loot.</p>`}${gearSaleHtml()}`); }
   if (s.id === "bench") return showPanel(benchHtml());
   if (s.id === "orders") return showPanel(orderHtml());
   if (s.id === "sal") return showPanel(`${head("Smuggler Sal", "cash only")}<p class="quote">"Ammo, bandages, smoothies."</p><div class="rows">
@@ -121,9 +124,31 @@ function open(s: Station) {
     <div class="row"><b>Banana-leaf bandage</b><small>Heals 15, quick to use</small><button class="act" data-a="buyBandage">🍌 ${PRICES.bandage}</button></div>
     <div class="row"><b>Banana smoothie</b><small>Heals 40, slow to drink</small><button class="act" data-a="buySmoothie">🍌 ${PRICES.smoothie}</button></div></div>`);
 }
+/** the locker (G1-23): what you wear + the gear kept at home; click to swap. The mirror button opens the creator. */
+function openLocker() {
+  const sv = G.save, g = gearSummary(sv.gear);
+  let cells = ""; const n = Math.max(12, Math.ceil(sv.locker.length / 6) * 6); for (let i = 0; i < n; i++) cells += itemCell(sv.locker[i], i, { src: "locker" });
+  showPanel(`${head("Mirror and locker", `🛡 body ${g.body}, head ${g.head}`)}<div class="inv-body locker"><section><h4>Wearing</h4>${dollHtml(sv.gear)}</section><section><h4>Locker <small>${sv.locker.length} pieces</small></h4><div class="grid">${cells}</div></section></div>
+    <div class="inv-detail">${detailsHtml(null)}</div><div class="actions"><button data-a="look">Change your look</button></div><p class="dim" style="margin-top:8px">Found gear is lost to your satchel if you get bonked. Pieces marked ★ are yours for good.</p>`, "inv");
+  const p = panel!, detail = p.querySelector(".inv-detail") as HTMLElement;
+  p.querySelectorAll<HTMLElement>("[data-locker]").forEach((b) => { const i = +b.dataset.locker!, inst = sv.locker[i];
+    b.onmouseenter = () => { detail.innerHTML = detailsHtml(inst, "Click to wear it"); }; b.onclick = () => { if (equipFromLocker(i)) { sfx("ui"); G.rig.setGear?.(visualGear(sv.gear)); save(sv); openLocker(); } else sfx("nope"); }; });
+  p.querySelectorAll<HTMLElement>("[data-slot]").forEach((b) => { const slot = b.dataset.slot as WearSlot, inst = sv.gear[slot];
+    b.onmouseenter = () => { detail.innerHTML = detailsHtml(inst, inst ? "Click to put it in the locker" : ""); }; b.onclick = () => { if (inst && unequip(slot)) { sfx("ui"); G.rig.setGear?.(visualGear(sv.gear)); save(sv); openLocker(); } else sfx("nope"); }; });
+}
+function gearSaleHtml() {
+  const rows = G.save.locker.map((inst, i) => ({ inst, i, d: equipDef(inst) })).filter((r) => r.d && !r.d.bound);
+  if (!rows.length) return "";
+  return `<h4 style="margin:16px 0 8px">Spare gear from your locker</h4><div class="rows">${rows.map(({ inst, i }) => { const d = itemDef(inst); return `<div class="row"><b>${iconHtml(inst, 26)} ${d.name}</b><small>${detailsLine(inst)}</small><button class="act" data-a="sellGear:${i}">🍌 ${d.value}</button></div>`; }).join("")}</div>`;
+}
+const detailsLine = (inst: string) => { const c = /#(\d+)/.exec(inst); return c ? `Condition ${c[1]}%: worth less when worn` : "Like new"; };
+function repairRow() {
+  const bill = repairBill(G.save.gear, G.save.locker);
+  return `<div class="row"><b>Patch up your gear</b><small>${bill ? "Repairs every worn and stored piece to full condition" : "All your gear is in top shape"}</small>${bill ? `<button class="act" data-a="repairAll" ${G.save.money < bill ? "disabled" : ""}>🍌 ${bill}</button>` : `<em class="act">Done</em>`}</div>`;
+}
 function benchHtml() {
   const u = G.save.upgrades, row = (k: "mag" | "pack" | "heart", name: string, desc: string) => { const lvl = u[k], c = PRICES[k][lvl]; return `<div class="row"><b>${name}</b><small>${desc}</small>${c === undefined ? `<em class="act">Done</em>` : `<button class="act" data-a="up:${k}" ${G.save.money < c ? "disabled" : ""}>🍌 ${c}</button>`}</div>`; };
-  return `${head("Workbench", `🍌 ${G.save.money} to spend`)}<div class="rows">${row("mag", "Extended Mag", "Kingpin holds 12 rounds instead of 8" + (G.save.fixtures.includes("extended_mag") ? ". You already found one in the vault" : ""))}${row("pack", "Bigger Pack", "2 more pack slots")}${row("heart", "Banana Breakfast", "25 more max HP")}</div><p class="dim" style="margin-top:10px">🔒 Contraband Carbine arrives with the Smuggler Caves.</p>`;
+  return `${head("Workbench", `🍌 ${G.save.money} to spend`)}<div class="rows">${row("mag", "Extended Mag", "Kingpin holds 12 rounds instead of 8" + (G.save.fixtures.includes("extended_mag") ? ". You already found one in the vault" : ""))}${row("pack", "Bigger Pack", "2 more pack slots")}${row("heart", "Banana Breakfast", "25 more max HP")}${repairRow()}</div><p class="dim" style="margin-top:10px">🔒 Contraband Carbine arrives with the Smuggler Caves.</p>`;
 }
 function orderHtml() {
   if (G.save.salMovedIn) return `${head("Order board")}<p>Sal's job is done. New jobs arrive with new regions.</p>`;
@@ -142,6 +167,9 @@ function islandMap() {
 function act(a: string) {
   const sv = G.save;
   if (a === "deploy") { closePanel(); save(sv); onDeploy(); return; }
+  if (a === "look") { closePanel(); onMirror(); return; }
+  if (a.startsWith("sellGear:")) { const got = sellEquip(+a.slice(9)); if (got > 0) { sfx("cash"); money(); floatText(`+🍌 ${got}`, V(-4.5, -3.8, 2.4), "#ffd84a", 26); } else sfx("nope"); open(stations.find((q) => q.id === "sell")!); return; }
+  if (a === "repairAll") { const paid = repairAll(); if (paid > 0) { sfx("buy"); money(); floatText(`Gear repaired: 🍌 ${paid}`, V(0.5, -3.4, 2.4), "#fff3c4", 24); } else sfx("nope"); open(stations.find((q) => q.id === "bench")!); return; }
   if (a === "sellAll") {
     const items = sv.reserved.filter((i) => itemDef(i).kind !== "key"); const v = items.reduce((x, i) => x + itemDef(i).value, 0);
     sv.reserved = sv.reserved.filter((i) => itemDef(i).kind === "key");

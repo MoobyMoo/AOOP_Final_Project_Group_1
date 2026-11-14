@@ -212,3 +212,4 @@ button.cell{border:0;padding:0;color:inherit;font:inherit;cursor:pointer}button.
 .panel button.eq-slot{border-radius:var(--r-m);padding:14px 6px 8px}.panel button.eq-slot.empty{background:rgba(255,255,255,.035)}
 .panel button.cell.pouch{box-shadow:inset 0 0 0 2px var(--banana)}
 .panel button.cell:hover,.panel button.eq-slot:hover{box-shadow:inset 0 0 0 2px var(--lagoon);background:var(--rbg,var(--r-common))}
+.creator .gc .sw{gap:5px}.creator .gc .sw i{width:22px;height:22px}.creator .gc .sw input{width:24px;height:24px}.creator p.dim{color:var(--dim)}
