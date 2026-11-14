@@ -11,6 +11,7 @@ export type Enemy = {
   path: { x: number; z: number }[]; repath: number; flash: number; stolen: string[]; carry: string[];
   zs: number; quiet: number; lastSeen: THREE.Vector3 | null; lostT: number; rang?: Rang | null; ring?: THREE.Mesh; stripe?: THREE.Group;
   alertMark?: THREE.Sprite; active: boolean; down: boolean; downT: number; hatOff?: boolean;
+  gear?: Gear; gearSeed?: number;
 };
 export type Rang = { p: THREE.Vector3; from: THREE.Vector3; dir: THREE.Vector3; t: number; out: number; mesh: THREE.Object3D; owner: Enemy; hitDone: boolean; back: boolean };
 export type Crate = { id: number; x: number; z: number; tier: "wood" | "green" | "gold"; fixed?: string; obj: THREE.Object3D; opened: boolean; search: number; items: string[] | null; beam?: THREE.Object3D };
@@ -31,6 +32,8 @@ export const G = {
   meleeT: -1, meleeHit: false, meleeCd: 0,
   rollT: -1, rollDir: new THREE.Vector3(), rollCd: 0, skidT: 0, rollBuffer: 0, hurtT: -1,
   pack: [] as string[], packSlots: 8, pouchSlots: 2, gear: null as unknown as Gear,
+  equipping: null as null | { inst: string; slot: keyof Gear; source: "pack" | "worn"; t: number; time: number },
+  equipmentEvents: [] as { type: "equipped" | "interrupted" | "hit" | "broken"; slot?: keyof Gear; inst?: string; message?: string; crit?: boolean; damage?: number }[],
   lockTarget: null as Enemy | null,
   enemies: [] as Enemy[], crates: [] as Crate[], pickups: [] as Pickup[], rangs: [] as Rang[],
   extract: { id: "", t: 0 }, zipping: null as null | { t: number; len: number },

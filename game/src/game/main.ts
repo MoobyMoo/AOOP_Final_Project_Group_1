@@ -1,5 +1,6 @@
 // Bananaville G1 entry. Scene flow: creator (first launch) → bunker → raid → bunker (summary). Fixed-step sim (1/60),
 // render per frame. ?bot=1 lets the pacing bot play; ?ts=N speeds time up; ?fresh=1 starts a new save; ?raid=1 skips home.
+import { preloadBuild } from "./world/kit_build";
 import "@fontsource/lilita-one";
 import "@fontsource/nunito/700.css";
 import "@fontsource/nunito/800.css";
@@ -15,6 +16,7 @@ import { enterBunker, stepBunker, renderBunker, leaveBunker, bunkerScene, homeAp
 import { openCreator, renderCreator } from "./ui/creator";
 import { buildMapShots, toggleMap, mapOpen, toggleMinimap } from "./ui/mapview";
 import { itemDef } from "./loot/raidloot";
+import { isEquip, visualGear } from "./loot/equipment";
 import { iconHtml } from "./ui/itemicon";
 import { createRig, preloadCharacters } from "./actors/rig";
 import { createKingpin, createGunFx, preloadKingpin } from "./combat/kingpin";
@@ -34,9 +36,10 @@ addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlock
 
 // world + rig up front (the map snapshot needs the raid scene built); the gun model is a GLB, loaded before anything asks for it
 await preloadKingpin();
+await preloadBuild().catch((e) => console.warn("build kit missing, bunker uses the blockout", e)); // structures kit (bunker room, raid structures)
 await preloadCharacters(); // character GLBs (rig v2): createRig() is synchronous once this resolves
 buildRaidWorld(); G.stage.setScene(raidScene); buildMapShots(raidScene);
-G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); G.rig.setGear?.(G.save.gear);
+G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); G.rig.setGear?.(visualGear(G.save.gear));
 
 function goHome(summary?: string) { enterBunker(goRaid, goMirror, summary); }
 function goMirror() { leaveBunker(); openCreator(() => goHome(), bunkerScene); }
@@ -47,7 +50,7 @@ function onRaidEnd(r: RaidResult) {
   if (r.kept.includes("vine_key") && !sv.keys.includes("vine_key")) sv.keys.push("vine_key");
   const kept = r.kept.filter((i) => itemDef(i).kind !== "key");
   const value = kept.reduce((a, i) => a + itemDef(i).value, 0), bonus = Math.round(value * r.bonus);
-  sv.reserved.push(...kept); sv.money += bonus; sv.stats.best = Math.max(sv.stats.best, value + bonus);
+  sv.reserved.push(...kept.filter(inst => !isEquip(inst))); sv.locker.push(...kept.filter(isEquip)); sv.money += bonus; sv.stats.best = Math.max(sv.stats.best, value + bonus);
   for (const i of kept) if (itemDef(i).rarity === "epic" && !sv.trophies.includes(i)) sv.trophies.push(i);
   sv.gear = { ...G.gear };
   save(sv);
@@ -78,6 +81,7 @@ function frame() {
     G.intent = G.bot ? botTick(STEP) : G.input.read(STEP);
     if (G.intent.map && G.scene === "raid") toggleMap();
     if (G.intent.inv && G.scene === "raid") hud.inventory();
+    if (hud.invOpen() && G.scene === "raid") Object.assign(G.intent, { fire: false, firePressed: false, ads: false, melee: false }); // the pack screen takes the mouse
     if (G.intent.mini && G.scene === "raid") toggleMinimap();
     if (G.intent.esc && mapOpen()) toggleMap();
     if (G.scene === "raid") { if (G.hitStop > 0) G.hitStop -= STEP; else { if (mapOpen()) neutral(); stepRaid(STEP); } }

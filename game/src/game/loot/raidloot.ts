@@ -3,8 +3,9 @@
 // A full pack never deletes loot: the find stays on the ground and E swaps it for your cheapest loose item (rule 20).
 import * as THREE from "three";
 import { G, V, flat, type Crate, type Pickup, type Enemy } from "../core/state";
-import { ITEMS, rollCrate, rollEnemyDrop, type LootContext } from "./tables";
-const WEAR_DROPS = ["tophat", "aviators", "pith", "eyepatch", "fedora", "goggles", "heartglasses", "crown", "hardhat", "beanie"];
+import { ITEMS, itemDef, rollCrate, rollEnemyDrop, type LootContext } from "./tables";
+import { equipDef, gearStats, isEquip } from "./equipment";
+import { collectEquipment, equipFromPack } from "./equipment-actions";
 import { CRATES } from "../world/layout";
 import { groundHeight } from "../world/terrain";
 import { block } from "../world/grid";
@@ -13,13 +14,10 @@ import { sfx } from "../core/audio";
 import { burst, floatText, popIn } from "../../fx";
 import { hud } from "../ui/hud";
 import { KINGPIN } from "../combat/weapons";
-import { WEARABLES } from "../actors/wearables";
-import { setDropWear } from "../actors/player";
-setDropWear((id) => spawnPickup(id, G.pp.clone().setY(1.6), 0, 1));
 
 export const RAR_COLOR: Record<string, string> = { common: "#f3ead6", uncommon: "#6ad16a", rare: "#4aa8ff", epic: "#c77dff" };
 const SEARCH: Record<string, number> = { wood: 0.5, green: 0.9, gold: 1.4 };
-export const itemDef = (id: string) => ITEMS[id] ?? (() => { const w = WEARABLES.find((q) => q.id === id); return { id, name: w?.name ?? id, icon: "🎩", rarity: w?.rarity ?? "rare", value: 0, kind: "wear" as const }; })();
+export { itemDef };
 export const worth = (id: string) => { const d = itemDef(id); return d.kind === "key" ? 999 : d.value; };
 export const sortPack = () => G.pack.sort((a, b) => worth(b) - worth(a));
 export const packValue = () => G.pack.reduce((a, id) => a + itemDef(id).value, 0);
@@ -57,8 +55,9 @@ export function updateLoot(dt: number) {
   if (searching) {
     if (flat(searching, G.pp) > 2.2 || G.rollT >= 0 || !G.alive) { searching.search = 0; searching = null; hud.search(null, 0); }
     else {
-      searching.search += dt / SEARCH[searching.tier]; hud.search(searching, searching.search);
-      if (Math.floor(searching.search * 6) !== Math.floor((searching.search - dt / SEARCH[searching.tier]) * 6)) sfx("crateTick");
+      const searchTime = SEARCH[searching.tier] * gearStats(G.gear).search;
+      searching.search += dt / searchTime; hud.search(searching, searching.search);
+      if (Math.floor(searching.search * 6) !== Math.floor((searching.search - dt / searchTime) * 6)) sfx("crateTick");
       if (searching.search >= 1) { openCrate(searching); searching = null; hud.search(null, 0); }
     }
   }
@@ -76,7 +75,6 @@ function openCrate(c: Crate) {
   const ctx = G.lootCtx as LootContext; ctx.fixed = c.fixed as LootContext["fixed"]; ctx.ownsExtendedMag = G.save.upgrades.mag > 0 || G.save.fixtures.includes("extended_mag");
   let items = c.fixed === "satchel" ? [...(c.items ?? [])] : rollCrate(c.tier, ctx, G.rng); ctx.fixed = undefined;
   if (c.fixed === "satchel") { G.save.satchel = null; hud.toast("You got your satchel back!"); }
-  if ((c.tier === "gold" && G.rng() < 0.35) || (c.tier === "green" && G.rng() < 0.08)) { const free = WEAR_DROPS.filter((w) => !G.save.locker.includes(w)); if (free.length) items.push(free[Math.floor(G.rng() * free.length)]); }
   c.items = items;
   sfx("crate"); squashOpen(c);
   if (!items.length) { floatText("empty... 🕸️", V(c.x, c.z, 1.6), "#8a7d6a", 22); return; }
@@ -110,15 +108,15 @@ export function spawnPickup(id: string, from: THREE.Vector3, k = 0, n = 1, n2?: 
 /** returns true if the pickup was taken */
 function collect(p: Pickup): boolean {
   const d = itemDef(p.item);
+  if (equipDef(p.item)?.bound) return false;
   if (d.kind === "ammo") { const n = p.n ?? d.stack ?? 8; G.ammo += n; sfx("pick"); floatText(`+${n} rounds`, G.pp.clone().setY(2.4), "#ffcf6a", 20); hud.ammo(); return true; }
-  if (d.kind === "wear") { // an exciting find you use on the spot (advisor round 1); kept even on a bonk-out
-    const w = WEARABLES.find((q) => q.id === p.item); if (!G.save.locker.includes(p.item)) G.save.locker.push(p.item);
-    if (w) { G.gear = { ...G.gear, [w.slot]: w.id }; G.rig.setGear?.(G.gear); }
-    sfx("rare"); hud.banner(`New look: ${d.name}!`); return true;
+  if (isEquip(p.item) && G.pack.length < G.packSlots) {
+    const result = collectEquipment(p.item);
+    if (result !== "full") { sortPack(); sfx("pick"); hud.pack(); return true; }
   }
   if (d.kind === "attachment") { if (!G.save.fixtures.includes("extended_mag")) G.save.fixtures.push("extended_mag"); G.magSize = KINGPIN.extMag; G.gun.setVariant({ extMag: true }); sfx("rare"); hud.banner("Kingpin Extended Mag: 12 rounds a mag!"); hud.ammo(); return true; }
   if (G.pack.length >= G.packSlots) {
-    if (G.intent.interact) { sortPack(); const cheapest = G.pack[G.pack.length - 1]; if (worth(cheapest) < worth(p.item)) { G.pack.pop(); spawnPickup(cheapest, G.pp.clone().setY(1), 0, 1); G.pack.push(p.item); sortPack(); G.log.swaps++; sfx("pick"); hud.pack(); return true; } }
+    if (G.intent.interact) { sortPack(); const cheapest = G.pack[G.pack.length - 1]; if (worth(cheapest) < worth(p.item)) { G.pack.pop(); spawnPickup(cheapest, G.pp.clone().setY(1), 0, 1); G.pack.push(p.item); const equipment = equipDef(p.item); if (equipment && !G.gear[equipment.slot]) equipFromPack(G.pack.length - 1); sortPack(); G.log.swaps++; sfx("pick"); hud.pack(); return true; } }
     hud.prompt(`E · Pack full: swap for your ${itemDef(G.pack[G.pack.length - 1]).name}`); return false;
   }
   G.pack.push(p.item); sortPack(); sfx("pick"); hud.pack();
@@ -127,7 +125,9 @@ function collect(p: Pickup): boolean {
   return true;
 }
 export function dropLoot(e: Enemy) {
-  const items = [...e.stolen, ...e.carry.map((i) => (ITEMS[i] ? i : "boomerang")), ...rollEnemyDrop(e.kind, { ...(G.lootCtx as LootContext), carried: [] }, G.rng)]; e.stolen = []; e.carry = [];
+  const rolled = rollEnemyDrop(e.kind, { ...(G.lootCtx as LootContext), carried: [], enemySeed: e.gearSeed }, G.rng);
+  const equipment = e.gear ? Object.values(e.gear).filter((inst): inst is string => inst !== null) : rolled.filter(isEquip);
+  const items = [...e.stolen, ...e.carry.map((i) => (ITEMS[i] ? i : "boomerang")), ...rolled.filter(id => !isEquip(id)), ...equipment]; e.stolen = []; e.carry = [];
   items.forEach((id, k) => spawnPickup(id, e.p.clone().setY(1.2), k, items.length));
   if (e.kind === "sleeper") { beam(e.p, RAR_COLOR.epic); sfx("rare"); }
 }
