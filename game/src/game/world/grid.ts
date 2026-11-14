@@ -1,111 +1,272 @@
-// 1 u walk/shot grid rasterized from layout shapes: clearings + trails are open, walls block, breakable walls open
-// when broken, the vine door opens with the key, props add circle blockers. Gives collision push-out, A* (8-way,
-// binary heap), line of sight, and a lint that checks reachability and gating order (level-design skill: validate the
-// critical path's key order, not just connectivity).
-import { CLEARINGS, TRAILS, VAULT_TRAIL, BOUNDS, DOOR, CRATES, SPAWNS, POI, WALLS, PORTALS, type Trail } from "./layout";
-import { fbm } from "./noise";
+// Collision, navigation and line of sight for map v3 (G1_BRIEF "Map v3" rule 2: collision comes from pieces).
+// Open ground is the default: a point is walkable when it is inside the map outline and not inside a collider.
+//   - Colliders (circle / box / segment, flags move + shot + low) come from every placed piece (map/colliders.ts) and
+//     from each building's BuildingDef. Movement and shots test them exactly, through a per-cell index.
+//   - A 1 u nav grid is rasterized from the same colliders for A* (binary heap), flood fill and the lint.
+//   - Static colliders are built once. Per-raid state lives apart and is reset every raid (pacing report issue 4):
+//     gates (doors, breakable walls, the vine door) and dynamic blockers (crates, the supply drop).
+// Low cover blocks walking but not shots or sight. Water outside the coast lets shots through; cliffs and jungle don't.
+import type { Collider, Placed, BuildingDef } from "../contracts";
+import { BOUNDS, SHAPES, ZONES, PLACED, WALLS, DOOR, PORTALS, CRATES, SPAWNS, POI, UNDER_X, ROADS, ZIPLINES, SUPPLY_DROPS, START } from "./map/grove";
+import { collidersFor, RAM } from "./map/colliders";
+import { inPoly, segDist, toWorld, type EdgeKind, type Zone } from "./map/types";
 
+export { segDist };
 export const GW = BOUNDS.maxX - BOUNDS.minX, GH = BOUNDS.maxZ - BOUNDS.minZ;
-const JUNGLE = 0, OPEN = 1, PROP = 2, DOORC = 3, WALL = 4, BREAK = 5;
-const cells = new Uint8Array(GW * GH);
-const wallOf = new Int16Array(GW * GH).fill(-1);   // index into WALLS for wall/breakable cells
-const shotBlock = new Uint8Array(GW * GH);
-export const state = { doorOpen: false, broken: new Set<string>() };
-export const setDoorOpen = (v: boolean) => { state.doorOpen = v; };
-export const breakWall = (id: string) => { state.broken.add(id); };
+const VOID = 0, OPEN = 1, WATER = 2, PAD = 0.45;
+const cells = new Uint8Array(GW * GH), zoneOf = new Int8Array(GW * GH).fill(-1);
+const navStatic = new Uint8Array(GW * GH), navDyn = new Uint8Array(GW * GH), gateOf = new Int16Array(GW * GH).fill(-1), shotAny = new Uint8Array(GW * GH);
+const cornerBlock = new Uint8Array((GW + 1) * (GH + 1));
 const ci = (x: number, z: number) => { const c = Math.floor(x - BOUNDS.minX), r = Math.floor(z - BOUNDS.minZ); return c < 0 || r < 0 || c >= GW || r >= GH ? -1 : r * GW + c; };
 const cx = (c: number) => BOUNDS.minX + c + 0.5, cz = (r: number) => BOUNDS.minZ + r + 0.5;
+export const isUnder = (x: number) => x > UNDER_X;
 
-export function segDist(x: number, z: number, ax: number, az: number, bx: number, bz: number) {
-  const abx = bx - ax, abz = bz - az, t = Math.max(0, Math.min(1, ((x - ax) * abx + (z - az) * abz) / (abx * abx + abz * abz || 1)));
-  return Math.hypot(x - ax - abx * t, z - az - abz * t);
-}
-export const trailDist = (t: Trail, x: number, z: number) => { let d = 1e9; for (let i = 0; i < t.pts.length - 1; i++) d = Math.min(d, segDist(x, z, ...t.pts[i], ...t.pts[i + 1])); return d; };
-const ALL_TRAILS = [...TRAILS, VAULT_TRAIL];
-/** signed openness: > 0 inside the play space (the terrain and dressing use it too) */
-export function openness(x: number, z: number) {
-  const wob = (fbm(x * 0.18 + 40, z * 0.18) - 0.5) * 2.2, lobe = (fbm(x * 0.07 - 13, z * 0.07 + 5) - 0.5) * 7.5; // small ragged edge + big lobes
-  let o = -1e9;
-  for (const c of CLEARINGS) { const e = Math.hypot((x - c.x) / c.rx, (z - c.z) / c.rz); if (e < 2) o = Math.max(o, (1 - e) * Math.min(c.rx, c.rz) + wob + (c.under || c.rx < 6 ? lobe * 0.25 : lobe)); }
-  for (const t of ALL_TRAILS) o = Math.max(o, t.w / 2 - trailDist(t, x, z) + wob * 0.35);
+// ---------------------------------------------------------------- the outline (analytic; terrain and edge dressing use it too)
+const OVER = (SHAPES.find((s) => s.t === "poly") as Extract<(typeof SHAPES)[number], { t: "poly" }>).pts;
+/** signed distance to the walkable outline: > 0 inside. kind = what the nearest edge is made of */
+export function edgeDist(x: number, z: number, out?: { kind: EdgeKind | "cave" }): number {
+  if (x < UNDER_X) {
+    let d = 1e9, k: EdgeKind = "jungle";
+    for (let i = 0, j = OVER.length - 1; i < OVER.length; j = i++) { const q = segDist(x, z, OVER[j][0], OVER[j][1], OVER[i][0], OVER[i][1]); if (q < d) { d = q; k = OVER[j][2]; } }
+    if (out) out.kind = k;
+    return inPoly(OVER, x, z) ? d : -d;
+  }
+  let o = -1e9; if (out) out.kind = "cave";
+  for (const s of SHAPES) {
+    if (s.t === "ellipse") { const e = Math.hypot((x - s.x) / s.rx, (z - s.z) / s.rz); o = Math.max(o, (1 - e) * Math.min(s.rx, s.rz)); }
+    else if (s.t === "capsule") { let d = 1e9; for (let i = 0; i < s.pts.length - 1; i++) d = Math.min(d, segDist(x, z, s.pts[i][0], s.pts[i][1], s.pts[i + 1][0], s.pts[i + 1][1])); o = Math.max(o, s.w / 2 - d); }
+  }
   return o;
 }
-export const nearestTrailDist = (x: number, z: number) => { let d = 1e9; for (const t of ALL_TRAILS) d = Math.min(d, trailDist(t, x, z)); return d; };
-/** which clearing/area a point is in (or the nearest trail's area); "" if none */
-export function areaAt(x: number, z: number) { let best = "", bd = 1.15; for (const c of CLEARINGS) { const e = Math.hypot((x - c.x) / c.rx, (z - c.z) / c.rz); if (e < bd) { bd = e; best = c.id; } } return best; }
-export const isUnder = (x: number) => x > 90;
-
-for (let r = 0; r < GH; r++) for (let c = 0; c < GW; c++) cells[r * GW + c] = openness(cx(c), cz(r)) > 0 ? OPEN : JUNGLE;
-WALLS.forEach((w, wi) => {
-  for (let k = 0; k < w.pts.length - 1; k++) {
-    const [ax, az] = w.pts[k], [bx, bz] = w.pts[k + 1], len = Math.hypot(bx - ax, bz - az);
-    for (let s = 0; s <= len; s += 0.25) for (const o of [-0.45, 0, 0.45]) {
-      const nx = -(bz - az) / len, nz = (bx - ax) / len, x = ax + (bx - ax) * (s / len) + nx * o, z = az + (bz - az) * (s / len) + nz * o, i = ci(x, z);
-      if (i >= 0) { cells[i] = w.breakable ? BREAK : WALL; wallOf[i] = wi; shotBlock[i] = 1; }
-    }
+export const inside = (x: number, z: number) => edgeDist(x, z) > 0;
+/** which named area a point is in ("" if none) */
+export function areaAt(x: number, z: number) { const i = ci(x, z); return i >= 0 && zoneOf[i] >= 0 ? ZONES[zoneOf[i]].id : ""; }
+export function zoneAt(x: number, z: number): Zone | null { const i = ci(x, z); return i >= 0 && zoneOf[i] >= 0 ? ZONES[zoneOf[i]] : null; }
+/** distance to the nearest painted road (1e9 if none within reach) */
+export function roadDist(x: number, z: number, out?: { road: (typeof ROADS)[number] | null }) {
+  let d = 1e9; if (out) out.road = null;
+  for (const r of ROADS) {
+    if (x < r.bb[0] || x > r.bb[1] || z < r.bb[2] || z > r.bb[3]) continue;
+    for (let i = 0; i < r.pts.length - 1; i++) { const q = segDist(x, z, r.pts[i][0], r.pts[i][1], r.pts[i + 1][0], r.pts[i + 1][1]) - r.w / 2; if (q < d) { d = q; if (out) out.road = r; } }
   }
-});
-{ // the vine door: a band across the vault trail
-  const dx = Math.cos(DOOR.yaw), dz = Math.sin(DOOR.yaw);
-  for (let r = 0; r < GH; r++) for (let c = 0; c < GW; c++) {
-    const x = cx(c) - DOOR.x, z = cz(r) - DOOR.z; if (Math.abs(x) > 4 || Math.abs(z) > 4) continue;
-    const along = x * dx + z * dz, across = -x * dz + z * dx;
-    if (Math.abs(along) < DOOR.w / 2 + 1.5 && Math.abs(across) < 0.8 && cells[r * GW + c] === OPEN) cells[r * GW + c] = DOORC;
-  }
+  return d;
 }
+
+// ---------------------------------------------------------------- colliders in world space
+const MOVE = 1, SHOT = 2, RAMF = 4;
+type WCol = { circle: boolean; x: number; z: number; r: number; hx: number; hz: number; c: number; s: number; flags: number; gate: number };
+const cols: WCol[] = [];
+let cellStart = new Int32Array(GW * GH + 1), cellItems = new Int32Array(0);
+/** per-raid openable things: doors, breakable walls, the vine door. A closed gate's colliders are solid */
+export type Gate = {
+  id: string; kind: "break" | "door"; x: number; z: number; nx: number; nz: number; w: number;
+  hp?: number; persist?: boolean; reveals?: string; mat?: string; locked?: string; building?: string; open: boolean;
+};
+export const gates: Gate[] = [];
+const gateIdx = new Map<string, number>();
+export const gate = (id: string) => gates[gateIdx.get(id) ?? -1] as Gate | undefined;
+function addGate(g: Gate) { gateIdx.set(g.id, gates.length); gates.push(g); return gates.length - 1; }
+/** open or close a gate (door opened/closed, wall broken). Collision, A* and sight follow at once */
+export function setGate(id: string, open: boolean) { const g = gate(id); if (g) g.open = open; }
+export const state = { get doorOpen() { return !!gate("vine")?.open; } };
+export const setDoorOpen = (v: boolean) => setGate("vine", v);
+export const breakWall = (id: string) => setGate(id, true);
+
+function addCollider(c: Collider, tf: { x: number; z: number; yaw?: number; s?: number }, gateI = -1, ram = false) {
+  const k = tf.s ?? 1, flags = (c.move ? MOVE : 0) | (c.shot && !c.low ? SHOT : 0) | (ram ? RAMF : 0);
+  if (!flags) return;
+  if (c.t === "circle") { const [x, z] = toWorld(tf, c.x, c.z); cols.push({ circle: true, x, z, r: c.r * k, hx: 0, hz: 0, c: 1, s: 0, flags, gate: gateI }); return; }
+  let lx: number, lz: number, hx: number, hz: number, yaw: number;
+  if (c.t === "box") { lx = c.x; lz = c.z; hx = c.w / 2; hz = c.d / 2; yaw = c.yaw ?? 0; }
+  else { lx = (c.ax + c.bx) / 2; lz = (c.az + c.bz) / 2; hx = c.thick / 2; hz = Math.hypot(c.bx - c.ax, c.bz - c.az) / 2; yaw = Math.atan2(c.bx - c.ax, c.bz - c.az); }
+  const [x, z] = toWorld(tf, lx, lz), wy = (tf.yaw ?? 0) + yaw;
+  // shots step 0.2 u: keep anything that stops them at least 0.3 thick so no bullet steps over it
+  if (flags & SHOT) { hx = Math.max(hx, 0.15 / k); hz = Math.max(hz, 0.15 / k); }
+  cols.push({ circle: false, x, z, r: Math.hypot(hx, hz) * k, hx: hx * k, hz: hz * k, c: Math.cos(wy), s: Math.sin(wy), flags, gate: gateI });
+}
+/** distance from a point to a collider's surface (0 or less = inside) */
+function colDist(q: WCol, x: number, z: number) {
+  const dx = x - q.x, dz = z - q.z;
+  if (q.circle) return Math.hypot(dx, dz) - q.r;
+  const lx = Math.abs(dx * q.c - dz * q.s) - q.hx, lz = Math.abs(dx * q.s + dz * q.c) - q.hz;
+  return lx <= 0 && lz <= 0 ? Math.max(lx, lz) : Math.hypot(Math.max(lx, 0), Math.max(lz, 0));
+}
+const active = (q: WCol) => q.gate < 0 || !gates[q.gate].open;
+
 export type Blocker = { x: number; z: number; r: number; shots: boolean; ram?: boolean; id?: string };
+/** per-raid blockers (crates, the supply drop). Cleared by resetRaidColliders() */
 export const blockers: Blocker[] = [];
-/** register a solid prop (tree, rock, crate). ram = the Sleeper stops on it */
+/** register a per-raid solid prop (a crate). Static scenery never goes through here */
 export function block(x: number, z: number, r: number, shots = true, ram = false, id?: string) {
   const b = { x, z, r, shots, ram, id }; blockers.push(b);
   for (let gz = Math.floor(z - r - 1); gz <= z + r + 1; gz++) for (let gx = Math.floor(x - r - 1); gx <= x + r + 1; gx++) {
-    const i = ci(gx + 0.5, gz + 0.5); if (i < 0) continue;
-    if (Math.hypot(gx + 0.5 - x, gz + 0.5 - z) < r + 0.2) { if (cells[i] === OPEN) cells[i] = PROP; if (shots) shotBlock[i] = 1; }
+    const i = ci(gx + 0.5, gz + 0.5); if (i >= 0 && Math.hypot(gx + 0.5 - x, gz + 0.5 - z) < r + 0.2) navDyn[i]++;
   }
   return b;
 }
-const passable = (i: number) => {
-  if (i < 0) return false; const v = cells[i];
-  return v === OPEN || (v === DOORC && state.doorOpen) || (v === BREAK && state.broken.has(WALLS[wallOf[i]].id));
-};
-export const walkable = (x: number, z: number) => passable(ci(x, z));
-/** the breakable wall id at a point, if it's still standing */
-export function wallAt(x: number, z: number) { const i = ci(x, z); if (i < 0 || cells[i] !== BREAK) return null; const w = WALLS[wallOf[i]]; return state.broken.has(w.id) ? null : w; }
-const solidCell = (i: number) => i < 0 || cells[i] === JUNGLE || cells[i] === WALL || (cells[i] === DOORC && !state.doorOpen) || (cells[i] === BREAK && !state.broken.has(WALLS[wallOf[i]].id));
-export const isWall = (x: number, z: number) => solidCell(ci(x, z));
+/** start of a raid: every gate shut and unbroken, no crates. The caller then re-applies what the save keeps open */
+export function resetRaidColliders() { blockers.length = 0; navDyn.fill(0); for (const g of gates) g.open = false; }
 
-/** push a circle out of walls and blockers; returns true if it touched something */
-export function collide(p: { x: number; z: number }, rad: number) {
-  let hit = false;
-  for (const b of blockers) {
-    const dx = p.x - b.x, dz = p.z - b.z; if (Math.abs(dx) > 4 || Math.abs(dz) > 4) continue;
-    const d = Math.hypot(dx, dz), m = rad + b.r;
-    if (d < m && d > 1e-4) { p.x = b.x + (dx / d) * m; p.z = b.z + (dz / d) * m; hit = true; }
+// the outline and the zones are plain data: rasterized at import, so scatter rules and the terrain can ask at once
+{
+  const info = { kind: "jungle" as EdgeKind | "cave" };
+  for (let r = 0; r < GH; r++) for (let c = 0; c < GW; c++) {
+    const x = cx(c), z = cz(r), d = edgeDist(x, z, info);
+    cells[r * GW + c] = d > 0 ? OPEN : info.kind === "coast" || info.kind === "river" ? WATER : VOID;
   }
-  for (let it = 0; it < 3; it++) for (const [ox, oz] of DIRS8) if (isWall(p.x + ox * rad, p.z + oz * rad)) { p.x -= ox * rad * 0.2; p.z -= oz * rad * 0.2; hit = true; }
-  return hit;
+  ZONES.forEach((zn, zi) => {
+    let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (const [x, z] of zn.pts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
+    for (let z = Math.floor(z0); z <= z1; z++) for (let x = Math.floor(x0); x <= x1; x++) { const i = ci(x + 0.5, z + 0.5); if (i >= 0 && zoneOf[i] < 0 && inPoly(zn.pts, x + 0.5, z + 0.5)) zoneOf[i] = zi; }
+  });
+}
+let ready = false;
+/** build collision and navigation from the map. houseDef gives each placed building's colliders and doors (kit_house /
+ *  the stub); extra = rule-scattered pieces (map/scatter.ts) that are not in the authored list */
+export function initGrid(houseDef: (p: Placed) => Pick<BuildingDef, "colliders" | "doors" | "breakables">, extra: Placed[] = []) {
+  if (ready) return; ready = true;
+  // colliders: placed pieces, buildings (their doors become gates), breakable walls, the vine door
+  scattered = extra.length;
+  for (const p of [...PLACED, ...extra]) {
+    if (p.k.startsWith("building:")) {
+      const def = houseDef(p), ids = new Map<string, number>();
+      // where a door or a cracked wall section stands in the world, from its collider (a box or a segment)
+      const geom = (id: string) => {
+        const c = def.colliders.find((q) => q.id === id); if (!c || c.t === "circle") return null;
+        const [ax, az] = c.t === "seg" ? toWorld(p, c.ax, c.az) : toWorld(p, c.x - (c.w >= c.d ? c.w / 2 : 0), c.z - (c.w >= c.d ? 0 : c.d / 2));
+        const [bx, bz] = c.t === "seg" ? toWorld(p, c.bx, c.bz) : toWorld(p, c.x + (c.w >= c.d ? c.w / 2 : 0), c.z + (c.w >= c.d ? 0 : c.d / 2));
+        const w = Math.hypot(bx - ax, bz - az) || 1; return { x: (ax + bx) / 2, z: (az + bz) / 2, nx: -(bz - az) / w, nz: (bx - ax) / w, w };
+      };
+      for (const d of def.doors) { const g = geom(d.id); if (g) ids.set(d.id, addGate({ id: `${p.id}:${d.id}`, kind: "door", ...g, hp: d.breakable ? 5 : undefined, reveals: undefined, mat: "wood", locked: d.locked, building: p.id, open: false })); }
+      for (const k of def.breakables ?? []) { const g = geom(k.id); if (g) ids.set(k.id, addGate({ id: `${p.id}:${k.id}`, kind: "break", ...g, hp: 8, persist: true, reveals: "A secret room!", mat: "stone", building: p.id, open: false })); }
+      for (const c of def.colliders) addCollider(c, p, c.id !== undefined ? ids.get(c.id) ?? -1 : -1);
+      continue;
+    }
+    const list = collidersFor(p.k, p.o); if (!list) { unknownKinds.add(p.k); continue; }
+    for (const c of list) addCollider(c, p, -1, RAM.has(p.k));
+  }
+  for (const w of WALLS) {
+    if (!w.breakable) continue;
+    const [ax, az] = w.pts[0], [bx, bz] = w.pts[1], len = Math.hypot(bx - ax, bz - az), thick = w.kind === "rock" ? 1.1 : w.kind === "stone" ? 0.65 : 0.5;
+    const g = addGate({ id: w.id, kind: "break", x: (ax + bx) / 2, z: (az + bz) / 2, nx: -(bz - az) / len, nz: (bx - ax) / len, w: len, hp: w.breakable.hp, persist: w.breakable.persist, reveals: w.breakable.reveals, mat: w.kind, open: false });
+    addCollider({ t: "seg", ax, az, bx, bz, thick, move: true, shot: true }, { x: 0, z: 0 }, g);
+  }
+  { const g = addGate({ id: "vine", kind: "door", x: DOOR.x, z: DOOR.z, nx: Math.sin(DOOR.yaw), nz: Math.cos(DOOR.yaw), w: DOOR.w, locked: "vine_key", mat: "wood", open: false });
+    addCollider({ t: "box", x: 0, z: 0, w: DOOR.w + 0.4, d: 0.6, move: true, shot: true }, DOOR, g); }
+  // per-cell index + nav raster
+  const count = new Int32Array(GW * GH + 1);
+  const span = (q: WCol, pad: number, f: (i: number, c: number, r: number) => void) => {
+    const c0 = Math.max(0, Math.floor(q.x - q.r - pad - BOUNDS.minX)), c1 = Math.min(GW - 1, Math.floor(q.x + q.r + pad - BOUNDS.minX)), r0 = Math.max(0, Math.floor(q.z - q.r - pad - BOUNDS.minZ)), r1 = Math.min(GH - 1, Math.floor(q.z + q.r + pad - BOUNDS.minZ));
+    for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) f(r * GW + c, c, r);
+  };
+  const touches = (q: WCol, c: number, r: number) => colDist(q, Math.max(c + BOUNDS.minX, Math.min(q.x, c + 1 + BOUNDS.minX)), Math.max(r + BOUNDS.minZ, Math.min(q.z, r + 1 + BOUNDS.minZ))) <= 0.05 || colDist(q, cx(c), cz(r)) <= 0.75;
+  for (const q of cols) span(q, 0.1, (i, c, r) => { if (touches(q, c, r)) count[i + 1]++; });
+  for (let i = 0; i < GW * GH; i++) count[i + 1] += count[i];
+  cellStart = count.slice(); cellItems = new Int32Array(count[GW * GH]); const fill = count.slice();
+  cols.forEach((q, k) => span(q, 0.1, (i, c, r) => { if (touches(q, c, r)) { cellItems[fill[i]++] = k; if (q.flags & SHOT) shotAny[i] = 1; } }));
+  const mark = (q: WCol, i: number) => { if (q.gate >= 0) { if (gateOf[i] < 0) gateOf[i] = q.gate; } else navStatic[i] = 1; };
+  for (const q of cols) {
+    if (!(q.flags & MOVE)) continue;
+    span(q, PAD, (i, c, r) => { if (colDist(q, cx(c), cz(r)) < PAD) mark(q, i); });
+    if (!q.circle) { // a thin wall on a cell boundary still has to be a closed line of cells
+      const long = Math.max(q.hx, q.hz), ax = q.hz >= q.hx ? q.s : q.c, az = q.hz >= q.hx ? q.c : -q.s;
+      for (let t = -long; t <= long; t += 0.35) { const i = ci(q.x + ax * t, q.z + az * t); if (i >= 0) mark(q, i); }
+    }
+    if (q.gate < 0) { // corners a diagonal step must not cut (posts, wall ends)
+      const c0 = Math.floor(q.x - q.r - 0.4 - BOUNDS.minX), c1 = Math.ceil(q.x + q.r + 0.4 - BOUNDS.minX), r0 = Math.floor(q.z - q.r - 0.4 - BOUNDS.minZ), r1 = Math.ceil(q.z + q.r + 0.4 - BOUNDS.minZ);
+      for (let r = Math.max(0, r0); r <= Math.min(GH, r1); r++) for (let c = Math.max(0, c0); c <= Math.min(GW, c1); c++) if (colDist(q, c + BOUNDS.minX, r + BOUNDS.minZ) < 0.35) cornerBlock[r * (GW + 1) + c] = 1;
+    }
+  }
+  for (let i = 0; i < GW * GH; i++) if (navStatic[i]) gateOf[i] = -1;
+}
+const unknownKinds = new Set<string>(); let scattered = 0;
+
+// ---------------------------------------------------------------- queries
+const passable = (i: number) => i >= 0 && cells[i] === OPEN && !navStatic[i] && !navDyn[i] && (gateOf[i] < 0 || gates[gateOf[i]].open);
+function blockedAt(i: number, x: number, z: number, flag: number) {
+  for (let k = cellStart[i]; k < cellStart[i + 1]; k++) { const q = cols[cellItems[k]]; if (q.flags & flag && active(q) && colDist(q, x, z) <= 0) return q; }
+  return null;
+}
+/** can a point be stood on: inside the outline and not inside anything solid */
+export function walkable(x: number, z: number) {
+  const i = ci(x, z); if (i < 0 || cells[i] !== OPEN) return false;
+  if (blockedAt(i, x, z, MOVE)) return false;
+  if (navDyn[i]) for (const b of blockers) if (Math.hypot(x - b.x, z - b.z) < b.r) return false;
+  return true;
+}
+export const isWall = (x: number, z: number) => !walkable(x, z);
+/** a closed breakable thing (wall section or boarded door) at or right next to a point */
+export function wallAt(x: number, z: number): Gate | null {
+  const i = ci(x, z); if (i < 0) return null;
+  for (let k = cellStart[i]; k < cellStart[i + 1]; k++) { const q = cols[cellItems[k]]; if (q.gate >= 0) { const g = gates[q.gate]; if (!g.open && g.hp !== undefined && colDist(q, x, z) <= 0.35) return g; } }
+  return null;
+}
+/** a closed door (not the vine door) within reach of a point, for the interact prompt */
+export function doorNear(x: number, z: number, reach = 1.7): Gate | null {
+  let best: Gate | null = null, bd = reach;
+  for (const g of gates) { if (g.kind !== "door" || g.id === "vine") continue; const d = Math.hypot(x - g.x, z - g.z); if (d < bd) { bd = d; best = g; } }
+  return best;
+}
+/** something tall and solid the Sleeper would ram within r of a point */
+export function ramAt(x: number, z: number, r: number) {
+  const c0 = Math.floor(x - BOUNDS.minX), r0 = Math.floor(z - BOUNDS.minZ);
+  for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+    const c = c0 + dc, rr = r0 + dr; if (c < 0 || rr < 0 || c >= GW || rr >= GH) continue; const i = rr * GW + c;
+    for (let k = cellStart[i]; k < cellStart[i + 1]; k++) { const q = cols[cellItems[k]]; if (q.flags & RAMF && colDist(q, x, z) < r) return true; }
+  }
+  return false;
 }
 const DIRS8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [0.71, 0.71], [-0.71, 0.71], [0.71, -0.71], [-0.71, -0.71]];
-/** distance a shot travels before a wall or shot-blocking prop (len if clear) */
+/** push a circle out of everything solid; returns true if it touched something */
+export function collide(p: { x: number; z: number }, rad: number) {
+  let hit = false;
+  for (let it = 0; it < 2; it++) {
+    const c0 = Math.floor(p.x - BOUNDS.minX), r0 = Math.floor(p.z - BOUNDS.minZ);
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      const c = c0 + dc, r = r0 + dr; if (c < 0 || r < 0 || c >= GW || r >= GH) continue; const i = r * GW + c;
+      for (let k = cellStart[i]; k < cellStart[i + 1]; k++) {
+        const q = cols[cellItems[k]]; if (!(q.flags & MOVE) || !active(q)) continue;
+        const dx = p.x - q.x, dz = p.z - q.z;
+        if (q.circle) { const d = Math.hypot(dx, dz), m = rad + q.r; if (d < m && d > 1e-4) { p.x = q.x + (dx / d) * m; p.z = q.z + (dz / d) * m; hit = true; } continue; }
+        const lx = dx * q.c - dz * q.s, lz = dx * q.s + dz * q.c, ex = Math.abs(lx) - q.hx, ez = Math.abs(lz) - q.hz;
+        if (ex >= rad || ez >= rad) continue;
+        let nlx = lx, nlz = lz;
+        if (ex <= 0 && ez <= 0) { if (ex > ez) nlx = Math.sign(lx || 1) * (q.hx + rad); else nlz = Math.sign(lz || 1) * (q.hz + rad); } // centre inside: out through the nearest face
+        else { const qx = Math.max(-q.hx, Math.min(q.hx, lx)), qz = Math.max(-q.hz, Math.min(q.hz, lz)), d = Math.hypot(lx - qx, lz - qz); if (d >= rad || d < 1e-5) continue; nlx = qx + ((lx - qx) / d) * rad; nlz = qz + ((lz - qz) / d) * rad; }
+        p.x = q.x + nlx * q.c + nlz * q.s; p.z = q.z - nlx * q.s + nlz * q.c; hit = true;
+      }
+    }
+  }
+  for (const b of blockers) {
+    const dx = p.x - b.x, dz = p.z - b.z; if (Math.abs(dx) > 4 || Math.abs(dz) > 4) continue;
+    const d = Math.hypot(dx, dz), m = rad + b.r; if (d < m && d > 1e-4) { p.x = b.x + (dx / d) * m; p.z = b.z + (dz / d) * m; hit = true; }
+  }
+  // the outline itself (the berm, the cliff foot, the waterline)
+  for (let it = 0; it < 3; it++) for (const [ox, oz] of DIRS8) { const i = ci(p.x + ox * rad, p.z + oz * rad); if (i < 0 || cells[i] !== OPEN) { p.x -= ox * rad * 0.2; p.z -= oz * rad * 0.2; hit = true; } }
+  return hit;
+}
+/** distance a shot travels before something that stops shots (len if clear). Low cover and open water don't stop it */
 export function rayShot(x: number, z: number, dx: number, dz: number, len: number) {
-  for (let s = 0.3; s < len; s += 0.25) {
+  for (let s = 0.3; s < len; s += 0.2) {
     const px = x + dx * s, pz = z + dz * s, i = ci(px, pz);
-    if (solidCell(i)) return s;
-    if (shotBlock[i] && cells[i] === PROP) for (const b of blockers) if (b.shots && Math.abs(px - b.x) < 3 && Math.hypot(px - b.x, pz - b.z) < b.r) return s;
+    if (i < 0 || cells[i] === VOID) return s;
+    if (shotAny[i] && blockedAt(i, px, pz, SHOT)) return s;
+    if (navDyn[i]) for (const b of blockers) if (b.shots && Math.hypot(px - b.x, pz - b.z) < b.r) return s;
   }
   return len;
 }
 export const los = (ax: number, az: number, bx: number, bz: number) => { const d = Math.hypot(bx - ax, bz - az); return d < 0.01 || rayShot(ax, az, (bx - ax) / d, (bz - az) / d, d) >= d - 0.3; };
 
-// ---- A* with a binary heap
+// ---------------------------------------------------------------- A* with a binary heap
 const gScore = new Float32Array(GW * GH), came = new Int32Array(GW * GH), stamp = new Uint32Array(GW * GH); let gen = 0;
 class Heap { k: number[] = []; v: number[] = []; push(key: number, val: number) { const k = this.k, v = this.v; let i = k.length; k.push(key); v.push(val); while (i > 0) { const p = (i - 1) >> 1; if (k[p] <= key) break; k[i] = k[p]; v[i] = v[p]; i = p; } k[i] = key; v[i] = val; }
   pop() { const k = this.k, v = this.v, top = v[0], lk = k.pop()!, lv = v.pop()!; if (k.length) { let i = 0; for (;;) { let c = 2 * i + 1; if (c >= k.length) break; if (c + 1 < k.length && k[c + 1] < k[c]) c++; if (k[c] >= lk) break; k[i] = k[c]; v[i] = v[c]; i = c; } k[i] = lk; v[i] = lv; } return top; } get size() { return this.k.length; } }
-export function path(fx: number, fz: number, tx: number, tz: number, maxNodes = 30000): { x: number; z: number }[] {
+const DC = [1, -1, 0, 0, 1, 1, -1, -1], DR = [0, 0, 1, -1, 1, -1, 1, -1];
+/** shortest walkable route as waypoints (cell centres, string-pulled). Open doors are passable, closed ones are not */
+export function path(fx: number, fz: number, tx: number, tz: number, maxNodes = 60000): { x: number; z: number }[] {
   let g = ci(tx, tz); const s = ci(fx, fz); if (s < 0 || g < 0) return [];
-  if (!passable(g)) { // a blocked goal (a crate, a tree): aim for the nearest open cell within 2.5 u
+  if (!passable(g)) { // a blocked goal (a crate, a tree): aim for the nearest open cell within 3 u
     let best = -1, bd = 1e9; const gc0 = g % GW, gr0 = (g / GW) | 0;
-    for (let dr = -3; dr <= 3; dr++) for (let dc = -3; dc <= 3; dc++) { const i = (gr0 + dr) * GW + gc0 + dc, d = dr * dr + dc * dc; if (d <= 7 && passable(i) && d < bd) { bd = d; best = i; } }
+    for (let dr = -3; dr <= 3; dr++) for (let dc = -3; dc <= 3; dc++) { const c = gc0 + dc, r = gr0 + dr; if (c < 0 || r < 0 || c >= GW || r >= GH) continue; const d = Math.hypot(cx(c) - tx, cz(r) - tz); if (d <= 3.2 && passable(r * GW + c) && d < bd) { bd = d; best = r * GW + c; } }
     if (best < 0) return []; g = best;
   }
   gen++; const gc = g % GW, gr = (g / GW) | 0, H = (i: number) => { const dx = Math.abs((i % GW) - gc), dz = Math.abs(((i / GW) | 0) - gr); return dx + dz - 0.586 * Math.min(dx, dz); };
@@ -116,7 +277,7 @@ export function path(fx: number, fz: number, tx: number, tz: number, maxNodes = 
     for (let d = 0; d < 8; d++) {
       const dc = DC[d], dr = DR[d], nc = c + dc, nr = r + dr; if (nc < 0 || nr < 0 || nc >= GW || nr >= GH) continue;
       const ni = nr * GW + nc; if (!passable(ni)) continue;
-      if (dc && dr && (!passable(r * GW + nc) || !passable(nr * GW + c))) continue;
+      if (dc && dr && (!passable(r * GW + nc) || !passable(nr * GW + c) || cornerBlock[(r + (dr > 0 ? 1 : 0)) * (GW + 1) + c + (dc > 0 ? 1 : 0)])) continue;
       const ng = gcur + (dc && dr ? 1.414 : 1);
       if (stamp[ni] !== gen || ng < gScore[ni]) { stamp[ni] = gen; gScore[ni] = ng; came[ni] = cur; if (ni === g) { found = true; break; } heap.push(ng + H(ni), ni); }
     }
@@ -125,12 +286,18 @@ export function path(fx: number, fz: number, tx: number, tz: number, maxNodes = 
   const out: { x: number; z: number }[] = []; for (let k = g; k !== s && k >= 0; k = came[k]) out.push({ x: cx(k % GW), z: cz((k / GW) | 0) });
   out.reverse();
   const simp: { x: number; z: number }[] = []; let a = { x: fx, z: fz };
-  for (let k = 0; k < out.length; k++) { const nxt = out[k + 1]; if (!nxt || !straight(a.x, a.z, nxt.x, nxt.z)) { simp.push(out[k]); a = out[k]; } }
+  for (let k = 0; k < out.length; k++) { const nxt = out[k + 1]; if (!nxt || !straightWalk(a.x, a.z, nxt.x, nxt.z)) { simp.push(out[k]); a = out[k]; } }
   return simp;
 }
-const DC = [1, -1, 0, 0, 1, 1, -1, -1], DR = [0, 0, 1, -1, 1, -1, 1, -1];
-function straight(ax: number, az: number, bx: number, bz: number) { const d = Math.hypot(bx - ax, bz - az); for (let s = 0; s < d; s += 0.5) { const t = s / d; if (!walkable(ax + (bx - ax) * t, az + (bz - az) * t)) return false; } return true; }
+/** true if a straight walk from a to b stays on open nav cells and clear of every collider */
+export function straightWalk(ax: number, az: number, bx: number, bz: number) {
+  const d = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(d / 0.25));
+  for (let k = 1; k <= n; k++) { const t = k / n, x = ax + (bx - ax) * t, z = az + (bz - az) * t; if (!passable(ci(x, z)) || !walkable(x, z)) return false; }
+  return true;
+}
+export function pathLength(pts: { x: number; z: number }[], fx: number, fz: number) { let l = 0, x = fx, z = fz; for (const p of pts) { l += Math.hypot(p.x - x, p.z - z); x = p.x; z = p.z; } return l; }
 
+// ---------------------------------------------------------------- lint (level-design skill: validate the critical path's key order, not just connectivity)
 /** flood fill from a point, following portals; returns a reachability test */
 function flood(x: number, z: number) {
   const seen = new Uint8Array(GW * GH), q: number[] = []; const push = (i: number) => { if (i >= 0 && !seen[i] && passable(i)) { seen[i] = 1; q.push(i); } };
@@ -140,27 +307,80 @@ function flood(x: number, z: number) {
     for (let d = 0; d < 4; d++) { const nc = c + DC[d], nr = r + DR[d]; if (nc >= 0 && nr >= 0 && nc < GW && nr < GH) push(nr * GW + nc); }
     for (const p of PORTALS) { if (cur === ci(p.a.x, p.a.z)) push(ci(p.b.x, p.b.z)); if (!p.oneWay && cur === ci(p.b.x, p.b.z)) push(ci(p.a.x, p.a.z)); }
   }
-  return (px: number, pz: number) => { const i = ci(px, pz); return i >= 0 && !!seen[i]; };
+  /** reached, or (for things that are solid themselves: crates) a cell next to it was */
+  return (px: number, pz: number, near = 0) => {
+    const i = ci(px, pz); if (i < 0) return false; if (seen[i]) return true;
+    for (let dr = -near; dr <= near; dr++) for (let dc = -near; dc <= near; dc++) { const k = ci(px + dc, pz + dr); if (k >= 0 && seen[k]) return true; }
+    return false;
+  };
 }
-/** reachability + gating lint; call before props are placed. Returns a list of problems (empty = pass). */
-export function lint() {
-  const errs: string[] = [], save = { door: state.doorOpen, broken: new Set(state.broken) };
-  const H = POI.hatch;
-  // 1) a fresh raid: nothing broken, door shut. The raft and the key must be reachable (no soft-lock on the critical path).
-  state.doorOpen = false; state.broken.clear();
-  let reach = flood(H.x, H.z);
-  if (!reach(POI.raft.x, POI.raft.z)) errs.push("raft unreachable on a fresh raid");
-  const key = CRATES.find((c) => c.fixed === "key")!; if (!reach(key.x, key.z)) errs.push("key crate needs the key (soft-lock)");
-  for (const w of WALLS) if (w.breakable) { const [ax, az] = w.pts[0], [bx, bz] = w.pts[1], mx = (ax + bx) / 2, mz = (az + bz) / 2, l = Math.hypot(bx - ax, bz - az), nx = -(bz - az) / l * 1.3, nz = (bx - ax) / l * 1.3;
-    if (!reach(mx + nx, mz + nz) && !reach(mx - nx, mz - nz)) errs.push(`breakable ${w.id} can't be reached to break it`); }
-  // 2) everything open: every crate, spawn, portal and exit reachable
-  state.doorOpen = true; for (const w of WALLS) if (w.breakable) state.broken.add(w.id);
-  reach = flood(H.x, H.z);
-  const pts: [string, number, number][] = [["raft", POI.raft.x, POI.raft.z], ["tunnelExit", POI.tunnelExit.x, POI.tunnelExit.z],
-    ...CRATES.map((c, i) => [`crate${i}(${c.x},${c.z})`, c.x, c.z] as [string, number, number]), ...SPAWNS.flat().map((s, i) => [`${s.kind}${i}(${s.x},${s.z})`, s.x, s.z] as [string, number, number]),
-    ...PORTALS.flatMap((p) => [[`${p.id}.a`, p.a.x, p.a.z], [`${p.id}.b`, p.b.x, p.b.z]] as [string, number, number][])];
-  for (const [name, x, z] of pts) { if (!walkable(x, z)) errs.push(`${name} not on open ground`); else if (!reach(x, z)) errs.push(`${name} unreachable`); }
-  state.doorOpen = save.door; state.broken = save.broken;
-  return errs;
+export type LintReport = { errors: string[]; warnings: string[]; stats: Record<string, number> };
+/** reachability + gating + pacing lint. Call after initGrid() and before crates are placed. errors empty = pass */
+export function lintReport(): LintReport {
+  const errors: string[] = [], warnings: string[] = [], stats: Record<string, number> = {};
+  const saved = gates.map((g) => g.open), saveDyn = navDyn.slice(); navDyn.fill(0);
+  const set = (f: (g: Gate) => boolean) => { for (const g of gates) g.open = f(g); };
+  for (const k of unknownKinds) errors.push(`placed kind "${k}" has no collider entry (map/colliders.ts)`);
+  // 1) a fresh raid: nothing broken, locked doors shut, plain doors openable. The raft and the key must be reachable.
+  set((g) => g.kind === "door" && !g.locked);
+  let reach = flood(START.x, START.z);
+  if (!walkable(START.x, START.z)) errors.push("the start point is not on open ground");
+  if (!reach(POI.hatch.x, POI.hatch.z)) errors.push("hatch unreachable from the start");
+  if (!reach(POI.raft.x, POI.raft.z)) errors.push("raft unreachable on a fresh raid");
+  const key = CRATES.find((c) => c.fixed === "key")!; if (!reach(key.x, key.z, 2)) errors.push("key crate needs the key (soft-lock)");
+  for (const g of gates) {
+    if (g.open) continue;
+    const side = (k: number) => reach(g.x + g.nx * 1.6 * k, g.z + g.nz * 1.6 * k) || reach(g.x + g.nx * 2.4 * k, g.z + g.nz * 2.4 * k);
+    const a = side(1), b = side(-1);
+    if (!a && !b) errors.push(`${g.kind === "break" ? "breakable" : "locked/boarded door"} ${g.id} can't be reached to open it`);
+    if (a && b && g.kind === "break" && !SHORTCUTS.has(g.id)) warnings.push(`breakable ${g.id} gates nothing (both sides already reachable)`);
+  }
+  // what must stay gated until its gate opens
+  for (const [fixed, name] of [["vault", "vault crate"], ["secret", "shrine crate"]] as const) { const c = CRATES.find((q) => q.fixed === fixed)!; if (reach(c.x, c.z, 2)) errors.push(`${name} is reachable without opening its gate`); }
+  if (reach(POI.tunnelExit.x, POI.tunnelExit.z)) errors.push("tunnel exit is reachable without breaking the rubble");
+  // 2) everything open: every socket on open ground and reachable
+  set(() => true); reach = flood(START.x, START.z);
+  const pts: [string, number, number, number][] = [["raft", POI.raft.x, POI.raft.z, 0], ["tunnelExit", POI.tunnelExit.x, POI.tunnelExit.z, 0], ["hatch", POI.hatch.x, POI.hatch.z, 0],
+    ...CRATES.map((c, i) => [`crate${i}(${c.x},${c.z})`, c.x, c.z, 2] as [string, number, number, number]),
+    ...SPAWNS.flatMap((set_, si) => set_.map((s, i) => [`${s.kind}${si}.${i}(${s.x},${s.z})`, s.x, s.z, 0] as [string, number, number, number])),
+    ...PORTALS.flatMap((p) => [[`${p.id}.a`, p.a.x, p.a.z, 0], [`${p.id}.b`, p.b.x, p.b.z, 0]] as [string, number, number, number][]),
+    ...ZIPLINES.flatMap((zl) => [[`zip-${zl.id}.from`, zl.from.x, zl.from.z + 3.2, 0], [`zip-${zl.id}.to`, zl.to.x, zl.to.z + 1.6, 0]] as [string, number, number, number][]),
+    ...SUPPLY_DROPS.map((d) => [`drop(${d.x},${d.z})`, d.x, d.z, 0] as [string, number, number, number])];
+  for (const [name, x, z, near] of pts) { if (!near && !walkable(x, z)) errors.push(`${name} not on open ground`); else if (!reach(x, z, near)) errors.push(`${name} unreachable`); }
+  for (const c of CRATES) { const i = ci(c.x, c.z); if (i < 0 || cells[i] !== OPEN) errors.push(`crate (${c.x},${c.z}) is outside the map`); else if (blockedAt(i, c.x, c.z, MOVE)) warnings.push(`crate (${c.x},${c.z}) sits inside a collider`); }
+  for (const g of gates) if (!reach(g.x + g.nx * 1.5, g.z + g.nz * 1.5, 1) || !reach(g.x - g.nx * 1.5, g.z - g.nz * 1.5, 1)) errors.push(`gate ${g.id}: one side is unreachable even when open`);
+  for (const g of gates) if (!passable(ci(g.x, g.z))) errors.push(`gate ${g.id}: its doorway cell is not passable when open (wall on a cell boundary?)`);
+  // 3) time budget: the straight runs (walk speed 4.6 u/s, no looting, no fights)
+  set((g) => g.kind === "door" && !g.locked);
+  const run = (name: string, x: number, z: number, lo: number, hi: number) => {
+    const p = path(START.x, START.z, x, z, 200000), l = pathLength(p, START.x, START.z); stats[name] = Math.round(l);
+    if (!p.length) errors.push(`no path to ${name}`); else if (l < lo || l > hi) warnings.push(`${name} is ${Math.round(l)} u from the start (budget ${lo}-${hi} u)`);
+  };
+  run("raft", POI.raft.x, POI.raft.z, 190, 330); run("keyCrate", key.x, key.z, 100, 220); run("sleeper", POI.sleeperBed.x, POI.sleeperBed.z + 3, 130, 260);
+  const firstCrate = Math.min(...CRATES.map((c) => Math.hypot(c.x - START.x, c.z - START.z))); stats.nearestCrate = Math.round(firstCrate);
+  if (firstCrate < 24) warnings.push(`a crate sits ${Math.round(firstCrate)} u from the start (nothing worth having next to spawn)`);
+  // 4) rule 9: along every road, something to react to at least every 28 u (6 s at walk speed)
+  const events: [number, number][] = [...CRATES.map((c) => [c.x, c.z] as [number, number]), ...SPAWNS.flat().map((s) => [s.x, s.z] as [number, number]),
+    ...PLACED.filter((p) => !SOFT.has(p.k)).map((p) => [p.x, p.z] as [number, number]), ...gates.map((g) => [g.x, g.z] as [number, number])];
+  let worst = 0;
+  for (const r of ROADS) {
+    let gap = 0, gapMax = 0;
+    for (let i = 0; i < r.pts.length - 1; i++) {
+      const [ax, az] = r.pts[i], [bx, bz] = r.pts[i + 1], len = Math.hypot(bx - ax, bz - az);
+      for (let s = 0; s < len; s += 2) { const x = ax + (bx - ax) * (s / len), z = az + (bz - az) * (s / len); if (events.some(([ex, ez]) => Math.abs(ex - x) < 7.5 && Math.hypot(ex - x, ez - z) < 7.5)) gap = 0; else gap += 2; gapMax = Math.max(gapMax, gap); }
+    }
+    worst = Math.max(worst, gapMax); if (gapMax > 28) warnings.push(`road ${r.id}: ${gapMax} u with nothing on it (rule 9: 18-28 u)`);
+  }
+  stats.worstRoadGap = worst; stats.colliders = cols.length; stats.gates = gates.length; stats.placed = PLACED.length; stats.scattered = scattered;
+  stats.openCells = cells.reduce((a, v, i) => a + (v === OPEN && !navStatic[i] ? 1 : 0), 0);
+  gates.forEach((g, i) => (g.open = saved[i])); navDyn.set(saveDyn);
+  return { errors, warnings, stats };
 }
-export const gridInfo = () => ({ GW, GH, open: cells.reduce((a, v) => a + (v === OPEN ? 1 : 0), 0) });
+/** breakables that are shortcuts between two reachable places, not gates to somewhere new */
+const SHORTCUTS = new Set(["palisade"]);
+/** placed kinds too small to count as "something on the road" */
+const SOFT = new Set(["bush", "fern", "bigleaf", "flowers", "reeds", "lily", "beachgrass", "litter", "rocks", "pebbles", "shells", "banana", "tree", "palm", "palmlean", "mangrove", "rockl", "boulders", "boardwalk_a", "boardwalk_b"]);
+export const lint = () => lintReport().errors;
+export const gridInfo = () => ({ GW, GH, open: cells.reduce((a, v) => a + (v === OPEN ? 1 : 0), 0), colliders: cols.length, gates: gates.length });
+/** raw data for debug overlays and the blockout dump */
+export const debugGrid = () => ({ cells, navStatic, gateOf, cols, zoneOf, minX: BOUNDS.minX, minZ: BOUNDS.minZ });

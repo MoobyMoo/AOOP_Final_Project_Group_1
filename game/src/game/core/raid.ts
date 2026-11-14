@@ -1,12 +1,14 @@
 // The raid scene: builds Banana Grove once, starts/steps/ends a raid. Fixed-step sim (advisor 31).
 import * as THREE from "three";
 import { G, V } from "./state";
-import { buildTerrain, groundHeight } from "../world/terrain";
-import { dressWorld, flushChunks, buildGrass } from "../world/dress";
-import { PLACEHOLDER_KIT, grassTuft } from "../world/placeholder";
-import { lint, state as gridState } from "../world/grid";
-import { POI } from "../world/layout";
-import { buildProps } from "../world/props";
+import { groundHeight } from "../world/terrain";
+import { resetRaidColliders, walkable, isUnder } from "../world/grid";
+import { START } from "../world/layout";
+import { resetProps, updateProps } from "../world/props";
+import { resetHouses, updateHouses } from "../world/buildings";
+import { updateLightPool } from "../world/lights";
+import { buildWorld } from "../world/world";
+import { mulberry32 } from "../loot/tables";
 import { startInteractions, updateInteractions, setOnExtract } from "../world/interact";
 import { createRig } from "../actors/rig";
 import { createKingpin, createGunFx } from "../combat/kingpin";
@@ -24,14 +26,16 @@ import { botTelemetry } from "./bot";
 import { visualGear } from "../loot/equipment";
 import { loseWornEquipment, refreshEquipment, restoreBoundKit } from "../loot/equipment-actions";
 
+const QS = new URLSearchParams(location.search);
+/** ?seed= is the world seed: map scatter, crate sockets and patrol set all derive from it (the bot has ?botseed=) */
+export const WORLD_SEED = Number.isFinite(Number(QS.get("seed"))) && QS.has("seed") ? Number(QS.get("seed")) >>> 0 : 4242;
 export const raidScene = new THREE.Scene();
 let built = false;
 export function buildRaidWorld() {
   if (built) return; built = true;
-  const errs = lint(); if (errs.length) console.warn("map lint:", errs);
   const scn = G.stage.scene; G.stage.setScene(raidScene);
-  let seed = 4242; const rng = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  buildTerrain(raidScene); dressWorld(raidScene, PLACEHOLDER_KIT, rng); flushChunks(raidScene); buildGrass(raidScene, rng, grassTuft());
+  const st = buildWorld(raidScene, WORLD_SEED, { wind: QS.get("wind") !== "0" });
+  if (st.lint.errors.length) console.error("map lint:", st.lint.errors); if (st.lint.warnings.length) console.warn("map lint warnings:", st.lint.warnings);
   G.stage.setScene(scn);
 }
 export type RaidResult = { how: "hatch" | "raft" | "tunnel" | "bonked"; kept: string[]; lost: string[]; bonus: number; raidT: number; log: typeof G.log };
@@ -39,16 +43,17 @@ let onEnd: (r: RaidResult) => void = () => {};
 export function startRaid(end: (r: RaidResult) => void) {
   if (G.bot) { botTelemetry.raidId = G.save.raids; botTelemetry.outcome = undefined; botTelemetry.combatEvents = []; }
   onEnd = end; buildRaidWorld(); G.stage.setScene(raidScene); initFx(raidScene, G.stage.camera);
-  G.scene = "raid"; G.raidT = 0; G.alive = true; G.seed = (G.save.raids * 7919 + 13) >>> 0; let s = G.seed || 1; G.rng = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  G.scene = "raid"; G.raidT = 0; G.alive = true; G.seed = (Math.imul(WORLD_SEED, 2654435761) + G.save.raids * 7919 + 13) >>> 0; G.rng = mulberry32(G.seed);
   // props are rebuilt each raid because doors/walls depend on the save (cheap: a few dozen meshes)
   for (const o of raidScene.children.filter((c) => c.userData.perRaid)) o.removeFromParent();
-  const before = new Set(raidScene.children); gridState.broken.clear(); resetWalls();
-  buildProps(raidScene);
+  const before = new Set(raidScene.children); resetRaidColliders(); resetWalls(); resetHouses(); resetProps();
   // player
   if (!G.rig) { G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); }
   G.rig.setLook?.(G.save.look); G.gear = { ...G.save.gear }; restoreBoundKit(); G.rig.setGear?.(G.gear);
   raidScene.add(G.rig.root);
-  G.pp = G.rig.root.position; G.pp.set(POI.hatch.x + 2.5, 0, POI.hatch.z - 4.5); // spawn just outside the hatch ring G.pp.y = groundHeight(G.pp.x, G.pp.z);
+  G.pp = G.rig.root.position; G.pp.set(START.x, 0, START.z); // just outside the hatch ring
+  { const at = QS.get("at")?.split(",").map(Number); if (at && at.length === 2 && at.every(Number.isFinite) && walkable(at[0], at[1])) G.pp.set(at[0], 0, at[1]); } // ?at=x,z: start somewhere else (captures, tests)
+  G.pp.y = groundHeight(G.pp.x, G.pp.z);
   G.vel.set(0, 0, 0); G.moveYaw = Math.PI; G.aimYaw = Math.PI;
   G.maxHp = PLAYER.hp + 25 * G.save.upgrades.heart; G.hp = G.maxHp; G.stamina = PLAYER.stamina.max; G.staminaDelay = 0; G.sprinting = false; G.painT = 0; G.useItem = null; G.iframes = 0;
   G.magSize = G.save.upgrades.mag || G.save.fixtures.includes("extended_mag") ? KINGPIN.extMag : KINGPIN.mag; G.gun.setVariant({ extMag: G.magSize > KINGPIN.mag });
@@ -60,7 +65,8 @@ export function startRaid(end: (r: RaidResult) => void) {
   G.discovered = new Set(); G.area = ""; G.lockTarget = null;
   G.log = { crates: 0, kills: {}, killsBy: { pistol: 0, briefcase: 0 }, shots: 0, hits: 0, hurt: 0, rolls: 0, swaps: 0, missed: 0, firstShot: -1, firstCrate: -1, firstRoll: -1, breaks: [], value: 0 };
   G.lootCtx = { raid: G.save.raids, cratesOpened: 0, usefulFound: 0, emptyStreak: 0, ammoFound: 0, orderNeeds: G.save.order && !G.save.order.done ? Object.keys(G.save.order.progress) : [] };
-  spawnEnemies(G.save.raids % 2); setupCrates();
+  if (QS.has("peace")) { for (const e of G.enemies) e.rig.dispose(); G.enemies = []; } else spawnEnemies((G.save.raids + WORLD_SEED) % 2);
+  setupCrates();
   for (const c of raidScene.children) if (!before.has(c)) c.userData.perRaid = true;
   hud.build(); buildMinimap(); resetTrail(); clearBullets(); startInteractions(); bonkT = 0;
   // warm-up: compile every shader now (hidden enemies/props would otherwise compile mid-raid and hitch)
@@ -107,6 +113,7 @@ export function renderRaid(dt: number) {
   G.gun.root.scale.setScalar(GUN_SCALE);
   G.gun.pose({ fireT: Math.min(1, G.fireT), reloadT: G.reloadT });
   G.fx.update(dt); renderBullets(); updateFx(dt); hud.update(dt); updateMinimap();
+  updateHouses(dt, isUnder(G.pp.x)); updateProps(dt); updateLightPool(dt, G.pp);
   U.uTime.value = G.time; U.uPlayer.value.copy(G.pp);
   // camera: damped follow + a small lead toward the aim point (CODE_FINDINGS 8.1: aim lookahead, kept modest, rule 19)
   const lead = G.aimPoint.clone().sub(G.pp).setY(0); const L = Math.min(lead.length(), 10); lead.setLength(L * 0.22);

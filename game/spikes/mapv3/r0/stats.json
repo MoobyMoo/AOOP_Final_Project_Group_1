@@ -1,0 +1,176 @@
+{
+ "world": {
+  "seed": 4242,
+  "placed": 821,
+  "scattered": 2085,
+  "edge": 972,
+  "chunkMeshes": 894,
+  "kitTris": 2531043,
+  "grass": 52745,
+  "lint": {
+   "errors": [],
+   "warnings": [
+    "a crate sits 22 u from the start (nothing worth having next to spawn)"
+   ],
+   "stats": {
+    "raft": 217,
+    "keyCrate": 120,
+    "sleeper": 154,
+    "nearestCrate": 22,
+    "worstRoadGap": 20,
+    "colliders": 1374,
+    "gates": 21,
+    "placed": 821,
+    "scattered": 2085,
+    "openCells": 37669
+   }
+  },
+  "ms": 1887
+ },
+ "views": {
+  "camp": {
+   "calls": 195,
+   "tris": 629116,
+   "all": 33,
+   "readable": 20,
+   "kinds": 17,
+   "pp": [
+    -60,
+    28
+   ],
+   "area": "camp"
+  },
+  "plantation": {
+   "calls": 183,
+   "tris": 482200,
+   "all": 20,
+   "readable": 16,
+   "kinds": 12,
+   "pp": [
+    2,
+    22
+   ],
+   "area": "plantation"
+  },
+  "colony": {
+   "calls": 183,
+   "tris": 541703,
+   "all": 37,
+   "readable": 20,
+   "kinds": 12,
+   "pp": [
+    66,
+    5
+   ],
+   "area": "ruin"
+  },
+  "cellblock_in": {
+   "calls": 178,
+   "tris": 549233,
+   "all": 29,
+   "readable": 14,
+   "kinds": 9,
+   "pp": [
+    66.5,
+    -5.5
+   ],
+   "area": "ruin"
+  },
+  "mangrove": {
+   "calls": 187,
+   "tris": 629522,
+   "all": 66,
+   "readable": 52,
+   "kinds": 12,
+   "pp": [
+    49,
+    54
+   ],
+   "area": "mangrove"
+  },
+  "falls": {
+   "calls": 173,
+   "tris": 579295,
+   "all": 43,
+   "readable": 30,
+   "kinds": 10,
+   "pp": [
+    66,
+    -62
+   ],
+   "area": "waterfall"
+  },
+  "hollow": {
+   "calls": 176,
+   "tris": 713746,
+   "all": 42,
+   "readable": 21,
+   "kinds": 12,
+   "pp": [
+    3,
+    -54
+   ],
+   "area": "hollow"
+  },
+  "landing": {
+   "calls": 141,
+   "tris": 285493,
+   "all": 31,
+   "readable": 17,
+   "kinds": 13,
+   "pp": [
+    12,
+    -103
+   ],
+   "area": "riverbank"
+  },
+  "bomber": {
+   "calls": 169,
+   "tris": 562149,
+   "all": 26,
+   "readable": 19,
+   "kinds": 12,
+   "pp": [
+    -62.7,
+    -42.2
+   ],
+   "area": "planecrash"
+  },
+  "grotto_hall": {
+   "calls": 80,
+   "tris": 166268,
+   "all": 24,
+   "readable": 13,
+   "kinds": 11,
+   "pp": [
+    168,
+    26
+   ],
+   "area": "grotto-b"
+  },
+  "ferry": {
+   "calls": 152,
+   "tris": 431384,
+   "all": 31,
+   "readable": 22,
+   "kinds": 13,
+   "pp": [
+    60.7,
+    100.5
+   ],
+   "area": "wreck"
+  },
+  "cove": {
+   "calls": 144,
+   "tris": 414617,
+   "all": 35,
+   "readable": 27,
+   "kinds": 15,
+   "pp": [
+    -82.1,
+    95.9
+   ],
+   "area": "cove"
+  }
+ }
+}
