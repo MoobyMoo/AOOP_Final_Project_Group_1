@@ -85,7 +85,7 @@ export type KitPiece = { geo: THREE.BufferGeometry /* position, normal, color (v
 // ---------------------------------------------------------------- loot/ (Codex Sol)
 export type Rarity = "common" | "uncommon" | "rare" | "epic";
 export type ItemKind = "sell" | "heal" | "key" | "ammo" | "attachment" | "part" | "wear";
-export type ItemDef = { id: string; name: string; icon: string; rarity: Rarity; value: number; kind: ItemKind; stack?: number };
+export type ItemDef = { id: string; name: string; icon: string; rarity: Rarity; value: number; kind: ItemKind; stack?: number; weight?: number }; // weight in kg-ish units (Duckov-style weight states)
 export type CrateTier = "wood" | "green" | "gold";
 export type RaidLootCtx = { raid: number; cratesOpened: number; usefulFound: number; emptyStreak: number; ammoFound: number; orderNeeds: string[] };
 // loot/tables.ts exports: ITEMS, CRATE_TABLES, rollCrate(tier, ctx, rng): string[] (may be [] = honest empty), rollEnemyDrop(kind, ctx, rng): string[]
@@ -95,6 +95,7 @@ export type RaidLootCtx = { raid: number; cratesOpened: number; usefulFound: num
 export type SaveV1 = {
   v: 1; createdAt: string; raids: number; money: number; ammo: number;
   look: MonkeyLook; lookDone: boolean; gear: Gear; wardrobe: string[]; // wardrobe = wearable ids owned
+  satchel: { items: string[]; x: number; z: number } | null; // pack dropped on a bonk-out: recoverable once next raid (Duckov corpse rule)
   upgrades: { mag: number; pack: number; heart: number };
   keys: string[]; trophies: string[]; reserved: string[];   // keys auto-kept, trophies shown in the bunker, order items reserved
   order: { id: string; progress: Record<string, number>; done: boolean } | null;

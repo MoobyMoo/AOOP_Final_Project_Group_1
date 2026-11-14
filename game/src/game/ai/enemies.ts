@@ -162,11 +162,11 @@ function updateRangs(dt: number) {
     const r = G.rangs[i]; r.t += dt;
     const sp = ENEMY.wild.rangSpeed, travelled = r.t * sp;
     // out along dir with a sideways curve, then home to the owner along a mirrored curve
-    if (!r.back && travelled > r.out) r.back = true;
+    if (!r.back && travelled > r.out) { r.back = true; r.hitDone = false; }
     if (!r.back) { const k = travelled / r.out; r.p.set(r.from.x + r.dir.x * travelled - r.dir.z * Math.sin(k * Math.PI) * 1.6, 1.1, r.from.z + r.dir.z * travelled + r.dir.x * Math.sin(k * Math.PI) * 1.6); }
     else { const tgt = r.owner.down ? r.owner.p.clone().add(V(0, 0, 0)) : r.owner.p; const dd = V(tgt.x - r.p.x, tgt.z - r.p.z); const L = dd.length(); if (L < 0.8) { remove(i, r, r.owner.down); continue; } dd.normalize(); r.p.x += (dd.x + dd.z * 0.35) * sp * dt; r.p.z += (dd.z - dd.x * 0.35) * sp * dt; }
     r.mesh.position.copy(r.p); r.mesh.rotation.y += dt * 22;
-    if (r.p && flat(r.p, G.pp) < 0.8) { if (hurtPlayer(r.p, "boomerang")) { /* it keeps flying: dodge the throw and the return */ } }
+    if (flat(r.p, G.pp) < 0.8 && !r.hitDone) { if (hurtPlayer(r.p, "boomerang", ENEMY.wild.dmg)) r.hitDone = true; } // it keeps flying: dodge the throw and the return
     if (r.t > 4) remove(i, r, true);
   }
   function remove(i: number, r: typeof G.rangs[number], drop: boolean) {
@@ -187,7 +187,7 @@ function bandit(e: Enemy, dt: number, d: number) {
       if (d < s.reach + 0.3 && onScreen(e.p) && engaged() <= 6) { e.state = "windup"; e.t = s.wind; e.vel.set(0, 0, 0); sfx("windup", 0.4); e.flash = 0.05; }
       if (d > 20 || !los(e.p.x, e.p.z, G.pp.x, G.pp.z)) { e.lostT += dt; if (e.lostT > 4) { e.state = "return"; e.lostT = 0; } } else e.lostT = 0;
       break;
-    case "windup": e.face = Math.atan2(G.pp.x - e.p.x, G.pp.z - e.p.z); if (e.t <= 0) { e.state = "swipe"; e.t = 0.3; if (flat(e.p, G.pp) < s.reach + 0.4) { if (hurtPlayer(e.p, "swipe", e) && e.stolen.length) { e.state = "flee"; e.t = 3.5; sfx("snatch"); floatText("YOINK!", e.p.clone().setY(2.6), "#c0392b", 24); } } } break;
+    case "windup": e.face = Math.atan2(G.pp.x - e.p.x, G.pp.z - e.p.z); if (e.t <= 0) { e.state = "swipe"; e.t = 0.3; if (flat(e.p, G.pp) < s.reach + 0.4) { if (hurtPlayer(e.p, "swipe", s.dmg, e) && e.stolen.length) { e.state = "flee"; e.t = 3.5; sfx("snatch"); floatText("YOINK!", e.p.clone().setY(2.6), "#c0392b", 24); } } } break;
     case "swipe": if (e.t <= 0) { e.state = "recover"; e.t = s.recover; } break;
     case "recover": e.vel.set(0, 0, 0); if (e.t <= 0) e.state = "chase"; break;
     case "flee": { const away = toPlayer(e).normalize().multiplyScalar(-6); goTo(e, e.p.x + away.x, e.p.z + away.z, s.flee, dt); if (e.t <= 0) e.state = "chase"; break; }
@@ -215,9 +215,9 @@ function brute(e: Enemy, dt: number, d: number) {
       e.flash = Math.sin(G.time * 22) > 0.6 ? 0.03 : 0;
       if (e.t <= 0) {
         e.state = "slam"; e.t = 0.25; e.ring!.visible = false; sfx("slam"); G.stage.trauma = Math.min(1, G.stage.trauma + 0.45); burst(e.p.clone().setY(0.3), 22, "#c9a46a", 1.4);
-        if (flat(e.p, G.pp) < s.slam + 0.3) hurtPlayer(e.p, "slam");
+        if (flat(e.p, G.pp) < s.slam + 0.3) hurtPlayer(e.p, "slam", s.dmg);
         for (const w of WALLS) if (w.breakable) for (const [x, z] of w.pts) if (Math.hypot(x - e.p.x, z - e.p.z) < s.slam + 1.5 && wallAt((w.pts[0][0] + w.pts[1][0]) / 2, (w.pts[0][1] + w.pts[1][1]) / 2)) hitWall(w.id, 3, V(x, z, 1));
-        for (const o of G.enemies) if (o !== e && !o.down && flat(o.p, e.p) < s.slam) damage(o, 2, "slam", o.p.clone().sub(e.p).setY(0).normalize());
+        for (const o of G.enemies) if (o !== e && !o.down && flat(o.p, e.p) < s.slam) damage(o, 20, "slam", o.p.clone().sub(e.p).setY(0).normalize());
       }
       break;
     }
@@ -254,7 +254,7 @@ function sleeper(e: Enemy, dt: number, d: number) {
         e.vel.set(0, 0, 0); break;
       }
       e.p.x = nx; e.p.z = nz; e.vel.set(fx * s.charge, 0, fz * s.charge);
-      if (d < 1.6) hurtPlayer(e.p, "charge");
+      if (d < 1.6) hurtPlayer(e.p, "charge", s.dmg);
       if (e.t <= 0) { e.state = "aim"; e.t = s.aim + 0.4; e.vel.set(0, 0, 0); floatText("skrrt", e.p.clone().setY(3.4), "#5a4a6a", 18); }
       break;
     }

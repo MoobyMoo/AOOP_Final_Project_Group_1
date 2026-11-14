@@ -13,6 +13,8 @@ import { burst, floatText, popIn } from "../../fx";
 import { hud } from "../ui/hud";
 import { KINGPIN } from "../combat/weapons";
 import { WEARABLES } from "../actors/wearables";
+import { setDropWear } from "../actors/player";
+setDropWear((id) => spawnPickup(id, G.pp.clone().setY(1.6), 0, 1));
 
 export const RAR_COLOR: Record<string, string> = { common: "#f3ead6", uncommon: "#6ad16a", rare: "#4aa8ff", epic: "#c77dff" };
 const SEARCH: Record<string, number> = { wood: 0.5, green: 0.9, gold: 1.4 };
@@ -33,6 +35,14 @@ export function setupCrates() {
     obj.position.set(s.x, groundHeight(s.x, s.z), s.z); obj.rotation.y = G.rng() * 6.28; obj.traverse((m) => { (m as THREE.Mesh).castShadow = true; });
     G.stage.scene.add(obj); block(s.x, s.z, 0.6, true);
     G.crates.push({ id: nid++, x: s.x, z: s.z, tier: s.tier, fixed: s.fixed, obj, opened: false, search: 0, items: null });
+  }
+  // your satchel from the last bonk-out: recoverable once (Duckov corpse rule, CODE_FINDINGS 4.2)
+  const sat = G.save.satchel;
+  if (sat) {
+    const obj = new THREE.Group(); const bag = new THREE.Mesh(new THREE.SphereGeometry(0.45, 14, 10), new THREE.MeshStandardMaterial({ color: "#8a5a34", roughness: 0.8 })); bag.scale.set(1.1, 0.75, 0.9); bag.position.y = 0.32; obj.add(bag);
+    const flag = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.5, 4), new THREE.MeshBasicMaterial({ color: "#ffd84a" })); flag.position.y = 1.0; flag.rotation.x = Math.PI; obj.add(flag);
+    obj.position.set(sat.x, groundHeight(sat.x, sat.z), sat.z); G.stage.scene.add(obj); beam(new THREE.Vector3(sat.x, 0, sat.z), "#ffd84a");
+    G.crates.push({ id: nid++, x: sat.x, z: sat.z, tier: "wood", fixed: "satchel", obj, opened: false, search: 0, items: [...sat.items] });
   }
 }
 let searching: Crate | null = null;
@@ -62,7 +72,8 @@ export function updateLoot(dt: number) {
 }
 function openCrate(c: Crate) {
   c.opened = true; G.log.crates++; if (G.log.firstCrate < 0) G.log.firstCrate = G.raidT; G.lootCtx.cratesOpened++;
-  let items = rollCrate(c.tier, G.lootCtx, G.rng);
+  let items = c.fixed === "satchel" ? [...(c.items ?? [])] : rollCrate(c.tier, G.lootCtx, G.rng);
+  if (c.fixed === "satchel") { G.save.satchel = null; hud.toast("You got your satchel back!"); }
   if (c.fixed === "key") items = ["key", ...items];
   if (c.fixed === "vault" && !G.save.fixtures.includes("extmag") && !G.save.upgrades.mag) items = ["extmag", ...items];
   if ((c.tier === "gold" && G.rng() < 0.35) || (c.tier === "green" && G.rng() < 0.08)) { const free = WEAR_DROPS.filter((w) => !G.save.wardrobe.includes(w)); if (free.length) items.push(free[Math.floor(G.rng() * free.length)]); }

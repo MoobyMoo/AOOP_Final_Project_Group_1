@@ -3,7 +3,7 @@
 export type Intent = {
   move: { x: number; z: number };          // camera-relative stick, |v| <= 1
   aimNdc: { x: number; y: number } | null; // mouse in NDC, null in keyboard mode
-  fire: boolean; firePressed: boolean; melee: boolean; roll: boolean; interact: boolean; interactHeld: boolean;
+  fire: boolean; firePressed: boolean; ads: boolean; sprint: boolean; melee: boolean; roll: boolean; interact: boolean; interactHeld: boolean; map: boolean;
   reload: boolean; heal: boolean; swap1: boolean; swap2: boolean; swap3: boolean; esc: boolean;
 };
 export class Input {
@@ -29,9 +29,10 @@ export class Input {
     const l = Math.hypot(x, z) || 1;
     const i: Intent = {
       move: { x: x / l, z: z / l }, aimNdc: this.usingMouse ? { x: this.mouse.x, y: this.mouse.y } : null,
-      fire: this.mouse.down || k.has("j"), firePressed: this.mouse.clicked || p.has("j"),
-      melee: this.mouse.rclicked || p.has(" ") || p.has("f") || p.has("k"), roll: p.has("shift") || p.has("l"),
-      interact: p.has("e"), interactHeld: k.has("e"), reload: p.has("r"), heal: p.has("q"),
+      // Duckov-style PC bindings: LMB fire, RMB aim, Space dodge, Shift sprint, V melee, F/E interact, R reload, Q heal, M map
+      fire: this.mouse.down || k.has("j"), firePressed: this.mouse.clicked || p.has("j"), ads: this.mouse.rdown,
+      sprint: k.has("shift"), melee: p.has("v") || p.has("k"), roll: p.has(" ") || p.has("l"),
+      interact: p.has("e") || p.has("f"), interactHeld: k.has("e") || k.has("f"), reload: p.has("r"), heal: p.has("q"), map: p.has("m"),
       swap1: p.has("1"), swap2: p.has("2"), swap3: p.has("3"), esc: p.has("escape"),
     };
     p.clear(); this.mouse.clicked = this.mouse.rclicked = false;

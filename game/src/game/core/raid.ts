@@ -45,7 +45,7 @@ export function startRaid(end: (r: RaidResult) => void) {
   raidScene.add(G.rig.root);
   G.pp = G.rig.root.position; G.pp.set(POI.hatch.x + 1.5, 0, POI.hatch.z - 2.5); G.pp.y = groundHeight(G.pp.x, G.pp.z);
   G.vel.set(0, 0, 0); G.moveYaw = Math.PI; G.aimYaw = Math.PI;
-  G.maxHearts = PLAYER.hearts + G.save.upgrades.heart; G.hearts = G.maxHearts; G.iframes = 0;
+  G.maxHp = PLAYER.hp + 25 * G.save.upgrades.heart; G.hp = G.maxHp; G.stamina = PLAYER.stamina.max; G.staminaDelay = 0; G.sprinting = false; G.painT = 0; G.useItem = null; G.iframes = 0;
   G.magSize = G.save.upgrades.mag || G.save.fixtures.includes("extmag") ? KINGPIN.extMag : KINGPIN.mag; G.gun.setVariant({ extMag: G.magSize > KINGPIN.mag });
   G.ammo = Math.max(KINGPIN.startAmmo, G.save.ammo); G.mag = Math.min(G.magSize, G.ammo); G.ammo -= G.mag;
   G.fireCd = 0; G.fireT = 1; G.reloadT = -1; G.meleeT = -1; G.rollT = -1; G.rollCd = 0; G.skidT = 0; G.zipping = null;
@@ -63,6 +63,8 @@ export function startRaid(end: (r: RaidResult) => void) {
 function finish(how: RaidResult["how"], bonus: number) {
   sortPack();
   const kept = how === "bonked" ? G.pack.slice(0, G.pouchSlots) : [...G.pack], lost = how === "bonked" ? G.pack.slice(G.pouchSlots) : [];
+  // Duckov-style corpse: a bonk-out leaves the loose pack as a satchel you can recover once next raid; a second bonk-out first loses it
+  if (how === "bonked") G.save.satchel = lost.length ? { items: lost, x: G.pp.x, z: G.pp.z } : null;
   G.log.value = packValue();
   G.save.ammo = G.ammo + G.mag;
   onEnd({ how, kept, lost, bonus, raidT: G.raidT, log: G.log });
@@ -72,14 +74,14 @@ const focus = new THREE.Vector3(), chest = new THREE.Vector3();
 export function stepRaid(dt: number) {
   G.raidT += dt; G.time += dt;
   updatePlayer(dt); updateEnemies(dt); updateLoot(dt); updateInteractions(dt);
-  if (!G.alive && G.hearts <= 0) { bonkT += dt; if (bonkT > 1.8 && bonkT - dt <= 1.8) finish("bonked", 0); }
+  if (!G.alive && G.hp <= 0) { bonkT += dt; if (bonkT > 1.8 && bonkT - dt <= 1.8) finish("bonked", 0); }
 }
 /** per render frame (not per sim step): pose, camera, FX */
 export function renderRaid(dt: number) {
-  const action = !G.alive && G.hearts <= 0 ? "defeat" : G.rollT >= 0 ? "roll" : G.meleeT >= 0 ? "melee" : G.reloadT >= 0 ? "reload" : G.hurtT >= 0 ? "hurt" : G.fireT < 1 ? "fire" : G.vel.lengthSq() > 0.3 ? "run" : "idle";
+  const action = !G.alive && G.hp <= 0 ? "defeat" : G.rollT >= 0 ? "roll" : G.meleeT >= 0 ? "melee" : G.reloadT >= 0 ? "reload" : G.hurtT >= 0 ? "hurt" : G.fireT < 1 ? "fire" : G.vel.lengthSq() > 0.3 ? "run" : "idle";
   const at = action === "defeat" ? Math.min(1, bonkT / 0.9) : action === "roll" ? G.rollT : action === "melee" ? G.meleeT : action === "reload" ? G.reloadT : action === "hurt" ? G.hurtT : action === "fire" ? G.fireT : 0;
   G.rig.root.rotation.y = 0;
-  G.rig.pose({ time: G.time, speed: G.vel.length(), moveYaw: G.moveYaw, faceYaw: action === "roll" ? G.moveYaw : G.aimYaw, action, actionT: at, armed: G.meleeT >= 0 ? "briefcase" : "pistol", flash: G.iframes > 0.85 ? 1 : 0 });
+  G.rig.pose({ time: G.time, speed: G.vel.length(), moveYaw: G.moveYaw, faceYaw: action === "roll" ? G.moveYaw : G.aimYaw, action, actionT: at, armed: G.meleeT >= 0 ? "briefcase" : "pistol", flash: G.iframes > 0.25 ? 1 : 0 });
   G.gun.pose({ fireT: Math.min(1, G.fireT), reloadT: G.reloadT });
   G.fx.update(dt); updateFx(dt); hud.update(dt);
   U.uTime.value = G.time; U.uPlayer.value.copy(G.pp);

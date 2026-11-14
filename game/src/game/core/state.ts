@@ -25,7 +25,8 @@ export const G = {
   // player
   rig: null as unknown as Rig, gun: null as unknown as GunView, fx: null as unknown as GunFx,
   pp: new THREE.Vector3(), vel: new THREE.Vector3(), moveYaw: 0, aimYaw: 0, aimPoint: new THREE.Vector3(),
-  hearts: 3, maxHearts: 3, iframes: 0, alive: true,
+  hp: 100, maxHp: 100, stamina: 100, staminaDelay: 0, sprinting: false, painT: 0, armor: 0, weight: 0, iframes: 0, alive: true,
+  useItem: null as null | { id: string; t: number; time: number }, ads: false,
   mag: 8, magSize: 8, ammo: 16, fireCd: 0, fireT: 1, reloadT: -1, reloadPaused: false,
   meleeT: -1, meleeHit: false, meleeCd: 0,
   rollT: -1, rollDir: new THREE.Vector3(), rollCd: 0, skidT: 0, rollBuffer: 0, hurtT: -1,

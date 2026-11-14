@@ -15,13 +15,14 @@ const noiseRings: { m: THREE.Mesh; t: number }[] = [];
 export const hud = {
   build() {
     root().innerHTML = ""; E = {};
-    E.hearts = el("hud-hearts"); E.money = el("hud-money"); E.ammo = el("hud-ammo"); E.pack = el("hud-pack");
+    E.health = el("hud-health"); E.stam = el("hud-stam", "<i></i>"); E.use = el("hud-use"); E.money = el("hud-money"); E.ammo = el("hud-ammo"); E.pack = el("hud-pack");
     E.prompt = el("hud-prompt"); E.toast = el("hud-toast"); E.banner = el("hud-banner"); E.search = el("hud-search", `<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" class="bg"/><circle cx="20" cy="20" r="16" class="fg"/></svg>`);
     E.cross = el("hud-cross", `<i></i><i></i><i></i><i></i><b></b>`); E.extract = el("hud-extract"); E.hurt = el("hud-hurt"); E.arrows = el("hud-arrows"); E.raidT = el("hud-raidt");
-    E.help = el("hud-help", "WASD move · mouse aim · <b>click</b> shoot · <b>R</b> reload · <b>right click / Space</b> briefcase · <b>Shift</b> roll · <b>E</b> search / use · <b>Q</b> smoothie · <b>M</b> map · <b>T</b> keyboard aim");
-    hud.hearts(); hud.money(); hud.ammo(); hud.pack();
+    E.help = el("hud-help", "WASD move · <b>Shift</b> sprint · <b>Space</b> dodge · <b>click</b> shoot · <b>right click</b> aim · <b>V</b> briefcase · <b>R</b> reload · <b>E/F</b> search · <b>Q</b> heal · <b>M</b> map");
+    hud.health(); hud.money(); hud.ammo(); hud.pack();
   },
-  hearts() { if (!E.hearts) return; E.hearts.innerHTML = Array.from({ length: G.maxHearts }, (_, i) => `<span class="${i < G.hearts ? "on" : "off"}">♥</span>`).join(""); },
+  health() { if (!E.health) return; const k = G.hp / G.maxHp; E.health.innerHTML = `<span class="ico">♥</span><div class="bar"><i class="lag" style="width:${k * 100}%"></i><i class="${k < 0.3 ? "low" : ""}" style="width:${k * 100}%"></i></div><b>${Math.ceil(G.hp)}</b><span class="max">/ ${G.maxHp}</span>${G.save && G.gear?.head && (({ hardhat: 1, pith: 1, crown: 2, tophat: 0.5 } as Record<string, number>)[G.gear.head]) ? `<span class="arm">🛡</span>` : ""}`; },
+  use(u: { id: string; t: number; time: number } | null) { if (!E.use) return; if (!u) { E.use.style.display = "none"; return; } E.use.style.display = "block"; E.use.innerHTML = `${itemDef(u.id).icon} using ${itemDef(u.id).name}<div class="bar"><i style="width:${(u.t / u.time) * 100}%"></i></div>`; },
   money() { if (E.money) E.money.innerHTML = `🍌 <b>${G.save.money.toLocaleString()}</b>`; },
   ammo() { if (E.ammo) E.ammo.innerHTML = `<span class="gun">KINGPIN .45</span><b class="${G.mag === 0 ? "empty" : ""}">${G.mag}</b><span>/ ${G.ammo}</span>`; },
   pack() {
@@ -31,7 +32,8 @@ export const hud = {
       h += `<div class="slot ${pouch ? "pouch" : ""}" style="${d ? `border-color:${RAR_COLOR[d.rarity]}` : ""}">${d ? d.icon : ""}${pouch ? `<em>safe</em>` : ""}</div>`;
     }
     const v = G.pack.reduce((a, id) => a + itemDef(id).value, 0);
-    E.pack.innerHTML = `<div class="slots">${h}</div><div class="val">pack worth 🍌 ${v}${G.pack.length >= G.packSlots ? " · <b>FULL</b>" : ""}</div>`;
+    const w = G.pack.reduce((a, id) => a + (itemDef(id).weight ?? 1), 0) + G.ammo * 0.02, wr = w / 30;
+    E.pack.innerHTML = `<div class="slots">${h}</div><div class="val">pack worth 🍌 ${v} · <span class="wt">${w.toFixed(1)} / 30 kg ${wr > 1 ? "OVERWEIGHT" : wr > 0.75 ? "heavy" : wr <= 0.25 ? "light" : ""}</span>${G.pack.length >= G.packSlots ? " · <b>FULL</b>" : ""}</div>`;
   },
   prompt(t: string) { if (!E.prompt) return; E.prompt.textContent = t; E.prompt.classList.add("on"); promptT = 0.15; },
   toast(t: string) { if (!E.toast) return; E.toast.textContent = t; E.toast.classList.remove("on"); void E.toast.offsetWidth; E.toast.classList.add("on"); toastT = 4.5; },
@@ -49,6 +51,11 @@ export const hud = {
   extract(label: string, k: number) { if (!E.extract) return; if (k <= 0) { E.extract.style.display = "none"; return; } E.extract.style.display = "block"; E.extract.innerHTML = `${label}<div class="bar"><i style="width:${Math.min(100, k * 100)}%"></i></div>`; },
   update(dt: number) {
     if (!E.cross) return;
+    { // stamina: a small arc near the character, hidden when full (Duckov-style)
+      const k = G.stamina / 100, s = toScreen(G.pp.clone().setY(G.pp.y + 0.2)); E.stam.style.left = s.x + 38 + "px"; E.stam.style.top = s.y - 30 + "px";
+      E.stam.style.opacity = k >= 0.999 ? "0" : "1"; (E.stam.firstChild as HTMLElement).style.height = k * 100 + "%"; E.stam.classList.toggle("low", G.stamina < 20);
+      const wr = G.weight / 30; E.pack.classList.toggle("heavy", wr > 0.75); E.pack.classList.toggle("over", wr > 1);
+    }
     toastT -= dt; bannerT -= dt; promptT -= dt; markerT -= dt;
     if (toastT <= 0) E.toast.classList.remove("on"); if (bannerT <= 0) E.banner.classList.remove("on"); if (promptT <= 0) E.prompt.classList.remove("on");
     // crosshair follows the aim point; spreads a little right after a shot

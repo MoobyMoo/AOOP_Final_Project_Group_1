@@ -16,7 +16,7 @@ const tmp = new THREE.Vector3(), to = new THREE.Vector3();
 export function shoot() {
   G.log.shots++;
   // the magnet: bend toward the enemy nearest the aim ray within 7 degrees
-  let yaw = G.aimYaw, target: Enemy | null = null, bestA = KINGPIN.magnet;
+  let yaw = G.aimYaw, target: Enemy | null = null, bestA = G.ads ? KINGPIN.magnetAds : KINGPIN.magnet;
   for (const e of G.enemies) {
     if (e.down || !e.active) continue; const d = flat(G.pp, e.p); if (d > KINGPIN.range) continue;
     const a = Math.abs(angDiff(Math.atan2(e.p.x - G.pp.x, e.p.z - G.pp.z), G.aimYaw)) - Math.atan2(e.rig.bounds.radius, d);
@@ -75,10 +75,10 @@ export function damage(e: Enemy, n: number, by: "pistol" | "briefcase" | "slam" 
   if (e.kind === "sleeper" && e.state !== "stunned") { // awake hits plink for zero (advisor 18)
     floatText("plink", e.p.clone().setY(3.4), "#8a8fa0", 18); sfx("hit", 0.4); if (e.state === "sleep") hearNoise(e, 3); return;
   }
-  e.hp -= n; e.flash = FEEL.flash; sfx(by === "pistol" ? "hit" : "bonk"); hud.hitMarker(e.hp <= 0);
+  e.hp -= n; e.flash = FEEL.flash; floatText(String(n), e.p.clone().setY(e.rig.bounds.height + 0.2 + Math.random() * 0.4), by === "briefcase" ? "#ffd84a" : "#fff8ec", 18); sfx(by === "pistol" ? "hit" : "bonk"); hud.hitMarker(e.hp <= 0);
   if (e.kind !== "brute" && e.kind !== "sleeper") e.vel.addScaledVector(dir, by === "briefcase" ? BRIEFCASE.knock : 2.5);
   burst(e.p.clone().setY(1.2), by === "briefcase" ? 10 : 5, "#fff3b0", 0.7);
-  if (by === "briefcase") floatText("BONK!", e.p.clone().setY(e.rig.bounds.height + 0.4), "#e8493a", 24);
+  if (by === "briefcase") floatText("BONK!", e.p.clone().setY(e.rig.bounds.height + 0.8), "#e8493a", 24);
   if (e.state === "sleep" || e.state === "patrol" || e.state === "return") alertEnemy(e, true);
   if (e.hp <= 0) knockOut(e, by);
 }

@@ -13,13 +13,13 @@ import { burst } from "../../fx";
 import { rollCrate } from "../loot/interim";
 
 export const EXTRACT_TIME = 3;
-let lastPp = new THREE.Vector3(), lastHearts = 3, fading = false;
+let lastPp = new THREE.Vector3(), lastHp = 100, fading = false;
 export let onExtract: (id: "hatch" | "raft" | "tunnel", bonus: number) => void = () => {};
 export const setOnExtract = (f: typeof onExtract) => { onExtract = f; };
 let drop: { t: number; at: { x: number; z: number; area: string }; done: boolean; smoke?: THREE.Points } | null = null;
 
 export function startInteractions() {
-  lastPp.copy(G.pp); lastHearts = G.hearts; G.extract = { id: "", t: 0 }; fading = false;
+  lastPp.copy(G.pp); lastHp = G.hp; G.extract = { id: "", t: 0 }; fading = false;
   const at = SUPPLY_DROPS[Math.floor(G.rng() * SUPPLY_DROPS.length)]; drop = { t: 90 + G.rng() * 60, at, done: false };
 }
 export function fadeTo(f: () => void) {
@@ -31,11 +31,9 @@ export function updateInteractions(dt: number) {
   // ---- area discovery
   const a = areaAt(G.pp.x, G.pp.z);
   if (a && a !== G.area) { G.area = a; if (!G.discovered.has(a)) { G.discovered.add(a); const c = CLEARINGS.find((q) => q.id === a)!; hud.banner(c.name, c.under ? "underground" : ""); sfx("ui"); } }
-  // ---- heal
-  if (G.intent.heal) { const k = G.pack.indexOf("smoothie"); if (k >= 0 && G.hearts < G.maxHearts) { G.pack.splice(k, 1); G.hearts++; sfx("heal"); hud.hearts(); hud.pack(); burst(G.pp.clone().setY(1.5), 12, "#ff9ec4", 0.6); } else if (k < 0) hud.toast("No smoothie in your pack"); }
   // ---- extraction
   const moved = flat(G.pp, lastPp) > 0.02 * Math.max(1, dt * 60); lastPp.copy(G.pp);
-  const hit = G.hearts < lastHearts; lastHearts = G.hearts;
+  const hit = G.hp < lastHp; lastHp = G.hp;
   let inEx: (typeof exits)[number] | null = null;
   for (const e of exits) { if (!e.open) continue; if (flat(G.pp, e) < 1.9) inEx = e; e.ring.rotation.z += dt * 0.6; }
   if (inEx && !G.zipping) {
