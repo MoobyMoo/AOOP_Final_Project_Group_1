@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bananaville: nature kit review</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #d9cfa8; font-family: "Trebuchet MS", system-ui, sans-serif; }
+      canvas { display: block; width: 100vw; height: 100vh; }
+      .lab { position: fixed; transform: translate(-50%, 0); color: #fff8ec; font-size: 13px; font-weight: bold; text-shadow: 0 1px 3px #000c; pointer-events: none; white-space: nowrap; }
+      #info, #fps { position: fixed; left: 10px; color: #fff8ec; font-size: 11px; text-shadow: 0 1px 2px #000c; max-width: 96vw; }
+      #info { bottom: 8px; } #fps { top: 8px; }
+    </style>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div id="fps"></div>
+    <div id="info"></div>
+    <script type="module" src="/src/game/world/nature_review.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,2000 @@
+{
+ "pieces": {
+  "palm_0": {
+   "tris": 1532,
+   "budget": 3500,
+   "parts": {
+    "matte": 452,
+    "foliage": 1080
+   },
+   "size": [
+    5.45,
+    4.29,
+    5.77
+   ]
+  },
+  "palm_1": {
+   "tris": 1332,
+   "budget": 3500,
+   "parts": {
+    "matte": 432,
+    "foliage": 900
+   },
+   "size": [
+    4.31,
+    4.6,
+    6.23
+   ]
+  },
+  "palm_2": {
+   "tris": 1564,
+   "budget": 3500,
+   "parts": {
+    "matte": 484,
+    "foliage": 1080
+   },
+   "size": [
+    5.09,
+    4.77,
+    6.74
+   ]
+  },
+  "palm_3": {
+   "tris": 1494,
+   "budget": 3500,
+   "parts": {
+    "matte": 504,
+    "foliage": 990
+   },
+   "size": [
+    4.25,
+    4.6,
+    6.6
+   ]
+  },
+  "palmlean_0": {
+   "tris": 1378,
+   "budget": 3500,
+   "parts": {
+    "matte": 568,
+    "foliage": 810
+   },
+   "size": [
+    5.55,
+    5.25,
+    8.04
+   ]
+  },
+  "palmlean_1": {
+   "tris": 1576,
+   "budget": 3500,
+   "parts": {
+    "matte": 496,
+    "foliage": 1080
+   },
+   "size": [
+    4.73,
+    4.93,
+    7.89
+   ]
+  },
+  "palmlean_2": {
+   "tris": 1494,
+   "budget": 3500,
+   "parts": {
+    "matte": 504,
+    "foliage": 990
+   },
+   "size": [
+    5.18,
+    4.76,
+    6.91
+   ]
+  },
+  "tree_0": {
+   "tris": 2444,
+   "budget": 3500,
+   "parts": {
+    "matte": 348,
+    "foliage": 2096
+   },
+   "size": [
+    5.36,
+    5.16,
+    7.16
+   ]
+  },
+  "tree_1": {
+   "tris": 2238,
+   "budget": 3500,
+   "parts": {
+    "matte": 318,
+    "foliage": 1920
+   },
+   "size": [
+    5.14,
+    5.63,
+    6.67
+   ]
+  },
+  "tree_2": {
+   "tris": 1928,
+   "budget": 3500,
+   "parts": {
+    "matte": 288,
+    "foliage": 1640
+   },
+   "size": [
+    4.91,
+    4.54,
+    7.18
+   ]
+  },
+  "tree_3": {
+   "tris": 1928,
+   "budget": 3500,
+   "parts": {
+    "matte": 288,
+    "foliage": 1640
+   },
+   "size": [
+    5.94,
+    4.38,
+    6.69
+   ]
+  },
+  "tree_4": {
+   "tris": 2134,
+   "budget": 3500,
+   "parts": {
+    "matte": 318,
+    "foliage": 1816
+   },
+   "size": [
+    5.37,
+    5.17,
+    6.51
+   ]
+  },
+  "treefar_0": {
+   "tris": 998,
+   "budget": 3500,
+   "parts": {
+    "matte": 198,
+    "foliage": 800
+   },
+   "size": [
+    5.9,
+    4.83,
+    7.17
+   ]
+  },
+  "treefar_1": {
+   "tris": 998,
+   "budget": 3500,
+   "parts": {
+    "matte": 198,
+    "foliage": 800
+   },
+   "size": [
+    4.01,
+    6.17,
+    6.69
+   ]
+  },
+  "treefar_2": {
+   "tris": 998,
+   "budget": 3500,
+   "parts": {
+    "matte": 198,
+    "foliage": 800
+   },
+   "size": [
+    4.88,
+    4.92,
+    6.18
+   ]
+  },
+  "mangrove_0": {
+   "tris": 1729,
+   "budget": 3500,
+   "parts": {
+    "matte": 721,
+    "foliage": 1008
+   },
+   "size": [
+    4.27,
+    5.79,
+    5.36
+   ]
+  },
+  "mangrove_1": {
+   "tris": 1927,
+   "budget": 3500,
+   "parts": {
+    "matte": 695,
+    "foliage": 1232
+   },
+   "size": [
+    5.53,
+    4.69,
+    4.55
+   ]
+  },
+  "mangrove_2": {
+   "tris": 2023,
+   "budget": 3500,
+   "parts": {
+    "matte": 791,
+    "foliage": 1232
+   },
+   "size": [
+    5.04,
+    5.6,
+    4.57
+   ]
+  },
+  "caster_0": {
+   "tris": 416,
+   "budget": 800,
+   "parts": {
+    "foliage": 416
+   },
+   "size": [
+    2.34,
+    2.74,
+    0.79
+   ]
+  },
+  "caster_1": {
+   "tris": 302,
+   "budget": 800,
+   "parts": {
+    "foliage": 302
+   },
+   "size": [
+    3.27,
+    2.26,
+    0.69
+   ]
+  },
+  "caster_2": {
+   "tris": 294,
+   "budget": 800,
+   "parts": {
+    "foliage": 294
+   },
+   "size": [
+    2.04,
+    2.51,
+    0.92
+   ]
+  },
+  "giant_0": {
+   "tris": 8706,
+   "budget": 9000,
+   "parts": {
+    "matte": 2418,
+    "foliage": 6288
+   },
+   "size": [
+    14.98,
+    13.44,
+    14.0
+   ]
+  },
+  "giant_1": {
+   "tris": 7702,
+   "budget": 9000,
+   "parts": {
+    "matte": 2294,
+    "foliage": 5408
+   },
+   "size": [
+    13.82,
+    12.84,
+    13.97
+   ]
+  },
+  "giant_2": {
+   "tris": 8741,
+   "budget": 9000,
+   "parts": {
+    "matte": 2437,
+    "foliage": 6304
+   },
+   "size": [
+    13.75,
+    13.28,
+    13.94
+   ]
+  },
+  "bush_0": {
+   "tris": 780,
+   "budget": 1500,
+   "parts": {
+    "matte": 108,
+    "foliage": 672
+   },
+   "size": [
+    2.15,
+    2.07,
+    1.45
+   ]
+  },
+  "bush_1": {
+   "tris": 360,
+   "budget": 1500,
+   "parts": {
+    "matte": 100,
+    "foliage": 260
+   },
+   "size": [
+    2.03,
+    2.0,
+    1.78
+   ]
+  },
+  "bush_2": {
+   "tris": 664,
+   "budget": 1500,
+   "parts": {
+    "matte": 108,
+    "foliage": 556
+   },
+   "size": [
+    1.95,
+    2.41,
+    1.54
+   ]
+  },
+  "bush_3": {
+   "tris": 754,
+   "budget": 1500,
+   "parts": {
+    "matte": 90,
+    "foliage": 664
+   },
+   "size": [
+    2.34,
+    2.68,
+    1.1
+   ]
+  },
+  "bush_4": {
+   "tris": 746,
+   "budget": 1500,
+   "parts": {
+    "matte": 90,
+    "foliage": 656
+   },
+   "size": [
+    1.59,
+    1.77,
+    2.2
+   ]
+  },
+  "fern_0": {
+   "tris": 416,
+   "budget": 800,
+   "parts": {
+    "matte": 20,
+    "foliage": 396
+   },
+   "size": [
+    2.03,
+    2.31,
+    0.77
+   ]
+  },
+  "fern_1": {
+   "tris": 500,
+   "budget": 800,
+   "parts": {
+    "matte": 20,
+    "foliage": 480
+   },
+   "size": [
+    2.12,
+    2.04,
+    0.73
+   ]
+  },
+  "fern_2": {
+   "tris": 542,
+   "budget": 800,
+   "parts": {
+    "matte": 20,
+    "foliage": 522
+   },
+   "size": [
+    2.11,
+    2.06,
+    0.73
+   ]
+  },
+  "fern_3": {
+   "tris": 530,
+   "budget": 800,
+   "parts": {
+    "matte": 20,
+    "foliage": 510
+   },
+   "size": [
+    2.0,
+    1.97,
+    0.74
+   ]
+  },
+  "bigleaf_0": {
+   "tris": 342,
+   "budget": 800,
+   "parts": {
+    "matte": 244,
+    "foliage": 98
+   },
+   "size": [
+    2.04,
+    2.15,
+    1.43
+   ]
+  },
+  "bigleaf_1": {
+   "tris": 296,
+   "budget": 800,
+   "parts": {
+    "matte": 212,
+    "foliage": 84
+   },
+   "size": [
+    1.58,
+    1.82,
+    1.43
+   ]
+  },
+  "bigleaf_2": {
+   "tris": 250,
+   "budget": 800,
+   "parts": {
+    "matte": 180,
+    "foliage": 70
+   },
+   "size": [
+    1.65,
+    1.58,
+    1.61
+   ]
+  },
+  "bigleaf_3": {
+   "tris": 250,
+   "budget": 800,
+   "parts": {
+    "matte": 180,
+    "foliage": 70
+   },
+   "size": [
+    1.65,
+    1.53,
+    1.4
+   ]
+  },
+  "banana_0": {
+   "tris": 644,
+   "budget": 800,
+   "parts": {
+    "matte": 464,
+    "foliage": 180
+   },
+   "size": [
+    2.56,
+    2.57,
+    2.37
+   ]
+  },
+  "banana_1": {
+   "tris": 689,
+   "budget": 800,
+   "parts": {
+    "matte": 485,
+    "foliage": 204
+   },
+   "size": [
+    2.88,
+    2.6,
+    2.4
+   ]
+  },
+  "banana_2": {
+   "tris": 291,
+   "budget": 800,
+   "parts": {
+    "matte": 63,
+    "foliage": 228
+   },
+   "size": [
+    2.43,
+    2.27,
+    2.41
+   ]
+  },
+  "banana_3": {
+   "tris": 644,
+   "budget": 800,
+   "parts": {
+    "matte": 464,
+    "foliage": 180
+   },
+   "size": [
+    2.4,
+    2.34,
+    2.4
+   ]
+  },
+  "flowers_0": {
+   "tris": 184,
+   "budget": 800,
+   "parts": {
+    "matte": 92,
+    "foliage": 92
+   },
+   "size": [
+    0.63,
+    0.83,
+    0.72
+   ]
+  },
+  "flowers_1": {
+   "tris": 228,
+   "budget": 800,
+   "parts": {
+    "matte": 116,
+    "foliage": 112
+   },
+   "size": [
+    0.87,
+    1.02,
+    0.7
+   ]
+  },
+  "flowers_2": {
+   "tris": 202,
+   "budget": 800,
+   "parts": {
+    "matte": 104,
+    "foliage": 98
+   },
+   "size": [
+    0.92,
+    0.96,
+    0.67
+   ]
+  },
+  "flowers_3": {
+   "tris": 252,
+   "budget": 800,
+   "parts": {
+    "matte": 116,
+    "foliage": 136
+   },
+   "size": [
+    0.8,
+    0.99,
+    0.75
+   ]
+  },
+  "reeds_0": {
+   "tris": 749,
+   "budget": 800,
+   "parts": {
+    "matte": 350,
+    "foliage": 399
+   },
+   "size": [
+    0.85,
+    0.68,
+    2.48
+   ]
+  },
+  "reeds_1": {
+   "tris": 707,
+   "budget": 800,
+   "parts": {
+    "matte": 350,
+    "foliage": 357
+   },
+   "size": [
+    0.63,
+    0.84,
+    2.39
+   ]
+  },
+  "reeds_2": {
+   "tris": 575,
+   "budget": 800,
+   "parts": {
+    "matte": 218,
+    "foliage": 357
+   },
+   "size": [
+    0.92,
+    0.81,
+    2.28
+   ]
+  },
+  "lily_0": {
+   "tris": 140,
+   "budget": 800,
+   "parts": {
+    "foliage": 140
+   },
+   "size": [
+    2.25,
+    2.1,
+    0.14
+   ]
+  },
+  "lily_1": {
+   "tris": 129,
+   "budget": 800,
+   "parts": {
+    "foliage": 129
+   },
+   "size": [
+    1.85,
+    1.75,
+    0.14
+   ]
+  },
+  "lily_2": {
+   "tris": 44,
+   "budget": 800,
+   "parts": {
+    "foliage": 44
+   },
+   "size": [
+    1.87,
+    2.18,
+    0.04
+   ]
+  },
+  "beachgrass_0": {
+   "tris": 575,
+   "budget": 800,
+   "parts": {
+    "matte": 134,
+    "foliage": 441
+   },
+   "size": [
+    1.19,
+    1.0,
+    1.41
+   ]
+  },
+  "beachgrass_1": {
+   "tris": 550,
+   "budget": 800,
+   "parts": {
+    "matte": 172,
+    "foliage": 378
+   },
+   "size": [
+    1.28,
+    0.93,
+    1.36
+   ]
+  },
+  "beachgrass_2": {
+   "tris": 466,
+   "budget": 800,
+   "parts": {
+    "matte": 172,
+    "foliage": 294
+   },
+   "size": [
+    1.07,
+    1.37,
+    1.22
+   ]
+  },
+  "grass_0": {
+   "tris": 30,
+   "budget": 100,
+   "parts": {
+    "foliage": 30
+   },
+   "size": [
+    0.33,
+    0.42,
+    0.63
+   ]
+  },
+  "grass_1": {
+   "tris": 25,
+   "budget": 100,
+   "parts": {
+    "foliage": 25
+   },
+   "size": [
+    0.33,
+    0.29,
+    0.65
+   ]
+  },
+  "grass_2": {
+   "tris": 35,
+   "budget": 100,
+   "parts": {
+    "foliage": 35
+   },
+   "size": [
+    0.4,
+    0.39,
+    0.68
+   ]
+  },
+  "litter_0": {
+   "tris": 80,
+   "budget": 800,
+   "parts": {
+    "foliage": 80
+   },
+   "size": [
+    2.38,
+    2.24,
+    0.11
+   ]
+  },
+  "litter_1": {
+   "tris": 72,
+   "budget": 800,
+   "parts": {
+    "foliage": 72
+   },
+   "size": [
+    2.44,
+    2.05,
+    0.17
+   ]
+  },
+  "litter_2": {
+   "tris": 64,
+   "budget": 800,
+   "parts": {
+    "foliage": 64
+   },
+   "size": [
+    1.25,
+    2.71,
+    0.12
+   ]
+  },
+  "rocks_0": {
+   "tris": 98,
+   "budget": 600,
+   "parts": {
+    "matte": 98
+   },
+   "size": [
+    0.65,
+    0.71,
+    0.37
+   ]
+  },
+  "rocks_1": {
+   "tris": 77,
+   "budget": 600,
+   "parts": {
+    "matte": 77
+   },
+   "size": [
+    0.52,
+    0.55,
+    0.31
+   ]
+  },
+  "rocks_2": {
+   "tris": 79,
+   "budget": 600,
+   "parts": {
+    "matte": 79
+   },
+   "size": [
+    0.51,
+    0.46,
+    0.32
+   ]
+  },
+  "rocks_3": {
+   "tris": 90,
+   "budget": 600,
+   "parts": {
+    "matte": 90
+   },
+   "size": [
+    0.57,
+    0.59,
+    0.31
+   ]
+  },
+  "rockm_0": {
+   "tris": 187,
+   "budget": 600,
+   "parts": {
+    "matte": 187
+   },
+   "size": [
+    1.09,
+    1.3,
+    0.82
+   ]
+  },
+  "rockm_1": {
+   "tris": 192,
+   "budget": 600,
+   "parts": {
+    "matte": 192
+   },
+   "size": [
+    1.24,
+    1.34,
+    0.74
+   ]
+  },
+  "rockm_2": {
+   "tris": 114,
+   "budget": 600,
+   "parts": {
+    "matte": 114
+   },
+   "size": [
+    1.09,
+    1.12,
+    0.65
+   ]
+  },
+  "rockm_3": {
+   "tris": 119,
+   "budget": 600,
+   "parts": {
+    "matte": 119
+   },
+   "size": [
+    0.84,
+    1.31,
+    0.75
+   ]
+  },
+  "rockl_0": {
+   "tris": 264,
+   "budget": 600,
+   "parts": {
+    "matte": 264
+   },
+   "size": [
+    2.41,
+    1.88,
+    1.3
+   ]
+  },
+  "rockl_1": {
+   "tris": 228,
+   "budget": 600,
+   "parts": {
+    "matte": 228
+   },
+   "size": [
+    1.65,
+    2.23,
+    1.21
+   ]
+  },
+  "rockl_2": {
+   "tris": 257,
+   "budget": 600,
+   "parts": {
+    "matte": 257
+   },
+   "size": [
+    1.66,
+    2.32,
+    1.35
+   ]
+  },
+  "rockl_3": {
+   "tris": 270,
+   "budget": 600,
+   "parts": {
+    "matte": 270
+   },
+   "size": [
+    1.94,
+    2.14,
+    1.46
+   ]
+  },
+  "boulders_0": {
+   "tris": 360,
+   "budget": 600,
+   "parts": {
+    "matte": 360
+   },
+   "size": [
+    3.06,
+    3.66,
+    1.32
+   ]
+  },
+  "boulders_1": {
+   "tris": 509,
+   "budget": 600,
+   "parts": {
+    "matte": 509
+   },
+   "size": [
+    2.94,
+    3.12,
+    1.37
+   ]
+  },
+  "boulders_2": {
+   "tris": 352,
+   "budget": 600,
+   "parts": {
+    "matte": 352
+   },
+   "size": [
+    3.1,
+    2.67,
+    1.29
+   ]
+  },
+  "pebbles_0": {
+   "tris": 484,
+   "budget": 600,
+   "parts": {
+    "matte": 484
+   },
+   "size": [
+    1.42,
+    1.29,
+    0.17
+   ]
+  },
+  "pebbles_1": {
+   "tris": 568,
+   "budget": 600,
+   "parts": {
+    "matte": 568
+   },
+   "size": [
+    1.47,
+    1.48,
+    0.16
+   ]
+  },
+  "pebbles_2": {
+   "tris": 380,
+   "budget": 600,
+   "parts": {
+    "matte": 380
+   },
+   "size": [
+    0.94,
+    0.6,
+    0.16
+   ]
+  },
+  "log_0": {
+   "tris": 451,
+   "budget": 800,
+   "parts": {
+    "matte": 451
+   },
+   "size": [
+    2.57,
+    0.85,
+    1.02
+   ]
+  },
+  "log_1": {
+   "tris": 559,
+   "budget": 800,
+   "parts": {
+    "matte": 451,
+    "foliage": 108
+   },
+   "size": [
+    2.5,
+    0.99,
+    1.07
+   ]
+  },
+  "log_2": {
+   "tris": 451,
+   "budget": 800,
+   "parts": {
+    "matte": 451
+   },
+   "size": [
+    2.75,
+    0.87,
+    1.0
+   ]
+  },
+  "log_3": {
+   "tris": 686,
+   "budget": 800,
+   "parts": {
+    "matte": 542,
+    "foliage": 144
+   },
+   "size": [
+    2.63,
+    0.95,
+    0.91
+   ]
+  },
+  "stump_0": {
+   "tris": 204,
+   "budget": 800,
+   "parts": {
+    "matte": 204
+   },
+   "size": [
+    1.54,
+    1.54,
+    0.82
+   ]
+  },
+  "stump_1": {
+   "tris": 132,
+   "budget": 800,
+   "parts": {
+    "matte": 132
+   },
+   "size": [
+    1.57,
+    1.7,
+    1.13
+   ]
+  },
+  "stump_2": {
+   "tris": 242,
+   "budget": 800,
+   "parts": {
+    "matte": 222,
+    "foliage": 20
+   },
+   "size": [
+    1.53,
+    1.42,
+    1.2
+   ]
+  },
+  "driftwood_0": {
+   "tris": 182,
+   "budget": 800,
+   "parts": {
+    "matte": 182
+   },
+   "size": [
+    1.17,
+    1.97,
+    0.59
+   ]
+  },
+  "driftwood_1": {
+   "tris": 182,
+   "budget": 800,
+   "parts": {
+    "matte": 182
+   },
+   "size": [
+    2.56,
+    0.97,
+    0.62
+   ]
+  },
+  "driftwood_2": {
+   "tris": 182,
+   "budget": 800,
+   "parts": {
+    "matte": 182
+   },
+   "size": [
+    0.78,
+    2.61,
+    0.48
+   ]
+  },
+  "shells_0": {
+   "tris": 176,
+   "budget": 800,
+   "parts": {
+    "matte": 176
+   },
+   "size": [
+    1.7,
+    1.74,
+    0.25
+   ]
+  },
+  "shells_1": {
+   "tris": 200,
+   "budget": 800,
+   "parts": {
+    "matte": 200
+   },
+   "size": [
+    1.43,
+    1.01,
+    0.23
+   ]
+  },
+  "shells_2": {
+   "tris": 200,
+   "budget": 800,
+   "parts": {
+    "matte": 200
+   },
+   "size": [
+    1.57,
+    1.44,
+    0.23
+   ]
+  },
+  "caverock_0": {
+   "tris": 218,
+   "budget": 600,
+   "parts": {
+    "matte": 218
+   },
+   "size": [
+    1.66,
+    1.12,
+    1.4
+   ]
+  },
+  "caverock_1": {
+   "tris": 250,
+   "budget": 600,
+   "parts": {
+    "matte": 250
+   },
+   "size": [
+    1.1,
+    1.36,
+    1.18
+   ]
+  },
+  "caverock_2": {
+   "tris": 269,
+   "budget": 600,
+   "parts": {
+    "matte": 269
+   },
+   "size": [
+    1.14,
+    1.32,
+    1.59
+   ]
+  },
+  "caverock_3": {
+   "tris": 197,
+   "budget": 600,
+   "parts": {
+    "matte": 197
+   },
+   "size": [
+    1.34,
+    1.39,
+    1.16
+   ]
+  },
+  "stalagmite_0": {
+   "tris": 273,
+   "budget": 600,
+   "parts": {
+    "matte": 273
+   },
+   "size": [
+    1.6,
+    1.2,
+    2.02
+   ]
+  },
+  "stalagmite_1": {
+   "tris": 364,
+   "budget": 600,
+   "parts": {
+    "matte": 364
+   },
+   "size": [
+    1.32,
+    1.52,
+    1.54
+   ]
+  },
+  "stalagmite_2": {
+   "tris": 273,
+   "budget": 600,
+   "parts": {
+    "matte": 273
+   },
+   "size": [
+    1.88,
+    1.05,
+    1.96
+   ]
+  },
+  "mushroom_0": {
+   "tris": 320,
+   "budget": 800,
+   "parts": {
+    "matte": 120,
+    "emissive": 200
+   },
+   "size": [
+    0.73,
+    0.74,
+    0.52
+   ]
+  },
+  "mushroom_1": {
+   "tris": 380,
+   "budget": 800,
+   "parts": {
+    "matte": 140,
+    "emissive": 240
+   },
+   "size": [
+    0.7,
+    0.65,
+    0.66
+   ]
+  },
+  "mushroom_2": {
+   "tris": 320,
+   "budget": 800,
+   "parts": {
+    "matte": 120,
+    "emissive": 200
+   },
+   "size": [
+    0.82,
+    0.66,
+    0.68
+   ]
+  },
+  "mushroom_3": {
+   "tris": 440,
+   "budget": 800,
+   "parts": {
+    "matte": 160,
+    "emissive": 280
+   },
+   "size": [
+    0.93,
+    0.89,
+    0.54
+   ]
+  },
+  "crystal_0": {
+   "tris": 181,
+   "budget": 800,
+   "parts": {
+    "matte": 91,
+    "emissive": 90
+   },
+   "size": [
+    0.81,
+    0.8,
+    1.37
+   ]
+  },
+  "crystal_1": {
+   "tris": 182,
+   "budget": 800,
+   "parts": {
+    "matte": 92,
+    "emissive": 90
+   },
+   "size": [
+    0.87,
+    1.02,
+    1.39
+   ]
+  },
+  "crystal_2": {
+   "tris": 221,
+   "budget": 800,
+   "parts": {
+    "matte": 95,
+    "emissive": 126
+   },
+   "size": [
+    1.11,
+    1.25,
+    1.36
+   ]
+  },
+  "roots_0": {
+   "tris": 574,
+   "budget": 1500,
+   "parts": {
+    "matte": 574
+   },
+   "size": [
+    2.04,
+    1.74,
+    4.64
+   ]
+  },
+  "roots_1": {
+   "tris": 602,
+   "budget": 1500,
+   "parts": {
+    "matte": 602
+   },
+   "size": [
+    2.29,
+    1.34,
+    4.68
+   ]
+  },
+  "roots_2": {
+   "tris": 634,
+   "budget": 1500,
+   "parts": {
+    "matte": 634
+   },
+   "size": [
+    2.08,
+    1.58,
+    4.53
+   ]
+  },
+  "cliff_0": {
+   "tris": 5093,
+   "budget": 6000,
+   "parts": {
+    "matte": 3779,
+    "foliage": 1314
+   },
+   "size": [
+    14.77,
+    5.52,
+    7.22
+   ]
+  },
+  "water_0": {
+   "tris": 352,
+   "budget": 600,
+   "parts": {
+    "matte": 352
+   },
+   "size": [
+    3.0,
+    3.06,
+    5.68
+   ]
+  },
+  "foam_0": {
+   "tris": 320,
+   "budget": 600,
+   "parts": {
+    "matte": 320
+   },
+   "size": [
+    5.24,
+    3.23,
+    0.33
+   ]
+  }
+ },
+ "packs": {
+  "trees": {
+   "file": "public/models/nature/trees.glb",
+   "bytes": 1059668,
+   "tris": 30727,
+   "nodes": 39
+  },
+  "giant": {
+   "file": "public/models/nature/giant.glb",
+   "bytes": 698468,
+   "tris": 25149,
+   "nodes": 6
+  },
+  "plants": {
+   "file": "public/models/nature/plants.glb",
+   "bytes": 518948,
+   "tris": 13805,
+   "nodes": 63
+  },
+  "rocks": {
+   "file": "public/models/nature/rocks.glb",
+   "bytes": 493208,
+   "tris": 8475,
+   "nodes": 34
+  },
+  "cave": {
+   "file": "public/models/nature/cave.glb",
+   "bytes": 207504,
+   "tris": 5698,
+   "nodes": 24
+  },
+  "waterfall": {
+   "file": "public/models/nature/waterfall.glb",
+   "bytes": 377632,
+   "tris": 5765,
+   "nodes": 4
+  }
+ },
+ "qa": {
+  "palm_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "palm_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "palm_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "palm_3": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "palmlean_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "palmlean_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "palmlean_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "tree_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "tree_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "tree_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "tree_3": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "tree_4": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "treefar_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "treefar_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "treefar_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "mangrove_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "mangrove_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "mangrove_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "caster_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "caster_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "caster_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "giant_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "giant_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "giant_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "bush_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "bush_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "bush_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "bush_3": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "bush_4": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "fern_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "fern_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "fern_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "fern_3": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "bigleaf_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "bigleaf_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "bigleaf_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "bigleaf_3": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "banana_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "banana_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "banana_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "banana_3": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "flowers_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "flowers_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "flowers_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "flowers_3": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "reeds_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "reeds_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "reeds_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: reeds_2__foliage (1 pairs) - delete to save tris"
+   ]
+  },
+  "lily_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "lily_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "lily_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "beachgrass_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "beachgrass_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "beachgrass_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "grass_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "grass_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "grass_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "litter_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "litter_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "litter_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "rocks_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "rocks_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "rocks_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "rocks_3": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "rockm_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "rockm_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "rockm_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "rockm_3": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "rockl_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "rockl_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "rockl_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "rockl_3": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "boulders_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "boulders_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "boulders_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "pebbles_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "pebbles_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "pebbles_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "log_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "log_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "log_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "log_3": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "stump_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "stump_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "stump_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "driftwood_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "driftwood_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "driftwood_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "shells_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": [
+    "shells_0__matte: duplicate verts=5 loose verts=0"
+   ]
+  },
+  "shells_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": [
+    "shells_1__matte: duplicate verts=5 loose verts=0"
+   ]
+  },
+  "shells_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": [
+    "shells_2__matte: duplicate verts=5 loose verts=0"
+   ]
+  },
+  "caverock_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "caverock_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "caverock_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "caverock_3": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "stalagmite_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "stalagmite_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "stalagmite_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "mushroom_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "mushroom_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "mushroom_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "mushroom_3": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "crystal_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": [
+    "crystal_0__emissive: duplicate verts=105 loose verts=0"
+   ]
+  },
+  "crystal_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": [
+    "crystal_1__emissive: duplicate verts=105 loose verts=0"
+   ]
+  },
+  "crystal_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": [
+    "crystal_2__emissive: duplicate verts=147 loose verts=0"
+   ]
+  },
+  "roots_0": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "roots_1": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "roots_2": {
+   "pass": true,
+   "errors": [],
+   "warnings": []
+  },
+  "falls": {
+   "pass": true,
+   "errors": [],
+   "warnings": [
+    "cliff_0__foliage: duplicate verts=12 loose verts=0",
+    "foam_0__matte: duplicate verts=13 loose verts=0",
+    "3 parts fully enclosed, not touching (eyes/internals?): ['cliff_0__foliage', 'cliff_0__foliage', 'cliff_0__foliage']"
+   ]
+  }
+ },
+ "total_bytes": 3355428,
+ "blender": "5.2.2 LTS"
+}
