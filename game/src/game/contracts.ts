@@ -26,10 +26,27 @@ export type BrowStyle = "bold" | "thin" | "bushy" | "none";
 export type MouthStyle = "smile" | "grin" | "smirk" | "toothy" | "whistle";
 export type TieStyle = "tie" | "bowtie" | "none";
 export type FeetStyle = "round" | "shoes";
-/** gear worn on sockets; ids from WEARABLES (actors/wearables.ts). Default Businessman: bowler + shades + satchel. */
-export type Gear = { head: string | null; face: string | null; back: string | null };
+/** EQUIPMENT (G1-23, Duckov CharacterEquipmentController: Armor/Helmat/FaceMask/Backpack/Headset slots). Gear is what
+ *  you wear; it is loot, not creator cosmetics. Each slot holds an item INSTANCE string: "id" (full condition) or
+ *  "id#d" with d = durability 0..100 (integer). parseInst/fmtInst live in loot/equipment.ts.
+ *  Default Businessman: suit + bowler + shades + satchel, all BOUND (never lost, never sold). */
+export type Gear = { head: string | null; face: string | null; body: string | null; back: string | null; ears: string | null };
 export type WearSlot = keyof Gear;
-export type Wearable = { id: string; slot: WearSlot; name: string; rarity: "common" | "uncommon" | "rare" | "epic"; hidesEars?: boolean; hidesBrows?: boolean };
+export type EquipSlot = WearSlot;
+export type Wearable = { id: string; slot: WearSlot; name: string; rarity: "common" | "uncommon" | "rare" | "epic"; hidesEars?: boolean; hidesBrows?: boolean; hidesTie?: boolean };
+/** equipment stats (our numbers; Duckov mechanisms in research/duckov-re: CODE_FINDINGS 2.2 armor, FINDINGS E2 ranges).
+ *  headArmor is used for enemy critical hits, bodyArmor for the rest: damage x 2 / (max(0, A - pen) + 2).
+ *  An armor piece loses durability on every hit it mitigates; at 0 it gives no armor (still worn) until repaired. */
+export type EquipDef = Wearable & {
+  value: number; weight: number;          // sale value at full condition (scales with durability), kg
+  headArmor?: number; bodyArmor?: number; // 0..4 (head) / 0..4 (body)
+  dur?: number;                            // has durability when set (max 100)
+  packSlots?: number; maxWeight?: number;  // back/body pockets: extra pack slots, extra carry kg
+  perk?: { crit?: number; critDmg?: number; aim?: number; notice?: number; search?: number; heal?: number; hearing?: number; speed?: number };
+  // crit +chance 0..1, critDmg +mult, aim = magnet deg, notice = enemy notice-range factor (<1 = stealthier), search = crate
+  // open-time factor (<1 faster), heal = heal amount factor, hearing = show enemy footsteps within N u, speed = move factor
+  bound?: boolean;                         // starter piece: never dropped on a bonk-out, never sold; goes home when replaced
+};
 /** non-player looks: wild monkeys, bandits (bandana, mask, striped shirt, sack), gorillas */
 export type EnemyStyle = { kind: "wild" | "bandit" | "brute" | "sleeper"; seed: number };
 
@@ -118,7 +135,7 @@ export type RaidLootCtx = { raid: number; cratesOpened: number; usefulFound: num
 // ---------------------------------------------------------------- core/save.ts (Codex Sol)
 export type SaveV1 = {
   v: 1; createdAt: string; raids: number; money: number; ammo: number;
-  look: MonkeyLook; lookDone: boolean; gear: Gear; wardrobe: string[]; // wardrobe = wearable ids owned
+  look: MonkeyLook; lookDone: boolean; gear: Gear; locker: string[]; // gear = worn instances; locker = equipment kept at home (instances)
   satchel: { items: string[]; x: number; z: number } | null; // pack dropped on a bonk-out: recoverable once next raid (Duckov corpse rule)
   upgrades: { mag: number; pack: number; heart: number };
   keys: string[]; trophies: string[]; reserved: string[];   // keys auto-kept, trophies shown in the bunker, order items reserved

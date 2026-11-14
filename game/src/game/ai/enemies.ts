@@ -16,6 +16,7 @@ import { floatText, burst } from "../../fx";
 import { hurtPlayer } from "../actors/player";
 import { damage, hitWall } from "../combat/combat";
 import { hud } from "../ui/hud";
+import { enemyGear, gearStats, visualGear } from "../loot/equipment";
 
 let nextId = 1;
 const markTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d")!; x.fillStyle = "#ffd84a"; x.strokeStyle = "#2a1a12"; x.lineWidth = 6; x.beginPath(); x.arc(32, 32, 26, 0, 7); x.fill(); x.stroke(); x.fillStyle = "#2a1a12"; x.font = "bold 44px Trebuchet MS"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("!", 32, 35); return new THREE.CanvasTexture(c); })();
@@ -23,13 +24,15 @@ const zTex = (() => { const c = document.createElement("canvas"); c.width = c.he
 
 export function spawnEnemies(set: number) {
   for (const e of G.enemies) e.rig.dispose(); G.enemies = [];
-  for (const s of SPAWNS[set % SPAWNS.length]) {
+  for (const [index, s] of SPAWNS[set % SPAWNS.length].entries()) {
     const plan = s.kind === "brute" || s.kind === "sleeper" ? "gorilla" : "monkey";
-    const rig = createRig(plan, { kind: s.kind, seed: nextId * 7 });
+    const gearSeed = G.seed ^ Math.imul(index + 1, 7), gear = enemyGear(gearSeed, s.kind);
+    const rig = createRig(plan, { kind: s.kind, seed: gearSeed });
+    rig.setGear?.(visualGear(gear));
     const st = ENEMY[s.kind];
     const e: Enemy = { id: nextId++, kind: s.kind, rig, p: V(s.x, s.z), vel: new THREE.Vector3(), face: G.rng() * 6.28, hp: st.hp, max: st.hp,
       state: s.kind === "sleeper" ? "sleep" : "patrol", t: G.rng() * 2, actionT: 0, home: V(s.x, s.z), group: s.group, tag: s.tag, path: [], repath: 0, flash: 0,
-      stolen: [], carry: [], zs: 3, quiet: 0, lastSeen: null, lostT: 0, rang: null, active: false, down: false, downT: 0 };
+      stolen: [], carry: [], gear, gearSeed, zs: 3, quiet: 0, lastSeen: null, lostT: 0, rang: null, active: false, down: false, downT: 0 };
     rig.root.position.copy(e.p); G.stage.scene.add(rig.root);
     if (s.kind === "sleeper") for (let i = 0; i < 3; i++) { const z = new THREE.Sprite(new THREE.SpriteMaterial({ map: zTex, depthTest: false })); z.name = "z" + i; z.scale.setScalar(0.6 + i * 0.15); z.position.set(0.5 + i * 0.35, rig.bounds.height + 0.3 + i * 0.45, 0); z.renderOrder = 20; rig.root.add(z); }
     G.enemies.push(e);
@@ -38,7 +41,7 @@ export function spawnEnemies(set: number) {
 const onScreen = (p: THREE.Vector3) => { const v = p.clone().setY(p.y + 1).project(G.stage.camera); return Math.abs(v.x) < 0.95 && Math.abs(v.y) < 0.92 && v.z < 1; };
 const toPlayer = (e: Enemy) => V(G.pp.x - e.p.x, G.pp.z - e.p.z);
 function sees(e: Enemy, range: number) {
-  if (!G.alive || G.zipping) return false; const d = flat(e.p, G.pp); if (d > range) return false;
+  if (!G.alive || G.zipping) return false; const d = flat(e.p, G.pp); if (d > range * gearStats(G.gear).notice) return false;
   const tp = toPlayer(e).normalize(), f = V(Math.sin(e.face), Math.cos(e.face));
   return (tp.dot(f) > -0.25 || d < 3.5) && los(e.p.x, e.p.z, G.pp.x, G.pp.z);
 }

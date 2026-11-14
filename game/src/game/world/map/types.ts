@@ -19,7 +19,7 @@ export type Shape =
   | { t: "capsule"; pts: Pt[]; w: number; under?: boolean };
 export type Wall = { id: string; pts: Pt[]; kind: "palisade" | "stone" | "hull" | "rock" | "fence"; breakable?: { hp: number; persist: boolean; reveals: string } };
 export type Portal = { id: string; a: { x: number; z: number }; b: { x: number; z: number }; label: string; oneWay?: boolean };
-export type CrateSocket = { x: number; z: number; tier: "wood" | "green" | "gold"; fixed?: "key" | "vault" | "sleeper" | "secret"; y?: number; in?: string };
+export type CrateSocket = { x: number; z: number; tier: "wood" | "green" | "gold"; fixed?: "key" | "vault" | "sleeper" | "secret" | "radio"; y?: number; in?: string };
 export type SpawnKind = "wild" | "bandit" | "brute" | "sleeper";
 export type Spawn = { kind: SpawnKind; x: number; z: number; group?: string; tag?: "lemon" };
 export type { Placed };

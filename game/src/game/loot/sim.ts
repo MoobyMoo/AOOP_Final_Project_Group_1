@@ -1,6 +1,6 @@
 import type { CrateTier } from "../contracts";
 import { CRATES, SPAWNS, type CrateSocket } from "../world/layout";
-import { CRATE_TABLES, ITEMS, PRICES, isUseful, mulberry32, rollCrate, rollEnemyDrop, type LootContext } from "./tables";
+import { CRATE_TABLES, PRICES, isUseful, itemDef, mulberry32, rollCrate, rollEnemyDrop, type LootContext } from "./tables";
 
 function assert(ok: boolean, message: string): asserts ok {
   if (!ok) throw new Error(message);
@@ -35,6 +35,8 @@ function verifyLoot() {
   assert(rollCrate("wood", vault, () => 0).includes("extended_mag"), "first vault mag");
   assert(!rollCrate("gold", vault, () => 0).includes("extended_mag"), "owned vault mag is not duplicated");
   assert(rollCrate("wood", { ...fresh(), fixed: "key" }, () => 0).includes("vine_key"), "fixed key");
+  assert(rollCrate("gold", { ...fresh(), fixed: "vault" }, () => 0).some(id => id === "warden_vest" || id === "warden_helmet"), "vault equipment");
+  assert(rollCrate("wood", { ...fresh(), fixed: "radio" }, () => 0).includes("radio_headset"), "radio shack equipment");
   assert(rollEnemyDrop("sleeper", fresh(), () => 0).includes("banana_idol"), "Sleeper trophy");
   const enemyCtx = fresh();
   rollEnemyDrop("brute", enemyCtx, () => 0.5);
@@ -76,12 +78,13 @@ function raid(seed: number, raft: boolean, tiers: TierCount): Result {
     loot.push(...found);
   }
   ctx.fixed = undefined;
-  for (const enemy of SPAWNS[seed % SPAWNS.length]) {
+  for (const [index, enemy] of SPAWNS[seed % SPAWNS.length].entries()) {
     if (!raft && (enemy.kind === "sleeper" || enemy.z < -20)) continue;
+    ctx.enemySeed = seed ^ Math.imul(index + 1, 7);
     loot.push(...rollEnemyDrop(enemy.kind, ctx, rng));
   }
-  const values = loot.filter(id => !["ammo", "key", "attachment"].includes(ITEMS[id].kind))
-    .map(id => ITEMS[id].value).sort((left, right) => right - left);
+  const values = loot.filter(id => !["ammo", "key", "attachment"].includes(itemDef(id).kind))
+    .map(id => itemDef(id).value).sort((left, right) => right - left);
   const sale = (slots: number) => Math.floor(values.slice(0, slots).reduce((sum, value) => sum + value, 0) * (raft ? 1.3 : 1));
   assert(ctx.ammoFound >= 8, `raid ${seed}: ammo floor`);
   assert(ctx.usefulFound > 0, `raid ${seed}: useful find`);
@@ -96,7 +99,7 @@ function percentile(values: number[], fraction: number) {
 }
 
 verifyLoot();
-console.log("10,000 seeded raids per route; best 8/10 slot items, pouch inside capacity; ammo/key/equipped mag use no slots.");
+console.log("10,000 seeded raids per route; best 8/10 slot items, including condition-scaled equipment sales; ammo/key/equipped mag use no slots.");
 console.log("Hatch: southern loop only (no vault, hollow, river or Sleeper). Raft: all 14 sockets + all enemies; fence +30%.");
 console.log("Route slots  Mean Median  P10  P90 Rounds Min Opened Empty W/G/G% Streak ZeroUseful%");
 const results = new Map<string, Result[]>();

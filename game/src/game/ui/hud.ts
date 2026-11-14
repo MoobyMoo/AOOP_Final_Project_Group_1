@@ -4,30 +4,36 @@ import * as THREE from "three";
 import { G, flat, type Crate, type Enemy } from "../core/state";
 import { itemDef } from "../loot/raidloot";
 import { CLEARINGS } from "../world/layout";
-import { ARMOR, PLAYER } from "../combat/weapons";
+import type { WearSlot } from "../contracts";
+import { isEquip } from "../loot/equipment";
+import { drainEquipmentEvents, equipFromPack, heardEnemies, unequip } from "../loot/equipment-actions";
+import { dollHtml, detailsHtml, gearSummary, itemCell, carryLimit } from "./equipui";
 import { iconHtml } from "./itemicon";
+import { iconUrl } from "./icons";
+import { carriedWeight } from "../actors/player";
 
 const root = () => document.getElementById("ui")!;
 const el = (cls: string, html = "", parent: HTMLElement = root()) => { const d = document.createElement("div"); d.className = cls; d.innerHTML = html; parent.appendChild(d); return d; };
 let E: Record<string, HTMLElement> = {};
 const proj = new THREE.Vector3();
 function toScreen(p: THREE.Vector3) { proj.copy(p).project(G.stage.camera); return { x: (proj.x * 0.5 + 0.5) * innerWidth, y: (-proj.y * 0.5 + 0.5) * innerHeight, on: Math.abs(proj.x) < 1 && Math.abs(proj.y) < 1 && proj.z < 1 }; }
+let hoverInst: string | null = null, lastHeard = "", lastEquipT = -1;
 let toastT = 0, bannerT = 0, promptT = 0, helpT = 0, lastArrows = "", lastClock = "", lastHp = -1, lastPrompt = "", lastVitals = "", invOpen = false;
 const noiseRings: { m: THREE.Mesh; t: number }[] = [];
 const keyed = (t: string) => { const m = /^([A-Z0-9/]+) · (.*)$/.exec(t); return m ? `<kbd>${m[1]}</kbd> ${m[2]}` : t; };
 const HEALS = ["firstaid", "smoothie", "bandage"];
 const rbg = (id: string) => `var(--r-${itemDef(id).rarity})`;
-const packWeight = () => G.pack.reduce((a, id) => a + (itemDef(id).weight ?? 1), 0) + G.ammo * 0.02;
+const packWeight = () => carriedWeight(); // pack + worn found gear + rounds (actors/player.ts)
 
 export const hud = {
   build() {
-    root().innerHTML = ""; E = {}; lastArrows = lastClock = lastPrompt = lastVitals = ""; lastHp = -1; invOpen = false;
+    root().innerHTML = ""; E = {}; lastArrows = lastClock = lastPrompt = lastVitals = lastHeard = ""; lastHp = -1; invOpen = false; hoverInst = null; lastEquipT = -1;
     E.clock = el("hud-clock", "<b></b><span></span><em></em>");
     E.vitals = el("hud-vitals", `<div class="hud-hp"><span class="heart">♥</span><div class="bar"><i class="lag"></i><i class="fill"></i></div><b></b></div><div class="gauge" data-i="⚡"></div><div class="hud-warn" style="display:none"></div>`);
     E.bar = el("hud-bar"); E.stam = el("hud-stam", "<i></i>"); E.use = el("hud-use");
     E.prompt = el("hud-prompt"); E.toast = el("hud-toast"); E.banner = el("hud-banner");
     E.search = el("hud-search", `<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" class="bg"/><circle cx="20" cy="20" r="16" class="fg"/></svg>`);
-    E.cross = el("hud-cross", `<i></i><i></i><i></i><i></i><b></b>`); E.extract = el("hud-extract"); E.hurt = el("hud-hurt"); E.arrows = el("hud-arrows"); E.time = el("hud-time");
+    E.heard = el("hud-heard"); E.cross = el("hud-cross", `<i></i><i></i><i></i><i></i><b></b>`); E.extract = el("hud-extract"); E.hurt = el("hud-hurt"); E.arrows = el("hud-arrows"); E.time = el("hud-time");
     E.help = el("hud-help", `<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move &nbsp;<kbd>Shift</kbd> sprint &nbsp;<kbd>Space</kbd> dodge<br>Click to shoot, right click to aim &nbsp;<kbd>V</kbd> briefcase &nbsp;<kbd>R</kbd> reload<br><kbd>E</kbd> search &nbsp;<kbd>Q</kbd> heal &nbsp;<kbd>Tab</kbd> pack &nbsp;<kbd>M</kbd> map &nbsp;<kbd>N</kbd> minimap`);
     helpT = G.save.raids === 0 ? 30 : 8;
     hud.health(); hud.ammo(); hud.pack();
@@ -35,8 +41,8 @@ export const hud = {
   health() {
     if (!E.vitals) return; const k = Math.max(0, G.hp / G.maxHp), hp = E.vitals.querySelector(".hud-hp") as HTMLElement;
     (hp.querySelector(".fill") as HTMLElement).style.width = k * 100 + "%"; (hp.querySelector(".lag") as HTMLElement).style.width = k * 100 + "%";
-    const arm = ARMOR[G.gear?.head ?? ""] ?? 0;
-    (hp.querySelector("b") as HTMLElement).innerHTML = `${Math.ceil(G.hp)}<small> / ${G.maxHp}${arm ? `, armor ${arm}` : ""}</small>`;
+    const g = gearSummary(G.gear), arm = [g.body ? `body ${g.body}` : "", g.head ? `head ${g.head}` : ""].filter(Boolean).join(", ");
+    (hp.querySelector("b") as HTMLElement).innerHTML = `${Math.ceil(G.hp)}<small> / ${G.maxHp}</small>${arm ? `<span class="arm" title="Armor">🛡 ${arm}</span>` : ""}`;
     if (lastHp >= 0 && G.hp < lastHp) { hp.classList.remove("shake"); void hp.offsetWidth; hp.classList.add("shake"); }
     lastHp = G.hp;
   },
@@ -50,24 +56,33 @@ export const hud = {
     const heal = HEALS.find((h) => G.pack.includes(h)), healN = G.pack.filter((h) => HEALS.includes(h)).length;
     const w = packWeight(), full = G.pack.length >= G.packSlots, value = G.pack.reduce((a, id) => a + itemDef(id).value, 0);
     E.bar.innerHTML = `
-      <div class="hb-slot on ${G.reloadT >= 0 ? "reload" : ""}"><span class="tag ${G.mag === 0 ? "empty" : ""}">${G.mag} / ${G.ammo}</span><span class="gun">Kingpin<small>.45</small></span><span class="key"><kbd>1</kbd></span></div>
+      <div class="hb-slot wide on ${G.reloadT >= 0 ? "reload" : ""}"><span class="tag ${G.mag === 0 ? "empty" : ""}">${G.mag} / ${G.ammo}</span><img class="gun" src="${iconUrl("kingpin")}" srcset="${iconUrl("kingpin", true)} 2x" alt="Kingpin .45" draggable="false"><span class="key"><kbd>1</kbd></span></div>
       <div class="hb-slot"><span class="emo" style="font-size:28px">💼</span><span class="key"><kbd>V</kbd></span></div>
       <div class="hb-slot">${heal ? iconHtml(heal, 44) : ""}${healN ? `<span class="n">${healN}</span>` : ""}<span class="key"><kbd>Q</kbd></span></div>
-      <div class="hb-pack"><span class="chip ${full ? "full" : ""}">Pack ${G.pack.length} of ${G.packSlots}, <b>🍌 ${value}</b></span><span class="chip"><kbd>Tab</kbd> ${w.toFixed(1)} of ${PLAYER.maxWeight} kg</span></div>`;
+      <div class="hb-pack"><span class="chip ${full ? "full" : ""}">Pack ${G.pack.length} of ${G.packSlots}, <b>🍌 ${value}</b></span><span class="chip"><kbd>Tab</kbd> ${w.toFixed(1)} of ${carryLimit()} kg</span></div>`;
   },
-  /** Tab: the full pack, cheek pouch first (safe if you get bonked), weight state */
+  /** Tab: the pack screen. Left: what you wear (5 slots, Duckov's equipment mechanism); right: the pack, cheek pouch
+   *  first; below: what the hovered thing does. Click pack gear to put it on (1 s), click a worn piece to take it off. */
   inventory(open = !invOpen) {
     invOpen = open; let p = document.querySelector(".inv") as HTMLElement | null;
-    if (!open) { p?.remove(); return; }
-    if (!p) { p = document.createElement("div"); p.className = "panel inv"; root().appendChild(p); p.style.pointerEvents = "none"; }
-    const w = packWeight(), r = w / PLAYER.maxWeight, state = r > 1 ? "Overweight: you crawl" : r > 0.75 ? "Heavy: slower and louder" : r <= 0.25 ? "Light: a little faster" : "Normal load";
-    let cells = "";
-    for (let i = 0; i < G.packSlots; i++) { const id = G.pack[i]; cells += id ? `<div class="cell ${i < G.pouchSlots ? "pouch" : ""}" style="--rbg:${rbg(id)}" title="${itemDef(id).name}">${iconHtml(id, 44)}<span class="v">${itemDef(id).value}</span></div>` : `<div class="cell empty ${i < G.pouchSlots ? "pouch" : ""}"></div>`; }
-    const value = G.pack.reduce((a, id) => a + itemDef(id).value, 0);
-    p.innerHTML = `<header><h2>Your pack</h2><small><kbd>Tab</kbd> close</small></header><div class="grid">${cells}</div>
-      <p class="dim" style="margin-top:10px">The best ${G.pouchSlots} items sit in your cheek pouch. They stay safe if you get bonked; the rest drops in your satchel.</p>
-      <div class="stats" style="margin-top:12px"><div class="stat"><b>🍌 ${value}</b><span>pack value</span></div><div class="stat"><b>${w.toFixed(1)} kg</b><span>${state}</span></div><div class="stat"><b>${G.ammo + G.mag}</b><span>rounds</span></div></div>`;
+    if (!open) { p?.remove(); hoverInst = null; return; }
+    if (!p) { p = document.createElement("div"); p.className = "panel inv"; root().appendChild(p); }
+    const limit = carryLimit(), w = packWeight(), r = w / limit, state = r > 1 ? "Overweight: you crawl" : r > 0.75 ? "Heavy: slower and louder" : r <= 0.25 ? "Light: a little faster" : "Normal load";
+    let cells = ""; for (let i = 0; i < G.packSlots; i++) cells += itemCell(G.pack[i], i, { pouch: i < G.pouchSlots });
+    const value = G.pack.reduce((a, id) => a + itemDef(id).value, 0), g = gearSummary(G.gear), busy = G.equipping?.slot ?? null;
+    const hint = (inst: string | null) => !inst ? "" : isEquip(inst) ? (G.pack.includes(inst) ? "Click to put it on (takes a second)" : "Click to take it off") : "";
+    p.innerHTML = `<header><h2>Your pack</h2><small><kbd>Tab</kbd> close</small></header>
+      <div class="inv-body"><section><h4>Wearing</h4>${dollHtml(G.gear, busy)}</section><section><h4>Pack <small>${G.pack.length} of ${G.packSlots}</small></h4><div class="grid">${cells}</div>
+      <p class="dim pouch-note">The first ${G.pouchSlots} slots are your cheek pouch: safe if you get bonked.</p></section></div>
+      <div class="inv-detail">${detailsHtml(hoverInst, hint(hoverInst))}</div>
+      <div class="stats"><div class="stat"><b>🛡 ${g.body} / ${g.head}</b><span>body / head armor</span></div><div class="stat"><b>${w.toFixed(1)} of ${limit} kg</b><span>${state}</span></div><div class="stat"><b>🍌 ${value}</b><span>pack value</span></div><div class="stat"><b>${G.ammo + G.mag}</b><span>rounds</span></div></div>`;
+    const detail = p.querySelector(".inv-detail") as HTMLElement, show = (inst: string | null) => { hoverInst = inst; detail.innerHTML = detailsHtml(inst, hint(inst)); };
+    p.querySelectorAll<HTMLElement>("[data-pack]").forEach((b) => { const i = +b.dataset.pack!, inst = G.pack[i];
+      b.onmouseenter = () => show(inst); b.onclick = () => { if (isEquip(inst) && equipFromPack(i)) { hud.toast(`Putting on the ${itemDef(inst).name}...`); hud.inventory(true); } }; });
+    p.querySelectorAll<HTMLElement>("[data-slot]").forEach((b) => { const slot = b.dataset.slot as WearSlot, inst = G.gear[slot];
+      b.onmouseenter = () => show(inst); b.onclick = () => { if (inst && unequip(slot)) hud.inventory(true); else if (inst && itemDef(inst)) hud.toast(G.pack.length >= G.packSlots ? "No room in your pack" : "Can't take that off right now"); }; });
   },
+  invOpen: () => invOpen,
   prompt(t: string) { if (!E.prompt) return; if (t !== lastPrompt) { E.prompt.innerHTML = keyed(t); lastPrompt = t; } E.prompt.classList.add("on"); promptT = 0.15; },
   toast(t: string) { if (!E.toast) return; E.toast.textContent = t; E.toast.classList.remove("on"); void E.toast.offsetWidth; E.toast.classList.add("on"); toastT = 4.5; },
   banner(t: string, sub = "") { if (!E.banner) return; E.banner.innerHTML = `<i class="rope l"></i><i class="rope r"></i><div class="board"><b>${t}</b>${sub ? `<small>${sub}</small>` : ""}</div>`; E.banner.classList.remove("on"); void E.banner.offsetWidth; E.banner.classList.add("on"); bannerT = 2.8; },
@@ -92,7 +107,7 @@ export const hud = {
     { // stamina beside the character (hidden when full) + the stamina gauge and weight warning in the vitals
       const k = G.stamina / 100, s = toScreen(G.pp.clone().setY(G.pp.y + 0.2)); E.stam.style.left = s.x + 34 + "px"; E.stam.style.top = s.y - 28 + "px";
       E.stam.style.opacity = k >= 0.999 ? "0" : "1"; (E.stam.firstChild as HTMLElement).style.height = k * 100 + "%"; E.stam.classList.toggle("low", G.stamina < 20);
-      const r = packWeight() / PLAYER.maxWeight, warn = r > 1 ? "over" : r > 0.75 ? "heavy" : "", v = `${Math.round(k * 50)}|${warn}`;
+      const r = packWeight() / carryLimit(), warn = r > 1 ? "over" : r > 0.75 ? "heavy" : "", v = `${Math.round(k * 50)}|${warn}`;
       if (v !== lastVitals) {
         lastVitals = v; const g = E.vitals.querySelector(".gauge") as HTMLElement; g.style.setProperty("--k", k.toFixed(2)); g.classList.toggle("low", G.stamina < 20);
         const wEl = E.vitals.querySelector(".hud-warn") as HTMLElement; wEl.style.display = warn ? "block" : "none"; wEl.className = "hud-warn " + warn; wEl.textContent = warn === "over" ? "Overweight" : "Heavy";
@@ -106,6 +121,16 @@ export const hud = {
     const a = toScreen(G.aimPoint); E.cross.style.left = a.x + "px"; E.cross.style.top = a.y + "px";
     E.cross.style.setProperty("--spread", (6 + Math.max(0, 1 - G.fireT) * 8 - (G.ads ? 2 : 0)) + "px"); E.cross.classList.toggle("lock", !G.intent.aimNdc);
     for (let i = noiseRings.length - 1; i >= 0; i--) { const n = noiseRings[i]; n.t += dt / 0.6; const r = (n.m.userData as { r: number }).r; n.m.scale.setScalar(r * (0.3 + 0.7 * Math.min(1, n.t))); (n.m.material as THREE.MeshBasicMaterial).opacity = 0.5 * (1 - n.t); if (n.t >= 1) { n.m.removeFromParent(); (n.m.material as THREE.Material).dispose(); n.m.geometry.dispose(); noiseRings.splice(i, 1); } }
+    for (const ev of drainEquipmentEvents()) {
+      if (ev.type === "broken") hud.toast(ev.message ?? "Armor broken!");
+      else if (ev.type === "interrupted") hud.toast("Interrupted!");
+      if (ev.type !== "hit") { hud.health(); hud.pack(); } else if (invOpen) hud.inventory(true);
+    }
+    { const q = G.equipping; const t = q ? q.t : -1; if (t !== lastEquipT) { lastEquipT = t; if (q) { E.use.style.display = "block"; E.use.innerHTML = `${itemDef(q.inst).name}<div class="bar"><i style="width:${(q.t / q.time) * 100}%"></i></div>`; } else if (!G.useItem) E.use.style.display = "none"; } }
+    { // headphones: footsteps you can hear show as small paw prints where the enemy is (Duckov SoundVisable)
+      let f = ""; for (const e of heardEnemies()) { const s = toScreen(new THREE.Vector3(e.x, 0.2, e.z)); if (s.on) f += `<i style="left:${Math.round(s.x)}px;top:${Math.round(s.y)}px"></i>`; }
+      if (f !== lastHeard) { E.heard.innerHTML = f; lastHeard = f; }
+    }
     let h = "";
     for (const e of G.enemies) {
       if (e.down || !e.active || ["patrol", "sleep", "return"].includes(e.state) || flat(e.p, G.pp) > 24) continue;

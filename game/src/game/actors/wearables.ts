@@ -7,6 +7,20 @@ import type { Wearable, Gear } from "../contracts";
 import { charMaterial, prepGeometry, STATIC_PALETTE, type Region } from "./charmat";
 
 export const WEARABLES: Wearable[] = [
+  { id: "suit", slot: "body", name: "Businessman's Suit", rarity: "common" },
+  { id: "pot_helmet", slot: "head", name: "Cooking Pot", rarity: "common" },
+  { id: "coconut_helmet", slot: "head", name: "Coconut Helmet", rarity: "uncommon" },
+  { id: "warden_helmet", slot: "head", name: "Warden's Riot Helmet", rarity: "epic" },
+  { id: "snorkel", slot: "face", name: "Snorkel Mask", rarity: "common" },
+  { id: "leaf_vest", slot: "body", name: "Banana-Leaf Vest", rarity: "common" },
+  { id: "life_jacket", slot: "body", name: "Ferry Life Jacket", rarity: "uncommon" },
+  { id: "peel_jacket", slot: "body", name: "Peel Gang Padded Jacket", rarity: "uncommon" },
+  { id: "bamboo_plate", slot: "body", name: "Bamboo Plate Vest", rarity: "uncommon" },
+  { id: "coconut_cuirass", slot: "body", name: "Coconut Cuirass", rarity: "rare" },
+  { id: "warden_vest", slot: "body", name: "Warden's Kevlar", rarity: "epic" },
+  { id: "sack", slot: "back", name: "Loot Sack", rarity: "common" },
+  { id: "walkman", slot: "ears", name: "Walkman Headphones", rarity: "rare" },
+  { id: "radio_headset", slot: "ears", name: "Radio Headset", rarity: "epic" },
   { id: "bowler", slot: "head", name: "Bowler Hat", rarity: "common" }, { id: "tophat", slot: "head", name: "Top Hat", rarity: "rare" },
   { id: "fedora", slot: "head", name: "Fedora", rarity: "uncommon" }, { id: "cap", slot: "head", name: "Cap", rarity: "common" },
   { id: "hardhat", slot: "head", name: "Hard Hat", rarity: "uncommon" }, { id: "pith", slot: "head", name: "Pith Helmet", rarity: "rare" },
@@ -17,7 +31,7 @@ export const WEARABLES: Wearable[] = [
   { id: "banditmask", slot: "face", name: "Bandit Mask", rarity: "uncommon", hidesBrows: true },
   { id: "satchel", slot: "back", name: "Satchel", rarity: "common" }, { id: "bigpack", slot: "back", name: "Big Backpack", rarity: "uncommon" }, { id: "cratepack", slot: "back", name: "Banana Crate Pack", rarity: "rare" },
 ];
-export const DEFAULT_GEAR: Gear = { head: "bowler", face: "shades", back: "satchel" };
+export const DEFAULT_GEAR: Gear = { head: "bowler", face: "shades", body: null, back: "satchel", ears: null }; // G1-23: body = the bound suit item once loot/equipment.ts lands
 /** recolourable zones of each wearable: main + accent map to palette regions (creator: LookExt.gear[slot].main / .accent) */
 export const WEAR_ZONES: Record<string, { main: Region; accent?: Region }> = {
   bowler: { main: "hat", accent: "band" }, tophat: { main: "hat", accent: "red" }, fedora: { main: "khaki", accent: "dark" }, cap: { main: "blue", accent: "banana" },

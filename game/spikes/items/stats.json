@@ -430,5 +430,16 @@
    0.333
   ],
   "glb_bytes": 51656
+ },
+ "kingpin": {
+  "name": "Kingpin .45",
+  "kind": "weapon",
+  "tris": 3792,
+  "materials": 1,
+  "dims_m": [
+   0.237,
+   1.152,
+   0.831
+  ]
  }
 }

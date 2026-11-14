@@ -23,6 +23,8 @@ import { U } from "../render/shading";
 import { updateCutout } from "../render/cutout";
 import { buildMinimap, updateMinimap, resetTrail, recordTrail } from "../ui/mapview";
 import { botTelemetry } from "./bot";
+import { visualGear } from "../loot/equipment";
+import { loseWornEquipment, refreshEquipment, restoreBoundKit } from "../loot/equipment-actions";
 
 const QS = new URLSearchParams(location.search);
 /** ?seed= is the world seed: map scatter, crate sockets and patrol set all derive from it (the bot has ?botseed=) */
@@ -47,7 +49,7 @@ export function startRaid(end: (r: RaidResult) => void) {
   const before = new Set(raidScene.children); resetRaidColliders(); resetWalls(); resetHouses(); resetProps();
   // player
   if (!G.rig) { G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); }
-  G.rig.setLook?.(G.save.look); G.gear = { ...G.save.gear }; G.rig.setGear?.(G.gear);
+  G.rig.setLook?.(G.save.look); G.gear = { ...G.save.gear }; restoreBoundKit(); G.rig.setGear?.(visualGear(G.gear));
   raidScene.add(G.rig.root);
   G.pp = G.rig.root.position; G.pp.set(START.x, 0, START.z); // just outside the hatch ring
   { const at = QS.get("at")?.split(",").map(Number); if (at && at.length === 2 && at.every(Number.isFinite) && walkable(at[0], at[1])) G.pp.set(at[0], 0, at[1]); } // ?at=x,z: start somewhere else (captures, tests)
@@ -57,7 +59,7 @@ export function startRaid(end: (r: RaidResult) => void) {
   G.magSize = G.save.upgrades.mag || G.save.fixtures.includes("extended_mag") ? KINGPIN.extMag : KINGPIN.mag; G.gun.setVariant({ extMag: G.magSize > KINGPIN.mag });
   G.ammo = Math.max(KINGPIN.startAmmo, G.save.ammo); G.mag = Math.min(G.magSize, G.ammo); G.ammo -= G.mag;
   G.fireCd = 0; G.fireT = 1; G.reloadT = -1; G.meleeT = -1; G.rollT = -1; G.rollCd = 0; G.skidT = 0; G.zipping = null;
-  G.packSlots = 8 + 2 * G.save.upgrades.pack; G.pouchSlots = 2; G.pack = [];
+  G.pouchSlots = 2; G.pack = []; G.equipping = null; G.equipmentEvents = []; refreshEquipment();
   // heals bought at home come along (up to 3)
   for (const h of ["firstaid", "smoothie", "bandage"]) while (G.pack.length < 3 && G.save.reserved.includes(h)) { G.save.reserved.splice(G.save.reserved.indexOf(h), 1); G.pack.push(h); }
   G.discovered = new Set(); G.area = ""; G.lockTarget = null;
@@ -78,7 +80,12 @@ function finish(how: RaidResult["how"], bonus: number) {
   sortPack();
   const kept = how === "bonked" ? G.pack.slice(0, G.pouchSlots) : [...G.pack], lost = how === "bonked" ? G.pack.slice(G.pouchSlots) : [];
   // Duckov-style corpse: a bonk-out leaves the loose pack as a satchel you can recover once next raid; a second bonk-out first loses it
-  if (how === "bonked") G.save.satchel = lost.length ? { items: lost, x: G.pp.x, z: G.pp.z } : null;
+  if (how === "bonked") {
+    lost.push(...loseWornEquipment());
+    G.save.satchel = lost.length ? { items: lost, x: G.pp.x, z: G.pp.z } : null;
+    restoreBoundKit();
+  }
+  G.equipping = null;
   G.log.value = packValue();
   G.save.ammo = G.ammo + G.mag;
   if (G.bot) botTelemetry.outcome = how === "bonked" ? { type: "bonk-out", raidT: G.raidT } : { type: "extract", exit: how, value: kept.reduce((value, id) => value + itemDef(id).value, 0), raidT: G.raidT };

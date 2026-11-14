@@ -11,12 +11,13 @@ import { alertEnemy, hearNoise } from "../ai/enemies";
 import { dropLoot } from "../loot/raidloot";
 import { breakWallVisual } from "../world/props";
 import { recordBotCombat } from "../core/bot";
+import { gearStats } from "../loot/equipment";
 
 const tmp = new THREE.Vector3(), to = new THREE.Vector3();
 // ---- projectile bullets (Moo 2026-11-15: "we should be able to see the bullets like Duckov"): each round is a visible
 // glowing streak that travels at BULLET_SPEED and hits on arrival; swept against walls and enemies every sim step.
 const BULLET_SPEED = 48, BULLET_LEN = 1.3;
-type Bullet = { p: THREE.Vector3; d: THREE.Vector3; left: number; alive: boolean };
+type Bullet = { p: THREE.Vector3; d: THREE.Vector3; left: number; alive: boolean; damage: number };
 const bullets: Bullet[] = [];
 const MAX_BULLETS = 48;
 let bulletMesh: THREE.InstancedMesh | null = null;
@@ -34,7 +35,8 @@ export function shoot() {
   G.log.shots++;
   if (G.bot) recordBotCombat("shot", "pistol", G.raidT);
   // the magnet: bend toward the enemy nearest the aim ray within 7 degrees (10 while aiming)
-  let yaw = G.aimYaw, target: Enemy | null = null, bestA = G.ads ? KINGPIN.magnetAds : KINGPIN.magnet;
+  const stats = gearStats(G.gear);
+  let yaw = G.aimYaw, target: Enemy | null = null, bestA = (G.ads ? KINGPIN.magnetAds : KINGPIN.magnet) + stats.aim * Math.PI / 180;
   for (const e of G.enemies) {
     if (e.down || !e.active) continue; const d = flat(G.pp, e.p); if (d > KINGPIN.range) continue;
     const a = Math.abs(angDiff(Math.atan2(e.p.x - G.pp.x, e.p.z - G.pp.z), G.aimYaw)) - Math.atan2(e.rig.bounds.radius, d);
@@ -46,7 +48,8 @@ export function shoot() {
   G.gun.muzzle.getWorldPosition(to);
   G.fx.fire(G.gun.muzzle, G.gun.eject, to, "none"); // flash, light, brass; the bullet itself draws the tracer
   const d = V(Math.sin(yaw), Math.cos(yaw));
-  bullets.push({ p: to.clone(), d, left: KINGPIN.range, alive: true });
+  const critical = G.rng() < KINGPIN.crit + stats.crit;
+  bullets.push({ p: to.clone(), d, left: KINGPIN.range, alive: true, damage: Math.round(KINGPIN.damage * (critical ? stats.critDmg : 1)) });
   sfx("shot"); sfx("shell");
   G.stage.kick.add(V(-d.x, -d.z).multiplyScalar(FEEL.shotKick));
   makeNoise(G.pp, KINGPIN.noise, "shot");
@@ -65,7 +68,7 @@ export function updateBullets(dt: number) {
     }
     if (hit) {
       b.p.addScaledVector(b.d, hitD); b.alive = false; G.log.hits++;
-      damage(hit, KINGPIN.damage, "pistol", b.d.clone());
+      damage(hit, b.damage, "pistol", b.d.clone());
       G.fx.impact?.(b.p.clone().setY(hit.p.y + hit.rig.bounds.height * 0.5), b.d, "enemy");
     } else if (wallD <= step) {
       b.p.addScaledVector(b.d, wallD); b.alive = false; G.fx.impact?.(b.p, b.d, "wall");

@@ -282,8 +282,8 @@ const TW_MAX = 1.3;   // the gun arm can lead or trail the body by up to ~75 deg
 
 class MonkeyRig extends CharRig {
   private look: MonkeyLook = DEFAULT_LOOK; private spec: MonkeyEnemySpec | null;
-  private gear: Gear = { head: null, face: null, back: null };
-  private gearObj: Record<WearSlot, THREE.Object3D | null> = { head: null, face: null, back: null };
+  private gear: Gear = { head: null, face: null, body: null, back: null, ears: null };
+  private gearObj: Record<WearSlot, THREE.Object3D | null> = { head: null, face: null, body: null, back: null, ears: null };
   private hand = new Layer(0.12, 0.14); private aimMask: Float32Array; private aimK = 0;
   private yaw = 0; private aimYaw = 0; private phase = 0; private wd = new Float32Array(4);   // fwd, back, left, right
   private briefcase: THREE.Object3D | null = null; private handProp: THREE.Object3D | null = null; private propBack = 0;
@@ -302,7 +302,7 @@ class MonkeyRig extends CharRig {
     this.bounds = { radius: 0.45 * this.scale, height: 2.0 * this.scale };
     this.setLook(this.spec ? this.spec.look : (style as MonkeyLook));
     if (this.spec) {
-      this.gear = { head: this.spec.head, face: this.spec.face, back: this.spec.back };
+      this.gear = { head: this.spec.head, face: this.spec.face, body: null, back: this.spec.back, ears: null };
       for (const slot of ["head", "face", "back"] as const) this.attach(slot, this.gear[slot]);
       if (this.spec.bandana) setRegion(this.matsFor("face").pal, "red", this.spec.bandana);
       if (this.spec.hand) { this.handProp = instWearable(this.spec.hand, this.matsFor("prop")); this.bone("sk_hand_R").add(this.handProp); }

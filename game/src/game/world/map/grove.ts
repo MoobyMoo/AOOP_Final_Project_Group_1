@@ -382,7 +382,8 @@ export const LANDMARKS = [
   { id: "audit", x: -6, z: -63, note: "a NOTICE OF AUDIT nailed to the giant tree (foreshadows the ending gag)" },
   { id: "falls", x: 66, z: -72, note: "a waterfall you can walk through to a hidden nook" },
 ];
-/** 35 authored sockets; fixed ones always spawn, 18 of the rest per raid. Tiers rise with distance from the hatch */
+/** 35 authored sockets; the 5 fixed ones always spawn (key, vault, sleeper, secret, the radio shack's headset crate),
+ *  18 of the rest per raid. Tiers rise with distance from the hatch */
 export const CRATES: CrateSocket[] = [
   // beach, ferry, cove: wood near the sand, green only inside the hull and behind the cove rocks
   { x: -38.4, z: 100.8, tier: "wood" }, { ...at("ferry", 2.4, 1.2), tier: "green", in: "ferry" }, { ...at("ferry", -1.4, -0.4), tier: "wood", in: "ferry" },
@@ -399,7 +400,7 @@ export const CRATES: CrateSocket[] = [
   { x: 59.4, z: 9.4, tier: "wood" }, { ...at("cellblock", -2, -3), tier: "green", in: "cellblock" }, { x: 79, z: 9, tier: "wood" },
   { x: 82.2, z: -28.4, tier: "gold", fixed: "vault", y: 0.44 }, { x: 44.6, z: -19.6, tier: "gold", fixed: "secret" },
   // the radio shack, the stash on the camp's north road, the bomber
-  { ...at("radio", -2, 1), tier: "green", in: "radio" }, { x: -72.6, z: -8.4, tier: "wood" }, { x: -60, z: -49.4, tier: "green" }, { x: -73.5, z: -39, tier: "wood" },
+  { ...at("radio", -2, 1), tier: "green", fixed: "radio", in: "radio" }, { x: -72.6, z: -8.4, tier: "wood" }, { x: -60, z: -49.4, tier: "green" }, { x: -73.5, z: -39, tier: "wood" },
   // the hollow: the Sleeper's own chest and a stash at the tree's back
   { x: 8, z: -64, tier: "gold", fixed: "sleeper" }, { x: -13, z: -54, tier: "green" },
   // the falls: beside the pool, and in the nook behind the water
