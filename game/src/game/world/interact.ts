@@ -1,0 +1,80 @@
+// Raid interactions: extraction (stand still in the ring; moving or a hit resets it visibly, rule 15), portals into
+// the grotto and back (E, fade), the zipline (E, ride, safe while riding), area discovery banners, the supply drop.
+import * as THREE from "three";
+import { G, V, flat } from "../core/state";
+import { exits, portalMarks } from "./props";
+import { areaAt } from "./grid";
+import { groundHeight } from "./terrain";
+import { CLEARINGS, SUPPLY_DROPS, ZIPLINES } from "./layout";
+import { sfx } from "../core/audio";
+import { hud } from "../ui/hud";
+import { nearestCrate, spawnPickup, beam, RAR_COLOR } from "../loot/raidloot";
+import { burst } from "../../fx";
+import { rollCrate } from "../loot/interim";
+
+export const EXTRACT_TIME = 3;
+let lastPp = new THREE.Vector3(), lastHearts = 3, fading = false;
+export let onExtract: (id: "hatch" | "raft" | "tunnel", bonus: number) => void = () => {};
+export const setOnExtract = (f: typeof onExtract) => { onExtract = f; };
+let drop: { t: number; at: { x: number; z: number; area: string }; done: boolean; smoke?: THREE.Points } | null = null;
+
+export function startInteractions() {
+  lastPp.copy(G.pp); lastHearts = G.hearts; G.extract = { id: "", t: 0 }; fading = false;
+  const at = SUPPLY_DROPS[Math.floor(G.rng() * SUPPLY_DROPS.length)]; drop = { t: 90 + G.rng() * 60, at, done: false };
+}
+export function fadeTo(f: () => void) {
+  let d = document.querySelector(".fade") as HTMLDivElement; if (!d) { d = document.createElement("div"); d.className = "fade"; document.body.appendChild(d); }
+  fading = true; d.classList.add("on"); setTimeout(() => { f(); setTimeout(() => { d.classList.remove("on"); fading = false; }, 120); }, 380);
+}
+export function updateInteractions(dt: number) {
+  if (!G.alive || fading) return;
+  // ---- area discovery
+  const a = areaAt(G.pp.x, G.pp.z);
+  if (a && a !== G.area) { G.area = a; if (!G.discovered.has(a)) { G.discovered.add(a); const c = CLEARINGS.find((q) => q.id === a)!; hud.banner(c.name, c.under ? "underground" : ""); sfx("ui"); } }
+  // ---- heal
+  if (G.intent.heal) { const k = G.pack.indexOf("smoothie"); if (k >= 0 && G.hearts < G.maxHearts) { G.pack.splice(k, 1); G.hearts++; sfx("heal"); hud.hearts(); hud.pack(); burst(G.pp.clone().setY(1.5), 12, "#ff9ec4", 0.6); } else if (k < 0) hud.toast("No smoothie in your pack"); }
+  // ---- extraction
+  const moved = flat(G.pp, lastPp) > 0.02 * Math.max(1, dt * 60); lastPp.copy(G.pp);
+  const hit = G.hearts < lastHearts; lastHearts = G.hearts;
+  let inEx: (typeof exits)[number] | null = null;
+  for (const e of exits) { if (!e.open) continue; if (flat(G.pp, e) < 1.9) inEx = e; e.ring.rotation.z += dt * 0.6; }
+  if (inEx && !G.zipping) {
+    if (G.extract.id !== inEx.id) G.extract = { id: inEx.id, t: 0 };
+    if (moved || hit) { if (G.extract.t > 0.15 && hit) hud.toast("Hit! The countdown starts over"); G.extract.t = 0; }
+    else { const before = G.extract.t; G.extract.t += dt; if (Math.floor(before) !== Math.floor(G.extract.t)) sfx("tick"); }
+    inEx.fill.scale.setScalar(Math.max(0.01, G.extract.t / EXTRACT_TIME));
+    const label = inEx.id === "raft" ? "🛶 Raft home (+30% sale)" : inEx.id === "tunnel" ? "🕳️ Smuggler Tunnel home" : "🏠 Hatch home";
+    hud.extract(moved ? `${label}<br><small>stand still</small>` : `${label} in ${Math.max(0, EXTRACT_TIME - G.extract.t).toFixed(1)}s`, Math.max(0.02, G.extract.t / EXTRACT_TIME));
+    if (G.extract.t >= EXTRACT_TIME) { sfx("extract"); hud.extract("", 0); const b = inEx.bonus, id = inEx.id; G.alive = false; fadeTo(() => onExtract(id, b)); }
+  } else { if (G.extract.id) { for (const e of exits) e.fill.scale.setScalar(0.01); hud.extract("", 0); } G.extract = { id: "", t: 0 }; }
+  // ---- portals and the zipline (E when near; crates win ties)
+  const pm = portalMarks.find((p) => flat(G.pp, p) < 1.9);
+  if (pm && !nearestCrate()) {
+    hud.prompt(`E · ${pm.label}`);
+    if (G.intent.interact) {
+      if (pm.id.startsWith("zip-")) startZip(); else { sfx("door"); fadeTo(() => { G.pp.set(pm.to.x, groundHeight(pm.to.x, pm.to.z), pm.to.z + (pm.to.x > 90 ? 1.8 : 1.8)); G.vel.set(0, 0, 0); }); }
+    }
+  }
+  if (G.zipping) updateZip(dt);
+  // ---- the supply drop
+  if (drop && !drop.done && G.raidT > drop.t) {
+    drop.done = true; const p = drop.at; hud.toast(`📦 A bandit supply balloon crashed near ${CLEARINGS.find((c) => c.id === p.area)?.name}! Red smoke marks it`); sfx("notice");
+    const items = rollCrate("gold", G.lootCtx, G.rng); items.forEach((id, k) => spawnPickup(id, V(p.x, p.z, 6), k, items.length)); beam(V(p.x, p.z), RAR_COLOR.rare);
+    const n = 60, pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) pos.set([p.x + (Math.random() - 0.5), groundHeight(p.x, p.z) + Math.random() * 8, p.z + (Math.random() - 0.5)], i * 3);
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    drop.smoke = new THREE.Points(g, new THREE.PointsMaterial({ color: "#ff5a3a", size: 1.4, transparent: true, opacity: 0.55, depthWrite: false })); G.stage.scene.add(drop.smoke);
+  }
+  if (drop?.smoke) { const p = drop.smoke.geometry.attributes.position as THREE.BufferAttribute; for (let i = 0; i < p.count; i++) { let y = p.getY(i) + dt * 1.6; if (y > groundHeight(drop.at.x, drop.at.z) + 9) y -= 9; p.setY(i, y); p.setX(i, p.getX(i) + Math.sin(y + i) * dt * 0.4); } p.needsUpdate = true; }
+}
+const zl = ZIPLINES[0];
+function startZip() {
+  const a = V(zl.from.x, zl.from.z, groundHeight(zl.from.x, zl.from.z) + zl.from.h), b = V(zl.to.x, zl.to.z, groundHeight(zl.to.x, zl.to.z) + zl.to.h);
+  G.zipping = { t: 0, len: a.distanceTo(b) }; sfx("whirr"); hud.toast("Wheee! (enemies can't touch you on the line)");
+}
+function updateZip(dt: number) {
+  const z = G.zipping!; z.t += dt * 16 / z.len; const k = Math.min(1, z.t);
+  const a = V(zl.from.x, zl.from.z, groundHeight(zl.from.x, zl.from.z) + zl.from.h), b = V(zl.to.x, zl.to.z, groundHeight(zl.to.x, zl.to.z) + zl.to.h);
+  G.pp.copy(a).lerp(b, k); G.pp.y -= Math.sin(k * Math.PI) * 1.2; G.moveYaw = Math.atan2(b.x - a.x, b.z - a.z); G.vel.set(0, 0, 0);
+  if (Math.random() < 0.3) sfx("whirr", 0.3);
+  if (k >= 1) { G.zipping = null; G.pp.y = groundHeight(G.pp.x, G.pp.z); sfx("step"); }
+}

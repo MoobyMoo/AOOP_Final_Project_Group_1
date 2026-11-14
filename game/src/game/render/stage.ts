@@ -12,6 +12,7 @@ export class Stage {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(24, 1, 1, 220);
   composer: EffectComposer;
+  renderPass: RenderPass;
   sun: THREE.DirectionalLight;
   hemi: THREE.HemisphereLight;
   sunDir: THREE.Vector3;
@@ -35,9 +36,16 @@ export class Stage {
     this.hemi = new THREE.HemisphereLight("#a9c4ff", "#4a3e2e", Number(QS.get("fill") ?? 0.9));
     s.add(this.sun, this.sun.target, this.hemi);
     this.composer = new EffectComposer(r, { frameBufferType: THREE.HalfFloatType });
-    this.composer.addPass(new RenderPass(s, this.camera));
+    this.renderPass = new RenderPass(s, this.camera); this.composer.addPass(this.renderPass);
     this.composer.addPass(new EffectPass(this.camera, new BloomEffect({ mipmapBlur: true, luminanceThreshold: 0.95, intensity: 0.4 }), new VignetteEffect({ offset: 0.42, darkness: 0.28 }), new SMAAEffect()));
     addEventListener("resize", () => this.resize()); this.resize();
+  }
+  /** switch the rendered scene; the sun and fill move with it */
+  setScene(s: THREE.Scene, fog = true) {
+    s.add(this.sun, this.sun.target, this.hemi);
+    if (!s.background) s.background = (this.scene.background as THREE.Color)?.clone() ?? new THREE.Color("#d9cfa8");
+    if (fog && !s.fog && this.scene.fog) s.fog = (this.scene.fog as THREE.Fog).clone();
+    this.scene = s; this.renderPass.mainScene = s;
   }
   resize() {
     this.renderer.setSize(innerWidth, innerHeight, false); this.composer.setSize(innerWidth, innerHeight); inkU.uRes.value.set(innerWidth, innerHeight);

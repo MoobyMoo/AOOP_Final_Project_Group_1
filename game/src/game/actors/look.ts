@@ -1,6 +1,5 @@
 // STUB (lead): replaced by Fable A's rig v2. Look record defaults = the brand Businessman (BRAND.md).
-import type { MonkeyLook, Gear } from "../contracts";
-export const DEFAULT_GEAR: Gear = { head: "bowler", face: "shades", back: "satchel" };
+import type { MonkeyLook } from "../contracts";
 export const DEFAULT_LOOK: MonkeyLook = {
   v: 2, fur: "#e07a32", face: "#f6c896", headSize: 0,
   ears: { style: "round", size: 1 }, eyes: { style: "round", spacing: 1 }, brows: { style: "bold", tilt: 0 }, mouth: "smile",

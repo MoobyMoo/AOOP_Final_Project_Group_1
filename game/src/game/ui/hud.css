@@ -1,3 +1,51 @@
 html,body{margin:0;height:100%;overflow:hidden;background:#d9cfa8;font-family:"Trebuchet MS",system-ui,sans-serif;user-select:none}
-canvas{display:block;width:100vw;height:100vh;cursor:crosshair}
+canvas{display:block;width:100vw;height:100vh;cursor:none}
 #ui{position:fixed;inset:0;pointer-events:none;color:#fff8ec;text-shadow:0 2px 3px #0008}
+.pill{background:#1d1a22aa;border:2px solid #fff2;border-radius:999px;padding:4px 14px}
+.hud-hearts{position:absolute;top:14px;left:18px;font-size:34px;letter-spacing:2px}
+.hud-hearts .on{color:#ff6a5a;text-shadow:0 2px 0 #8a1f18,0 3px 6px #0008}
+.hud-hearts .off{color:#0005;text-shadow:none}
+.hud-money{position:absolute;top:16px;right:18px;font-size:22px;background:#1d1a2288;border-radius:999px;padding:4px 16px}
+.hud-raidt{position:absolute;top:62px;left:20px;font-size:14px;opacity:.9}
+.hud-ammo{position:absolute;right:22px;bottom:22px;display:flex;align-items:baseline;gap:8px;background:#1d1a22aa;border-radius:14px;padding:8px 16px;border:2px solid #fff2}
+.hud-ammo .gun{font-size:12px;letter-spacing:2px;opacity:.75;align-self:center}
+.hud-ammo b{font-size:38px;line-height:1}.hud-ammo b.empty{color:#ff6a5a}.hud-ammo span{font-size:18px;opacity:.85}
+.hud-pack{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);text-align:center}
+.hud-pack .slots{display:flex;gap:6px}
+.hud-pack .slot{width:46px;height:46px;border-radius:10px;background:#1d1a2299;border:2px solid #fff2;display:flex;align-items:center;justify-content:center;font-size:24px;position:relative}
+.hud-pack .slot.pouch{background:#3a2f1aa8;box-shadow:inset 0 0 0 2px #ffd84a66}
+.hud-pack .slot em{position:absolute;bottom:-1px;left:0;right:0;font-size:9px;font-style:normal;color:#ffd84a;letter-spacing:1px}
+.hud-pack .val{font-size:13px;margin-top:4px;opacity:.9}.hud-pack .val b{color:#ff8a6a}
+.hud-prompt{position:absolute;bottom:108px;left:50%;transform:translateX(-50%);font-size:17px;background:#1d1a22cc;border-radius:12px;padding:7px 16px;opacity:0;transition:opacity .12s}
+.hud-prompt.on{opacity:1}
+.hud-toast{position:absolute;top:70px;left:50%;transform:translateX(-50%);font-size:17px;background:#1d1a22cc;border-radius:12px;padding:8px 18px;max-width:640px;text-align:center;opacity:0;transition:opacity .25s}
+.hud-toast.on{opacity:1}
+.hud-banner{position:absolute;top:24%;left:50%;transform:translateX(-50%);text-align:center;opacity:0;pointer-events:none}
+.hud-banner b{display:block;font-size:44px;letter-spacing:1px;color:#fff3c4;text-shadow:0 3px 0 #6a4a1a,0 6px 14px #000a}
+.hud-banner small{display:block;font-size:18px;margin-top:4px}
+.hud-banner.on{animation:banner 2.6s ease-out forwards}
+@keyframes banner{0%{opacity:0;transform:translate(-50%,10px) scale(.92)}10%{opacity:1;transform:translate(-50%,0) scale(1.04)}18%{transform:translate(-50%,0) scale(1)}80%{opacity:1}100%{opacity:0}}
+.hud-search{position:absolute;width:52px;height:52px;transform:translate(-50%,-50%);display:none}
+.hud-search svg{width:100%;height:100%;transform:rotate(-90deg)}
+.hud-search .bg{fill:#1d1a2299;stroke:#fff3;stroke-width:5}
+.hud-search .fg{fill:none;stroke:#ffd84a;stroke-width:5;stroke-dasharray:100.5;stroke-dashoffset:100.5;stroke-linecap:round}
+.hud-cross{position:absolute;width:0;height:0;--spread:6px}
+.hud-cross i{position:absolute;width:10px;height:3px;background:#fff;box-shadow:0 0 0 1.5px #2a1a12;border-radius:2px}
+.hud-cross i:nth-child(1){left:var(--spread);top:-1.5px}.hud-cross i:nth-child(2){right:var(--spread);top:-1.5px}
+.hud-cross i:nth-child(3){width:3px;height:10px;top:var(--spread);left:-1.5px}.hud-cross i:nth-child(4){width:3px;height:10px;bottom:var(--spread);left:-1.5px}
+.hud-cross b{position:absolute;width:4px;height:4px;left:-2px;top:-2px;border-radius:50%;background:#fff;box-shadow:0 0 0 1.5px #2a1a12}
+.hud-cross.lock i{background:#ffd84a}
+.hud-cross.hit i{background:#fff;animation:hit .18s ease-out}
+.hud-cross.kill i{background:#ff5a4a;animation:hit .3s ease-out}
+.hud-cross.reload::after{content:"";position:absolute;left:-16px;top:-16px;width:32px;height:32px;border-radius:50%;background:conic-gradient(#ffd84a calc(var(--rl)*360deg),#0004 0)}
+@keyframes hit{0%{transform:scale(1.8) rotate(45deg)}100%{transform:scale(1) rotate(0)}}
+.hud-extract{position:absolute;top:30%;left:50%;transform:translateX(-50%);font-size:22px;text-align:center;display:none;background:#1d1a22cc;border-radius:14px;padding:10px 18px}
+.hud-extract .bar{width:260px;height:12px;background:#0006;border-radius:6px;overflow:hidden;margin-top:8px}.hud-extract .bar i{display:block;height:100%;background:linear-gradient(90deg,#ffe066,#ffb02a)}
+.hud-hurt{position:absolute;inset:0;box-shadow:inset 0 0 160px 40px #e8493a00}
+.hud-hurt.on{animation:hurt .45s ease-out}
+@keyframes hurt{0%{box-shadow:inset 0 0 160px 60px #e8493acc}100%{box-shadow:inset 0 0 160px 40px #e8493a00}}
+.hud-arrows .arrow{position:absolute;font-size:30px;color:#ffb02a}.hud-arrows .arrow.hot{color:#ff4a3a;font-size:38px}
+.hud-help{position:absolute;bottom:4px;left:18px;font-size:11px;opacity:.7;max-width:46vw}
+.floater{position:fixed;transform:translate(-50%,-50%);font-weight:bold;pointer-events:none;text-shadow:0 2px 0 #fff8,0 2px 6px #0006;white-space:nowrap;z-index:5}
+.fade{position:fixed;inset:0;background:#120c08;opacity:0;pointer-events:none;transition:opacity .35s;z-index:20}
+.fade.on{opacity:1}
