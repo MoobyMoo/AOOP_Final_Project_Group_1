@@ -34,7 +34,7 @@ export function updateInteractions(dt: number) {
   if (!G.alive || fading) return;
   // ---- area discovery
   const a = areaAt(G.pp.x, G.pp.z);
-  if (a && a !== G.area) { G.area = a; if (!G.discovered.has(a)) { G.discovered.add(a); const c = CLEARINGS.find((q) => q.id === a)!; hud.banner(c.name, c.under ? "underground" : ""); sfx("ui"); } }
+  if (a !== G.area) { G.area = a; if (a && !G.discovered.has(a)) { G.discovered.add(a); const c = CLEARINGS.find((q) => q.id === a)!; hud.banner(c.name, c.under ? "underground" : ""); sfx("ui"); } }
   // ---- extraction
   const moved = flat(G.pp, lastPp) > 0.02 * Math.max(1, dt * 60); lastPp.copy(G.pp);
   const hit = G.hp < lastHp; lastHp = G.hp;

@@ -80,7 +80,14 @@ export const HOUSE_IDS = Object.keys(PLANS);
 export const preloadHouse = (): Promise<void> => Promise.resolve();
 
 const T = 0.3, LOW = 1.15, DOORW = 1.4, DOORH = 2.15;
-const box = (w: number, h: number, d: number, x: number, y: number, z: number, color: string, yaw = 0) => bake(new THREE.BoxGeometry(w, h, d), color, M(x, y, z, 0, yaw, 0));
+/** the sun sits behind the set, so every wall the camera sees is in shade: side faces carry a baked "equator" boost
+ *  (the structures kit does the same, spikes/build/NOTES.md decision 2) and a little contact darkening at the ground */
+function shade(g: THREE.BufferGeometry) {
+  const n = g.attributes.normal as THREE.BufferAttribute, p = g.attributes.position as THREE.BufferAttribute, c = g.attributes.color.array as Float32Array;
+  for (let i = 0; i < n.count; i++) { const side = Math.abs(n.getY(i)) < 0.5, k = (side ? 1.85 : 1) * (0.8 + 0.2 * Math.min(1, p.getY(i) / 0.5)); c[i * 3] *= k; c[i * 3 + 1] *= k; c[i * 3 + 2] *= k; }
+  return g;
+}
+const box = (w: number, h: number, d: number, x: number, y: number, z: number, color: string, yaw = 0) => shade(bake(new THREE.BoxGeometry(w, h, d), color, M(x, y, z, 0, yaw, 0)));
 function meshOf(geos: THREE.BufferGeometry[], mat: MatId = "matte") {
   const m = new THREE.Mesh(geos.length === 1 ? geos[0] : mergeGeometries(geos, false)!, kitMaterial(mat)); m.castShadow = mat !== "emissive"; m.receiveShadow = mat !== "emissive"; return m;
 }
@@ -158,7 +165,7 @@ export function building(id: string, _opts: Record<string, unknown> = {}): Build
     const alongX = Cn >= R, span = alongX ? hz : hx, len = (alongX ? hx : hx === 0 ? 0 : hz) * 2, rise = Math.min(1.9, span * 0.5), sl = Math.hypot(span, rise), pitch = Math.atan2(rise, span);
     for (const s of [-1, 1]) for (let k = 0; k < 2; k++) { // two courses per side so the roof is not one flat colour
       const t = (k + 0.5) / 2, off = s * span * (1 - t), y = WH + rise * t + 0.06, g = new THREE.BoxGeometry(alongX ? len : sl / 2 + 0.04, 0.16, alongX ? sl / 2 + 0.04 : len);
-      roof.push(bake(g, k ? L.roof : L.roof2, alongX ? M(0, y, off, -s * pitch, 0, 0) : M(off, y, 0, 0, 0, s * pitch)));
+      roof.push(bake(g, k ? L.roof : L.roof2, alongX ? M(0, y, off, s * pitch, 0, 0) : M(off, y, 0, 0, 0, -s * pitch)));
     }
     roof.push(alongX ? box(len + 0.1, 0.2, 0.36, 0, WH + rise + 0.1, 0, L.trim) : box(0.36, 0.2, len + 0.1, 0, WH + rise + 0.1, 0, L.trim));
     for (const e of [-1, 1]) { // gable ends (both windings: the foliage-free matte material is single sided)

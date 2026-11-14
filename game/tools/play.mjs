@@ -7,7 +7,9 @@ mkdirSync(out, { recursive: true });
 const b = await chromium.launch({ executablePath: "/usr/bin/chromium", args: ["--use-angle=gl", "--enable-gpu", "--ignore-gpu-blocklist", "--autoplay-policy=no-user-gesture-required"] });
 const p = await b.newPage({ viewport: { width: 1600, height: 900 } });
 const errs = []; p.on("pageerror", (e) => errs.push(String(e))); p.on("console", (m) => { if (m.type() === "error" || m.type() === "warning") errs.push(m.text()); });
-await p.goto("http://localhost:5318/game.html?fresh=1&raid=1"); await p.waitForTimeout(6000);
+const BASE = process.env.BASE ?? "http://127.0.0.1:5340"; // the built preview on its own port; never 5318 (Moo plays there)
+if (new URL(BASE).port === "5318") throw new Error("port 5318 belongs to the owner's live server");
+await p.goto(`${BASE}/game.html?fresh=1&raid=1`); await p.waitForFunction(() => window.__g?.G?.scene === "raid", null, { timeout: 90000 }); await p.waitForTimeout(3000);
 const st = () => p.evaluate(() => { const G = window.__g.G; return { pp: [+G.pp.x.toFixed(1), +G.pp.z.toFixed(1)], hp: G.hp, stamina: Math.round(G.stamina), mag: G.mag, ammo: G.ammo, pack: G.pack.slice(), raidT: +G.raidT.toFixed(1), log: G.log, enemies: G.enemies.filter((e) => e.active).map((e) => ({ k: e.kind, s: e.state, hp: e.hp, d: +Math.hypot(e.p.x - G.pp.x, e.p.z - G.pp.z).toFixed(1) })) }; });
 const scr = (x, z) => p.evaluate(([x, z]) => { const G = window.__g.G; const THREE_v = G.pp.clone().set(x, G.pp.y + 1, z).project(G.stage.camera); return { x: (THREE_v.x * 0.5 + 0.5) * innerWidth, y: (-THREE_v.y * 0.5 + 0.5) * innerHeight }; }, [x, z]);
 const nearestEnemy = () => p.evaluate(() => { const G = window.__g.G; let best = null, bd = 1e9; for (const e of G.enemies) { if (e.down) continue; const d = Math.hypot(e.p.x - G.pp.x, e.p.z - G.pp.z); if (d < bd) { bd = d; best = e; } } return best ? { x: best.p.x, z: best.p.z, d: bd, kind: best.kind, state: best.state } : null; });

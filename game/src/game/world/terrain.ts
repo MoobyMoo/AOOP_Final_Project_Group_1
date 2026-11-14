@@ -94,16 +94,17 @@ export function buildTerrain(scene: THREE.Scene) {
   for (let z = -144; z < 144; z += TILE) for (let x = -128; x < 128; x += TILE) tiles.push(tile(x, z, mat));
   for (let z = -48; z < 80; z += TILE) for (let x = 128; x < 224; x += TILE) tiles.push(tile(x, z, mat));
   scene.add(...tiles);
-  const water = (w: number, d: number, x: number, y: number, z: number, color: string, opacity = 0.9) => {
+  // still water faces the low sun: a glossy plane throws one blinding highlight at the camera, so inland water is matte
+  const water = (w: number, d: number, x: number, y: number, z: number, color: string, opacity = 0.9, rough = 0.4) => {
     const g = new THREE.PlaneGeometry(w, d); g.rotateX(-Math.PI / 2);
-    const m = new THREE.Mesh(g, patch(new THREE.MeshStandardMaterial({ color, roughness: 0.15, transparent: true, opacity }), { rim: 0, water: true }));
+    const m = new THREE.Mesh(g, patch(new THREE.MeshStandardMaterial({ color, roughness: rough, transparent: true, opacity }), { rim: 0, water: true }));
     m.position.set(x, y, z); m.receiveShadow = true; m.name = "water"; scene.add(m); return m;
   };
   water(420, 90, 0, -0.32, SEA_Z + 41, "#3a9bb0"); water(420, 90, 0, -0.32, RIVER_Z - 41, "#2f8296");
-  for (const w of WET) { const b = w.bb; water(b[1] - b[0], b[3] - b[2], (b[0] + b[1]) / 2, w.z.water!, (b[2] + b[3]) / 2, "#4c8f84", 0.78); }
+  for (const w of WET) { const b = w.bb; water(b[1] - b[0], b[3] - b[2], (b[0] + b[1]) / 2, w.z.water!, (b[2] + b[3]) / 2, "#4c8f84", 0.78, 0.95); }
   for (const p of POOLS) { // the waterfall pool: a disc that sits in the dip the terrain cut for it
     const r = Number(p.o?.r ?? 6) + 1.2, g = new THREE.CircleGeometry(r, 40); g.rotateX(-Math.PI / 2);
-    const m = new THREE.Mesh(g, patch(new THREE.MeshStandardMaterial({ color: "#3a9bb0", roughness: 0.15, transparent: true, opacity: 0.86 }), { rim: 0, water: true }));
+    const m = new THREE.Mesh(g, patch(new THREE.MeshStandardMaterial({ color: "#3a9bb0", roughness: 0.95, transparent: true, opacity: 0.86 }), { rim: 0, water: true }));
     m.position.set(p.x, POOL_Y, p.z); m.receiveShadow = true; m.name = "water"; scene.add(m);
   }
   return { tiles };

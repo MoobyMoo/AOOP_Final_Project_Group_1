@@ -14,7 +14,7 @@ import { PLACED } from "./map/grove";
 import { toWorld } from "./map/types";
 import type { Footprint } from "./map/scatter";
 import { groundHeight } from "./terrain";
-import { addPieces } from "./dress";
+import { addPieces, objects } from "./dress";
 import { kitMaterial } from "./kitutil";
 import { fadeMaterial } from "../render/fade";
 import { addLamp } from "./lights";
@@ -67,6 +67,9 @@ export function buildHouses(scene: THREE.Scene) {
       addLamp({ pos, color: "#ffc27a", power: 16, range: 9, on: () => h.want > 0 || nearHouse(h, 5) });
     }
     houses.push(h);
+    // countable objects (G1-21): the building itself, each door, each window and each piece of furniture
+    objects.push({ x: p.x, z: p.z, k: p.k, big: true });
+    for (const c of def.colliders) { if (c.t !== "box" || !(c.id !== undefined || c.low)) continue; const [wx, wz] = toWorld(p, c.x, c.z); objects.push({ x: wx, z: wz, k: c.id !== undefined ? "door" : "furniture", big: true }); }
   }
 }
 const lp = new THREE.Vector3(), lc = new THREE.Vector3();

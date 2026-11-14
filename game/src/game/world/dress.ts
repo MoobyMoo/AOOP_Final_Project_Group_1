@@ -56,13 +56,23 @@ function tallMaterial(id: MatId) {
   if (!tallMats[id]) { const base = kitMaterial(id) as THREE.MeshStandardMaterial; const m = base.clone(); m.onBeforeCompile = base.onBeforeCompile; m.customProgramCacheKey = base.customProgramCacheKey; tallMats[id] = id === "emissive" ? m : withCutout(m); }
   return tallMats[id]!;
 }
+/** the world is a few million triangles of non-indexed vertices: store normals as int8 and colours as uint8
+ *  (20 bytes a vertex instead of 36) and drop the CPU copy once the GPU has it. Emissive colours go above 1, so they stay float */
+function lean(g: THREE.BufferGeometry, packColor: boolean) {
+  g.computeBoundingSphere(); g.computeBoundingBox();
+  const n = g.attributes.normal.array as Float32Array, n8 = new Int8Array(n.length); for (let i = 0; i < n.length; i++) n8[i] = Math.round(Math.max(-1, Math.min(1, n[i])) * 127);
+  g.setAttribute("normal", new THREE.BufferAttribute(n8, 3, true));
+  if (packColor) { const c = g.attributes.color.array as Float32Array, c8 = new Uint8Array(c.length); for (let i = 0; i < c.length; i++) c8[i] = Math.round(Math.max(0, Math.min(1, c[i])) * 255); g.setAttribute("color", new THREE.BufferAttribute(c8, 3, true)); }
+  for (const k of ["position", "normal", "color"]) (g.attributes[k] as THREE.BufferAttribute).onUpload(function (this: THREE.BufferAttribute) { (this as unknown as { array: unknown }).array = null; });
+  return g;
+}
 /** merge every chunk into meshes and add them to the scene; returns stats */
 export function flushChunks(scene: THREE.Scene) {
   let meshes = 0, tris = 0;
   for (const [, subs] of chunks) {
     const g = new THREE.Group(); g.name = "chunk";
     for (const [sub, geos] of subs) {
-      const [id, tall] = sub.split("|") as [MatId, string], merged = mergeGeometries(geos, false)!;
+      const [id, tall] = sub.split("|") as [MatId, string], merged = lean(mergeGeometries(geos, false)!, id !== "emissive");
       for (const q of geos) q.dispose();
       const m = new THREE.Mesh(merged, tall === "1" ? tallMaterial(id) : kitMaterial(id));
       m.castShadow = id !== "emissive"; m.receiveShadow = id !== "emissive"; g.add(m); meshes++; tris += merged.attributes.position.count / 3;
@@ -76,12 +86,14 @@ export function flushChunks(scene: THREE.Scene) {
 /** every object that stands in the world, for the density count (G1-21) and the map screen */
 export const objects: { x: number; z: number; k: string; big: boolean }[] = [];
 /** kinds too small to count as a "readable object" in a gameplay frame */
-const SMALL = new Set(["flowers", "litter", "pebbles", "shells", "rocks", "lily", "beachgrass", "mushroom", "ammo_box", "bedroll_a", "bedroll_b", "ruin_floor_a", "ruin_floor_b", "ruin_floor_c", "lantern", "satchel", "sack"]);
+const SMALL = new Set(["flowers", "litter", "pebbles", "shells", "ammo_box", "ruin_floor_a", "ruin_floor_b", "ruin_floor_c"]);
+/** module length of wall runs: a run counts one object per module (a palisade section, a fence panel) */
+const MODULE: Record<string, number> = { palisade: 2.5, stone: 1.85, hull: 2.5, rock: 2.1, fence: 2.5 };
 /** animated / attach-point nodes of placed pieces, by the Placed id (props.ts hooks gameplay onto them) */
 export const placedParts = new Map<string, Record<string, THREE.Object3D>>();
 const NATURE = new Set<string>();
 /** deck height of the boardwalk sections above their origin: they are sunk by this so the deck sits on the causeway */
-const DECK_Y = 0.52;
+const DECK_Y = 0.1;
 /** kinds built elsewhere (interactive props, buildings) or that have no geometry */
 const SKIP = new Set(["pool", "zip_tower", "zip_end", "vine_door", "ground", "light"]);
 let pieceSeed = 1;
@@ -89,7 +101,10 @@ let pieceSeed = 1;
 function buildOne(scene: THREE.Scene, p: Placed, rng: () => number) {
   if (SKIP.has(p.k) || p.k.startsWith("building:")) return;
   const s = p.s ?? 1, yaw = p.yaw ?? 0, o = p.o ?? {};
-  objects.push({ x: p.x, z: p.z, k: p.k, big: !SMALL.has(p.k) });
+  if (p.k.startsWith("wall:")) { // one countable object per module along the run
+    const len = Number(o.len ?? 2.5), n = Math.max(1, Math.round(len / (MODULE[p.k.slice(5)] ?? 2.5)));
+    for (let i = 0; i < n; i++) { const t = (i + 0.5) / n - 0.5; objects.push({ x: p.x + Math.sin(yaw) * len * t, z: p.z + Math.cos(yaw) * len * t, k: p.k, big: true }); }
+  } else objects.push({ x: p.x, z: p.z, k: p.k, big: !SMALL.has(p.k) && !(p.k === "rocks" && s < 0.8) });
   if (NATURE.has(p.k)) {
     const y = o.water !== undefined && p.k === "lily" ? Number(o.water) - 0.03 : undefined;
     addPieces(naturePiece(p.k, rng, s, o.v !== undefined ? { variant: Number(o.v) } : {}), p.x, p.z, yaw, 1, y); return;
@@ -99,7 +114,7 @@ function buildOne(scene: THREE.Scene, p: Placed, rng: () => number) {
   if (p.k.startsWith("wall:")) b = K.wallSection(p.k.slice(5) as K.WallKind, { length: Number(o.len ?? 2.5), seed: pieceSeed++ });
   else if (p.k === "gate") b = K.gate(!!o.open);
   else b = K.asset(p.k);
-  const y = o.y !== undefined ? Number(o.y) : groundHeight(p.x, p.z) - (o.deck ? DECK_Y : p.k === "bridge" ? 0.42 : 0.04);
+  const y = o.y !== undefined ? Number(o.y) : groundHeight(p.x, p.z) - (o.deck ? DECK_Y : p.k === "bridge" ? 0.72 : 0.04);
   addPieces(b.pieces, p.x, p.z, yaw, s, y);
   if (b.parts.root.children.length) { b.parts.root.position.set(p.x, y, p.z); b.parts.root.rotation.y = yaw; b.parts.root.scale.setScalar(s); scene.add(b.parts.root); if (p.id) placedParts.set(p.id, b.parts); }
   else if (p.id) placedParts.set(p.id, b.parts);
@@ -116,29 +131,31 @@ const N = (type: string, rng: () => number, s: number) => naturePiece(type, rng,
 export function dressEdges(rng: () => number) {
   const rr = (a: number, b: number) => a + rng() * (b - a), info = { kind: "jungle" as EdgeKind | "cave" };
   let n = 0;
+  /** edge pieces are in the frame too: they count as objects (G1-21) */
+  const add = (ps: KitPiece[], x: number, z: number, yaw: number, k: string) => { addPieces(ps, x, z, yaw); objects.push({ x, z, k, big: true }); n++; };
   const STEP = 1.9;
   for (let gz = BOUNDS.minZ - 14; gz < BOUNDS.maxZ + 14; gz += STEP) for (let gx = BOUNDS.minX - 14; gx < BOUNDS.maxX + 6; gx += STEP) {
     const x = gx + rng() * STEP, z = gz + rng() * STEP, d = edgeDist(x, z, info), band = -d, f = rng(), yaw = rng() * 6.28;
     if (band < 0.3 || band > 16) continue;
     const kind = info.kind;
     if (kind === "cave") {
-      if (band < 2.6) { if (f < 0.7) { addPieces(N("caverock", rng, rr(0.9, 1.5) * (1 + band * 0.35)), x, z, yaw); n++; } else if (f < 0.85) { addPieces(N("stalagmite", rng, rr(0.9, 1.6)), x, z, yaw); n++; } }
-      else if (band < 7 && f < 0.16) { addPieces(N("caverock", rng, rr(1.8, 2.8)), x, z, yaw); n++; }
+      if (band < 2.6) { if (f < 0.7) { add(N("caverock", rng, rr(0.9, 1.5) * (1 + band * 0.35)), x, z, yaw, "edge"); } else if (f < 0.85) { add(N("stalagmite", rng, rr(0.9, 1.6)), x, z, yaw, "edge"); } }
+      else if (band < 7 && f < 0.16) { add(N("caverock", rng, rr(1.8, 2.8)), x, z, yaw, "edge"); }
       continue;
     }
-    if (kind === "coast") { if (band < 5 && f < 0.035) { addPieces(N(f < 0.02 ? "rockm" : "rockl", rng, rr(0.8, 1.3)), x, z, yaw); n++; } continue; }
-    if (kind === "river") { if (band < 2.2 && f < 0.3) { addPieces(N(f < 0.2 ? "reeds" : "rockm", rng, rr(0.9, 1.4)), x, z, yaw); n++; } continue; }
+    if (kind === "coast") { if (band < 5 && f < 0.035) { add(N(f < 0.02 ? "rockm" : "rockl", rng, rr(0.8, 1.3)), x, z, yaw, "edge"); } continue; }
+    if (kind === "river") { if (band < 2.2 && f < 0.3) { add(N(f < 0.2 ? "reeds" : "rockm", rng, rr(0.9, 1.4)), x, z, yaw, "edge"); } continue; }
     const front = inside(x + 2.1, z - 3.6) || inside(x + 3.9, z - 6.7);
     if (kind === "cliff") {
-      if (band < 4.2) { if (f < 0.62) { addPieces(N(f < 0.2 ? "boulders" : "rockl", rng, (front ? rr(1.0, 1.5) : rr(1.6, 2.7)) * (f < 0.2 ? 0.8 : 1)), x, z, yaw); n++; } else if (f < 0.8 && !front) { addPieces(N(f < 0.7 ? "bush" : "fern", rng, rr(1, 1.5)), x, z, yaw); n++; } }
-      else if (f < (front ? 0.1 : 0.2)) { addPieces(N(f < 0.06 ? "rockl" : "treefar", rng, f < 0.06 ? rr(1.6, 2.6) : rr(1.3, 1.8)), x, z, yaw); n++; }
+      if (band < 4.2) { if (f < 0.62) { add(N(f < 0.2 ? "boulders" : "rockl", rng, (front ? rr(1.0, 1.5) : rr(1.6, 2.7)) * (f < 0.2 ? 0.8 : 1)), x, z, yaw, "edge"); } else if (f < 0.8 && !front) { add(N(f < 0.7 ? "bush" : "fern", rng, rr(1, 1.5)), x, z, yaw, "edge"); } }
+      else if (f < (front ? 0.1 : 0.2)) { add(N(f < 0.06 ? "rockl" : "treefar", rng, f < 0.06 ? rr(1.6, 2.6) : rr(1.3, 1.8)), x, z, yaw, "edge"); }
       continue;
     }
     // jungle
-    if (front && band < 4.2) { if (f < 0.55) { addPieces(N(f < 0.22 ? "fern" : f < 0.4 ? "bush" : "bigleaf", rng, rr(0.8, 1.2)), x, z, yaw); n++; } continue; }
-    if (band < 1.8) { if (f < 0.7) { addPieces(N(f < 0.25 ? "bush" : f < 0.42 ? "fern" : f < 0.56 ? "bigleaf" : "banana", rng, rr(0.9, 1.4)), x, z, yaw); n++; } }
-    else if (band < 6) { if (f < 0.55) { addPieces(N(f < 0.22 ? "palm" : f < 0.44 ? "tree" : "bush", rng, f < 0.44 ? rr(0.95, 1.25) : rr(1.3, 1.8)), x, z, yaw); n++; } }
-    else if (f < 0.13) { addPieces(N("treefar", rng, rr(1.3, 1.9)), x, z, yaw); n++; }
+    if (front && band < 4.2) { if (f < 0.55) { add(N(f < 0.22 ? "fern" : f < 0.4 ? "bush" : "bigleaf", rng, rr(0.8, 1.2)), x, z, yaw, "edge"); } continue; }
+    if (band < 1.8) { if (f < 0.7) { add(N(f < 0.25 ? "bush" : f < 0.42 ? "fern" : f < 0.56 ? "bigleaf" : "banana", rng, rr(0.9, 1.4)), x, z, yaw, "edge"); } }
+    else if (band < 6) { if (f < 0.55) { add(N(f < 0.22 ? "palm" : f < 0.44 ? "tree" : "bush", rng, f < 0.44 ? rr(0.95, 1.25) : rr(1.3, 1.8)), x, z, yaw, "edge"); } }
+    else if (f < 0.13) { add(N("treefar", rng, rr(1.3, 1.9)), x, z, yaw, "edge"); }
   }
   return n;
 }
@@ -154,7 +171,7 @@ export function buildGrass(scene: THREE.Scene, rng: () => number, tuft: THREE.Bu
     const rd = roadDist(x, z); if (rd < 0.5) continue;
     const dens = fbm(x * 0.1 + 3, z * 0.1); if (dens < 0.44) continue;
     const edgeK = THREE.MathUtils.smoothstep(Math.min(d, rd + 0.4), 0.4, 2.2); if (rng() > edgeK) continue; // thin out toward edges and roads, no hard lines
-    if (noGrass(x, z)) continue;
+    if (noGrass(x, z) || groundHeight(x, z) < -0.06) continue; // not on floors, not under water
     const key = `${Math.floor(x / CH)},${Math.floor(z / CH)}`; (per.get(key) ?? per.set(key, []).get(key)!).push([x, z, (0.7 + dens * 0.9) * (0.6 + edgeK * 0.4)]);
   }
   const mat = patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }), { rim: 0.25, grass: true });
