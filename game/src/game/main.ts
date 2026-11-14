@@ -79,6 +79,7 @@ function frame() {
     G.intent = G.bot ? botTick(STEP) : G.input.read(STEP);
     if (G.intent.map && G.scene === "raid") toggleMap();
     if (G.intent.inv && G.scene === "raid") hud.inventory();
+    if (hud.invOpen() && G.scene === "raid") Object.assign(G.intent, { fire: false, firePressed: false, ads: false, melee: false }); // the pack screen takes the mouse
     if (G.intent.mini && G.scene === "raid") toggleMinimap();
     if (G.intent.esc && mapOpen()) toggleMap();
     if (G.scene === "raid") { if (G.hitStop > 0) G.hitStop -= STEP; else { if (mapOpen()) neutral(); stepRaid(STEP); } }
