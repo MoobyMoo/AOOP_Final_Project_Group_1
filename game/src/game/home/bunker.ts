@@ -13,6 +13,7 @@ import { save } from "../core/save_interim";
 import { floatText, burst, initFx, updateFx, popIn } from "../../fx";
 import { U } from "../render/shading";
 import { PLAYER } from "../combat/weapons";
+import { iconHtml } from "../ui/itemicon";
 
 export const bunkerScene = new THREE.Scene();
 bunkerScene.background = new THREE.Color("#2a2420");
@@ -74,12 +75,12 @@ export function enterBunker(deploy: () => void, mirror: () => void, summary?: st
   if (!G.rig) { G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(bunkerScene); G.rig.sockets.handR.add(G.gun.root); }
   G.rig.setLook?.(G.save.look); G.rig.setGear?.(G.save.gear); bunkerScene.add(G.rig.root);
   pp.set(0, 0, 2.4); vel.set(0, 0, 0); G.rig.root.position.copy(pp);
-  const ui = document.getElementById("ui")!; ui.innerHTML = `<div class="home-top"><span class="home-money">🍌 <b>${G.save.money}</b></span><span class="home-title">The Bunker</span></div><div class="hud-prompt" id="hp"></div><div class="home-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk, <kbd>E</kbd> use a station</div>`;
-  if (summary) showPanel(summary, "receipt");
+  const ui = document.getElementById("ui")!; ui.innerHTML = `<div class="home-top"><div class="place"><b>The Bunker</b><span>Under Exile Beach</span></div><span class="home-money">🍌 <b>${G.save.money}</b></span></div><div class="hud-prompt" id="hp"></div><div class="home-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk &nbsp;<kbd>E</kbd> use a station</div>`;
+  if (summary) showPanel(summary, "result");
 }
 export function leaveBunker() { closePanel(); G.stage.hemi.intensity = Number(new URLSearchParams(location.search).get("fill") ?? 0.9); G.stage.sun.intensity = 7; }
 function money() { const el = document.querySelector(".home-money b"); if (el) el.textContent = String(G.save.money); }
-function showPanel(html: string, cls = "") { closePanel(); panel = document.createElement("div"); panel.className = "home-panel " + cls; panel.innerHTML = html + `<div class="close"><kbd>E</kbd> or <kbd>Esc</kbd> to close</div>`; document.getElementById("ui")!.appendChild(panel); panel.style.pointerEvents = "auto"; panel.querySelectorAll<HTMLButtonElement>("button[data-a]").forEach((b) => b.onclick = () => act(b.dataset.a!)); }
+function showPanel(html: string, cls = "") { closePanel(); panel = document.createElement("div"); panel.className = "panel " + cls; panel.innerHTML = html + `<div class="foot"><kbd>E</kbd> or <kbd>Esc</kbd> to close</div>`; document.getElementById("ui")!.appendChild(panel); panel.style.pointerEvents = "auto"; panel.querySelectorAll<HTMLButtonElement>("button[data-a]").forEach((b) => b.onclick = () => act(b.dataset.a!)); }
 function closePanel() { panel?.remove(); panel = null; }
 let near: Station | null = null;
 export function stepBunker(dt: number) {
@@ -100,34 +101,39 @@ export function renderBunker(dt: number) {
   updateFx(dt);
   const f = pp.clone().setY(0.5).add(V(0, -1.2)); G.stage.cam.dist = 26; G.stage.place(f, dt, G.time); G.stage.cam.dist = 40;
 }
+const head = (title: string, sub = "") => `<header><h2>${title}</h2>${sub ? `<small>${sub}</small>` : ""}</header>`;
+const cell = (i: string) => `<div class="cell" style="--rbg:var(--r-${itemDef(i).rarity})" title="${itemDef(i).name}">${iconHtml(i, 44)}<span class="v">${itemDef(i).value}</span></div>`;
 function open(s: Station) {
   const sv = G.save;
   if (s.id === "ladder") return showPanel(islandMap());
   if (s.id === "mirror") return onMirror();
-  if (s.id === "trophies") return showPanel(`<h2>Trophy shelf</h2><p>${sv.trophies.length ? sv.trophies.map((t) => `${itemDef(t).icon} ${itemDef(t).name}`).join("<br>") : "Nothing yet. Bring home something legendary."}</p><p class="dim">${sv.raids} raids, ${sv.stats.extracts} made it home, ${sv.stats.bonkOuts} bonked. Best haul 🍌 ${sv.stats.best}.</p>`);
+  if (s.id === "trophies") return showPanel(`${head("Trophy shelf", `${sv.raids} raids`)}${sv.trophies.length ? `<div class="grid">${sv.trophies.map(cell).join("")}</div>` : `<p class="dim">Nothing yet. Bring home something legendary.</p>`}
+    <div class="stats" style="margin-top:12px"><div class="stat"><b>${sv.stats.extracts}</b><span>made it home</span></div><div class="stat"><b>${sv.stats.bonkOuts}</b><span>bonked</span></div><div class="stat"><b>🍌 ${sv.stats.best}</b><span>best haul</span></div></div>`);
   if (s.id === "sell") { const items = sv.reserved.filter((i) => itemDef(i).kind !== "key"); const v = items.reduce((a, i) => a + itemDef(i).value, 0);
-    return showPanel(`<h2>The Fence</h2><p>"I don't ask where it came from."</p>${items.length ? `<div class="items">${items.map((i) => `<span style="--rc:${RAR_COLOR[itemDef(i).rarity]}" title="${itemDef(i).name}">${itemDef(i).icon}<small>${itemDef(i).value}</small></span>`).join("")}</div><button data-a="sellAll">Sell everything for 🍌 ${v}</button>` : "<p class=dim>Your stash is empty. Go get some loot.</p>"}`); }
+    return showPanel(`${head("The Fence", `${items.length} items in your stash`)}<p class="quote">"I don't ask where it came from."</p>${items.length ? `<div class="grid">${items.map(cell).join("")}</div><div class="total"><span>Stash value</span><b>🍌 ${v}</b></div><div class="actions"><button data-a="sellAll">Sell everything for 🍌 ${v}</button></div>` : `<p class="dim">Your stash is empty. Go get some loot.</p>`}`); }
   if (s.id === "bench") return showPanel(benchHtml());
   if (s.id === "orders") return showPanel(orderHtml());
-  if (s.id === "sal") return showPanel(`<h2>Smuggler Sal</h2><p>"Ammo, bandages, smoothies. Cash only."</p><button data-a="buyAmmo">8 rounds, 🍌 ${PRICES.ammo8}</button><button data-a="buyBandage">Bandage, 🍌 ${PRICES.bandage}</button><button data-a="buySmoothie">Smoothie, 🍌 ${PRICES.smoothie}</button><p class="dim">You carry ${sv.ammo} rounds into the next raid (16 minimum).</p>`);
+  if (s.id === "sal") return showPanel(`${head("Smuggler Sal", "cash only")}<p class="quote">"Ammo, bandages, smoothies."</p><div class="rows">
+    <div class="row"><b>8 rounds of .45</b><small>You carry ${sv.ammo} rounds into the next raid (16 minimum).</small><button class="act" data-a="buyAmmo">🍌 ${PRICES.ammo8}</button></div>
+    <div class="row"><b>Banana-leaf bandage</b><small>Heals 15, quick to use</small><button class="act" data-a="buyBandage">🍌 ${PRICES.bandage}</button></div>
+    <div class="row"><b>Banana smoothie</b><small>Heals 40, slow to drink</small><button class="act" data-a="buySmoothie">🍌 ${PRICES.smoothie}</button></div></div>`);
 }
 function benchHtml() {
-  const u = G.save.upgrades, row = (k: "mag" | "pack" | "heart", name: string, desc: string) => { const lvl = u[k], c = PRICES[k][lvl]; return `<div class="up"><b>${name}</b> <small>${desc}</small>${c === undefined ? `<em>MAXED</em>` : `<button data-a="up:${k}" ${G.save.money < c ? "disabled" : ""}>🍌 ${c}</button>`}</div>`; };
-  return `<h2>Workbench</h2>${row("mag", "Extended Mag", "Kingpin 8 → 12 rounds" + (G.save.fixtures.includes("extmag") ? " (already found one in the vault!)" : ""))}${row("pack", "Bigger Pack", "+2 pack slots, +weight")}${row("heart", "Banana Breakfast", "+25 max HP")}<p class="dim">🔒 Contraband Carbine: coming with the Smuggler Caves</p>`;
+  const u = G.save.upgrades, row = (k: "mag" | "pack" | "heart", name: string, desc: string) => { const lvl = u[k], c = PRICES[k][lvl]; return `<div class="row"><b>${name}</b><small>${desc}</small>${c === undefined ? `<em class="act">Done</em>` : `<button class="act" data-a="up:${k}" ${G.save.money < c ? "disabled" : ""}>🍌 ${c}</button>`}</div>`; };
+  return `${head("Workbench", `🍌 ${G.save.money} to spend`)}<div class="rows">${row("mag", "Extended Mag", "Kingpin holds 12 rounds instead of 8" + (G.save.fixtures.includes("extmag") ? ". You already found one in the vault" : ""))}${row("pack", "Bigger Pack", "2 more pack slots")}${row("heart", "Banana Breakfast", "25 more max HP")}</div><p class="dim" style="margin-top:10px">🔒 Contraband Carbine arrives with the Smuggler Caves.</p>`;
 }
 function orderHtml() {
-  const o = G.save.order;
-  if (G.save.salMovedIn) return `<h2>Order board</h2><p>Sal's job is done. More jobs arrive with new regions.</p>`;
-  const prog = Object.entries(ORDER.need).map(([k, n]) => `${itemDef(k).icon} ${itemDef(k).name}: ${Math.min(n, G.save.reserved.filter((i) => i === k).length)}/${n}`).join("<br>");
+  if (G.save.salMovedIn) return `${head("Order board")}<p>Sal's job is done. New jobs arrive with new regions.</p>`;
+  const rows = Object.entries(ORDER.need).map(([k, n]) => { const have = Math.min(n, G.save.reserved.filter((i) => i === k).length); return `<div class="row"><b>${itemDef(k).icon} ${itemDef(k).name}</b><small>${have} of ${n} in your stash</small><em class="act" style="color:${have >= n ? "var(--leaf)" : "var(--dim)"}">${have >= n ? "Ready" : `${n - have} to go`}</em></div>`; }).join("");
   const ready = Object.entries(ORDER.need).every(([k, n]) => G.save.reserved.filter((i) => i === k).length >= n);
-  return `<h2>${ORDER.from}'s job</h2><p>"${ORDER.text}"</p><p>${prog}</p><p class="dim">Reward: ${ORDER.reward}</p>${ready ? `<button data-a="deliver">Deliver</button>` : ""}${o ? "" : ""}`;
+  return `${head(`${ORDER.from}'s job`)}<p class="quote">"${ORDER.text}"</p><div class="rows">${rows}</div><p class="dim" style="margin-top:10px">Reward: ${ORDER.reward}</p>${ready ? `<div class="actions"><button data-a="deliver">Deliver</button></div>` : ""}`;
 }
 function islandMap() {
-  return `<h2>The island</h2><div class="island">
-    <div class="reg on" style="left:30%;top:58%"><b>Banana Grove</b><small>bandits, wild monkeys and the Sleeper</small><button data-a="deploy">Raid ▸</button></div>
-    <div class="reg off" style="left:62%;top:40%"><b>Smuggler Caves</b><small>🔒 orangutan smugglers</small></div>
-    <div class="reg off" style="left:20%;top:22%"><b>Old Prison Fortress</b><small>🔒 robot monkeys, the mandrill warden</small></div>
-    <div class="reg off" style="left:70%;top:12%"><b>The Volcano</b><small>🔒 ???</small></div>
+  return `${head("The island", "pick where to raid")}<div class="island">
+    <div class="reg on" style="left:30%;top:58%"><b>Banana Grove</b>bandits, wild monkeys, the Sleeper<br><button data-a="deploy">Raid</button></div>
+    <div class="reg off" style="left:64%;top:40%"><b>Smuggler Caves</b>🔒 later</div>
+    <div class="reg off" style="left:22%;top:22%"><b>Old Prison Fortress</b>🔒 later</div>
+    <div class="reg off" style="left:72%;top:13%"><b>The Volcano</b>🔒 later</div>
     <svg class="routes" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M38 62 L66 44 M36 60 L26 28 M66 44 L74 18 M28 26 L72 16"/></svg></div>`;
 }
 function act(a: string) {
