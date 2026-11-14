@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --host",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview --host"
+    "preview": "vite preview --host",
+    "sim": "rolldown src/game/loot/sim.ts --file /tmp/bv-sim.mjs --platform node && node /tmp/bv-sim.mjs"
   },
   "dependencies": {
     "n8ao": "^2.0.2",
