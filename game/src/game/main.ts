@@ -7,19 +7,20 @@ import * as THREE from "three";
 import { Stage } from "./render/stage";
 import { Input } from "./core/input";
 import { G } from "./core/state";
-import { load, save } from "./core/save_interim";
+import { load, save } from "./core/save";
 import { unlockAudio } from "./core/audio";
 import { startRaid, stepRaid, renderRaid, buildRaidWorld, raidScene, type RaidResult } from "./core/raid";
 import { path, walkable, los } from "./world/grid";
 import { enterBunker, stepBunker, renderBunker, leaveBunker, bunkerScene, homeApi } from "./home/bunker";
 import { openCreator, renderCreator } from "./ui/creator";
-import { buildMapShots, toggleMap, mapOpen } from "./ui/mapview";
+import { buildMapShots, toggleMap, mapOpen, toggleMinimap } from "./ui/mapview";
 import { itemDef } from "./loot/raidloot";
 import { iconHtml } from "./ui/itemicon";
 import { createRig } from "./actors/rig";
 import { createKingpin, createGunFx } from "./combat/kingpin";
 import { fadeTo } from "./world/interact";
-import { botTick } from "./core/botdrive";
+import { botTick, setBot } from "./core/botdrive";
+import { createBot } from "./core/bot";
 import { hud } from "./ui/hud";
 
 const QS = new URLSearchParams(location.search);
@@ -27,6 +28,7 @@ G.stage = new Stage(document.getElementById("game") as HTMLCanvasElement);
 G.input = new Input(G.stage.renderer.domElement);
 if (QS.has("fresh")) localStorage.removeItem("bv_g1");
 G.save = load(); G.bot = QS.has("bot"); G.intent = G.input.read(0);
+if (G.bot) setBot(createBot({ greed: Number(QS.get("greed") ?? 0.5), reactionLag: Number(QS.get("lag") ?? 0.25), seed: Number(QS.get("seed") ?? 1) }));
 addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlockAudio);
 
 // world + rig up front (the map snapshot needs the raid scene built)
@@ -39,7 +41,7 @@ function goRaid() { fadeTo(() => { leaveBunker(); startRaid(onRaidEnd); }); }
 function onRaidEnd(r: RaidResult) {
   const sv = G.save; sv.raids++;
   if (r.how === "bonked") sv.stats.bonkOuts++; else sv.stats.extracts++;
-  if (r.kept.includes("key") && !sv.keys.includes("key")) sv.keys.push("key");
+  if (r.kept.includes("vine_key") && !sv.keys.includes("vine_key")) sv.keys.push("vine_key");
   const kept = r.kept.filter((i) => itemDef(i).kind !== "key");
   const value = kept.reduce((a, i) => a + itemDef(i).value, 0), bonus = Math.round(value * r.bonus);
   sv.reserved.push(...kept); sv.money += bonus; sv.stats.best = Math.max(sv.stats.best, value + bonus);
@@ -55,7 +57,7 @@ function onRaidEnd(r: RaidResult) {
     <div class="stats"><div class="stat"><b>${mmss}</b><span>raid time</span></div><div class="stat"><b>${kills}</b><span>bonked</span></div><div class="stat"><b>${r.log.crates}</b><span>crates opened</span></div></div>
     <h4>Brought home</h4>${kept.length ? `<div class="grid">${kept.map(cellH).join("")}</div>` : `<p class="dim">Nothing this time.</p>`}
     ${r.lost.length ? `<p class="lostline">${r.lost.length} item${r.lost.length > 1 ? "s" : ""} left in your satchel where you fell. Recover it next raid.</p>` : ""}
-    ${r.kept.includes("key") ? `<p>🗝️ The Vine Key is on your keyring. The vault opens next raid.</p>` : ""}
+    ${r.kept.includes("vine_key") ? `<p>🗝️ The Vine Key is on your keyring. The vault opens next raid.</p>` : ""}
     <div class="total"><span>Haul value${bonus ? `, raft bonus 🍌 ${bonus} paid now` : ""}</span><b>🍌 ${value + bonus}</b></div><p class="dim">Sell your stash at the Fence.</p>`;
   (window as unknown as { __raids: object[] }).__raids ??= []; (window as unknown as { __raids: object[] }).__raids.push({ how: r.how, t: Math.round(r.raidT), value, bonus, kept: r.kept.length, lost: r.lost.length, log: r.log });
   G.alive = true; goHome(html);
@@ -73,6 +75,7 @@ function frame() {
     G.intent = G.bot ? botTick(STEP) : G.input.read(STEP);
     if (G.intent.map && G.scene === "raid") toggleMap();
     if (G.intent.inv && G.scene === "raid") hud.inventory();
+    if (G.intent.mini && G.scene === "raid") toggleMinimap();
     if (G.intent.esc && mapOpen()) toggleMap();
     if (G.scene === "raid") { if (G.hitStop > 0) G.hitStop -= STEP; else { if (mapOpen()) neutral(); stepRaid(STEP); } }
     else if (G.scene === "bunker") stepBunker(STEP);

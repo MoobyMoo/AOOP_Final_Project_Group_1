@@ -102,7 +102,12 @@ const gScore = new Float32Array(GW * GH), came = new Int32Array(GW * GH), stamp 
 class Heap { k: number[] = []; v: number[] = []; push(key: number, val: number) { const k = this.k, v = this.v; let i = k.length; k.push(key); v.push(val); while (i > 0) { const p = (i - 1) >> 1; if (k[p] <= key) break; k[i] = k[p]; v[i] = v[p]; i = p; } k[i] = key; v[i] = val; }
   pop() { const k = this.k, v = this.v, top = v[0], lk = k.pop()!, lv = v.pop()!; if (k.length) { let i = 0; for (;;) { let c = 2 * i + 1; if (c >= k.length) break; if (c + 1 < k.length && k[c + 1] < k[c]) c++; if (k[c] >= lk) break; k[i] = k[c]; v[i] = v[c]; i = c; } k[i] = lk; v[i] = lv; } return top; } get size() { return this.k.length; } }
 export function path(fx: number, fz: number, tx: number, tz: number, maxNodes = 30000): { x: number; z: number }[] {
-  const s = ci(fx, fz), g = ci(tx, tz); if (s < 0 || g < 0 || !passable(g)) return [];
+  let g = ci(tx, tz); const s = ci(fx, fz); if (s < 0 || g < 0) return [];
+  if (!passable(g)) { // a blocked goal (a crate, a tree): aim for the nearest open cell within 2.5 u
+    let best = -1, bd = 1e9; const gc0 = g % GW, gr0 = (g / GW) | 0;
+    for (let dr = -3; dr <= 3; dr++) for (let dc = -3; dc <= 3; dc++) { const i = (gr0 + dr) * GW + gc0 + dc, d = dr * dr + dc * dc; if (d <= 7 && passable(i) && d < bd) { bd = d; best = i; } }
+    if (best < 0) return []; g = best;
+  }
   gen++; const gc = g % GW, gr = (g / GW) | 0, H = (i: number) => { const dx = Math.abs((i % GW) - gc), dz = Math.abs(((i / GW) | 0) - gr); return dx + dz - 0.586 * Math.min(dx, dz); };
   const heap = new Heap(); stamp[s] = gen; gScore[s] = 0; came[s] = -1; heap.push(H(s), s);
   let n = 0, found = s === g;

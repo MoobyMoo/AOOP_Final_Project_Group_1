@@ -40,7 +40,7 @@ export function breakWallVisual(id: string) {
 let doorObj: THREE.Group;
 export function openDoorVisual() { if (!doorObj) return; let k = 0; const f = () => { k += 0.03; doorObj.children[0].rotation.y = -k * 1.6; if (k < 1) requestAnimationFrame(f); }; f(); }
 
-export type Exit = { id: "hatch" | "raft" | "tunnel"; x: number; z: number; ring: THREE.Mesh; fill: THREE.Mesh; bonus: number; open: boolean };
+export type Exit = { id: "hatch" | "raft" | "tunnel"; x: number; z: number; ring: THREE.Mesh; fill: THREE.Mesh; bonus: number; open: boolean; armed?: boolean };
 export const exits: Exit[] = [];
 export const portalMarks: { id: string; x: number; z: number; to: { x: number; z: number }; label: string; oneWay?: boolean }[] = [];
 
@@ -58,7 +58,7 @@ export function buildProps(scene: THREE.Scene) {
   for (const s of [-1, 1]) { const post = ruinBlock(0.8, 3.4, 0.8); post.position.set(s * (DOOR.w / 2 + 0.4), 1.7, 0); doorObj.add(post); }
   const lintel = ruinBlock(DOOR.w + 1.8, 0.6, 0.9); lintel.position.y = 3.6; doorObj.add(lintel);
   scene.add(doorObj);
-  const doorOpenNow = G.save.keys.includes("key"); setDoorOpen(doorOpenNow); if (doorOpenNow) leaf.rotation.y = -1.6;
+  const doorOpenNow = G.save.keys.includes("vine_key"); setDoorOpen(doorOpenNow); if (doorOpenNow) leaf.rotation.y = -1.6;
   // exits
   exits.length = 0;
   const ring = (x: number, z: number, color: string) => {

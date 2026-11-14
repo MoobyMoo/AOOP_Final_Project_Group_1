@@ -9,16 +9,18 @@ import { sfx } from "../core/audio";
 import { itemDef, RAR_COLOR } from "../loot/raidloot";
 import { createRig } from "../actors/rig";
 import { createKingpin, createGunFx } from "../combat/kingpin";
-import { save } from "../core/save_interim";
+import { save } from "../core/save";
 import { floatText, burst, initFx, updateFx, popIn } from "../../fx";
 import { U } from "../render/shading";
 import { PLAYER } from "../combat/weapons";
 import { iconHtml } from "../ui/itemicon";
+import { PRICES as LOOT_PRICES } from "../loot/tables";
 
 export const bunkerScene = new THREE.Scene();
 bunkerScene.background = new THREE.Color("#2a2420");
-export const PRICES = { mag: [120], pack: [80, 190], heart: [110, 240], ammo8: 14, bandage: 8, smoothie: 18 };
-const ORDER = { id: "sal1", from: "Smuggler Sal", text: "Bring me 3 Vine Rope and 1 Old Gear. I'll move my shop in next door. No questions asked.", need: { rope: 3, gear: 1 } as Record<string, number>, reward: "Sal moves in (ammo + heals for sale) and a neon BANANA BANK sign" };
+// prices from Sol's economy sim (loot/tables.ts PRICES; gate: a median first raid buys one upgrade, all three take 4 raids)
+export const PRICES = { mag: LOOT_PRICES.upgrades.mag, pack: LOOT_PRICES.upgrades.pack, heart: LOOT_PRICES.upgrades.heart, ammo8: LOOT_PRICES.ammo8, bandage: LOOT_PRICES.bandage, smoothie: LOOT_PRICES.smoothie };
+const ORDER = { id: "sal1", from: "Smuggler Sal", text: "Bring me 3 Vine Rope and 1 Old Gear. I'll move my shop in next door. No questions asked.", need: { vine_rope: 3, old_gear: 1 } as Record<string, number>, reward: "Sal moves in (ammo + heals for sale) and a neon BANANA BANK sign" };
 type Station = { id: "sell" | "bench" | "orders" | "ladder" | "mirror" | "sal" | "trophies"; x: number; z: number; label: string; obj?: THREE.Object3D };
 export const stations: Station[] = [
   { id: "sell", x: -4.5, z: -2.6, label: "The Fence: sell your haul" },
@@ -120,7 +122,7 @@ function open(s: Station) {
 }
 function benchHtml() {
   const u = G.save.upgrades, row = (k: "mag" | "pack" | "heart", name: string, desc: string) => { const lvl = u[k], c = PRICES[k][lvl]; return `<div class="row"><b>${name}</b><small>${desc}</small>${c === undefined ? `<em class="act">Done</em>` : `<button class="act" data-a="up:${k}" ${G.save.money < c ? "disabled" : ""}>🍌 ${c}</button>`}</div>`; };
-  return `${head("Workbench", `🍌 ${G.save.money} to spend`)}<div class="rows">${row("mag", "Extended Mag", "Kingpin holds 12 rounds instead of 8" + (G.save.fixtures.includes("extmag") ? ". You already found one in the vault" : ""))}${row("pack", "Bigger Pack", "2 more pack slots")}${row("heart", "Banana Breakfast", "25 more max HP")}</div><p class="dim" style="margin-top:10px">🔒 Contraband Carbine arrives with the Smuggler Caves.</p>`;
+  return `${head("Workbench", `🍌 ${G.save.money} to spend`)}<div class="rows">${row("mag", "Extended Mag", "Kingpin holds 12 rounds instead of 8" + (G.save.fixtures.includes("extended_mag") ? ". You already found one in the vault" : ""))}${row("pack", "Bigger Pack", "2 more pack slots")}${row("heart", "Banana Breakfast", "25 more max HP")}</div><p class="dim" style="margin-top:10px">🔒 Contraband Carbine arrives with the Smuggler Caves.</p>`;
 }
 function orderHtml() {
   if (G.save.salMovedIn) return `${head("Order board")}<p>Sal's job is done. New jobs arrive with new regions.</p>`;

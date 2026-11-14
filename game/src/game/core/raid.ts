@@ -19,7 +19,7 @@ import { hud } from "../ui/hud";
 import { initFx, updateFx } from "../../fx";
 import { U } from "../render/shading";
 import { updateCutout } from "../render/cutout";
-import { buildMinimap, updateMinimap } from "../ui/mapview";
+import { buildMinimap, updateMinimap, resetTrail, recordTrail } from "../ui/mapview";
 
 export const raidScene = new THREE.Scene();
 let built = false;
@@ -44,10 +44,10 @@ export function startRaid(end: (r: RaidResult) => void) {
   if (!G.rig) { G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); }
   G.rig.setLook?.(G.save.look); G.gear = { ...G.save.gear }; G.rig.setGear?.(G.gear);
   raidScene.add(G.rig.root);
-  G.pp = G.rig.root.position; G.pp.set(POI.hatch.x + 1.5, 0, POI.hatch.z - 2.5); G.pp.y = groundHeight(G.pp.x, G.pp.z);
+  G.pp = G.rig.root.position; G.pp.set(POI.hatch.x + 2.5, 0, POI.hatch.z - 4.5); // spawn just outside the hatch ring G.pp.y = groundHeight(G.pp.x, G.pp.z);
   G.vel.set(0, 0, 0); G.moveYaw = Math.PI; G.aimYaw = Math.PI;
   G.maxHp = PLAYER.hp + 25 * G.save.upgrades.heart; G.hp = G.maxHp; G.stamina = PLAYER.stamina.max; G.staminaDelay = 0; G.sprinting = false; G.painT = 0; G.useItem = null; G.iframes = 0;
-  G.magSize = G.save.upgrades.mag || G.save.fixtures.includes("extmag") ? KINGPIN.extMag : KINGPIN.mag; G.gun.setVariant({ extMag: G.magSize > KINGPIN.mag });
+  G.magSize = G.save.upgrades.mag || G.save.fixtures.includes("extended_mag") ? KINGPIN.extMag : KINGPIN.mag; G.gun.setVariant({ extMag: G.magSize > KINGPIN.mag });
   G.ammo = Math.max(KINGPIN.startAmmo, G.save.ammo); G.mag = Math.min(G.magSize, G.ammo); G.ammo -= G.mag;
   G.fireCd = 0; G.fireT = 1; G.reloadT = -1; G.meleeT = -1; G.rollT = -1; G.rollCd = 0; G.skidT = 0; G.zipping = null;
   G.packSlots = 8 + 2 * G.save.upgrades.pack; G.pouchSlots = 2; G.pack = [];
@@ -58,7 +58,7 @@ export function startRaid(end: (r: RaidResult) => void) {
   G.lootCtx = { raid: G.save.raids, cratesOpened: 0, usefulFound: 0, emptyStreak: 0, ammoFound: 0, orderNeeds: G.save.order && !G.save.order.done ? Object.keys(G.save.order.progress) : [] };
   spawnEnemies(G.save.raids % 2); setupCrates();
   for (const c of raidScene.children) if (!before.has(c)) c.userData.perRaid = true;
-  hud.build(); buildMinimap(); startInteractions(); bonkT = 0;
+  hud.build(); buildMinimap(); resetTrail(); startInteractions(); bonkT = 0;
   // warm-up: compile every shader now (hidden enemies/props would otherwise compile mid-raid and hitch)
   const hidden: THREE.Object3D[] = []; raidScene.traverse((o) => { if (!o.visible) { hidden.push(o); o.visible = true; } });
   G.stage.renderer.compile(raidScene, G.stage.camera); hidden.forEach((o) => (o.visible = false));
@@ -79,7 +79,7 @@ let bonkT = 0;
 const focus = new THREE.Vector3(), chest = new THREE.Vector3(), sockQ = new THREE.Quaternion(), yawQ = new THREE.Quaternion(), UPV = new THREE.Vector3(0, 1, 0);
 export function stepRaid(dt: number) {
   G.raidT += dt; G.time += dt;
-  updatePlayer(dt); updateEnemies(dt); updateLoot(dt); updateInteractions(dt);
+  updatePlayer(dt); updateEnemies(dt); updateLoot(dt); updateInteractions(dt); recordTrail();
   if (!G.alive && G.hp <= 0) { bonkT += dt; if (bonkT > 1.8 && bonkT - dt <= 1.8) finish("bonked", 0); }
 }
 /** per render frame (not per sim step): pose, camera, FX */

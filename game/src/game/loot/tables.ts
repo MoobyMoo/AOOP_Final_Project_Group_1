@@ -8,42 +8,46 @@ export type LootContext = RaidLootCtx & {
 };
 
 export const ITEMS: Record<string, ItemDef> = {
-  banana: { id: "banana", name: "Banana Bunch", icon: "🍌", rarity: "common", value: 9, kind: "sell" },
-  coconut: { id: "coconut", name: "Coconut", icon: "🥥", rarity: "common", value: 12, kind: "sell" },
-  vine_rope: { id: "vine_rope", name: "Vine Rope", icon: "🪢", rarity: "common", value: 16, kind: "sell" },
-  golden_banana: { id: "golden_banana", name: "Golden Banana", icon: "🌟", rarity: "epic", value: 96, kind: "sell" },
-  honey_pot: { id: "honey_pot", name: "Honey Pot", icon: "🍯", rarity: "uncommon", value: 27, kind: "sell" },
-  old_gear: { id: "old_gear", name: "Old Gear", icon: "⚙️", rarity: "uncommon", value: 23, kind: "sell" },
-  sunset_mango: { id: "sunset_mango", name: "Sunset Mango", icon: "🥭", rarity: "rare", value: 39, kind: "sell" },
-  brass_compass: { id: "brass_compass", name: "Brass Compass", icon: "🧭", rarity: "rare", value: 53, kind: "sell" },
-  banana_idol: { id: "banana_idol", name: "Banana Idol", icon: "🗿", rarity: "epic", value: 145, kind: "sell" },
-  smoothie: { id: "smoothie", name: "Banana Smoothie", icon: "🧃", rarity: "uncommon", value: 18, kind: "heal" },
-  ammo45: { id: "ammo45", name: ".45 Rounds", icon: "🔸", rarity: "common", value: 0, kind: "ammo", stack: 8 },
-  vine_key: { id: "vine_key", name: "Vine Key", icon: "🗝️", rarity: "rare", value: 0, kind: "key" },
-  extended_mag: { id: "extended_mag", name: "Kingpin Extended Mag", icon: "📎", rarity: "epic", value: 0, kind: "attachment" },
-  spring: { id: "spring", name: "Spring", icon: "🌀", rarity: "common", value: 11, kind: "part" },
-  plank: { id: "plank", name: "Plank", icon: "🪵", rarity: "common", value: 8, kind: "part" },
+  banana: { id: "banana", name: "Banana Bunch", icon: "🍌", rarity: "common", value: 9, kind: "sell", weight: 1.2 },
+  coconut: { id: "coconut", name: "Coconut", icon: "🥥", rarity: "common", value: 12, kind: "sell", weight: 1.5 },
+  vine_rope: { id: "vine_rope", name: "Vine Rope", icon: "🪢", rarity: "common", value: 16, kind: "sell", weight: 0.8 },
+  golden_banana: { id: "golden_banana", name: "Golden Banana", icon: "🌟", rarity: "epic", value: 96, kind: "sell", weight: 0.6 },
+  honey_pot: { id: "honey_pot", name: "Honey Pot", icon: "🍯", rarity: "uncommon", value: 27, kind: "sell", weight: 1.4 },
+  old_gear: { id: "old_gear", name: "Old Gear", icon: "⚙️", rarity: "uncommon", value: 23, kind: "sell", weight: 1.8 },
+  sunset_mango: { id: "sunset_mango", name: "Sunset Mango", icon: "🥭", rarity: "rare", value: 39, kind: "sell", weight: 0.6 },
+  brass_compass: { id: "brass_compass", name: "Brass Compass", icon: "🧭", rarity: "rare", value: 53, kind: "sell", weight: 0.4 },
+  banana_idol: { id: "banana_idol", name: "Banana Idol", icon: "🗿", rarity: "epic", value: 145, kind: "sell", weight: 3.0 },
+  smoothie: { id: "smoothie", name: "Banana Smoothie", icon: "🧃", rarity: "uncommon", value: 18, kind: "heal", weight: 0.5 },
+  bandage: { id: "bandage", name: "Banana-Leaf Bandage", icon: "🩹", rarity: "common", value: 6, kind: "heal", weight: 0.2 },
+  firstaid: { id: "firstaid", name: "Jungle First-Aid Kit", icon: "🧰", rarity: "rare", value: 30, kind: "heal", weight: 0.9 },
+  boomerang: { id: "boomerang", name: "Banana Boomerang", icon: "🪃", rarity: "uncommon", value: 20, kind: "sell", weight: 0.7 },
+  ammo45: { id: "ammo45", name: ".45 Rounds", icon: "🔸", rarity: "common", value: 0, kind: "ammo", weight: 0, stack: 8 },
+  vine_key: { id: "vine_key", name: "Vine Key", icon: "🗝️", rarity: "rare", value: 0, kind: "key", weight: 0.1 },
+  extended_mag: { id: "extended_mag", name: "Kingpin Extended Mag", icon: "📎", rarity: "epic", value: 0, kind: "attachment", weight: 0.2 },
+  spring: { id: "spring", name: "Spring", icon: "🌀", rarity: "common", value: 11, kind: "part", weight: 0.5 },
+  plank: { id: "plank", name: "Plank", icon: "🪵", rarity: "common", value: 8, kind: "part", weight: 2.0 },
 };
 
 export const PRICES = {
   upgrades: { mag: [240], pack: [480], heart: [650] },
   ammo8: 24,
   smoothie: 36,
+  bandage: 12,
 };
 
 type CrateTable = { empty: number; extra: number; items: Record<string, number> };
 export const CRATE_TABLES: Record<CrateTier, CrateTable> = {
   wood: {
     empty: 0.12, extra: 0.25,
-    items: { banana: 0.23, coconut: 0.17, vine_rope: 0.14, plank: 0.11, spring: 0.08, old_gear: 0.05, honey_pot: 0.03, smoothie: 0.04, ammo45: 0.15 },
+    items: { banana: 0.20, coconut: 0.17, vine_rope: 0.14, plank: 0.11, spring: 0.08, old_gear: 0.05, honey_pot: 0.03, smoothie: 0.02, bandage: 0.05, ammo45: 0.15 },
   },
   green: {
     empty: 0.04, extra: 0.55,
-    items: { banana: 0.07, coconut: 0.07, vine_rope: 0.10, spring: 0.08, old_gear: 0.14, honey_pot: 0.15, sunset_mango: 0.12, brass_compass: 0.07, smoothie: 0.06, ammo45: 0.12, golden_banana: 0.02 },
+    items: { banana: 0.04, coconut: 0.07, vine_rope: 0.10, spring: 0.08, old_gear: 0.14, honey_pot: 0.15, sunset_mango: 0.12, brass_compass: 0.07, smoothie: 0.04, bandage: 0.04, firstaid: 0.01, ammo45: 0.12, golden_banana: 0.02 },
   },
   gold: {
     empty: 0, extra: 1,
-    items: { old_gear: 0.05, honey_pot: 0.08, sunset_mango: 0.22, brass_compass: 0.29, golden_banana: 0.20, banana_idol: 0.04, smoothie: 0.07, ammo45: 0.05 },
+    items: { old_gear: 0.05, honey_pot: 0.08, sunset_mango: 0.22, brass_compass: 0.29, golden_banana: 0.20, banana_idol: 0.04, smoothie: 0.04, firstaid: 0.03, ammo45: 0.05 },
   },
 };
 const SLEEPER_POOL = { sunset_mango: 0.10, brass_compass: 0.17, golden_banana: 0.42, banana_idol: 0.28, smoothie: 0.03 };
@@ -103,7 +107,7 @@ export function rollCrate(tier: CrateTier, ctx: LootContext, rng: () => number):
     ctx.ownsExtendedMag = true;
   }
   if (ctx.cratesOpened >= 3 && ctx.usefulFound === 0 && !found.some(id => isUseful(id, ctx))) found.push("smoothie");
-  if (ctx.cratesOpened >= 7 && ctx.ammoFound < 8 && !found.includes("ammo45")) found.push("ammo45");
+  if (ctx.cratesOpened >= 4 && ctx.ammoFound < 8 && !found.includes("ammo45")) found.push("ammo45");
   const result = record(found, ctx);
   ctx.cratesOpened++;
   ctx.emptyStreak = result.length ? 0 : ctx.emptyStreak + 1;

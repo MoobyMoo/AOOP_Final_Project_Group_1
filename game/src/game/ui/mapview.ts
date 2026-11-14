@@ -26,6 +26,12 @@ function snap(scene: THREE.Scene, minX: number, maxX: number, minZ: number, maxZ
 }
 export function buildMapShots(scene: THREE.Scene) { over = snap(scene, -60, 60, -72, 76, 900); under = snap(scene, 96, 142, -34, 52, 360); }
 export const mapOpen = () => !!el;
+/** breadcrumb trail of this raid (research/duckov-map rule 4): a point every ~3 u walked */
+const trail: { x: number; z: number }[] = [];
+export function resetTrail() { trail.length = 0; }
+export function recordTrail() { const l = trail[trail.length - 1]; if (!l || Math.hypot(l.x - G.pp.x, l.z - G.pp.z) > 3) trail.push({ x: G.pp.x, z: G.pp.z }); }
+let miniOn = localStorage.getItem("bv_minimap") !== "0";
+export function toggleMinimap() { miniOn = !miniOn; localStorage.setItem("bv_minimap", miniOn ? "1" : "0"); if (mini) mini.style.display = miniOn ? "block" : "none"; }
 export function toggleMap() { if (el) { el.remove(); el = null; return; } open(); }
 function pos(s: Shot, x: number, z: number) { return { l: ((x - s.minX) / (s.maxX - s.minX)) * 100, t: ((z - s.minZ) / (s.maxZ - s.minZ)) * 100 }; }
 function open() {
@@ -40,17 +46,22 @@ function open() {
       const g = fx.createRadialGradient(0, 0, 0, 0, 0, 1); g.addColorStop(0.6, "rgba(0,0,0,1)"); g.addColorStop(1, "rgba(0,0,0,0)");
       fx.save(); fx.translate((p.l / 100) * fc.width, (p.t / 100) * fc.height); fx.scale(rx, rz); fx.fillStyle = g; fx.beginPath(); fx.arc(0, 0, 1, 0, 7); fx.fill(); fx.restore(); }
     const fog = `<img class="fogimg" src="${fc.toDataURL()}">`;
-    const labels = areas.map((c) => { const p = pos(s, c.x, c.z); const known = G.discovered.has(c.id); return `<span class="lab ${known ? "" : "unk"}" style="left:${p.l}%;top:${p.t}%">${known ? c.name : "?"}</span>`; }).join("");
+    const labels = areas.map((c) => { const p = pos(s, c.x, c.z); const known = G.discovered.has(c.id); return `<span class="lab ${known ? "" : "unk"}" style="left:${p.l}%;top:${p.t}%;transform:translate(-50%,-50%) rotate(${(-G.stage.cam.yaw * 180) / Math.PI}deg)">${known ? c.name : "?"}</span>`; }).join("");
     const icons = [
       ...exits.filter((e) => e.open && (e.x > 90) === (s === under)).map((e) => ({ x: e.x, z: e.z, i: e.id === "raft" ? "🛶" : e.id === "tunnel" ? "🕳️" : "🏠", t: e.id === "raft" ? "Raft (+30%)" : e.id === "tunnel" ? "Smuggler Tunnel" : "Hatch home" })),
       ...(s === over ? [{ x: DOOR.x, z: DOOR.z, i: gridState.doorOpen ? "🚪" : "🔒", t: "Vine door" }] : []),
       ...PORTALS.flatMap((p) => [p.a, p.b].filter((q) => (q.x > 90) === (s === under)).map((q) => ({ x: q.x, z: q.z, i: "⬇", t: p.label }))),
       ...pins.filter((q) => (q.x > 90) === (s === under)).map((q) => ({ x: q.x, z: q.z, i: "📍", t: "your pin (click to remove)" })),
-    ].map((o) => { const p = pos(s, o.x, o.z); return `<em class="ico" title="${o.t}" style="left:${p.l}%;top:${p.t}%">${o.i}</em>`; }).join("");
+    ].map((o) => { const p = pos(s, o.x, o.z); return `<em class="ico" title="${o.t}" style="left:${p.l}%;top:${p.t}%;transform:translate(-50%,-50%) rotate(${(-G.stage.cam.yaw * 180) / Math.PI}deg)">${o.i}</em>`; }).join("");
     const me = (G.pp.x > 90) === (s === under) ? (() => { const p = pos(s, G.pp.x, G.pp.z); return `<b class="me" style="left:${p.l}%;top:${p.t}%;transform:translate(-50%,-50%) rotate(${-G.moveYaw + Math.PI}rad)">▲</b>`; })() : "";
-    return `<div class="mp ${cls}" data-s="${s === over ? "o" : "u"}"><h3>${title}</h3><div class="mimg" style="aspect-ratio:${s.maxX - s.minX}/${s.maxZ - s.minZ}"><img src="${s.url}">${fog}${labels}${icons}${me}</div></div>`;
+    // breadcrumb trail: an svg polyline in the image's own percentage space
+    const pts = trail.filter((q) => (q.x > 90) === (s === under)).map((q) => { const p = pos(s, q.x, q.z); return `${p.l.toFixed(2)},${p.t.toFixed(2)}`; }).join(" ");
+    const crumbs = pts ? `<svg class="trail" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${pts}"/></svg>` : "";
+    // rotated to the camera's yaw (Duckov's map follows its -30 deg camera) so map left/right = screen left/right
+    const rot = (G.stage.cam.yaw * 180) / Math.PI;
+    return `<div class="mp ${cls}" data-s="${s === over ? "o" : "u"}"><h3>${title}</h3><div class="mrot" style="transform:rotate(${rot}deg)"><div class="mimg" style="aspect-ratio:${s.maxX - s.minX}/${s.maxZ - s.minZ}"><img src="${s.url}">${fog}${crumbs}${labels}${icons}${me}</div></div></div>`;
   };
-  el.innerHTML = `<div class="mwrap" style="transform:scale(${zoom})">${panel(over, "Banana Grove", "big")}${panel(under, "Underground", "small")}</div><div class="mfoot"><kbd>M</kbd> close, scroll to zoom, click to drop or remove a pin. Areas found: ${[...G.discovered].length} of ${CLEARINGS.length}</div>`;
+  el.innerHTML = `<div class="mwrap" style="transform:scale(${zoom})">${panel(over, "Banana Grove", "big")}${panel(under, "Underground", "small")}</div><div class="mneedle" style="transform:rotate(${(G.stage.cam.yaw * 180) / Math.PI}deg)">N</div><div class="mfoot"><kbd>M</kbd> close, scroll to zoom, click to drop or remove a pin. Areas found: ${[...G.discovered].length} of ${CLEARINGS.length}</div>`;
   document.body.appendChild(el);
   el.onwheel = (e) => { zoom = THREE.MathUtils.clamp(zoom * (e.deltaY < 0 ? 1.1 : 0.9), 0.7, 2.5); (el!.querySelector(".mwrap") as HTMLElement).style.transform = `scale(${zoom})`; };
   el.querySelectorAll<HTMLElement>(".mimg").forEach((m) => m.onclick = (e) => {
@@ -74,6 +85,8 @@ export function buildMinimap() {
 }
 export function updateMinimap() {
   if (!mini || !over || !miniImg || !miniFog) return;
+  if (!miniOn) { mini.style.display = "none"; return; } mini.style.display = "block";
+  { const r = mini.getBoundingClientRect(), a = G.aimPoint.clone().project(G.stage.camera), ax = (a.x * 0.5 + 0.5) * innerWidth, ay = (-a.y * 0.5 + 0.5) * innerHeight; mini.style.opacity = ax > r.left - 20 && ax < r.right + 20 && ay > r.top - 20 && ay < r.bottom + 20 ? "0.3" : "1"; }
   const isUnder = G.pp.x > 90, shot = isUnder ? under : over; if (!shot) return;
   const W = shot.maxX - shot.minX, H = shot.maxZ - shot.minZ, scale = MINI_PX / MINI_RANGE; // px per world unit
   const rot = mini.querySelector(".mm-rot") as HTMLDivElement;

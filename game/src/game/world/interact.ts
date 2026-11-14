@@ -10,7 +10,7 @@ import { sfx } from "../core/audio";
 import { hud } from "../ui/hud";
 import { nearestCrate, spawnPickup, beam, RAR_COLOR } from "../loot/raidloot";
 import { burst } from "../../fx";
-import { rollCrate } from "../loot/interim";
+import { rollCrate } from "../loot/tables";
 
 export const EXTRACT_TIME = 3;
 let lastPp = new THREE.Vector3(), lastHp = 100, fading = false;
@@ -19,7 +19,7 @@ export const setOnExtract = (f: typeof onExtract) => { onExtract = f; };
 let drop: { t: number; at: { x: number; z: number; area: string }; done: boolean; smoke?: THREE.Points } | null = null;
 
 export function startInteractions() {
-  lastPp.copy(G.pp); lastHp = G.hp; G.extract = { id: "", t: 0 }; fading = false;
+  lastPp.copy(G.pp); lastHp = G.hp; G.extract = { id: "", t: 0 }; fading = false; for (const e of exits) e.armed = false;
   const at = SUPPLY_DROPS[Math.floor(G.rng() * SUPPLY_DROPS.length)]; drop = { t: 90 + G.rng() * 60, at, done: false };
 }
 export function fadeTo(f: () => void) {
@@ -35,7 +35,8 @@ export function updateInteractions(dt: number) {
   const moved = flat(G.pp, lastPp) > 0.02 * Math.max(1, dt * 60); lastPp.copy(G.pp);
   const hit = G.hp < lastHp; lastHp = G.hp;
   let inEx: (typeof exits)[number] | null = null;
-  for (const e of exits) { if (!e.open) continue; if (flat(G.pp, e) < 1.9) inEx = e; e.ring.rotation.z += dt * 0.6; }
+  // an exit arms once you've been more than 8 u away from it (no accidental extraction at the spawn)
+  for (const e of exits) { if (!e.open) continue; const d = flat(G.pp, e); if (d > 8) e.armed = true; if (d < 1.9 && e.armed) inEx = e; e.ring.rotation.z += dt * 0.6; }
   if (inEx && !G.zipping) {
     if (G.extract.id !== inEx.id) G.extract = { id: inEx.id, t: 0 };
     if (moved || hit) { if (G.extract.t > 0.15 && hit) hud.toast("Hit! The countdown starts over"); G.extract.t = 0; }

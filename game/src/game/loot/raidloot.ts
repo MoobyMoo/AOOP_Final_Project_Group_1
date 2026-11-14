@@ -3,7 +3,8 @@
 // A full pack never deletes loot: the find stays on the ground and E swaps it for your cheapest loose item (rule 20).
 import * as THREE from "three";
 import { G, V, flat, type Crate, type Pickup, type Enemy } from "../core/state";
-import { ITEMS, rollCrate, rollEnemyDrop, WEAR_DROPS } from "./interim";
+import { ITEMS, rollCrate, rollEnemyDrop, type LootContext } from "./tables";
+const WEAR_DROPS = ["tophat", "aviators", "pith", "eyepatch", "fedora", "goggles", "heartglasses", "crown", "hardhat", "beanie"];
 import { CRATES } from "../world/layout";
 import { groundHeight } from "../world/terrain";
 import { block } from "../world/grid";
@@ -71,14 +72,11 @@ export function updateLoot(dt: number) {
   }
 }
 function openCrate(c: Crate) {
-  c.opened = true; G.log.crates++; if (G.log.firstCrate < 0) G.log.firstCrate = G.raidT; G.lootCtx.cratesOpened++;
-  let items = c.fixed === "satchel" ? [...(c.items ?? [])] : rollCrate(c.tier, G.lootCtx, G.rng);
+  c.opened = true; G.log.crates++; if (G.log.firstCrate < 0) G.log.firstCrate = G.raidT; 
+  const ctx = G.lootCtx as LootContext; ctx.fixed = c.fixed as LootContext["fixed"]; ctx.ownsExtendedMag = G.save.upgrades.mag > 0 || G.save.fixtures.includes("extended_mag");
+  let items = c.fixed === "satchel" ? [...(c.items ?? [])] : rollCrate(c.tier, ctx, G.rng); ctx.fixed = undefined;
   if (c.fixed === "satchel") { G.save.satchel = null; hud.toast("You got your satchel back!"); }
-  if (c.fixed === "key") items = ["key", ...items];
-  if (c.fixed === "vault" && !G.save.fixtures.includes("extmag") && !G.save.upgrades.mag) items = ["extmag", ...items];
   if ((c.tier === "gold" && G.rng() < 0.35) || (c.tier === "green" && G.rng() < 0.08)) { const free = WEAR_DROPS.filter((w) => !G.save.wardrobe.includes(w)); if (free.length) items.push(free[Math.floor(G.rng() * free.length)]); }
-  G.lootCtx.emptyStreak = items.length ? 0 : G.lootCtx.emptyStreak + 1;
-  if (items.some((i) => worth(i) >= 8)) G.lootCtx.usefulFound++;
   c.items = items;
   sfx("crate"); squashOpen(c);
   if (!items.length) { floatText("empty... 🕸️", V(c.x, c.z, 1.6), "#8a7d6a", 22); return; }
@@ -112,24 +110,24 @@ export function spawnPickup(id: string, from: THREE.Vector3, k = 0, n = 1, n2?: 
 /** returns true if the pickup was taken */
 function collect(p: Pickup): boolean {
   const d = itemDef(p.item);
-  if (d.kind === "ammo") { const n = p.n ?? d.stack ?? 8; G.ammo += n; G.lootCtx.ammoFound += n; sfx("pick"); floatText(`+${n} rounds`, G.pp.clone().setY(2.4), "#ffcf6a", 20); hud.ammo(); return true; }
+  if (d.kind === "ammo") { const n = p.n ?? d.stack ?? 8; G.ammo += n; sfx("pick"); floatText(`+${n} rounds`, G.pp.clone().setY(2.4), "#ffcf6a", 20); hud.ammo(); return true; }
   if (d.kind === "wear") { // an exciting find you use on the spot (advisor round 1); kept even on a bonk-out
     const w = WEARABLES.find((q) => q.id === p.item); if (!G.save.wardrobe.includes(p.item)) G.save.wardrobe.push(p.item);
     if (w) { G.gear = { ...G.gear, [w.slot]: w.id }; G.rig.setGear?.(G.gear); }
     sfx("rare"); hud.banner(`New look: ${d.name}!`); return true;
   }
-  if (d.kind === "attachment") { if (!G.save.fixtures.includes("extmag")) G.save.fixtures.push("extmag"); G.magSize = KINGPIN.extMag; G.gun.setVariant({ extMag: true }); sfx("rare"); hud.banner("Kingpin Extended Mag: 12 rounds a mag!"); hud.ammo(); return true; }
+  if (d.kind === "attachment") { if (!G.save.fixtures.includes("extended_mag")) G.save.fixtures.push("extended_mag"); G.magSize = KINGPIN.extMag; G.gun.setVariant({ extMag: true }); sfx("rare"); hud.banner("Kingpin Extended Mag: 12 rounds a mag!"); hud.ammo(); return true; }
   if (G.pack.length >= G.packSlots) {
     if (G.intent.interact) { sortPack(); const cheapest = G.pack[G.pack.length - 1]; if (worth(cheapest) < worth(p.item)) { G.pack.pop(); spawnPickup(cheapest, G.pp.clone().setY(1), 0, 1); G.pack.push(p.item); sortPack(); G.log.swaps++; sfx("pick"); hud.pack(); return true; } }
     hud.prompt(`E · Pack full: swap for your ${itemDef(G.pack[G.pack.length - 1]).name}`); return false;
   }
   G.pack.push(p.item); sortPack(); sfx("pick"); hud.pack();
   floatText(`${d.icon} ${d.name}`, G.pp.clone().setY(2.4), RAR_COLOR[d.rarity] === "#f3ead6" ? "#fff8ec" : RAR_COLOR[d.rarity], 20);
-  if (p.item === "key") hud.toast("The Vine Key! Get it home: the key opens the vault door from your next raid");
+  if (p.item === "vine_key") hud.toast("The Vine Key! Get it home: the key opens the vault door from your next raid");
   return true;
 }
 export function dropLoot(e: Enemy) {
-  const items = [...e.stolen, ...e.carry, ...rollEnemyDrop(e.kind, G.lootCtx, G.rng)]; e.stolen = []; e.carry = [];
+  const items = [...e.stolen, ...e.carry.map((i) => (ITEMS[i] ? i : "boomerang")), ...rollEnemyDrop(e.kind, { ...(G.lootCtx as LootContext), carried: [] }, G.rng)]; e.stolen = []; e.carry = [];
   items.forEach((id, k) => spawnPickup(id, e.p.clone().setY(1.2), k, items.length));
   if (e.kind === "sleeper") { beam(e.p, RAR_COLOR.epic); sfx("rare"); }
 }

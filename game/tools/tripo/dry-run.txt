@@ -1,0 +1,10 @@
+COST ESTIMATE: 100 credits; batch 0 + 100 / 600; dry-run, 0 charged
+PREFLIGHT local recipe ok: P2-20260801 quad=true texture=false pbr=false face_limit=8000; body only
+PREFLIGHT a FAIL: a: missing front input /home/moo/Workspace/Monkey-Businessman/game-bananaville/concept/tripo/businessman/inputs/businessman_body_front.png
+PREFLIGHT b ok: P2-20260801 geo=detailed tex=detailed pbr=False; docs checked 2026-11-15 (0 d old)
+PREFLIGHT c ok: side (right) -> slot 3 "right"
+PREFLIGHT f ok: COST ESTIMATE 100 credits (docs price); batch businessman-body-20261115 0 + 100 = 100 / 600
+PREFLIGHT d FAIL: missing crops: front, side, back
+PREFLIGHT e BLOCKED: no images to review; consistency verdict remains pending
+PREFLIGHT g BLOCKED: no images or crop provenance; no image checks marked pass
+REFUSED: inputs not generated; approval empty; no upload or paid job is possible

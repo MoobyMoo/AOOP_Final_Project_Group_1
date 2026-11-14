@@ -6,7 +6,7 @@ import { G } from "../core/state";
 import type { MonkeyLook, Gear, WearSlot } from "../contracts";
 import { DEFAULT_LOOK, LOOK_PRESETS, randomLook, encodeLook, decodeLook } from "../actors/look";
 import { WEARABLES } from "../actors/wearables";
-import { save } from "../core/save_interim";
+import { save } from "../core/save";
 import { sfx } from "../core/audio";
 import { U } from "../render/shading";
 import { buildRoom } from "../home/bunker";

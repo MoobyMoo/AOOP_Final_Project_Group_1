@@ -213,7 +213,7 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
     }
     if (pendingBuy && v.money < pendingBuy.money) { levels[pendingBuy.id]++; pendingBuy = undefined; }
     if (v.upgrades) Object.assign(levels, v.upgrades);
-    levels.heart = Math.max(levels.heart, v.player.maxHearts - PLAYER.hearts);
+    levels.heart = Math.max(levels.heart, v.player.maxHearts - 3); // botdrive reports hearts as hp / 34
     if (v.player.smoothies !== undefined) smoothies = Math.max(0, v.player.smoothies);
     if (v.scene === "raid" && (v.player.hearts <= 0 || v.outcome)) {
       finish(v, { scene: v.scene, player: { ...v.player }, raidT: v.raidT, enemies: [], crates: [], pickups: [], exits: v.exits }, v.player.hearts <= 0 || v.outcome?.type === "bonk-out");
