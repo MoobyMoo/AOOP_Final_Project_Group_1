@@ -1,0 +1,146 @@
+{
+ "bunch": {
+  "fill": 0.855,
+  "ok": true
+ },
+ "coconut": {
+  "fill": 0.844,
+  "ok": true
+ },
+ "rope": {
+  "fill": 0.867,
+  "ok": true
+ },
+ "plank": {
+  "fill": 0.883,
+  "ok": true
+ },
+ "golden": {
+  "fill": 0.824,
+  "ok": true
+ },
+ "honey": {
+  "fill": 0.812,
+  "ok": true
+ },
+ "gear": {
+  "fill": 0.766,
+  "ok": true
+ },
+ "spring": {
+  "fill": 0.738,
+  "ok": true
+ },
+ "boomerang": {
+  "fill": 0.863,
+  "ok": true
+ },
+ "mango": {
+  "fill": 0.785,
+  "ok": true
+ },
+ "compass": {
+  "fill": 0.73,
+  "ok": true
+ },
+ "idol": {
+  "fill": 0.812,
+  "ok": true
+ },
+ "smoothie": {
+  "fill": 0.805,
+  "ok": true
+ },
+ "bandage": {
+  "fill": 0.736,
+  "ok": true
+ },
+ "firstaid": {
+  "fill": 0.801,
+  "ok": true
+ },
+ "ammo": {
+  "fill": 0.715,
+  "ok": true
+ },
+ "key": {
+  "fill": 0.824,
+  "ok": true
+ },
+ "extmag": {
+  "fill": 0.781,
+  "ok": true
+ },
+ "bowler": {
+  "fill": 0.832,
+  "ok": true
+ },
+ "tophat": {
+  "fill": 0.818,
+  "ok": true
+ },
+ "fedora": {
+  "fill": 0.84,
+  "ok": true
+ },
+ "cap": {
+  "fill": 0.812,
+  "ok": true
+ },
+ "hardhat": {
+  "fill": 0.816,
+  "ok": true
+ },
+ "pith": {
+  "fill": 0.863,
+  "ok": true
+ },
+ "beanie": {
+  "fill": 0.781,
+  "ok": true
+ },
+ "crown": {
+  "fill": 0.789,
+  "ok": true
+ },
+ "shades": {
+  "fill": 0.805,
+  "ok": true
+ },
+ "aviators": {
+  "fill": 0.801,
+  "ok": true
+ },
+ "monocle": {
+  "fill": 0.781,
+  "ok": true
+ },
+ "eyepatch": {
+  "fill": 0.781,
+  "ok": true
+ },
+ "goggles": {
+  "fill": 0.824,
+  "ok": true
+ },
+ "heartglasses": {
+  "fill": 0.805,
+  "ok": true
+ },
+ "banditmask": {
+  "fill": 0.844,
+  "ok": true
+ },
+ "satchel": {
+  "fill": 0.807,
+  "ok": true
+ },
+ "bigpack": {
+  "fill": 0.883,
+  "ok": true
+ },
+ "cratepack": {
+  "fill": 0.828,
+  "ok": true
+ }
+}

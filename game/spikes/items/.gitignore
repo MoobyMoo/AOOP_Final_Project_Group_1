@@ -1,0 +1,10 @@
+# regenerable: build.py writes the library, render.py the raw passes, qa.py the shots
+*.blend
+*.blend1
+raw/
+qa_shots/
+iter/
+qa_wire_sheet.png
+# the two review sheets are deliverables, keep them despite the repo-wide spikes png rule
+!sheet.png
+!sheet_light.png
