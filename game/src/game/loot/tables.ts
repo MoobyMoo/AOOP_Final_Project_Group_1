@@ -106,7 +106,7 @@ export function rollCrate(tier: CrateTier, ctx: LootContext, rng: () => number):
     found.unshift("extended_mag");
     ctx.ownsExtendedMag = true;
   }
-  if (ctx.cratesOpened >= 3 && ctx.usefulFound === 0 && !found.some(id => isUseful(id, ctx))) found.push("smoothie");
+  if (ctx.cratesOpened >= 1 && ctx.usefulFound === 0 && !found.some(id => isUseful(id, ctx))) found.push("smoothie");
   if (ctx.cratesOpened >= 4 && ctx.ammoFound < 8 && !found.includes("ammo45")) found.push("ammo45");
   const result = record(found, ctx);
   ctx.cratesOpened++;
