@@ -20,6 +20,7 @@ import { initFx, updateFx } from "../../fx";
 import { U } from "../render/shading";
 import { updateCutout } from "../render/cutout";
 import { buildMinimap, updateMinimap, resetTrail, recordTrail } from "../ui/mapview";
+import { botTelemetry } from "./bot";
 
 export const raidScene = new THREE.Scene();
 let built = false;
@@ -34,6 +35,7 @@ export function buildRaidWorld() {
 export type RaidResult = { how: "hatch" | "raft" | "tunnel" | "bonked"; kept: string[]; lost: string[]; bonus: number; raidT: number; log: typeof G.log };
 let onEnd: (r: RaidResult) => void = () => {};
 export function startRaid(end: (r: RaidResult) => void) {
+  if (G.bot) { botTelemetry.raidId = G.save.raids; botTelemetry.outcome = undefined; botTelemetry.combatEvents = []; }
   onEnd = end; buildRaidWorld(); G.stage.setScene(raidScene); initFx(raidScene, G.stage.camera);
   G.scene = "raid"; G.raidT = 0; G.alive = true; G.seed = (G.save.raids * 7919 + 13) >>> 0; let s = G.seed || 1; G.rng = () => ((s = (s * 16807) % 2147483647) / 2147483647);
   // props are rebuilt each raid because doors/walls depend on the save (cheap: a few dozen meshes)
@@ -73,6 +75,7 @@ function finish(how: RaidResult["how"], bonus: number) {
   if (how === "bonked") G.save.satchel = lost.length ? { items: lost, x: G.pp.x, z: G.pp.z } : null;
   G.log.value = packValue();
   G.save.ammo = G.ammo + G.mag;
+  if (G.bot) botTelemetry.outcome = how === "bonked" ? { type: "bonk-out", raidT: G.raidT } : { type: "extract", exit: how, value: kept.reduce((value, id) => value + itemDef(id).value, 0), raidT: G.raidT };
   onEnd({ how, kept, lost, bonus, raidT: G.raidT, log: G.log });
 }
 let bonkT = 0;

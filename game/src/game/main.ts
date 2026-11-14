@@ -59,7 +59,7 @@ function onRaidEnd(r: RaidResult) {
     ${r.lost.length ? `<p class="lostline">${r.lost.length} item${r.lost.length > 1 ? "s" : ""} left in your satchel where you fell. Recover it next raid.</p>` : ""}
     ${r.kept.includes("vine_key") ? `<p>🗝️ The Vine Key is on your keyring. The vault opens next raid.</p>` : ""}
     <div class="total"><span>Haul value${bonus ? `, raft bonus 🍌 ${bonus} paid now` : ""}</span><b>🍌 ${value + bonus}</b></div><p class="dim">Sell your stash at the Fence.</p>`;
-  (window as unknown as { __raids: object[] }).__raids ??= []; (window as unknown as { __raids: object[] }).__raids.push({ how: r.how, t: Math.round(r.raidT), value, bonus, kept: r.kept.length, lost: r.lost.length, log: r.log });
+  (window as unknown as { __raids: object[] }).__raids ??= []; (window as unknown as { __raids: object[] }).__raids.push({ raid: sv.raids - 1, seed: G.seed, how: r.how, t: r.raidT, value, bonus, kept: r.kept.length, lost: r.lost.length, log: structuredClone(r.log), ammo: G.ammo + G.mag, hp: G.hp, maxHp: G.maxHp, usefulFound: G.lootCtx.usefulFound, upgrades: { ...sv.upgrades } });
   G.alive = true; goHome(html);
 }
 
