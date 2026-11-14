@@ -8,9 +8,9 @@ const [out = "/tmp/mapv3/shots", base = "http://127.0.0.1:5340", only = "", extr
 if (new URL(base).port === "5318") throw new Error("port 5318 belongs to the owner's live server");
 export const VIEWS = {
   beach: [-4, 99], ferry: [60, 100.5], ferry_in: [64, 101], cove: [-82, 96], checkpoint: [1, 82], fork: [0, 65], lookout: [-38, 61],
-  camp: [-60, 28], camp_tower: [-70, 19], camp_gate: [-60, 42], plantation: [2, 22], farmhouse_in: [-4.5, 13.5], barn_in: [16.5, 24.5], vat: [-6, 32],
-  mangrove: [49, 54], colony: [66, 5], cellblock_in: [66.5, -5.5], cellblock_cell: [64.5, -9.5], shrine: [44, -16], vault_door: [80, -19.5], vault: [81, -27],
-  radio: [-27.5, -11.5], bomber: [-62, -42], hollow: [3, -54], falls: [66, -62], nook: [66, -81], checkpoint_n: [8, -82], landing: [12, -103], boathouse_in: [-6.5, -103.5],
+  camp: [-60, 28], camp_tower: [-70, 19], camp_gate: [-60, 42], plantation: [2, 22], farmhouse_in: [-8.5, 11.5], barn_in: [16.5, 24.5], vat: [-6, 32],
+  mangrove: [49, 54], colony: [66, 5], cellblock_in: [64.5, -5.5], cellblock_cell: [60.5, -9.5], warden: [72.5, -7.5], shrine: [61.5, -15.5], vault_door: [80, -19.5], vault: [81, -27],
+  radio: [-27.5, -11.5], radio_in: [-27.5, -15.5], hut_in: [6.5, 78.5], bomber: [-62, -42], hollow: [3, -54], falls: [66, -62], nook: [66, -81], checkpoint_n: [8, -82], landing: [12, -103], boathouse_in: [-6.5, -109.5],
   road_n: [0, 50], road_ridge: [-1, -20], road_west: [-66, -16], open_east: [40, 30], open_west: [-30, 40],
   grotto_mouth: [150, 62], grotto_hall: [168, 26], grotto_roots: [154, -24], tunnel: [190, 43],
 };

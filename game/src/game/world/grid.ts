@@ -122,18 +122,22 @@ export function resetRaidColliders() { blockers.length = 0; navDyn.fill(0); for 
 let ready = false;
 /** build collision and navigation from the map. houseDef gives each placed building's colliders and doors (kit_house /
  *  the stub); extra = rule-scattered pieces (map/scatter.ts) that are not in the authored list */
-export function initGrid(houseDef: (p: Placed) => Pick<BuildingDef, "colliders" | "doors">, extra: Placed[] = []) {
+export function initGrid(houseDef: (p: Placed) => Pick<BuildingDef, "colliders" | "doors" | "breakables">, extra: Placed[] = []) {
   if (ready) return; ready = true;
   // colliders: placed pieces, buildings (their doors become gates), breakable walls, the vine door
   scattered = extra.length;
   for (const p of [...PLACED, ...extra]) {
     if (p.k.startsWith("building:")) {
       const def = houseDef(p), ids = new Map<string, number>();
-      for (const d of def.doors) {
-        const cb = def.colliders.find((q) => q.id === d.id); if (!cb || cb.t !== "box") continue;
-        const [x, z] = toWorld(p, cb.x, cb.z), alongX = cb.w >= cb.d, [nx, nz] = toWorld({ x: 0, z: 0, yaw: (p.yaw ?? 0) + (cb.yaw ?? 0) }, alongX ? 0 : 1, alongX ? 1 : 0);
-        ids.set(d.id, addGate({ id: `${p.id}:${d.id}`, kind: "door", x, z, nx, nz, w: Math.max(cb.w, cb.d), hp: d.breakable ? 5 : undefined, reveals: d.breakable ? "The boards give way" : undefined, mat: "wood", locked: d.locked, building: p.id, open: false }));
-      }
+      // where a door or a cracked wall section stands in the world, from its collider (a box or a segment)
+      const geom = (id: string) => {
+        const c = def.colliders.find((q) => q.id === id); if (!c || c.t === "circle") return null;
+        const [ax, az] = c.t === "seg" ? toWorld(p, c.ax, c.az) : toWorld(p, c.x - (c.w >= c.d ? c.w / 2 : 0), c.z - (c.w >= c.d ? 0 : c.d / 2));
+        const [bx, bz] = c.t === "seg" ? toWorld(p, c.bx, c.bz) : toWorld(p, c.x + (c.w >= c.d ? c.w / 2 : 0), c.z + (c.w >= c.d ? 0 : c.d / 2));
+        const w = Math.hypot(bx - ax, bz - az) || 1; return { x: (ax + bx) / 2, z: (az + bz) / 2, nx: -(bz - az) / w, nz: (bx - ax) / w, w };
+      };
+      for (const d of def.doors) { const g = geom(d.id); if (g) ids.set(d.id, addGate({ id: `${p.id}:${d.id}`, kind: "door", ...g, hp: d.breakable ? 5 : undefined, reveals: undefined, mat: "wood", locked: d.locked, building: p.id, open: false })); }
+      for (const k of def.breakables ?? []) { const g = geom(k.id); if (g) ids.set(k.id, addGate({ id: `${p.id}:${k.id}`, kind: "break", ...g, hp: 8, persist: true, reveals: "A secret room!", mat: "stone", building: p.id, open: false })); }
       for (const c of def.colliders) addCollider(c, p, c.id !== undefined ? ids.get(c.id) ?? -1 : -1);
       continue;
     }
@@ -318,7 +322,7 @@ export function lintReport(): LintReport {
   const set = (f: (g: Gate) => boolean) => { for (const g of gates) g.open = f(g); };
   for (const k of unknownKinds) errors.push(`placed kind "${k}" has no collider entry (map/colliders.ts)`);
   // 1) a fresh raid: nothing broken, locked doors shut, plain doors openable. The raft and the key must be reachable.
-  set((g) => g.kind === "door" && !g.locked && g.hp === undefined);
+  set((g) => g.kind === "door" && !g.locked);
   let reach = flood(START.x, START.z);
   if (!walkable(START.x, START.z)) errors.push("the start point is not on open ground");
   if (!reach(POI.hatch.x, POI.hatch.z)) errors.push("hatch unreachable from the start");
@@ -347,7 +351,7 @@ export function lintReport(): LintReport {
   for (const g of gates) if (!reach(g.x + g.nx * 1.5, g.z + g.nz * 1.5, 1) || !reach(g.x - g.nx * 1.5, g.z - g.nz * 1.5, 1)) errors.push(`gate ${g.id}: one side is unreachable even when open`);
   for (const g of gates) if (!passable(ci(g.x, g.z))) errors.push(`gate ${g.id}: its doorway cell is not passable when open (wall on a cell boundary?)`);
   // 3) time budget: the straight runs (walk speed 4.6 u/s, no looting, no fights)
-  set((g) => g.kind === "door" && !g.locked && g.hp === undefined);
+  set((g) => g.kind === "door" && !g.locked);
   const run = (name: string, x: number, z: number, lo: number, hi: number) => {
     const p = path(START.x, START.z, x, z, 200000), l = pathLength(p, START.x, START.z); stats[name] = Math.round(l);
     if (!p.length) errors.push(`no path to ${name}`); else if (l < lo || l > hi) warnings.push(`${name} is ${Math.round(l)} u from the start (budget ${lo}-${hi} u)`);

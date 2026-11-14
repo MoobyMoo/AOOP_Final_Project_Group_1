@@ -33,6 +33,7 @@ export function spawnEnemies(set: number) {
     const e: Enemy = { id: nextId++, kind: s.kind, rig, p: V(s.x, s.z), vel: new THREE.Vector3(), face: G.rng() * 6.28, hp: st.hp, max: st.hp,
       state: s.kind === "sleeper" ? "sleep" : "patrol", t: G.rng() * 2, actionT: 0, home: V(s.x, s.z), group: s.group, tag: s.tag, path: [], repath: 0, flash: 0,
       stolen: [], carry: [], gear, gearSeed, zs: 3, quiet: 0, lastSeen: null, lostT: 0, rang: null, active: false, down: false, downT: 0 };
+    if (s.carry) e.carry.push(s.carry); // e.g. the Radio Shack Key on the lemon bandit: bonk him and it drops
     rig.root.position.copy(e.p); G.stage.scene.add(rig.root);
     if (s.kind === "sleeper") for (let i = 0; i < 3; i++) { const z = new THREE.Sprite(new THREE.SpriteMaterial({ map: zTex, depthTest: false })); z.name = "z" + i; z.scale.setScalar(0.6 + i * 0.15); z.position.set(0.5 + i * 0.35, rig.bounds.height + 0.3 + i * 0.45, 0); z.renderOrder = 20; rig.root.add(z); }
     G.enemies.push(e);

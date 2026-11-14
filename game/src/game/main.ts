@@ -12,7 +12,8 @@ import { load, save } from "./core/save";
 import { unlockAudio } from "./core/audio";
 import { startRaid, stepRaid, renderRaid, buildRaidWorld, raidScene, type RaidResult } from "./core/raid";
 import { path, walkable, los, lintReport, gates, setGate, pathLength } from "./world/grid";
-import { worldStats, countVisible } from "./world/world";
+import { worldStats, countVisible, scattered } from "./world/world";
+import { blockoutSvg } from "./world/map/dump";
 import { preloadNature } from "./world/kit_nature";
 import { preloadHouse } from "./world/buildings";
 import { groundHeight } from "./world/terrain";
@@ -106,7 +107,7 @@ function neutral() { const i = G.intent; i.move = { x: 0, z: 0 }; i.fire = i.fir
 (window as unknown as { __g: unknown }).__g = { G, path, walkable, los, home: homeApi, info: () => ({ calls: G.stage.renderer.info.render.calls, tris: G.stage.renderer.info.render.triangles }),
   // map v3 checks: lint report, world build stats, objects in the current frame (G1-21), teleport, gates
   lint: lintReport, world: () => worldStats, density: () => countVisible(G.stage.camera, [...G.crates, ...G.enemies.filter((e) => !e.down).map((e) => ({ x: e.p.x, z: e.p.z }))]),
-  tp: (x: number, z: number) => { G.pp.set(x, groundHeight(x, z), z); G.vel.set(0, 0, 0); }, gates, setGate, pathLength, houses };
+  tp: (x: number, z: number) => { G.pp.set(x, groundHeight(x, z), z); G.vel.set(0, 0, 0); }, gates, setGate, pathLength, houses, svg: () => blockoutSvg(scattered) };
 
 if (QS.has("raid")) { G.save.lookDone = true; startRaid(onRaidEnd); }
 else if (!G.save.lookDone) openCreator(() => goHome(), bunkerScene);
