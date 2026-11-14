@@ -71,6 +71,8 @@ export interface GunView {
 export interface GunFx {   // pooled; no per-shot allocation
   fire(muzzle: THREE.Object3D, eject: THREE.Object3D, to: THREE.Vector3, hit: "enemy" | "wall" | "none"): void; // flash + light + shell + tracer + impact puff
   update(dt: number): void;
+  /** a bullet landed (projectile bullets call this on arrival instead of fire() drawing an instant tracer) */
+  impact?(at: THREE.Vector3, dir: THREE.Vector3, hit: "enemy" | "wall"): void;
 }
 // combat/kingpin.ts exports: createKingpin(): GunView; createGunFx(scene: THREE.Scene): GunFx
 

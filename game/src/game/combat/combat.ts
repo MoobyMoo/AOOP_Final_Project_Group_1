@@ -13,9 +13,26 @@ import { dropLoot } from "../loot/raidloot";
 import { breakWallVisual } from "../world/props";
 
 const tmp = new THREE.Vector3(), to = new THREE.Vector3();
+// ---- projectile bullets (Moo 2026-11-15: "we should be able to see the bullets like Duckov"): each round is a visible
+// glowing streak that travels at BULLET_SPEED and hits on arrival; swept against walls and enemies every sim step.
+const BULLET_SPEED = 48, BULLET_LEN = 1.3;
+type Bullet = { p: THREE.Vector3; d: THREE.Vector3; left: number; alive: boolean };
+const bullets: Bullet[] = [];
+const MAX_BULLETS = 48;
+let bulletMesh: THREE.InstancedMesh | null = null;
+const bm = new THREE.Matrix4(), bq = new THREE.Quaternion(), bs = new THREE.Vector3(), FWD = new THREE.Vector3(0, 0, 1);
+function ensureBulletMesh() {
+  if (bulletMesh && bulletMesh.parent === G.stage.scene) return bulletMesh;
+  if (!bulletMesh) {
+    const g = new THREE.CylinderGeometry(0.07, 0.02, 1, 8, 1, true); g.rotateX(Math.PI / 2); g.translate(0, 0, -0.5); // head at z=0, tail behind
+    bulletMesh = new THREE.InstancedMesh(g, new THREE.MeshBasicMaterial({ color: new THREE.Color("#ffe08a").multiplyScalar(4.5), transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }), MAX_BULLETS);
+    bulletMesh.frustumCulled = false; bulletMesh.renderOrder = 6;
+  }
+  G.stage.scene.add(bulletMesh); return bulletMesh;
+}
 export function shoot() {
   G.log.shots++;
-  // the magnet: bend toward the enemy nearest the aim ray within 7 degrees
+  // the magnet: bend toward the enemy nearest the aim ray within 7 degrees (10 while aiming)
   let yaw = G.aimYaw, target: Enemy | null = null, bestA = G.ads ? KINGPIN.magnetAds : KINGPIN.magnet;
   for (const e of G.enemies) {
     if (e.down || !e.active) continue; const d = flat(G.pp, e.p); if (d > KINGPIN.range) continue;
@@ -23,25 +40,50 @@ export function shoot() {
     if (a < bestA) { bestA = a; target = e; }
   }
   if (target) yaw = Math.atan2(target.p.x - G.pp.x, target.p.z - G.pp.z);
-  const dx = Math.sin(yaw), dz = Math.cos(yaw);
-  const sx = G.pp.x + dx * 0.6, sz = G.pp.z + dz * 0.6;
-  const wallD = rayShot(sx, sz, dx, dz, KINGPIN.range);
-  // first enemy along the ray before the wall
-  let hit: Enemy | null = null, hitD = wallD;
-  for (const e of G.enemies) {
-    if (e.down) continue;
-    const ex = e.p.x - sx, ez = e.p.z - sz, along = ex * dx + ez * dz; if (along < 0 || along > hitD) continue;
-    const side = Math.abs(ex * dz - ez * dx); if (side < e.rig.bounds.radius + 0.15) { hit = e; hitD = along; }
-  }
-  to.set(sx + dx * hitD, G.pp.y + 1.05, sz + dz * hitD);
+  yaw += (Math.random() - 0.5) * (G.ads ? 0.02 : 0.05); // a little spread so a burst looks alive
   G.gun.pose({ fireT: 0, reloadT: -1 }); G.gun.root.updateMatrixWorld(true);
-  G.fx.fire(G.gun.muzzle, G.gun.eject, to, hit ? "enemy" : wallD < KINGPIN.range ? "wall" : "none");
+  G.gun.muzzle.getWorldPosition(to);
+  G.fx.fire(G.gun.muzzle, G.gun.eject, to, "none"); // flash, light, brass; the bullet itself draws the tracer
+  const d = V(Math.sin(yaw), Math.cos(yaw));
+  bullets.push({ p: to.clone(), d, left: KINGPIN.range, alive: true });
   sfx("shot"); sfx("shell");
-  G.stage.kick.add(V(-dx, -dz).multiplyScalar(FEEL.shotKick));
+  G.stage.kick.add(V(-d.x, -d.z).multiplyScalar(FEEL.shotKick));
   makeNoise(G.pp, KINGPIN.noise, "shot");
-  if (hit) { G.log.hits++; damage(hit, KINGPIN.damage, "pistol", V(dx, dz)); }
-  else if (wallD < KINGPIN.range) { const w = wallAt(sx + dx * (wallD + 0.3), sz + dz * (wallD + 0.3)); if (w) hud.toast("Bullets won't break that. Try the briefcase!"); }
 }
+/** advance bullets one sim step; hits resolve on contact */
+export function updateBullets(dt: number) {
+  for (const b of bullets) {
+    if (!b.alive) continue;
+    const step = Math.min(b.left, BULLET_SPEED * dt);
+    const wallD = rayShot(b.p.x, b.p.z, b.d.x, b.d.z, step + 0.01);
+    let hit: Enemy | null = null, hitD = Math.min(step, wallD);
+    for (const e of G.enemies) {
+      if (e.down) continue;
+      const ex = e.p.x - b.p.x, ez = e.p.z - b.p.z, along = ex * b.d.x + ez * b.d.z; if (along < -0.3 || along > hitD) continue;
+      if (Math.abs(ex * b.d.z - ez * b.d.x) < e.rig.bounds.radius + 0.12) { hit = e; hitD = Math.max(0, along); }
+    }
+    if (hit) {
+      b.p.addScaledVector(b.d, hitD); b.alive = false; G.log.hits++;
+      damage(hit, KINGPIN.damage, "pistol", b.d.clone());
+      G.fx.impact?.(b.p.clone().setY(hit.p.y + hit.rig.bounds.height * 0.5), b.d, "enemy");
+    } else if (wallD <= step) {
+      b.p.addScaledVector(b.d, wallD); b.alive = false; G.fx.impact?.(b.p, b.d, "wall");
+      const w = wallAt(b.p.x + b.d.x * 0.3, b.p.z + b.d.z * 0.3); if (w) hud.toast("Bullets won't break that. Try the briefcase!");
+    } else { b.p.addScaledVector(b.d, step); b.left -= step; if (b.left <= 0) b.alive = false; }
+  }
+  for (let i = bullets.length - 1; i >= 0; i--) if (!bullets[i].alive) bullets.splice(i, 1);
+}
+/** draw live bullets as streaks pointing along their flight (one draw call) */
+export function renderBullets() {
+  const m = ensureBulletMesh(); let n = 0;
+  for (const b of bullets) {
+    if (n >= MAX_BULLETS) break; // capacity, not m.count (count is how many we drew last frame)
+    bq.setFromUnitVectors(FWD, b.d); const trail = Math.min(BULLET_LEN, KINGPIN.range - b.left + 0.2);
+    bs.set(1, 1, trail); bm.compose(b.p, bq, bs); m.setMatrixAt(n++, bm);
+  }
+  m.count = n; m.instanceMatrix.needsUpdate = true; m.visible = n > 0;
+}
+export function clearBullets() { bullets.length = 0; if (bulletMesh) { bulletMesh.count = 0; bulletMesh.removeFromParent(); } }
 export function swingBriefcase() {
   const fx = Math.sin(G.aimYaw), fz = Math.cos(G.aimYaw);
   let any = false;

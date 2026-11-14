@@ -14,7 +14,7 @@ import { KINGPIN, PLAYER } from "../combat/weapons";
 import { spawnEnemies, updateEnemies } from "../ai/enemies";
 import { setupCrates, updateLoot, sortPack, packValue, itemDef } from "../loot/raidloot";
 import { updatePlayer } from "../actors/player";
-import { resetWalls } from "../combat/combat";
+import { resetWalls, updateBullets, renderBullets, clearBullets } from "../combat/combat";
 import { hud } from "../ui/hud";
 import { initFx, updateFx } from "../../fx";
 import { U } from "../render/shading";
@@ -58,7 +58,7 @@ export function startRaid(end: (r: RaidResult) => void) {
   G.lootCtx = { raid: G.save.raids, cratesOpened: 0, usefulFound: 0, emptyStreak: 0, ammoFound: 0, orderNeeds: G.save.order && !G.save.order.done ? Object.keys(G.save.order.progress) : [] };
   spawnEnemies(G.save.raids % 2); setupCrates();
   for (const c of raidScene.children) if (!before.has(c)) c.userData.perRaid = true;
-  hud.build(); buildMinimap(); resetTrail(); startInteractions(); bonkT = 0;
+  hud.build(); buildMinimap(); resetTrail(); clearBullets(); startInteractions(); bonkT = 0;
   // warm-up: compile every shader now (hidden enemies/props would otherwise compile mid-raid and hitch)
   const hidden: THREE.Object3D[] = []; raidScene.traverse((o) => { if (!o.visible) { hidden.push(o); o.visible = true; } });
   G.stage.renderer.compile(raidScene, G.stage.camera); hidden.forEach((o) => (o.visible = false));
@@ -76,10 +76,12 @@ function finish(how: RaidResult["how"], bonus: number) {
   onEnd({ how, kept, lost, bonus, raidT: G.raidT, log: G.log });
 }
 let bonkT = 0;
+/** Moo 2026-11-15: guns were way too big; Duckov-like proportions put a pistol at ~1/4 of the character's height */
+const GUN_SCALE = 0.65;
 const focus = new THREE.Vector3(), chest = new THREE.Vector3(), sockQ = new THREE.Quaternion(), yawQ = new THREE.Quaternion(), UPV = new THREE.Vector3(0, 1, 0);
 export function stepRaid(dt: number) {
   G.raidT += dt; G.time += dt;
-  updatePlayer(dt); updateEnemies(dt); updateLoot(dt); updateInteractions(dt); recordTrail();
+  updatePlayer(dt); updateBullets(dt); updateEnemies(dt); updateLoot(dt); updateInteractions(dt); recordTrail();
   if (!G.alive && G.hp <= 0) { bonkT += dt; if (bonkT > 1.8 && bonkT - dt <= 1.8) finish("bonked", 0); }
 }
 /** per render frame (not per sim step): pose, camera, FX */
@@ -92,8 +94,9 @@ export function renderRaid(dt: number) {
   G.rig.root.updateMatrixWorld(true); G.rig.sockets.handR.getWorldQuaternion(sockQ);
   G.gun.root.quaternion.copy(sockQ.invert()).multiply(yawQ.setFromAxisAngle(UPV, G.aimYaw));
   G.gun.root.visible = G.meleeT < 0 && G.alive;
+  G.gun.root.scale.setScalar(GUN_SCALE);
   G.gun.pose({ fireT: Math.min(1, G.fireT), reloadT: G.reloadT });
-  G.fx.update(dt); updateFx(dt); hud.update(dt); updateMinimap();
+  G.fx.update(dt); renderBullets(); updateFx(dt); hud.update(dt); updateMinimap();
   U.uTime.value = G.time; U.uPlayer.value.copy(G.pp);
   // camera: damped follow + a small lead toward the aim point (CODE_FINDINGS 8.1: aim lookahead, kept modest, rule 19)
   const lead = G.aimPoint.clone().sub(G.pp).setY(0); const L = Math.min(lead.length(), 10); lead.setLength(L * 0.22);

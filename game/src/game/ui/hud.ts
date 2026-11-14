@@ -76,7 +76,8 @@ export const hud = {
   hurt(_src: string) { if (!E.hurt) return; E.hurt.classList.remove("on"); void E.hurt.offsetWidth; E.hurt.classList.add("on"); },
   enemyDown(_e: Enemy) {},
   bonkOut() { hud.banner("Bonked!", "The crew is carrying you home"); },
-  noiseRing(at: THREE.Vector3, r: number) {
+  /** noise stays a mechanic (enemies hear it) but has no on-screen ring (Moo 2026-11-15: "I don't think having that ripple circle is good") */
+  noiseRing(at: THREE.Vector3, r: number) { if (at && r > 0) return;
     const m = new THREE.Mesh(new THREE.RingGeometry(0.94, 1, 64), new THREE.MeshBasicMaterial({ color: "#fff6d6", transparent: true, opacity: 0.5, depthWrite: false }));
     m.rotation.x = -Math.PI / 2; m.position.set(at.x, at.y + 0.08, at.z); m.scale.setScalar(r * 0.3); m.renderOrder = 4; G.stage.scene.add(m); noiseRings.push({ m, t: 0 });
     (m.userData as { r: number }).r = r;

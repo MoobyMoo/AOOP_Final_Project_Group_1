@@ -368,7 +368,30 @@ export function createGunFx(scene: THREE.Scene): KingpinFx {
     shells.instanceMatrix.needsUpdate = true; shellFade.needsUpdate = true;
   }
 
+  function doImpact(to: THREE.Vector3, dir: THREE.Vector3, hit: "enemy" | "wall") {
+        n.copy(dir).negate(); right.crossVectors(UP, n); if (right.lengthSq() < 1e-6) right.set(1, 0, 0); right.normalize();
+        if (hit === "enemy") { // cartoon pop: a gold star, a white-hot star on top, four little stars flying off. No blood, ever.
+          const r0 = rr(-0.5, 0.5);
+          emit(FREE, STAR, to.x, to.y, to.z, 0, 0, 0, 0.34, 0.34, 2.4, 0.17, C.starOrange, 1, 0, 0.55, 0, 0, r0, 3, 0.75);
+          emit(FREE, STAR, to.x, to.y, to.z, 0, 0, 0, 0.23, 0.23, 2.3, 0.15, C.starHot, 1, 0, 0.5, 0, 0, r0 + 0.63, 3, 0.8);
+          for (let i = 0; i < 4; i++) {
+            const side = (i - 1.5) * rr(1.0, 1.7), back2 = rr(0.6, 2.2), up = rr(2.6, 4.4), sz = rr(0.17, 0.24);
+            emit(FREE, STAR, to.x, to.y, to.z, right.x * side + n.x * back2, up, right.z * side + n.z * back2, sz, sz, 0.75, rr(0.36, 0.46), i % 2 ? C.starHot : C.starGold, 1, 0, 0.7, 11, 0.6, rnd() * 6, rr(-9, 9), 0.8);
+          }
+        } else { // wall: a spark, tan dust rolling back off the surface, a few splinters
+          emit(FREE, GLOW, to.x, to.y, to.z, 0, 0, 0, 0.4, 0.4, 1.4, 0.05, C.spark, 0.9, 1, 0.3, 0, 0, 0, 0, 0.5);
+          for (let i = 0; i < 5; i++) {
+            const side = (i - 2) * 0.75 + rr(-0.4, 0.4), sp = rr(1.1, 2.6), sz = rr(0.13, 0.19);
+            emit(FREE, PUFF, to.x + n.x * 0.1, to.y + rr(-0.08, 0.08), to.z + n.z * 0.1, n.x * sp + right.x * side, rr(0.3, 1.3), n.z * sp + right.z * side, sz, sz, rr(1.9, 2.5), rr(0.42, 0.6), i % 3 === 0 ? C.dustC : i % 3 === 1 ? C.dustA : C.dustB, 0.95, 0, 0.45, -0.6, 4.2, 0, 0, 0.45);
+          }
+          for (let i = 0; i < 4; i++) {
+            const side = rr(-2.2, 2.2), sp = rr(1.6, 3.8);
+            emit(FREE, CHIP, to.x + n.x * 0.1, to.y, to.z + n.z * 0.1, n.x * sp + right.x * side, rr(1.8, 3.6), n.z * sp + right.z * side, 0.034, rr(0.09, 0.15), 1, rr(0.34, 0.44), i % 2 ? C.chipA : C.chipB, 1, 0, 0.75, 14, 0.4, rnd() * 6, rr(-16, 16), 0.45);
+          }
+        }
+        }
   return {
+    impact(at, d, hit) { doImpact(at, d, hit); },
     fire(muzzle, eject, to, hit) {
       muzzle.updateWorldMatrix(true, false); eject.updateWorldMatrix(true, false);
       const me = muzzle.matrixWorld.elements, ee = eject.matrixWorld.elements;
@@ -390,29 +413,8 @@ export function createGunFx(scene: THREE.Scene): KingpinFx {
       sV[o] = right.x * vr + back.x * vb; sV[o + 1] = right.y * vr + back.y * vb + vu; sV[o + 2] = right.z * vr + back.z * vb;
       ax.set(rr(-1, 1), rr(-0.3, 0.3), rr(-1, 1)).normalize(); sAx[o] = ax.x; sAx[o + 1] = ax.y; sAx[o + 2] = ax.z;
       sAng[si] = rnd() * 6.283; sSpin[si] = rr(18, 30) * (rnd() < 0.5 ? -1 : 1); sYaw[si] = Math.atan2(dir.x, dir.z) + rr(-0.5, 0.5); sT[si] = 0; sState[si] = 0;
-      // ---- impact, thrown back along the shot
-      if (hit !== "none") {
-        n.copy(dir).negate(); right.crossVectors(UP, n); if (right.lengthSq() < 1e-6) right.set(1, 0, 0); right.normalize();
-        if (hit === "enemy") { // cartoon pop: a gold star, a white-hot star on top, four little stars flying off. No blood, ever.
-          const r0 = rr(-0.5, 0.5);
-          emit(FREE, STAR, to.x, to.y, to.z, 0, 0, 0, 0.34, 0.34, 2.4, 0.17, C.starOrange, 1, 0, 0.55, 0, 0, r0, 3, 0.75);
-          emit(FREE, STAR, to.x, to.y, to.z, 0, 0, 0, 0.23, 0.23, 2.3, 0.15, C.starHot, 1, 0, 0.5, 0, 0, r0 + 0.63, 3, 0.8);
-          for (let i = 0; i < 4; i++) {
-            const side = (i - 1.5) * rr(1.0, 1.7), back2 = rr(0.6, 2.2), up = rr(2.6, 4.4), sz = rr(0.17, 0.24);
-            emit(FREE, STAR, to.x, to.y, to.z, right.x * side + n.x * back2, up, right.z * side + n.z * back2, sz, sz, 0.75, rr(0.36, 0.46), i % 2 ? C.starHot : C.starGold, 1, 0, 0.7, 11, 0.6, rnd() * 6, rr(-9, 9), 0.8);
-          }
-        } else { // wall: a spark, tan dust rolling back off the surface, a few splinters
-          emit(FREE, GLOW, to.x, to.y, to.z, 0, 0, 0, 0.4, 0.4, 1.4, 0.05, C.spark, 0.9, 1, 0.3, 0, 0, 0, 0, 0.5);
-          for (let i = 0; i < 5; i++) {
-            const side = (i - 2) * 0.75 + rr(-0.4, 0.4), sp = rr(1.1, 2.6), sz = rr(0.13, 0.19);
-            emit(FREE, PUFF, to.x + n.x * 0.1, to.y + rr(-0.08, 0.08), to.z + n.z * 0.1, n.x * sp + right.x * side, rr(0.3, 1.3), n.z * sp + right.z * side, sz, sz, rr(1.9, 2.5), rr(0.42, 0.6), i % 3 === 0 ? C.dustC : i % 3 === 1 ? C.dustA : C.dustB, 0.95, 0, 0.45, -0.6, 4.2, 0, 0, 0.45);
-          }
-          for (let i = 0; i < 4; i++) {
-            const side = rr(-2.2, 2.2), sp = rr(1.6, 3.8);
-            emit(FREE, CHIP, to.x + n.x * 0.1, to.y, to.z + n.z * 0.1, n.x * sp + right.x * side, rr(1.8, 3.6), n.z * sp + right.z * side, 0.034, rr(0.09, 0.15), 1, rr(0.34, 0.44), i % 2 ? C.chipA : C.chipB, 1, 0, 0.75, 14, 0.4, rnd() * 6, rr(-16, 16), 0.45);
-          }
-        }
-      }
+      // ---- impact, thrown back along the shot (instant mode only; projectile bullets call impact() on arrival)
+      if (hit !== "none") doImpact(to, dir, hit);
       write();
     },
     update(dt) {
