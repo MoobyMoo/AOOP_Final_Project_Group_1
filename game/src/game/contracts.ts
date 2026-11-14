@@ -65,7 +65,7 @@ export type RigState = {
 };
 export interface Rig {
   root: THREE.Group;     // gameplay sets root.position and root.rotation.y = moveYaw; pose() never moves root.position
-  sockets: { handR: THREE.Object3D; handL: THREE.Object3D; back: THREE.Object3D; head: THREE.Object3D };
+  sockets: { handR: THREE.Object3D; handL: THREE.Object3D; back: THREE.Object3D; head: THREE.Object3D; face?: THREE.Object3D; body?: THREE.Object3D; ears?: THREE.Object3D }; // monkeys also expose face/body/ears (G1-23); body armor is skinned, the body socket is for rigid extras
   bounds: { radius: number; height: number };
   pose(s: RigState): void;
   setLook?(look: MonkeyLook): void;   // monkeys: rebuild the changed parts live (creator)
