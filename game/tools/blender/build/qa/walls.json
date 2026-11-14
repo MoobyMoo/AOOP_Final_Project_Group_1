@@ -1,0 +1,169 @@
+{
+ "group": "walls",
+ "assets": {
+  "rubble_pile": {
+   "pass": true,
+   "tris": 1008,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.08 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.08
+  },
+  "rubble_pile_rock": {
+   "pass": true,
+   "tris": 894,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.08 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.08
+  },
+  "wall_hull_a": {
+   "pass": true,
+   "tris": 644,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.05 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.05
+  },
+  "wall_hull_debris": {
+   "pass": true,
+   "tris": 556,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: wall_hull_debris__chunk_1<->wall_hull_debris__chunk_3 (1 pairs) - delete to save tris",
+    "asset lowest point z=-0.062 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.062
+  },
+  "wall_hull_weak": {
+   "pass": true,
+   "tris": 616,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: wall_hull_weak__matte (1 pairs) - delete to save tris",
+    "asset lowest point z=-0.0415 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0415
+  },
+  "wall_palisade_a": {
+   "pass": true,
+   "tris": 472,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.0636 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0636
+  },
+  "wall_palisade_b": {
+   "pass": true,
+   "tris": 472,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.0654 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0654
+  },
+  "wall_palisade_debris": {
+   "pass": true,
+   "tris": 972,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: wall_palisade_debris__chunk_12<->wall_palisade_debris__chunk_2 (3 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_palisade_debris__chunk_10<->wall_palisade_debris__chunk_13 (3 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_palisade_debris__chunk_2<->wall_palisade_debris__remains (2 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_palisade_debris__chunk_13<->wall_palisade_debris__chunk_6 (2 pairs) - delete to save tris",
+    "asset lowest point z=-0.062 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.062
+  },
+  "wall_palisade_post": {
+   "pass": true,
+   "tris": 152,
+   "errors": [],
+   "warnings": [
+    "wall_palisade_post__matte: duplicate verts=16 loose verts=0",
+    "asset lowest point z=-0.06 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.06
+  },
+  "wall_palisade_weak": {
+   "pass": true,
+   "tris": 936,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: wall_palisade_weak__matte (8 pairs) - delete to save tris",
+    "asset lowest point z=-0.0495 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0495
+  },
+  "wall_rock_a": {
+   "pass": true,
+   "tris": 734,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.08 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.08
+  },
+  "wall_rock_debris": {
+   "pass": true,
+   "tris": 1252,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.08 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.08
+  },
+  "wall_rock_weak": {
+   "pass": true,
+   "tris": 808,
+   "errors": [],
+   "warnings": [
+    "1 parts fully enclosed, not touching (eyes/internals?): ['wall_rock_weak__matte']",
+    "asset lowest point z=-0.08 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.08
+  },
+  "wall_stone_a": {
+   "pass": true,
+   "tris": 596,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.0481 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0481
+  },
+  "wall_stone_b": {
+   "pass": true,
+   "tris": 508,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.0484 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0484
+  },
+  "wall_stone_debris": {
+   "pass": true,
+   "tris": 956,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: wall_stone_debris__chunk_2<->wall_stone_debris__chunk_5 (1 pairs) - delete to save tris",
+    "asset lowest point z=-0.1062 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.1062
+  },
+  "wall_stone_weak": {
+   "pass": true,
+   "tris": 528,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: wall_stone_weak__matte (1 pairs) - delete to save tris",
+    "asset lowest point z=-0.0719 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0719
+  }
+ }
+}

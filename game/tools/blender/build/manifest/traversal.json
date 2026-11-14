@@ -1,0 +1,167 @@
+{
+ "group": "traversal",
+ "glb_bytes": 744124,
+ "assets": {
+  "zip_tower": {
+   "tris": 2940,
+   "parts": [],
+   "points": [
+    "anchor",
+    "start"
+   ],
+   "footprint": 1.3,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  },
+  "zip_end": {
+   "tris": 556,
+   "parts": [],
+   "points": [
+    "anchor"
+   ],
+   "footprint": 0.9,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  },
+  "zip_handle": {
+   "tris": 372,
+   "parts": [
+    "handle"
+   ],
+   "points": [],
+   "footprint": 0.2,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "boardwalk_a": {
+   "tris": 1034,
+   "parts": [],
+   "points": [],
+   "footprint": 0.3,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "boardwalk_b": {
+   "tris": 964,
+   "parts": [],
+   "points": [],
+   "footprint": 0.3,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "boardwalk_ramp": {
+   "tris": 592,
+   "parts": [],
+   "points": [],
+   "footprint": 0.3,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "bridge": {
+   "tris": 1484,
+   "parts": [],
+   "points": [],
+   "footprint": 0.3,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "raft": {
+   "tris": 1356,
+   "parts": [
+    "flag"
+   ],
+   "points": [
+    "board"
+   ],
+   "footprint": 1.5,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "hatch": {
+   "tris": 1472,
+   "parts": [
+    "lid",
+    "scope"
+   ],
+   "points": [
+    "enter"
+   ],
+   "footprint": 1.0,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "supply_gondola": {
+   "tris": 1378,
+   "parts": [],
+   "points": [
+    "crate",
+    "smoke"
+   ],
+   "footprint": 1.2,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "portal_cave": {
+   "tris": 1551,
+   "parts": [
+    "dark"
+   ],
+   "points": [
+    "enter"
+   ],
+   "footprint": 1.6,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  },
+  "portal_cave_dark": {
+   "tris": 1593,
+   "parts": [
+    "dark"
+   ],
+   "points": [
+    "enter"
+   ],
+   "footprint": 1.6,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  },
+  "portal_roots": {
+   "tris": 1433,
+   "parts": [
+    "dark"
+   ],
+   "points": [
+    "enter"
+   ],
+   "footprint": 1.4,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  }
+ }
+}

@@ -1,0 +1,102 @@
+{
+ "group": "loot",
+ "assets": {
+  "ammo_box": {
+   "pass": true,
+   "tris": 323,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: ammo_box__matte (4 pairs) - delete to save tris"
+   ],
+   "ground_z": -0.006
+  },
+  "banana_stash": {
+   "pass": true,
+   "tris": 1766,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "barrel_rust": {
+   "pass": true,
+   "tris": 432,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "barrel_teal": {
+   "pass": true,
+   "tris": 432,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "barrel_wood": {
+   "pass": true,
+   "tris": 650,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "crate_gold": {
+   "pass": true,
+   "tris": 1654,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: crate_gold__matte (6 pairs) - delete to save tris",
+    "hidden back-to-back faces: crate_gold__lid<->crate_gold__matte (2 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "crate_green": {
+   "pass": true,
+   "tris": 1900,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: crate_green__lid<->crate_green__matte (2 pairs) - delete to save tris"
+   ],
+   "ground_z": -0.006
+  },
+  "crate_wood": {
+   "pass": true,
+   "tris": 1516,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: crate_wood__lid (2 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "crate_wood_b": {
+   "pass": true,
+   "tris": 1516,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "sack": {
+   "pass": true,
+   "tris": 198,
+   "errors": [],
+   "warnings": [],
+   "ground_z": -0.0066
+  },
+  "sack_pile": {
+   "pass": true,
+   "tris": 760,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.0441 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0441
+  },
+  "satchel": {
+   "pass": true,
+   "tris": 582,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: satchel__matte (4 pairs) - delete to save tris"
+   ],
+   "ground_z": -0.0166
+  }
+ }
+}

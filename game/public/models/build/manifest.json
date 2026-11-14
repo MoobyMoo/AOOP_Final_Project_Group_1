@@ -1,0 +1,1198 @@
+{
+ "groups": {
+  "bunker": {
+   "glb_bytes": 1155980,
+   "tris": 23943,
+   "assets": {
+    "bunker_room": {
+     "tris": 10002,
+     "parts": [],
+     "points": [
+      "sal",
+      "spawn"
+     ],
+     "footprint": 8,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bunker_counter": {
+     "tris": 1877,
+     "parts": [
+      "bell"
+     ],
+     "points": [
+      "counter"
+     ],
+     "footprint": 1.6,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 2.0
+    },
+    "bunker_workbench": {
+     "tris": 1712,
+     "parts": [],
+     "points": [
+      "light"
+     ],
+     "footprint": 1.4,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 2.2
+    },
+    "bunker_pinboard": {
+     "tris": 500,
+     "parts": [],
+     "points": [
+      "read"
+     ],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bunker_mirror": {
+     "tris": 900,
+     "parts": [
+      "glass"
+     ],
+     "points": [
+      "stand"
+     ],
+     "footprint": 0.7,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bunker_ladder": {
+     "tris": 784,
+     "parts": [],
+     "points": [
+      "climb",
+      "light"
+     ],
+     "footprint": 0.5,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 2.0
+    },
+    "bunker_cot": {
+     "tris": 668,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bunker_desk": {
+     "tris": 2338,
+     "parts": [],
+     "points": [
+      "light"
+     ],
+     "footprint": 1.2,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 2.2
+    },
+    "bunker_shelf": {
+     "tris": 322,
+     "parts": [],
+     "points": [
+      "slot0",
+      "slot1",
+      "slot2",
+      "slot3",
+      "slot4",
+      "slot5",
+      "slot6",
+      "slot7",
+      "slot8"
+     ],
+     "footprint": 0.5,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bunker_lights": {
+     "tris": 900,
+     "parts": [
+      "bulbs"
+     ],
+     "points": [
+      "light0",
+      "light1",
+      "light2",
+      "light3",
+      "light4",
+      "light5",
+      "light6",
+      "light7"
+     ],
+     "footprint": 0.1,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 2.4
+    },
+    "bunker_fx_mag": {
+     "tris": 780,
+     "parts": [],
+     "points": [],
+     "footprint": 0.2,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bunker_fx_pack": {
+     "tris": 634,
+     "parts": [],
+     "points": [],
+     "footprint": 0.2,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bunker_fx_heart": {
+     "tris": 1714,
+     "parts": [],
+     "points": [],
+     "footprint": 0.9,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bunker_fx_neon": {
+     "tris": 812,
+     "parts": [],
+     "points": [
+      "light"
+     ],
+     "footprint": 0.2,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 2.6
+    }
+   }
+  },
+  "camp": {
+   "glb_bytes": 693036,
+   "tris": 14954,
+   "assets": {
+    "tent_a": {
+     "tris": 684,
+     "parts": [],
+     "points": [],
+     "footprint": 1.7,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "tent_b": {
+     "tris": 800,
+     "parts": [],
+     "points": [],
+     "footprint": 1.5,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "tarp": {
+     "tris": 1144,
+     "parts": [],
+     "points": [],
+     "footprint": 1.5,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bedroll_a": {
+     "tris": 288,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bedroll_b": {
+     "tris": 312,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "campfire": {
+     "tris": 1418,
+     "parts": [
+      "flame"
+     ],
+     "points": [
+      "light"
+     ],
+     "footprint": 0.8,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 2.2
+    },
+    "lantern": {
+     "tris": 352,
+     "parts": [],
+     "points": [
+      "light"
+     ],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 2.4
+    },
+    "lantern_post": {
+     "tris": 788,
+     "parts": [],
+     "points": [
+      "light"
+     ],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 2.4
+    },
+    "fence_a": {
+     "tris": 800,
+     "parts": [],
+     "points": [],
+     "footprint": 0.4,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "fence_b": {
+     "tris": 848,
+     "parts": [],
+     "points": [],
+     "footprint": 0.4,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "gate": {
+     "tris": 956,
+     "parts": [
+      "leaf"
+     ],
+     "points": [],
+     "footprint": 0.4,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "watchtower": {
+     "tris": 2288,
+     "parts": [
+      "flag"
+     ],
+     "points": [
+      "crate",
+      "lookout"
+     ],
+     "footprint": 1.7,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "well": {
+     "tris": 2233,
+     "parts": [
+      "bucket",
+      "dark"
+     ],
+     "points": [
+      "drop"
+     ],
+     "footprint": 1.25,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "log_bench": {
+     "tris": 260,
+     "parts": [],
+     "points": [],
+     "footprint": 0.7,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "log_bench_b": {
+     "tris": 260,
+     "parts": [],
+     "points": [],
+     "footprint": 0.7,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "signpost_a": {
+     "tris": 552,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "signpost_raft": {
+     "tris": 525,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "signpost_key": {
+     "tris": 446,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    }
+   }
+  },
+  "landmarks": {
+   "glb_bytes": 946796,
+   "tris": 22146,
+   "assets": {
+    "ferry": {
+     "tris": 6218,
+     "parts": [],
+     "points": [
+      "smoke"
+     ],
+     "footprint": 5.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "bomber": {
+     "tris": 3445,
+     "parts": [
+      "prop_l",
+      "prop_r"
+     ],
+     "points": [
+      "loot"
+     ],
+     "footprint": 1.3,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "vat": {
+     "tris": 3674,
+     "parts": [
+      "puddle"
+     ],
+     "points": [
+      "pour"
+     ],
+     "footprint": 1.95,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "tractor": {
+     "tris": 3718,
+     "parts": [],
+     "points": [],
+     "footprint": 1.5,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "audit": {
+     "tris": 458,
+     "parts": [],
+     "points": [],
+     "footprint": 0.2,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "falls": {
+     "tris": 3138,
+     "parts": [
+      "water"
+     ],
+     "points": [
+      "foam",
+      "nook"
+     ],
+     "footprint": 2.6,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "bottle": {
+     "tris": 296,
+     "parts": [],
+     "points": [
+      "note"
+     ],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "lemon_stand": {
+     "tris": 1199,
+     "parts": [],
+     "points": [],
+     "footprint": 0.6,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    }
+   }
+  },
+  "loot": {
+   "glb_bytes": 532508,
+   "tris": 11729,
+   "assets": {
+    "crate_wood": {
+     "tris": 1516,
+     "parts": [
+      "lid"
+     ],
+     "points": [],
+     "footprint": 0.7,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "crate_wood_b": {
+     "tris": 1516,
+     "parts": [
+      "lid"
+     ],
+     "points": [],
+     "footprint": 0.7,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "crate_green": {
+     "tris": 1900,
+     "parts": [
+      "lid"
+     ],
+     "points": [],
+     "footprint": 0.75,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "crate_gold": {
+     "tris": 1654,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "glint"
+     ],
+     "footprint": 0.72,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "barrel_wood": {
+     "tris": 650,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "barrel_rust": {
+     "tris": 432,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "barrel_teal": {
+     "tris": 432,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "sack": {
+     "tris": 198,
+     "parts": [],
+     "points": [],
+     "footprint": 0.45,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "sack_pile": {
+     "tris": 760,
+     "parts": [],
+     "points": [],
+     "footprint": 0.8,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "banana_stash": {
+     "tris": 1766,
+     "parts": [],
+     "points": [],
+     "footprint": 0.6,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "ammo_box": {
+     "tris": 323,
+     "parts": [],
+     "points": [],
+     "footprint": 0.4,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "satchel": {
+     "tris": 582,
+     "parts": [],
+     "points": [],
+     "footprint": 0.4,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    }
+   }
+  },
+  "ruins": {
+   "glb_bytes": 1117632,
+   "tris": 24900,
+   "assets": {
+    "ruin_floor_a": {
+     "tris": 728,
+     "parts": [],
+     "points": [],
+     "footprint": 0.1,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "ruin_floor_b": {
+     "tris": 1216,
+     "parts": [],
+     "points": [],
+     "footprint": 0.1,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "ruin_floor_c": {
+     "tris": 520,
+     "parts": [],
+     "points": [],
+     "footprint": 0.1,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "ruin_steps": {
+     "tris": 440,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "pillar_a": {
+     "tris": 532,
+     "parts": [],
+     "points": [],
+     "footprint": 0.65,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "pillar_b": {
+     "tris": 412,
+     "parts": [],
+     "points": [],
+     "footprint": 0.65,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "pillar_c": {
+     "tris": 1052,
+     "parts": [],
+     "points": [],
+     "footprint": 0.65,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "ruin_wall_broken": {
+     "tris": 1384,
+     "parts": [],
+     "points": [],
+     "footprint": 0.6,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "ruin_arch": {
+     "tris": 1200,
+     "parts": [],
+     "points": [],
+     "footprint": 0.6,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "vine_door": {
+     "tris": 3214,
+     "parts": [
+      "leaf"
+     ],
+     "points": [
+      "keyhole"
+     ],
+     "footprint": 2.2,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6
+    },
+    "vault": {
+     "tris": 10328,
+     "parts": [],
+     "points": [
+      "crate",
+      "light0",
+      "light1"
+     ],
+     "footprint": 4.5,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 2.2
+    },
+    "vault_plinth": {
+     "tris": 132,
+     "parts": [],
+     "points": [
+      "crate"
+     ],
+     "footprint": 1.1,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "fusebox": {
+     "tris": 1332,
+     "parts": [
+      "lever"
+     ],
+     "points": [
+      "spark"
+     ],
+     "footprint": 0.5,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 2.4
+    },
+    "statue": {
+     "tris": 2410,
+     "parts": [],
+     "points": [
+      "glint"
+     ],
+     "footprint": 0.9,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 2.0
+    }
+   }
+  },
+  "traversal": {
+   "glb_bytes": 744124,
+   "tris": 16725,
+   "assets": {
+    "zip_tower": {
+     "tris": 2940,
+     "parts": [],
+     "points": [
+      "anchor",
+      "start"
+     ],
+     "footprint": 1.3,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "zip_end": {
+     "tris": 556,
+     "parts": [],
+     "points": [
+      "anchor"
+     ],
+     "footprint": 0.9,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "zip_handle": {
+     "tris": 372,
+     "parts": [
+      "handle"
+     ],
+     "points": [],
+     "footprint": 0.2,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "boardwalk_a": {
+     "tris": 1034,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "boardwalk_b": {
+     "tris": 964,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "boardwalk_ramp": {
+     "tris": 592,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bridge": {
+     "tris": 1484,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "raft": {
+     "tris": 1356,
+     "parts": [
+      "flag"
+     ],
+     "points": [
+      "board"
+     ],
+     "footprint": 1.5,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "hatch": {
+     "tris": 1472,
+     "parts": [
+      "lid",
+      "scope"
+     ],
+     "points": [
+      "enter"
+     ],
+     "footprint": 1.0,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "supply_gondola": {
+     "tris": 1378,
+     "parts": [],
+     "points": [
+      "crate",
+      "smoke"
+     ],
+     "footprint": 1.2,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "portal_cave": {
+     "tris": 1551,
+     "parts": [
+      "dark"
+     ],
+     "points": [
+      "enter"
+     ],
+     "footprint": 1.6,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "portal_cave_dark": {
+     "tris": 1593,
+     "parts": [
+      "dark"
+     ],
+     "points": [
+      "enter"
+     ],
+     "footprint": 1.6,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "portal_roots": {
+     "tris": 1433,
+     "parts": [
+      "dark"
+     ],
+     "points": [
+      "enter"
+     ],
+     "footprint": 1.4,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    }
+   }
+  },
+  "walls": {
+   "glb_bytes": 605896,
+   "tris": 12104,
+   "assets": {
+    "wall_palisade_a": {
+     "tris": 472,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "wall_palisade_b": {
+     "tris": 472,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "wall_palisade_post": {
+     "tris": 152,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "wall_palisade_weak": {
+     "tris": 936,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.0
+    },
+    "wall_palisade_debris": {
+     "tris": 972,
+     "parts": [
+      "chunk_0",
+      "chunk_1",
+      "chunk_10",
+      "chunk_11",
+      "chunk_12",
+      "chunk_13",
+      "chunk_14",
+      "chunk_15",
+      "chunk_2",
+      "chunk_3",
+      "chunk_4",
+      "chunk_5",
+      "chunk_6",
+      "chunk_7",
+      "chunk_8",
+      "chunk_9",
+      "remains"
+     ],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.0
+    },
+    "wall_stone_a": {
+     "tris": 596,
+     "parts": [],
+     "points": [],
+     "footprint": 0.55,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "wall_stone_b": {
+     "tris": 508,
+     "parts": [],
+     "points": [],
+     "footprint": 0.55,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "wall_stone_weak": {
+     "tris": 528,
+     "parts": [],
+     "points": [],
+     "footprint": 0.55,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.0
+    },
+    "wall_stone_debris": {
+     "tris": 956,
+     "parts": [
+      "chunk_0",
+      "chunk_1",
+      "chunk_2",
+      "chunk_3",
+      "chunk_4",
+      "chunk_5",
+      "chunk_6",
+      "chunk_7",
+      "chunk_8",
+      "chunk_9",
+      "remains"
+     ],
+     "points": [],
+     "footprint": 0.55,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.0
+    },
+    "wall_hull_a": {
+     "tris": 644,
+     "parts": [],
+     "points": [],
+     "footprint": 0.4,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "wall_hull_weak": {
+     "tris": 616,
+     "parts": [],
+     "points": [],
+     "footprint": 0.4,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.0
+    },
+    "wall_hull_debris": {
+     "tris": 556,
+     "parts": [
+      "chunk_0",
+      "chunk_1",
+      "chunk_2",
+      "chunk_3",
+      "chunk_4",
+      "chunk_5",
+      "chunk_6",
+      "chunk_7",
+      "chunk_8",
+      "chunk_9",
+      "remains"
+     ],
+     "points": [],
+     "footprint": 0.4,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.0
+    },
+    "wall_rock_a": {
+     "tris": 734,
+     "parts": [],
+     "points": [],
+     "footprint": 0.8,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.0
+    },
+    "wall_rock_weak": {
+     "tris": 808,
+     "parts": [],
+     "points": [],
+     "footprint": 0.8,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.0
+    },
+    "wall_rock_debris": {
+     "tris": 1252,
+     "parts": [
+      "chunk_0",
+      "chunk_1",
+      "chunk_2",
+      "chunk_3",
+      "chunk_4",
+      "chunk_5",
+      "chunk_6",
+      "chunk_7",
+      "remains"
+     ],
+     "points": [],
+     "footprint": 0.8,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.0
+    },
+    "rubble_pile": {
+     "tris": 1008,
+     "parts": [],
+     "points": [],
+     "footprint": 0.8,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "rubble_pile_rock": {
+     "tris": 894,
+     "parts": [],
+     "points": [],
+     "footprint": 0.8,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    }
+   }
+  }
+ },
+ "total_tris": 126501,
+ "total_bytes": 5795972
+}
