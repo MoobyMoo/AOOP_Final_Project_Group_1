@@ -1,5 +1,6 @@
 // Bananaville G1 entry. Scene flow: creator (first launch) → bunker → raid → bunker (summary). Fixed-step sim (1/60),
 // render per frame. ?bot=1 lets the pacing bot play; ?ts=N speeds time up; ?fresh=1 starts a new save; ?raid=1 skips home.
+import { preloadBuild } from "./world/kit_build";
 import "@fontsource/lilita-one";
 import "@fontsource/nunito/700.css";
 import "@fontsource/nunito/800.css";
@@ -35,6 +36,7 @@ addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlock
 
 // world + rig up front (the map snapshot needs the raid scene built); the gun model is a GLB, loaded before anything asks for it
 await preloadKingpin();
+await preloadBuild().catch((e) => console.warn("build kit missing, bunker uses the blockout", e)); // structures kit (bunker room, raid structures)
 await preloadCharacters(); // character GLBs (rig v2): createRig() is synchronous once this resolves
 buildRaidWorld(); G.stage.setScene(raidScene); buildMapShots(raidScene);
 G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); G.rig.setGear?.(visualGear(G.save.gear));

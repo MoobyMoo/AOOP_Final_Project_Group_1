@@ -142,7 +142,7 @@ function combine(list: { b: Built; prefix?: string }[], name = "set"): Built {
   return { pieces, parts };
 }
 /** static pieces as one Object3D (for things gameplay must hide or swap: breakable walls, bunker fixtures) */
-function piecesToObject(pieces: KitPiece[], name: string): THREE.Group {
+export function piecesToObject(pieces: KitPiece[], name: string): THREE.Group {
   const g = new THREE.Group(); g.name = name;
   const by = new Map<MatId, THREE.BufferGeometry[]>();
   for (const p of pieces) (by.get(p.mat) ?? by.set(p.mat, []).get(p.mat)!).push(p.geo);

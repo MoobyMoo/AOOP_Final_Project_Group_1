@@ -16,6 +16,7 @@ import { PLAYER } from "../combat/weapons";
 import { iconHtml } from "../ui/itemicon";
 import { PRICES as LOOT_PRICES } from "../loot/tables";
 import { visualGear, equipDef } from "../loot/equipment";
+import { bunkerRoom, buildReady, piecesToObject } from "../world/kit_build";
 import { equipFromLocker, unequip, sellEquip, repairAll } from "../loot/equipment-actions";
 import { dollHtml, itemCell, detailsHtml, gearSummary, repairBill } from "../ui/equipui";
 import type { WearSlot } from "../contracts";
@@ -38,6 +39,7 @@ let built = false; const fixtures = new Map<string, THREE.Object3D>(); let salRi
 function box(w: number, h: number, d: number, c: string, x: number, y: number, z: number, parent: THREE.Object3D = bunkerScene) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c)); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m; }
 export function buildRoom() {
   if (built) return; built = true;
+  if (buildReady()) return buildKitRoom();
   box(16, 0.2, 10, "#8a7a64", 0, -0.1, 0); // floor
   box(16, 4, 0.4, "#7a5f44", 0, 2, -5.2); box(0.4, 4, 10, "#6e5640", -8.2, 2, 0); box(0.4, 4, 10, "#6e5640", 8.2, 2, 0); // back + side walls (front cut away)
   for (const x of [-6, -2, 2, 6]) { box(0.3, 4, 0.3, "#5a4430", x, 2, -4.9); box(0.3, 0.3, 10, "#5a4430", x, 3.9, 0); }
@@ -60,6 +62,17 @@ export function buildRoom() {
   const neon = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 0.7), new THREE.MeshBasicMaterial({ map: neonTex(), transparent: true })); neon.position.set(-1.6, 3.0, -4.95); fixtures.set("neon", neon);
   for (const [, f] of fixtures) if (f !== shelf) { f.visible = false; bunkerScene.add(f); }
 }
+/** the Blender bunker (Fable C2b, kit_build.bunkerRoom): stations stand at BUNKER_SPOTS, fixtures are its hidden groups */
+function buildKitRoom() {
+  const b = bunkerRoom(); bunkerScene.add(piecesToObject(b.pieces, "bunker"), b.parts.root);
+  for (const id of ["mag", "pack", "heart", "neon"]) fixtures.set(id, b.parts[id]);
+  const shelf = new THREE.Group(); shelf.name = "shelf"; bunkerScene.add(shelf); fixtures.set("shelf", shelf);
+  trophySlots = Array.from({ length: 9 }, (_, i) => b.parts[`slot${i}`]?.getWorldPosition(new THREE.Vector3())).filter((v): v is THREE.Vector3 => !!v);
+  const lights = Object.keys(b.parts).filter((k) => /light/i.test(k)).slice(0, 3); // a few warm lamps; the rest is baked AO + the bulbs' glow
+  for (const k of lights) { const l = new THREE.PointLight("#ffc27a", 18, 12, 1.4); b.parts[k].getWorldPosition(l.position); bunkerScene.add(l); }
+  if (!lights.length) { const lamp = new THREE.PointLight("#ffc27a", 30, 16, 1.4); lamp.position.set(0, 3.4, 0); bunkerScene.add(lamp); }
+}
+let trophySlots: THREE.Vector3[] = [];
 function neonTex() { const c = document.createElement("canvas"); c.width = 512; c.height = 112; const x = c.getContext("2d")!; x.font = "bold 70px Trebuchet MS"; x.textAlign = "center"; x.textBaseline = "middle"; x.shadowColor = "#ffd84a"; x.shadowBlur = 24; x.fillStyle = "#fff6b0"; x.fillText("BANANA BANK", 256, 58); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
 function refreshFixtures() {
   const s = G.save;
@@ -67,7 +80,8 @@ function refreshFixtures() {
   if (s.salMovedIn && !salRig) { salRig = createRig("monkey", { kind: "bandit", seed: 77 }); salRig.root.position.set(6.6, 0, -2.4); salRig.root.rotation.y = -0.6; bunkerScene.add(salRig.root); stations.push({ id: "sal", x: 6.2, z: -1.6, label: "Smuggler Sal: ammo and heals" }); }
   // trophies on the shelf
   const shelf = fixtures.get("shelf")!; shelf.children.filter((c) => c.name === "trophy").forEach((c) => c.removeFromParent());
-  s.trophies.forEach((t, i) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: iconTex(itemDef(t).icon) })); sp.name = "trophy"; sp.scale.setScalar(0.6); sp.position.set(0.3, 0.6 + (i % 3) * 0.7, -0.7 + Math.floor(i / 3) * 0.7); shelf.add(sp); });
+  s.trophies.forEach((t, i) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: iconTex(itemDef(t).icon) })); sp.name = "trophy"; sp.scale.setScalar(0.6);
+    if (trophySlots.length) { const at = trophySlots[i % trophySlots.length]; sp.position.set(at.x, at.y + 0.3, at.z); } else sp.position.set(0.3, 0.6 + (i % 3) * 0.7, -0.7 + Math.floor(i / 3) * 0.7); shelf.add(sp); });
 }
 function iconTex(icon: string) { const c = document.createElement("canvas"); c.width = c.height = 96; const x = c.getContext("2d")!; x.font = "72px serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(icon, 48, 52); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
 
