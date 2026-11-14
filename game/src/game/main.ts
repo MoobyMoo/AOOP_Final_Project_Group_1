@@ -16,7 +16,7 @@ import { openCreator, renderCreator } from "./ui/creator";
 import { buildMapShots, toggleMap, mapOpen, toggleMinimap } from "./ui/mapview";
 import { itemDef } from "./loot/raidloot";
 import { iconHtml } from "./ui/itemicon";
-import { createRig } from "./actors/rig";
+import { createRig, preloadCharacters } from "./actors/rig";
 import { createKingpin, createGunFx, preloadKingpin } from "./combat/kingpin";
 import { fadeTo } from "./world/interact";
 import { botTick, setBot } from "./core/botdrive";
@@ -33,6 +33,7 @@ addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlock
 
 // world + rig up front (the map snapshot needs the raid scene built); the gun model is a GLB, loaded before anything asks for it
 await preloadKingpin();
+await preloadCharacters(); // character GLBs (rig v2): createRig() is synchronous once this resolves
 buildRaidWorld(); G.stage.setScene(raidScene); buildMapShots(raidScene);
 G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); G.rig.setGear?.(G.save.gear);
 

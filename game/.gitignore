@@ -6,3 +6,5 @@ research/refs/**/*.mp4
 spikes/**/*.png
 .playwright-mcp/
 concept/tripo/**/attempts/
+tools/blender/build/
+__pycache__/
