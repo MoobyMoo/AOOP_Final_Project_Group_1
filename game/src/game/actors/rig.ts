@@ -26,9 +26,10 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
 import type { Rig, RigState, RigAction, MonkeyLook, EnemyStyle, Gear, WearSlot } from "../contracts";
-import { charMaterial, newPalette, setRegion, shade, regionBytes, regionDefault, STATIC_PALETTE } from "./charmat";
-import { preloadWearables, instWearable, wearable, WEAR_ZONES } from "./wearables";
+import { charMaterial, newPalette, setRegion, shade, regionBytes, regionDefault, STATIC_PALETTE, REGIONS, type Region } from "./charmat";
+import { preloadWearables, instWearable, wearable, wearableGeos, hasWearable, baseId, instDur, WEAR_ZONES } from "./wearables";
 import { monkeyEnemy, mulberry, DEFAULT_LOOK, lookExt, type MonkeyEnemySpec } from "./look";
+import { EQUIP, enemyGear, visualGear } from "../loot/equipment";
 
 /** actions the rigs can play beyond the contract's RigAction (report: contracts.ts lacks these) */
 export type RigActionX = RigAction | "use" | "cheer";
@@ -142,6 +143,52 @@ function merge(model: Model, names: string[]): THREE.BufferGeometry {
   return g;
 }
 
+// ---------------------------------------------------------------- body armour (G1-23)
+// Body armour is worn over the suit. Its mesh comes from wearables.glb in body-socket space (origin = the chest joint)
+// and is skinned here with the torso's own weights (hips / spine / chest by height, monkey_parts.py w_torso) and the
+// torso's "build" shape key (build_morph), then merged into the one character mesh like any other part. So it bends,
+// breathes and fattens exactly as the suit under it does, and costs no draw call. A rigid piece on the chest bone
+// could not do that: the aim twist alone turns the chest up to 75 degrees against the hips.
+export const BODY_SOCKET_Y = 0.78;
+const EARS_SOCKET = new THREE.Vector3(0, 0.385, -0.035);   // in head-bone space: the point between the two ears
+function armorPart(model: Model, id: string): string | null {
+  const key = "armor_" + id;
+  if (model.parts.has(key)) return key;
+  const geos = wearableGeos(id);
+  let n = 0, ni = 0;
+  for (const g of geos) { n += g.getAttribute("position").count; ni += g.index!.count; }
+  if (!n) return null;
+  const pos = new Float32Array(n * 3), nrm = new Float32Array(n * 3), ra = new Uint8Array(n * 2), si = new Uint16Array(n * 4), sw = new Float32Array(n * 4);
+  const idx = new Uint32Array(ni), build = new Float32Array(n * 3), hips = model.bi.hips, spine = model.bi.spine, chest = model.bi.chest;
+  let vo = 0, io = 0;
+  for (const g of geos) {
+    const p = g.getAttribute("position"), nn = g.getAttribute("normal"), a = g.getAttribute("aRA"), ix = g.index!;
+    for (let i = 0; i < p.count; i++) {
+      const o = vo + i, x = p.getX(i), y = p.getY(i) + BODY_SOCKET_Y, z = p.getZ(i);
+      pos[o * 3] = x; pos[o * 3 + 1] = y; pos[o * 3 + 2] = z;
+      nrm[o * 3] = nn.getX(i); nrm[o * 3 + 1] = nn.getY(i); nrm[o * 3 + 2] = nn.getZ(i);
+      ra[o * 2] = a.getX(i); ra[o * 2 + 1] = a.getY(i);
+      const h = 1 - smooth(0.45, 0.63, y), c = smooth(0.66, 0.86, y);
+      si[o * 4] = hips; si[o * 4 + 1] = spine; si[o * 4 + 2] = chest; sw[o * 4] = h; sw[o * 4 + 1] = Math.max(0, 1 - h - c); sw[o * 4 + 2] = c;
+      const k = smooth(0.36, 0.56, y) * (1 - smooth(0.66, 0.98, y));
+      build[o * 3] = x * 0.18 * k; build[o * 3 + 2] = z * 0.18 * k + (z > 0 ? 0.022 * k : 0);
+    }
+    for (let k = 0; k < ix.count; k++) idx[io + k] = ix.getX(k) + vo;
+    vo += p.count; io += ix.count;
+  }
+  model.parts.set(key, { n, pos, nrm, ra, si, sw, idx, morph: [null, null, null, build] });
+  return key;
+}
+const SLOTS = ["head", "face", "body", "back", "ears"] as const;
+/** palette regions the body itself uses; every other region in a monkey's palette belongs to its body armour */
+const BODY_REGS = new Set<Region>(["fur", "face", "suit", "pants", "tie", "feet", "shirt", "dark", "white", "pupil", "gold", "mouth", "tongue", "suit2", "stripeA", "stripeB", "sole", "fur2", "ear", "square"]);
+const ARMOR_REGS = REGIONS.map((r, i) => (BODY_REGS.has(r) ? -1 : i)).filter((i) => i >= 0);
+/** broken gear (durability 0): its colours go dull and dark */
+function dull(pal: Float32Array, i: number) {
+  const o = i * 3, l = pal[o] * 0.3 + pal[o + 1] * 0.5 + pal[o + 2] * 0.2;
+  pal[o] = (pal[o] * 0.4 + l * 0.6) * 0.5; pal[o + 1] = (pal[o + 1] * 0.4 + l * 0.6) * 0.5; pal[o + 2] = (pal[o + 2] * 0.4 + l * 0.6) * 0.5;
+}
+
 // ---------------------------------------------------------------- pose maths (module scratch: pose() is synchronous)
 const PA = new Float32Array(64 * ST), PB = new Float32Array(64 * ST), PC = new Float32Array(64 * ST);
 const Q = new THREE.Quaternion(), UP = new THREE.Vector3(0, 1, 0), XA = new THREE.Vector3(1, 0, 0), ZA = new THREE.Vector3(0, 0, 1);
@@ -203,7 +250,8 @@ abstract class CharRig implements Rig {
   root = new THREE.Group();
   /** inner group: turns to the facing and carries the seeded size + squash, so gameplay owns root entirely */
   body = new THREE.Group();
-  sockets: Rig["sockets"];
+  /** the contract's four sockets plus face, body (the chest joint) and ears (between the ears, on the head bone) */
+  sockets: Rig["sockets"] & { face: THREE.Object3D; body: THREE.Object3D; ears: THREE.Object3D };
   bounds = { radius: 0.45, height: 2 };
   protected bones: THREE.Bone[]; protected nb: number; protected mesh: THREE.SkinnedMesh;
   protected pal = newPalette(); protected mat: THREE.MeshStandardMaterial;
@@ -227,8 +275,9 @@ abstract class CharRig implements Rig {
     this.upper = new Float32Array(this.nb);
     model.names.forEach((n, i) => { this.upper[i] = lower.test(n) ? 0 : 1; });
     const sock = (bone: string, name: string) => { const o = new THREE.Object3D(); o.name = name; this.bone(bone).add(o); return o; };
-    this.sockets = { handR: sock("sk_hand_R", "handR"), handL: sock("sk_hand_L", "handL"), back: sock("sk_back", "back"), head: sock("sk_head", "head") };
     this.faceSock = sock("sk_face", "face");
+    this.sockets = { handR: sock("sk_hand_R", "handR"), handL: sock("sk_hand_L", "handL"), back: sock("sk_back", "back"), head: sock("sk_head", "head"), face: this.faceSock, body: sock("chest", "body"), ears: sock("head", "ears") };
+    this.sockets.ears.position.copy(EARS_SOCKET);
     this.seed = frac(++rigCount * 0.6180339887);
   }
   protected bone(n: string) { return this.bones[this.model.bi[n]]; }
@@ -280,6 +329,8 @@ const M_FULL: Record<string, string> = { roll: "roll", defeat: "defeat", cheer: 
 export const RIG_TUNE = { headUp: 0.24, aimRate: Math.PI * 2 };
 const TW_MAX = 1.3;   // the gun arm can lead or trail the body by up to ~75 deg
 
+/** how far a pack moves out when body armour is worn under it (fractions added to the back socket's x / z scale) */
+const ARMOR_FIT = { x: 0.1, z: 0.09 };
 class MonkeyRig extends CharRig {
   private look: MonkeyLook = DEFAULT_LOOK; private spec: MonkeyEnemySpec | null;
   private gear: Gear = { head: null, face: null, body: null, back: null, ears: null };
@@ -288,7 +339,7 @@ class MonkeyRig extends CharRig {
   private yaw = 0; private aimYaw = 0; private phase = 0; private wd = new Float32Array(4);   // fwd, back, left, right
   private briefcase: THREE.Object3D | null = null; private handProp: THREE.Object3D | null = null; private propBack = 0;
   private spine: THREE.Bone; private chest: THREE.Bone; private neck: THREE.Bone; private head: THREE.Bone; private earL: THREE.Bone; private earR: THREE.Bone;
-  private tail: THREE.Bone[]; private curl = 0; private build = 0; private hipsI: number; private hipsY = 0;
+  private tail: THREE.Bone[]; private curl = 0; private build = 0; private hipsI: number; private hipsY = 0; private armored = false;
   private tSway: Spring = { x: 0, v: 0 }; private tSway2: Spring = { x: 0, v: 0 }; private tLift: Spring = { x: 0, v: 0 }; private ear: Spring = { x: 0, v: 0 };
 
   constructor(model: Model, style: MonkeyLook | EnemyStyle) {
@@ -302,46 +353,65 @@ class MonkeyRig extends CharRig {
     this.bounds = { radius: 0.45 * this.scale, height: 2.0 * this.scale };
     this.setLook(this.spec ? this.spec.look : (style as MonkeyLook));
     if (this.spec) {
-      this.gear = { head: this.spec.head, face: this.spec.face, body: null, back: this.spec.back, ears: null };
-      for (const slot of ["head", "face", "back"] as const) this.attach(slot, this.gear[slot]);
-      if (this.spec.bandana) setRegion(this.matsFor("face").pal, "red", this.spec.bandana);
+      const es = style as EnemyStyle;
+      this.setGear(visualGear(enemyGear(es.seed, es.kind)));   // what it wears is what it drops (loot/equipment.ts)
       if (this.spec.hand) { this.handProp = instWearable(this.spec.hand, this.matsFor("prop")); this.bone("sk_hand_R").add(this.handProp); }
-      this.refresh();
     } else {
       this.briefcase = instWearable("prop_briefcase", this.matsFor("prop")); this.briefcase.visible = false; this.bone("sk_hand_R").add(this.briefcase);
     }
   }
-  private socketFor(slot: WearSlot) { return slot === "head" ? this.sockets.head : slot === "back" ? this.sockets.back : this.faceSock; }
-  private attach(slot: WearSlot, id: string | null) {
+  /** head, face, back and ears pieces are rigid meshes on sockets; body armour is skinned into the mesh (refresh) */
+  private attach(slot: WearSlot, inst: string | null) {
     this.gearObj[slot]?.removeFromParent(); this.gearObj[slot] = null;
-    if (!id) return;
-    const o = instWearable(id, this.matsFor(slot)); this.socketFor(slot).add(o); this.gearObj[slot] = o;
+    const id = baseId(inst);
+    if (!id || slot === "body") return;
+    // headsets: the band goes over the bare head, or round the back of it ("<id>_nb") when a hat is in the way
+    const mesh = slot === "ears" && this.gear.head && hasWearable(id + "_nb") ? id + "_nb" : id;
+    const o = instWearable(mesh, this.matsFor(slot)); o.name = id; this.sockets[slot].add(o); this.gearObj[slot] = o;
   }
-  /** gear colours: each slot has its own palette copy; LookExt.gear[slot].main / .accent recolour the item's zones */
+  /** gear colours. Socket pieces have a palette copy per slot; body armour uses the non-body regions of the rig's own
+   *  palette. The creator's tints (LookExt.gear[slot].main / .accent) recolour a piece's zones only when the piece is
+   *  one of the player's own bound pieces (EQUIP[id].bound: bowler, shades, satchel); found gear keeps the colours it
+   *  was made with. A broken piece (durability 0) goes dull and dark. */
   private gearColors() {
     const g = lookExt(this.look).gear;
-    for (const slot of ["head", "face", "back"] as const) {
-      const id = this.gear[slot], z = id ? WEAR_ZONES[id] : undefined;
-      if (!id || !z || this.spec) continue;
-      const pal = this.matsFor(slot).pal, c = g?.[slot];
-      setRegion(pal, z.main, c?.main ?? regionDefault(z.main));
-      if (z.accent) setRegion(pal, z.accent, c?.accent ?? regionDefault(z.accent));
+    for (const slot of SLOTS) {
+      const inst = this.gear[slot], id = baseId(inst), body = slot === "body";
+      if (!id && !body) continue;
+      const pal = body ? this.pal : this.matsFor(slot).pal, z = id ? WEAR_ZONES[id] : undefined, c = !this.spec && id && EQUIP[id]?.bound ? g?.[slot] : undefined;
+      if (body) for (const i of ARMOR_REGS) { pal[i * 3] = STATIC_PALETTE[i * 3]; pal[i * 3 + 1] = STATIC_PALETTE[i * 3 + 1]; pal[i * 3 + 2] = STATIC_PALETTE[i * 3 + 2]; }
+      else pal.set(STATIC_PALETTE);
+      if (z && c?.main) setRegion(pal, z.main, c.main);
+      if (z?.accent && c?.accent) setRegion(pal, z.accent, c.accent);
+      if (id === "prop_bandana" && this.spec?.bandana) setRegion(pal, "red", this.spec.bandana);
+      if (id && instDur(inst) <= 0) { if (body) for (const i of ARMOR_REGS) dull(pal, i); else for (let i = 0; i < REGIONS.length; i++) dull(pal, i); }
     }
   }
-  /** part list from the look + what the gear hides */
+  /** part list from the look + what the gear hides or adds */
   private refresh() {
-    const l = this.look, x = lookExt(l), suit = !this.spec, jacket = x.jacket ?? "two", hides = [wearable(this.gear.head), wearable(this.gear.face), wearable(this.gear.back)];
+    const l = this.look, x = lookExt(l), suit = !this.spec, jacket = x.jacket ?? "two";
+    let noEars = false, noBrows = false, noTie = false;
+    for (const slot of SLOTS) { const w = wearable(this.gear[slot]); if (w) { noEars ||= !!w.hidesEars; noBrows ||= !!w.hidesBrows; noTie ||= !!w.hidesTie; } }
     const parts = ["head", this.spec ? "torso_" + this.spec.torso : jacket === "vest" ? "torso_vest" : "torso_suit", "hands", "tail", "feet_" + l.feet.style, "eyes_" + l.eyes.style, "lids_" + l.eyes.style, "mouth_" + l.mouth];
-    if (!hides.some((w) => w?.hidesEars)) parts.push("ears_" + l.ears.style);
-    if (l.brows.style !== "none" && !hides.some((w) => w?.hidesBrows)) parts.push("brows_" + l.brows.style);
+    if (!noEars) parts.push("ears_" + l.ears.style);
+    if (l.brows.style !== "none" && !noBrows) parts.push("brows_" + l.brows.style);
     if (suit) {
       parts.push("front_" + jacket);
-      if (l.tie.style !== "none") parts.push("tie_" + l.tie.style);
-      if (x.pocketSquare && jacket !== "vest") parts.push("square");
+      if (l.tie.style !== "none" && !noTie) parts.push("tie_" + l.tie.style);
+      if (x.pocketSquare && jacket !== "vest" && !noTie) parts.push("square");
     }
     if (this.spec?.tuft) parts.push("tuft");
+    const armor = this.gear.body ? armorPart(this.model, baseId(this.gear.body)!) : null;
+    if (armor) parts.push(armor);
+    this.armored = !!armor;
     this.setParts(parts);
+    this.fitBack();
     this.gearColors();
+  }
+  /** packs and their straps follow the belly, and sit out over body armour */
+  private fitBack() {
+    const a = this.armored ? 1 : 0;
+    this.sockets.back.scale.set((1 + 0.18 * this.build) * (1 + ARMOR_FIT.x * a), 1, (1 + 0.2 * this.build) * (1 + ARMOR_FIT.z * a));
   }
   setLook(look: MonkeyLook) {
     this.look = look; const p = this.pal, x = lookExt(look), c = x.colors ?? {};
@@ -355,15 +425,25 @@ class MonkeyRig extends CharRig {
     this.earL.scale.setScalar(look.ears.size); this.earR.scale.setScalar(look.ears.size);
     this.curl = (look.tail.curl - 0.3) * 0.62;
     this.build = clamp(this.spec ? this.spec.build : x.build ?? 0, -1, 1);
-    this.sockets.back.scale.set(1 + 0.18 * this.build, 1, 1 + 0.2 * this.build);   // packs and straps follow the belly
     this.refresh();
   }
+  /** Wear this gear. Slots hold equipment instances ("id" or "id#durability"); durability 0 shows the piece broken.
+   *  An unknown id or one with no mesh (the suit: it is the body) shows nothing. An enemy rig starts in
+   *  enemyGear(seed, kind); on it a null slot keeps the kind's own prop (the bandit's bandana and sack). */
   setGear(gear: Gear) {
-    for (const slot of ["head", "face", "back"] as const) if (gear[slot] !== this.gear[slot] || (gear[slot] && !this.gearObj[slot])) this.attach(slot, gear[slot]);
-    this.gear = { ...gear }; this.refresh();
+    const prev = this.gear, sp = this.spec;
+    const next: Gear = sp ? { head: gear.head ?? sp.head, face: gear.face ?? sp.face, body: gear.body ?? sp.body, back: gear.back ?? sp.back, ears: gear.ears ?? sp.ears } : { ...gear };
+    this.gear = next;
+    for (const slot of SLOTS) {
+      if (slot === "body") continue;
+      const id = baseId(next[slot]);
+      if (id !== baseId(prev[slot]) || (id && !this.gearObj[slot]) || (slot === "ears" && !next.head !== !prev.head)) this.attach(slot, next[slot]);
+    }
+    this.refresh();
   }
   knockOff(slot: WearSlot): THREE.Object3D | null {
-    const o = this.gearObj[slot];
+    let o = this.gearObj[slot];
+    if (slot === "body" && this.armored) { o = instWearable(baseId(this.gear.body)!, this.matsFor("body")); this.sockets.body.add(o); }   // a rigid copy leaves; the skinned one goes
     if (!o) return null;
     o.updateWorldMatrix(true, false);
     if (this.root.parent) this.root.parent.attach(o); else o.removeFromParent();
@@ -426,7 +506,8 @@ class MonkeyRig extends CharRig {
       t.quaternion.multiply(Q.setFromAxisAngle(ZA, (far ? this.tSway2.x : this.tSway.x) * 0.4 * free));
       t.quaternion.multiply(Q.setFromAxisAngle(XA, (i > 0 ? this.curl : 0) + this.tLift.x * (far ? 0.55 : 0.3) * free));
     }
-    this.earL.quaternion.multiply(Q.setFromAxisAngle(ZA, this.ear.x)); this.earR.quaternion.multiply(Q.setFromAxisAngle(ZA, -this.ear.x));
+    const ew = this.gearObj.ears ? 0 : this.ear.x;                    // a headset pins the ears
+    this.earL.quaternion.multiply(Q.setFromAxisAngle(ZA, ew)); this.earR.quaternion.multiply(Q.setFromAxisAngle(ZA, -ew));
     // recoil: fast out, slower recover (Duckov: back 20/s, recover 8/s); moves the gun socket, a little of it reaches the chest
     const hr = this.sockets.handR, ft = act === "fire" ? s.actionT * CLIP_INFO.fire.dur : -1, kick = ft < 0 ? 0 : ft < 0.035 ? ft / 0.035 : Math.exp(-(ft - 0.035) * 9);
     hr.position.z = -0.1 * kick; hr.rotation.x = -0.3 * kick;
@@ -494,12 +575,17 @@ class GorillaRig extends CharRig {
 }
 
 export function createRig(plan: "monkey", look: MonkeyLook): Rig;
-export function createRig(plan: "monkey" | "gorilla", style: EnemyStyle): Rig;
-export function createRig(plan: "monkey" | "gorilla", style: MonkeyLook | EnemyStyle): Rig {
+export function createRig(plan: "monkey" | "gorilla", style: EnemyStyle, gear?: Gear): Rig;
+/** gear (monkey enemies only) overrides the loot gear the enemy would wear by default, enemyGear(style.seed, style.kind).
+ *  Same as calling rig.setGear(gear) afterwards: null slots keep the kind's own props. */
+export function createRig(plan: "monkey" | "gorilla", style: MonkeyLook | EnemyStyle, gear?: Gear): Rig {
   const gorilla = "kind" in style && (style.kind === "brute" || style.kind === "sleeper"), model = gorilla ? MODELS.gorilla : MODELS.monkey;
   if (!model) throw new Error("createRig: await preloadCharacters() first");
   void plan;
-  return gorilla ? new GorillaRig(model, style as EnemyStyle) : new MonkeyRig(model, style);
+  if (gorilla) return new GorillaRig(model, style as EnemyStyle);
+  const rig = new MonkeyRig(model, style);
+  if (gear && "kind" in style) rig.setGear(gear);
+  return rig;
 }
 
 /** triangles + draw calls (main pass) a rig costs right now, for budgets and the review page */
