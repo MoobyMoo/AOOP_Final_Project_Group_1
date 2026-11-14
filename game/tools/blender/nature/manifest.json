@@ -1413,19 +1413,19 @@
   },
   "rocks": {
    "file": "public/models/nature/rocks.glb",
-   "bytes": 492132,
+   "bytes": 493208,
    "tris": 8475,
    "nodes": 34
   },
   "cave": {
    "file": "public/models/nature/cave.glb",
-   "bytes": 206736,
+   "bytes": 207504,
    "tris": 5698,
    "nodes": 24
   },
   "waterfall": {
    "file": "public/models/nature/waterfall.glb",
-   "bytes": 377128,
+   "bytes": 377632,
    "tris": 5765,
    "nodes": 4
   }
@@ -1995,6 +1995,6 @@
    ]
   }
  },
- "total_bytes": 3353080,
+ "total_bytes": 3355428,
  "blender": "5.2.2 LTS"
 }

@@ -500,7 +500,11 @@ def hull_rock(g, rng, radii, center=(0, 0, 0), npts=12, bevel=0.1, cut=None, col
     for p in pts:
         bm.verts.new(tuple(p))
     res = bmesh.ops.convex_hull(bm, input=bm.verts[:])
-    junk = list({e for e in res.get("geom_interior", []) + res.get("geom_unused", []) if isinstance(e, bmesh.types.BMVert) and e.is_valid})
+    seen, junk = set(), []          # keep the operator's order: a Python set of BMVerts iterates in memory-address order
+    for e in res.get("geom_interior", []) + res.get("geom_unused", []):
+        if isinstance(e, bmesh.types.BMVert) and e.is_valid and e not in seen:
+            seen.add(e)
+            junk.append(e)
     if junk:
         bmesh.ops.delete(bm, geom=junk, context="VERTS")
     bmesh.ops.dissolve_limit(bm, angle_limit=math.radians(planar), verts=bm.verts[:], edges=bm.edges[:])
@@ -526,12 +530,20 @@ def hull_rock(g, rng, radii, center=(0, 0, 0), npts=12, bevel=0.1, cut=None, col
     bmesh.ops.dissolve_degenerate(bm, dist=1e-4, edges=bm.edges[:])
     bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-4)
     bm.normal_update()
+    bm.verts.index_update()
+    # Blender's hull operator returns its geometry in memory-address order, so the same rock comes out with its
+    # vertices and faces shuffled from run to run. Emit them in a canonical order so rebuilds are byte-identical.
+    vs = sorted((tuple(np.round(np.array(v.co), 5)), tuple(np.round(np.array(v.normal), 4)), v.index) for v in bm.verts)
     idx = {}
-    for v in bm.verts:
-        p, n = np.array(v.co), np.array(v.normal)
-        idx[v.index] = g.vert(p, col(p, n) if callable(col) else col, ao=ao)
+    for p, n, i in vs:
+        p, n = np.array(p), np.array(n)
+        idx[i] = g.vert(p, col(p, n) if callable(col) else col, ao=ao)
+    tris = []
     for f in bm.faces:
-        a, b, c = (idx[v.index] for v in f.verts)
+        t = [idx[v.index] for v in f.verts]
+        k = t.index(min(t))
+        tris.append(tuple(t[k:] + t[:k]))
+    for a, b, c in sorted(tris):
         g.tri(a, b, c, False)
     bm.free()
 
