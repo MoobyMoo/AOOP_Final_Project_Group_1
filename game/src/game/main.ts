@@ -7,6 +7,7 @@ import { load, save } from "./core/save_interim";
 import { unlockAudio } from "./core/audio";
 import { startRaid, stepRaid, renderRaid, type RaidResult } from "./core/raid";
 import { path, walkable, los } from "./world/grid";
+import { preloadCharacters } from "./actors/rig";
 
 const QS = new URLSearchParams(location.search);
 G.stage = new Stage(document.getElementById("game") as HTMLCanvasElement);
@@ -40,5 +41,6 @@ function frame() {
   requestAnimationFrame(frame);
 }
 (window as unknown as { __g: unknown }).__g = { G, path, walkable, los, info: () => ({ calls: G.stage.renderer.info.render.calls, tris: G.stage.renderer.info.render.triangles }) };
+await preloadCharacters(); // character GLBs (rig v2): createRig() is synchronous once this resolves
 goRaid();
 requestAnimationFrame(frame);

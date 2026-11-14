@@ -5,3 +5,5 @@ research/look/refs/raw/
 research/refs/**/*.mp4
 spikes/**/*.png
 .playwright-mcp/
+tools/blender/build/
+__pycache__/
