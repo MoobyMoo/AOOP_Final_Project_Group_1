@@ -1,0 +1,776 @@
+{
+ "group": "house",
+ "assets": {
+  "barrel": {
+   "pass": true,
+   "tris": 126,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "bench": {
+   "pass": true,
+   "tris": 68,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "boat": {
+   "pass": true,
+   "tris": 206,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.022 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.022
+  },
+  "bucket": {
+   "pass": true,
+   "tris": 42,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "bunk": {
+   "pass": true,
+   "tris": 172,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: bunk__matte (8 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "buoys": {
+   "pass": true,
+   "tris": 228,
+   "errors": [],
+   "warnings": [],
+   "ground_z": -0.01
+  },
+  "cabinet": {
+   "pass": true,
+   "tris": 92,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: cabinet__matte (8 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "cabinet_open": {
+   "pass": true,
+   "tris": 184,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: cabinet_open__matte (6 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "cell_bars": {
+   "pass": true,
+   "tris": 158,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: cell_bars__matte<->cell_bars__upper (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.045 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.045
+  },
+  "cell_door": {
+   "pass": true,
+   "tris": 258,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: cell_door__matte<->cell_door__upper (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.045 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.045
+  },
+  "chair": {
+   "pass": true,
+   "tris": 104,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: chair__matte (4 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "corner_barn": {
+   "pass": true,
+   "tris": 88,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.07 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.07
+  },
+  "corner_boat": {
+   "pass": true,
+   "tris": 88,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.07 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.07
+  },
+  "corner_plank": {
+   "pass": true,
+   "tris": 88,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.07 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.07
+  },
+  "corner_stone": {
+   "pass": true,
+   "tris": 132,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.0705 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0705
+  },
+  "corner_tin": {
+   "pass": true,
+   "tris": 88,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.07 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.07
+  },
+  "cot": {
+   "pass": true,
+   "tris": 212,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "cot_iron": {
+   "pass": true,
+   "tris": 122,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: cot_iron__matte (4 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "crate_stack": {
+   "pass": true,
+   "tris": 236,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: crate_stack__matte (4 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "desk": {
+   "pass": true,
+   "tris": 384,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: desk__matte (13 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "drum": {
+   "pass": true,
+   "tris": 152,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "firewood": {
+   "pass": true,
+   "tris": 264,
+   "errors": [],
+   "warnings": [],
+   "ground_z": -0.0184
+  },
+  "floor_dirt": {
+   "pass": true,
+   "tris": 48,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.3 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.3
+  },
+  "floor_plank": {
+   "pass": true,
+   "tris": 56,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.3 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.3
+  },
+  "floor_stone": {
+   "pass": true,
+   "tris": 52,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.3 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.3
+  },
+  "generator": {
+   "pass": true,
+   "tris": 296,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "haybale": {
+   "pass": true,
+   "tris": 64,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "haystack": {
+   "pass": true,
+   "tris": 192,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "key_rack": {
+   "pass": true,
+   "tris": 124,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: key_rack__matte (2 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "ladder": {
+   "pass": true,
+   "tris": 96,
+   "errors": [],
+   "warnings": [],
+   "ground_z": -0.0079
+  },
+  "lantern": {
+   "pass": true,
+   "tris": 132,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "mooring": {
+   "pass": true,
+   "tris": 84,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.1 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.1
+  },
+  "net_rack": {
+   "pass": true,
+   "tris": 236,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "noticeboard": {
+   "pass": true,
+   "tris": 128,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "plant": {
+   "pass": true,
+   "tris": 212,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "porch": {
+   "pass": true,
+   "tris": 546,
+   "errors": [],
+   "warnings": [
+    "porch__matte: duplicate verts=8 loose verts=0",
+    "hidden back-to-back faces: porch__matte (8 pairs) - delete to save tris",
+    "asset lowest point z=-0.2 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.2
+  },
+  "radio": {
+   "pass": true,
+   "tris": 490,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: radio__matte (4 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "roof_plank": {
+   "pass": true,
+   "tris": 188,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=2.7469 (not resting on ground plane z=0)"
+   ],
+   "ground_z": 2.7469
+  },
+  "roof_plank_end": {
+   "pass": true,
+   "tris": 252,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=2.7165 (not resting on ground plane z=0)"
+   ],
+   "ground_z": 2.7165
+  },
+  "roof_thatch": {
+   "pass": true,
+   "tris": 362,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=2.5475 (not resting on ground plane z=0)"
+   ],
+   "ground_z": 2.5475
+  },
+  "roof_thatch_end": {
+   "pass": true,
+   "tris": 404,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=2.5494 (not resting on ground plane z=0)"
+   ],
+   "ground_z": 2.5494
+  },
+  "roof_thatch_hip": {
+   "pass": true,
+   "tris": 928,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=2.5967 (not resting on ground plane z=0)"
+   ],
+   "ground_z": 2.5967
+  },
+  "roof_tin": {
+   "pass": true,
+   "tris": 184,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: roof_tin__roof (2 pairs) - delete to save tris",
+    "asset lowest point z=2.7385 (not resting on ground plane z=0)"
+   ],
+   "ground_z": 2.7385
+  },
+  "roof_tin_end": {
+   "pass": true,
+   "tris": 218,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: roof_tin_end__roof (8 pairs) - delete to save tris",
+    "asset lowest point z=2.7571 (not resting on ground plane z=0)"
+   ],
+   "ground_z": 2.7571
+  },
+  "roof_tin_gambrel": {
+   "pass": true,
+   "tris": 304,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=2.6344 (not resting on ground plane z=0)"
+   ],
+   "ground_z": 2.6344
+  },
+  "roof_tin_shed": {
+   "pass": true,
+   "tris": 240,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: roof_tin_shed__roof (12 pairs) - delete to save tris",
+    "asset lowest point z=2.8596 (not resting on ground plane z=0)"
+   ],
+   "ground_z": 2.8596
+  },
+  "rope_coil": {
+   "pass": true,
+   "tris": 126,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "sacks": {
+   "pass": true,
+   "tris": 144,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.026 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.026
+  },
+  "shelf": {
+   "pass": true,
+   "tris": 414,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: shelf__matte (29 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "shelf_files": {
+   "pass": true,
+   "tris": 348,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: shelf_files__matte (29 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "stall": {
+   "pass": true,
+   "tris": 124,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.04 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.04
+  },
+  "steps": {
+   "pass": true,
+   "tris": 24,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.16 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.16
+  },
+  "stool": {
+   "pass": true,
+   "tris": 76,
+   "errors": [],
+   "warnings": [],
+   "ground_z": -0.0093
+  },
+  "stove": {
+   "pass": true,
+   "tris": 286,
+   "errors": [],
+   "warnings": [
+    "stove__matte: duplicate verts=1 loose verts=0",
+    "hidden back-to-back faces: stove__matte (12 pairs) - delete to save tris"
+   ],
+   "ground_z": -0.0046
+  },
+  "table": {
+   "pass": true,
+   "tris": 300,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "table_cards": {
+   "pass": true,
+   "tris": 288,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "trough": {
+   "pass": true,
+   "tris": 70,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "wall_barn": {
+   "pass": true,
+   "tris": 88,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: wall_barn__matte<->wall_barn__upper (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.05 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.05
+  },
+  "wall_barn_door": {
+   "pass": true,
+   "tris": 430,
+   "errors": [],
+   "warnings": [
+    "wall_barn_door__upper: duplicate verts=4 loose verts=0",
+    "hidden back-to-back faces: wall_barn_door__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_barn_door__matte<->wall_barn_door__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_barn_door__door0<->wall_barn_door__matte (6 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_barn_door__emissive<->wall_barn_door__matte (4 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_barn_door__matte (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.05 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.05
+  },
+  "wall_barn_double": {
+   "pass": true,
+   "tris": 678,
+   "errors": [],
+   "warnings": [
+    "wall_barn_double__upper: duplicate verts=4 loose verts=0",
+    "hidden back-to-back faces: wall_barn_double__matte<->wall_barn_double__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_barn_double__upper (6 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_barn_double__door1<->wall_barn_double__matte (6 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_barn_double__door0<->wall_barn_double__matte (6 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_barn_double__door1 (4 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_barn_double__emissive<->wall_barn_double__matte (4 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_barn_double__matte (4 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_barn_double__door0 (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.05 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.05
+  },
+  "wall_barn_window": {
+   "pass": true,
+   "tris": 224,
+   "errors": [],
+   "warnings": [
+    "wall_barn_window__upper: duplicate verts=4 loose verts=0",
+    "hidden back-to-back faces: wall_barn_window__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_barn_window__matte<->wall_barn_window__upper (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.05 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.05
+  },
+  "wall_boat": {
+   "pass": true,
+   "tris": 88,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: wall_boat__matte<->wall_boat__upper (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.05 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.05
+  },
+  "wall_boat_door": {
+   "pass": true,
+   "tris": 430,
+   "errors": [],
+   "warnings": [
+    "wall_boat_door__upper: duplicate verts=4 loose verts=0",
+    "hidden back-to-back faces: wall_boat_door__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_boat_door__matte<->wall_boat_door__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_boat_door__door0<->wall_boat_door__matte (6 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_boat_door__emissive<->wall_boat_door__matte (4 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_boat_door__matte (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.05 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.05
+  },
+  "wall_boat_open": {
+   "pass": true,
+   "tris": 38,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=2.6 (not resting on ground plane z=0)"
+   ],
+   "ground_z": 2.6
+  },
+  "wall_boat_window": {
+   "pass": true,
+   "tris": 224,
+   "errors": [],
+   "warnings": [
+    "wall_boat_window__upper: duplicate verts=4 loose verts=0",
+    "hidden back-to-back faces: wall_boat_window__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_boat_window__matte<->wall_boat_window__upper (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.05 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.05
+  },
+  "wall_plank": {
+   "pass": true,
+   "tris": 78,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: wall_plank__matte<->wall_plank__upper (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.05 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.05
+  },
+  "wall_plank_cracked": {
+   "pass": true,
+   "tris": 692,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.07 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.07
+  },
+  "wall_plank_door": {
+   "pass": true,
+   "tris": 482,
+   "errors": [],
+   "warnings": [
+    "wall_plank_door__upper: duplicate verts=4 loose verts=0",
+    "hidden back-to-back faces: wall_plank_door__matte<->wall_plank_door__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_plank_door__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_plank_door__door0<->wall_plank_door__matte (6 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_plank_door__emissive<->wall_plank_door__matte (4 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_plank_door__matte (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.05 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.05
+  },
+  "wall_plank_door_weak": {
+   "pass": true,
+   "tris": 506,
+   "errors": [],
+   "warnings": [
+    "wall_plank_door_weak__upper: duplicate verts=4 loose verts=0",
+    "hidden back-to-back faces: wall_plank_door_weak__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_plank_door_weak__matte<->wall_plank_door_weak__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_plank_door_weak__door0<->wall_plank_door_weak__matte (6 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_plank_door_weak__matte (4 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_plank_door_weak__emissive<->wall_plank_door_weak__matte (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.05 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.05
+  },
+  "wall_plank_window": {
+   "pass": true,
+   "tris": 250,
+   "errors": [],
+   "warnings": [
+    "wall_plank_window__upper: duplicate verts=4 loose verts=0",
+    "hidden back-to-back faces: wall_plank_window__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_plank_window__matte<->wall_plank_window__upper (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.05 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.05
+  },
+  "wall_stone": {
+   "pass": true,
+   "tris": 102,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: wall_stone__matte<->wall_stone__upper (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.06 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.06
+  },
+  "wall_stone_cellwindow": {
+   "pass": true,
+   "tris": 210,
+   "errors": [],
+   "warnings": [
+    "wall_stone_cellwindow__upper: duplicate verts=8 loose verts=0",
+    "hidden back-to-back faces: wall_stone_cellwindow__upper (14 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_stone_cellwindow__matte<->wall_stone_cellwindow__upper (10 pairs) - delete to save tris",
+    "asset lowest point z=-0.06 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.06
+  },
+  "wall_stone_cracked": {
+   "pass": true,
+   "tris": 664,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.0924 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0924
+  },
+  "wall_stone_door": {
+   "pass": true,
+   "tris": 510,
+   "errors": [],
+   "warnings": [
+    "wall_stone_door__upper: duplicate verts=4 loose verts=0",
+    "hidden back-to-back faces: wall_stone_door__matte<->wall_stone_door__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_stone_door__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_stone_door__door0<->wall_stone_door__matte (6 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_stone_door__emissive<->wall_stone_door__matte (4 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_stone_door__matte (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.06 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.06
+  },
+  "wall_stone_window": {
+   "pass": true,
+   "tris": 234,
+   "errors": [],
+   "warnings": [
+    "wall_stone_window__upper: duplicate verts=4 loose verts=0",
+    "hidden back-to-back faces: wall_stone_window__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_stone_window__matte<->wall_stone_window__upper (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.06 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.06
+  },
+  "wall_tin": {
+   "pass": true,
+   "tris": 108,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: wall_tin__matte<->wall_tin__upper (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.05 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.05
+  },
+  "wall_tin_door": {
+   "pass": true,
+   "tris": 462,
+   "errors": [],
+   "warnings": [
+    "wall_tin_door__upper: duplicate verts=4 loose verts=0",
+    "hidden back-to-back faces: wall_tin_door__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_tin_door__matte<->wall_tin_door__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_tin_door__door0<->wall_tin_door__matte (6 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_tin_door__emissive<->wall_tin_door__matte (4 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_tin_door__matte (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.05 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.05
+  },
+  "wall_tin_door_locked": {
+   "pass": true,
+   "tris": 552,
+   "errors": [],
+   "warnings": [
+    "wall_tin_door_locked__upper: duplicate verts=4 loose verts=0",
+    "hidden back-to-back faces: wall_tin_door_locked__matte<->wall_tin_door_locked__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_tin_door_locked__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_tin_door_locked__door0<->wall_tin_door_locked__matte (6 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_tin_door_locked__emissive<->wall_tin_door_locked__matte (4 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_tin_door_locked__matte (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.05 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.05
+  },
+  "wall_tin_window": {
+   "pass": true,
+   "tris": 244,
+   "errors": [],
+   "warnings": [
+    "wall_tin_window__upper: duplicate verts=4 loose verts=0",
+    "hidden back-to-back faces: wall_tin_window__upper (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: wall_tin_window__matte<->wall_tin_window__upper (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.05 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.05
+  },
+  "wheel": {
+   "pass": true,
+   "tris": 172,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=0.0245 (not resting on ground plane z=0)"
+   ],
+   "ground_z": 0.0245
+  },
+  "workbench": {
+   "pass": true,
+   "tris": 312,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: workbench__matte (2 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  }
+ }
+}
