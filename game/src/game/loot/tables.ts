@@ -1,10 +1,12 @@
 import type { CrateTier, EnemyStyle, ItemDef, RaidLootCtx } from "../contracts";
 import type { CrateSocket } from "../world/layout";
+import { EQUIP, enemyGear, parseInst, saleValue } from "./equipment";
 
 export type LootContext = RaidLootCtx & {
-  fixed?: CrateSocket["fixed"];
+  fixed?: CrateSocket["fixed"] | "radio" | "radio_shack";
   ownsExtendedMag?: boolean;
   carried?: string[];
+  enemySeed?: number;
 };
 
 export const ITEMS: Record<string, ItemDef> = {
@@ -26,10 +28,17 @@ export const ITEMS: Record<string, ItemDef> = {
   extended_mag: { id: "extended_mag", name: "Kingpin Extended Mag", icon: "📎", rarity: "epic", value: 0, kind: "attachment", weight: 0.2 },
   spring: { id: "spring", name: "Spring", icon: "🌀", rarity: "common", value: 11, kind: "part", weight: 0.5 },
   plank: { id: "plank", name: "Plank", icon: "🪵", rarity: "common", value: 8, kind: "part", weight: 2.0 },
+  ...Object.fromEntries(Object.values(EQUIP).map(def => [def.id, { id: def.id, name: def.name, icon: { head: "🎩", face: "🕶️", body: "🦺", back: "🎒", ears: "🎧" }[def.slot], rarity: def.rarity, value: def.value, weight: def.weight, kind: "wear" as const }])),
 };
+export function itemDef(inst: string): ItemDef {
+  const parsed = parseInst(inst);
+  if (parsed) return { ...ITEMS[parsed.id], id: inst, value: saleValue(inst) };
+  return Object.hasOwn(ITEMS, inst) ? ITEMS[inst] : { id: inst, name: inst, icon: "❔", rarity: "common", value: 0, kind: "sell", weight: 0 };
+}
+export const EQUIPMENT_CHANCE: Record<CrateTier, number> = { wood: 0.02, green: 0.10, gold: 0.28 };
 
 export const PRICES = {
-  upgrades: { mag: [240], pack: [480], heart: [650] },
+  upgrades: { mag: [240], pack: [720], heart: [1050] },
   ammo8: 24,
   smoothie: 36,
   bandage: 12,
@@ -63,7 +72,7 @@ export function mulberry32(seed: number): () => number {
 }
 
 export function isUseful(id: string, ctx: RaidLootCtx): boolean {
-  const item = ITEMS[id];
+  const item = itemDef(id);
   return Boolean(item && (item.kind !== "sell" || item.value >= 39 || ctx.orderNeeds.includes(id)));
 }
 
@@ -78,12 +87,17 @@ function draw(pool: Record<string, number>, ctx: RaidLootCtx, rng: () => number)
   return entries[entries.length - 1][0];
 }
 
-function randomContents(tier: CrateTier, ctx: RaidLootCtx, rng: () => number, epic = false): string[] {
+function randomContents(tier: CrateTier, ctx: RaidLootCtx, rng: () => number, epic = false, equipment = true): string[] {
   const table = CRATE_TABLES[tier];
   if (rng() < table.empty && ctx.emptyStreak === 0) return [];
   const pool = epic ? SLEEPER_POOL : table.items;
   const found = [draw(pool, ctx, rng)];
   if (rng() < table.extra) found.push(draw(pool, ctx, rng));
+  if (equipment && rng() < EQUIPMENT_CHANCE[tier]) {
+    const equipment = Object.fromEntries(Object.values(EQUIP).filter(def => !def.bound && (tier === "wood" ? def.rarity === "common" : tier === "green" ? ["common", "uncommon"].includes(def.rarity) : true)).map(def => [def.id, { common: 6, uncommon: 3, rare: 1, epic: 0.2 }[def.rarity]]));
+    const id = draw(equipment, ctx, rng);
+    found[0] = EQUIP[id].dur ? `${id}#${65 + Math.floor(rng() * 36)}` : id;
+  }
   return found;
 }
 
@@ -102,6 +116,8 @@ export function rollCrate(tier: CrateTier, ctx: LootContext, rng: () => number):
   const special = ctx.fixed === "key" || ctx.fixed === "vault" || ctx.fixed === "sleeper";
   const found = randomContents(special ? "gold" : tier, ctx, rng, ctx.fixed === "sleeper");
   if (ctx.fixed === "key") found.unshift("vine_key");
+  if (ctx.fixed === "vault") found.unshift(rng() < 0.5 ? "warden_vest" : "warden_helmet");
+  if (ctx.fixed === "radio" || ctx.fixed === "radio_shack") found.unshift("radio_headset");
   if (ctx.fixed === "vault" && !ctx.ownsExtendedMag) {
     found.unshift("extended_mag");
     ctx.ownsExtendedMag = true;
@@ -126,11 +142,12 @@ export function rollEnemyDrop(kind: EnemyStyle["kind"], ctx: LootContext, rng: (
       if (rng() < 0.18) found.push("ammo45");
       break;
     case "brute":
-      found = randomContents("green", ctx, rng);
+      found = randomContents("green", ctx, rng, false, false);
       break;
     case "sleeper":
-      found = ["banana_idol", ...randomContents("gold", ctx, rng)];
+      found = ["banana_idol", ...randomContents("gold", ctx, rng, false, false)];
       break;
   }
+  found.push(...Object.values(enemyGear(ctx.enemySeed ?? 0, kind)).filter((inst): inst is string => inst !== null));
   return record(found, ctx);
 }

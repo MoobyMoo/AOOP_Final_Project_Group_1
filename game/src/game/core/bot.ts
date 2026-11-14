@@ -1,6 +1,6 @@
 import type { BotInput, BotView, SaveV1 } from "../contracts";
 import { BRIEFCASE, ENEMY, KINGPIN, PLAYER } from "../combat/weapons";
-import { ITEMS, PRICES, mulberry32 } from "../loot/tables";
+import { PRICES, itemDef, mulberry32 } from "../loot/tables";
 
 type Point = { x: number; z: number };
 type Weapon = "pistol" | "melee" | "unknown";
@@ -209,7 +209,7 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
           }
         }
         for (const pickup of previous.pickups) {
-          if (ITEMS[pickup.item]?.kind === "heal" && distance(previous.player, pickup) <= 1.5 && !v.pickups.some(current => current.id === pickup.id)) smoothies++;
+          if (itemDef(pickup.item).kind === "heal" && distance(previous.player, pickup) <= 1.5 && !v.pickups.some(current => current.id === pickup.id)) smoothies++;
         }
       }
     }
@@ -362,7 +362,7 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
     if (opened >= 3 + Math.round(greed * 9) || (used >= Math.ceil(capacity * (0.4 + greed * 0.6)) && opened >= 3) || v.raidT >= 420 || (v.player.hearts <= 1 && smoothies === 0 && !input.heal)) extracting = true;
     if (!extracting) {
       if (!goal || goal.kind === "exit") {
-        const pickups: Goal[] = v.pickups.filter(pickup => distance(v.player, pickup) <= 6 && (v.player.packFree > 0 || ["ammo", "key", "attachment"].includes(ITEMS[pickup.item]?.kind)))
+        const pickups: Goal[] = v.pickups.filter(pickup => distance(v.player, pickup) <= 6 && (v.player.packFree > 0 || ["ammo", "key", "attachment"].includes(itemDef(pickup.item).kind)))
           .map(pickup => ({ ...pickup, kind: "pickup" }));
         const selected = choose(v, pickups) ?? choose(v, v.crates.filter(crate => !crate.opened).map(crate => ({ ...crate, kind: "crate" })));
         setGoal(selected, v.player);

@@ -1,8 +1,8 @@
 import type { MonkeyLook, SaveV1, Gear } from "../contracts";
-import { DEFAULT_GEAR, WEARABLES } from "../actors/wearables";
+import { BOUND_KIT, SLOTS, equipDef, fmtInst, parseInst } from "../loot/equipment";
 import { DEFAULT_LOOK, sanitizeLook, type MonkeyLookX } from "../actors/look";
 import { KINGPIN } from "../combat/weapons";
-import { PRICES } from "../loot/tables";
+import { ITEMS, PRICES } from "../loot/tables";
 
 const KEY = "bv_g1";
 type RecordValue = Record<string, unknown>;
@@ -17,7 +17,7 @@ const choice = <Value extends string>(value: unknown, fallback: Value, choices: 
 function fresh(): SaveV1 {
   return {
     v: 1, createdAt: new Date().toISOString(), raids: 0, money: 0, ammo: KINGPIN.startAmmo,
-    look: structuredClone(DEFAULT_LOOK), lookDone: false, gear: { ...DEFAULT_GEAR }, locker: [DEFAULT_GEAR.head!, DEFAULT_GEAR.face!, DEFAULT_GEAR.back!], satchel: null,
+    look: structuredClone(DEFAULT_LOOK), lookDone: false, gear: { ...BOUND_KIT }, locker: [], satchel: null,
     upgrades: { mag: 0, pack: 0, heart: 0 }, keys: [], trophies: [], reserved: [], order: null,
     fixtures: [], salMovedIn: false, stats: { bonkOuts: 0, extracts: 0, best: 0 },
   };
@@ -44,19 +44,27 @@ function look(value: unknown): MonkeyLook {
   } as MonkeyLook;
 }
 
-/** gear slots hold a known wearable id for that slot, or null; anything else falls back to the default */
-function gear(value: unknown, locker: string[]): Gear {
-  const raw = object(value), out: Gear = { ...DEFAULT_GEAR };
-  for (const slot of ["head", "face", "body", "back", "ears"] as const) {
-    const id = raw[slot];
-    if (id === null && slot !== "back") out[slot] = null; // (body/ears default to null too)
-    else if (typeof id === "string" && WEARABLES.some((w) => w.id === id && w.slot === slot) && locker.includes(id)) out[slot] = id;
+function gear(value: unknown, legacy: boolean): Gear {
+  const raw = object(value), out: Gear = { ...BOUND_KIT };
+  for (const slot of SLOTS) {
+    const inst = raw[slot], parsed = typeof inst === "string" ? parseInst(inst) : null;
+    if (inst === null) out[slot] = slot === "body" && legacy ? "suit" : null;
+    else if (parsed && equipDef(inst as string)?.slot === slot) out[slot] = fmtInst(parsed.id, parsed.dur);
   }
   return out;
 }
+const instances = (value: unknown): string[] => Array.isArray(value) ? value.flatMap(inst => {
+  const parsed = typeof inst === "string" ? parseInst(inst) : null;
+  return parsed ? [fmtInst(parsed.id, parsed.dur)] : [];
+}) : [];
+const loot = (value: unknown): string[] => Array.isArray(value) ? value.flatMap(inst => {
+  if (typeof inst !== "string" || !inst) return [];
+  const parsed = parseInst(inst);
+  return parsed ? [fmtInst(parsed.id, parsed.dur)] : Object.hasOwn(ITEMS, inst) ? [inst] : [];
+}) : [];
 function satchel(value: unknown): SaveV1["satchel"] {
-  const raw = object(value), items = strings(raw.items);
-  return items.length && typeof raw.x === "number" && Number.isFinite(raw.x) && typeof raw.z === "number" && Number.isFinite(raw.z) ? { items: Array.isArray(raw.items) ? (raw.items as unknown[]).filter((i): i is string => typeof i === "string") : items, x: raw.x, z: raw.z } : null;
+  const raw = object(value), items = loot(raw.items).filter(inst => !equipDef(inst)?.bound);
+  return items.length && typeof raw.x === "number" && Number.isFinite(raw.x) && typeof raw.z === "number" && Number.isFinite(raw.z) ? { items, x: raw.x, z: raw.z } : null;
 }
 export function migrate(value: unknown): SaveV1 {
   const defaults = fresh();
@@ -64,18 +72,27 @@ export function migrate(value: unknown): SaveV1 {
     const raw = object(value);
     if (raw.v !== undefined && raw.v !== 0 && raw.v !== 1) return defaults;
     const upgrades = object(raw.upgrades), stats = object(raw.stats), order = object(raw.order);
-    const locker = [...new Set([...defaults.locker, ...strings(raw.locker ?? raw.wardrobe).filter((id) => WEARABLES.some((w) => w.id === id))])]; // interim: owned ids (Sol G1-23 makes these instances)
+    const rawGear = object(raw.gear);
+    const legacy = Array.isArray(raw.wardrobe) || (!Object.hasOwn(rawGear, "body") && !Object.hasOwn(rawGear, "ears")) || (rawGear.body === null && strings(raw.locker).some(inst => equipDef(inst)?.bound && Object.values(rawGear).includes(inst)));
+    const worn = gear(raw.gear, legacy);
+    const locker = legacy ? [...new Set(instances(raw.locker ?? raw.wardrobe))] : instances(raw.locker);
+    if (legacy) for (const inst of Object.values(worn)) { const index = inst ? locker.indexOf(inst) : -1; if (index >= 0) locker.splice(index, 1); }
+    locker.push(...instances(raw.reserved));
+    for (const slot of SLOTS) {
+      const starter = BOUND_KIT[slot];
+      if (starter && equipDef(worn[slot])?.id !== starter && !locker.some(inst => equipDef(inst)?.id === starter)) locker.push(starter);
+    }
     return {
       v: 1,
       createdAt: typeof raw.createdAt === "string" && Number.isFinite(Date.parse(raw.createdAt)) ? raw.createdAt : defaults.createdAt,
       raids: integer(raw.raids, defaults.raids), money: integer(raw.money, defaults.money), ammo: integer(raw.ammo, defaults.ammo),
-      look: look(raw.look), lookDone: boolean(raw.lookDone, defaults.lookDone), gear: gear(raw.gear, locker), locker, satchel: satchel(raw.satchel),
+      look: look(raw.look), lookDone: boolean(raw.lookDone, defaults.lookDone), gear: worn, locker, satchel: satchel(raw.satchel),
       upgrades: {
         mag: integer(upgrades.mag, 0, PRICES.upgrades.mag.length),
         pack: integer(upgrades.pack, 0, PRICES.upgrades.pack.length),
         heart: integer(upgrades.heart, 0, PRICES.upgrades.heart.length),
       },
-      keys: strings(raw.keys), trophies: strings(raw.trophies), reserved: strings(raw.reserved),
+      keys: strings(raw.keys), trophies: strings(raw.trophies), reserved: loot(raw.reserved).filter(inst => !equipDef(inst)),
       order: typeof order.id === "string" && order.id.length > 0 ? {
         id: order.id,
         progress: Object.fromEntries(Object.entries(object(order.progress)).filter((entry): entry is [string, number] => integer(entry[1], -1) >= 0)),
