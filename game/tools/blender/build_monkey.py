@@ -65,7 +65,7 @@ face_ob = C.build("_face", P.face_plate(surfH), 0)
 surfF = C.Surf(C.bvh_of([head_ob, face_ob]))
 bpy.data.objects.remove(head_ob)
 bpy.data.objects.remove(face_ob)
-assemble("head", [(P.head_cage(4), 1, P.w_head), (P.face_plate(surfH), 0, P.w_head), (P.nostrils(surfF), 0, P.w_head)])
+assemble("head", [(P.head_cage(4), 1, P.w_head), (P.neck(), 1, P.w_neck), (P.face_plate(surfH), 0, P.w_head), (P.nostrils(surfF), 0, P.w_head)])
 DX = P.EYE[0] * P.EYE_SPACING
 TILT = 0.42
 

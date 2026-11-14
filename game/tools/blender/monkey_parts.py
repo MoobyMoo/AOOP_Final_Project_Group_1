@@ -9,7 +9,7 @@ from bv_common import (M, V, REG, qsphere, ell, ring, loft, tube, plate, disc_pl
                        build, smooth, lerp, tight, sgn)
 
 # ---------------------------------------------------------------- design constants (Blender metres)
-HC = V(0, 0.02, 1.455)                 # head centre
+HC = V(0, 0.02, 1.40)                  # head centre (lowered 0.055 into the collar: Moo, "the head is floating")
 HR = (0.53, 0.47, 0.46)               # head radii: x, forward, up
 FACE_Z = -0.03                        # face plate centre, relative to HC.z
 EYE = (0.152, 0.055)                  # eye centre (x, z rel HC)
@@ -21,10 +21,10 @@ J = dict(
     hips=V(0, 0, 0.50), spine=V(0, 0, 0.62), chest=V(0, 0, 0.78), neck=V(0, 0, 0.98), head=V(0, 0, 1.04),
     shoulder=V(0.275, 0, 0.925), elbow=V(0.425, 0.005, 0.70), wrist=V(0.53, 0.03, 0.48), fist=V(0.568, 0.042, 0.395),
     hip=V(0.145, 0, 0.46), knee=V(0.15, 0.012, 0.27), ankle=V(0.155, 0, 0.10), toe=V(0.165, 0.25, 0.035),
-    ear=V(0.50, -0.03, 1.475), ear_tip=V(0.76, -0.05, 1.505),
+    ear=V(0.50, -0.03, 1.42), ear_tip=V(0.76, -0.05, 1.45),
 )
 TAIL = [V(0, -0.24, 0.445), V(0, -0.40, 0.41), V(0, -0.56, 0.405), V(0, -0.71, 0.47), V(0, -0.82, 0.60), V(0, -0.85, 0.78), V(0, -0.80, 0.93)]
-HEAD_TOP = V(0, 0.02, 1.455 + 0.46)
+HEAD_TOP = V(0, 0.02, HC.z + 0.46)
 
 
 def head_pt(d):
@@ -35,6 +35,11 @@ def head_pt(d):
 
 def head_cage(n=4):
     return qsphere(n, "fur").xf(head_pt)
+
+
+def neck(n=3):
+    """a short fur neck from inside the collar up into the head, so no air shows between head and shoulders from any angle"""
+    return qsphere(n, "fur").xf(lambda d: V(0, 0.005, 1.0) + Vector((d.x * 0.17, d.y * 0.15, d.z * 0.15)))
 
 
 # ---------------------------------------------------------------- face plate
@@ -496,6 +501,11 @@ def tie(surf, style):
 # ---------------------------------------------------------------- weights
 def w_head(co):
     return {"head": 1.0}
+
+
+def w_neck(co):
+    k = smooth(0.93, 1.1, co.z)
+    return {"chest": 0.35 * (1 - k), "neck": 0.65 * (1 - k) + 0.4 * k, "head": 0.6 * k}
 
 
 def w_torso(co):

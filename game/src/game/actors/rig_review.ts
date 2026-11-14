@@ -10,7 +10,7 @@ import { U, patch } from "../render/shading";
 import { preloadCharacters, createRig, rigStats, CLIP_INFO, type RigActionX } from "./rig";
 import { LOOK_PRESETS, decodeLook } from "./look";
 import { WEARABLES, DEFAULT_GEAR } from "./wearables";
-import { createKingpin } from "../combat/kingpin";
+import { createKingpin, preloadKingpin } from "../combat/kingpin";
 import { Monkey3D } from "./monkey3d";
 import type { Rig, Gear, RigState, EnemyStyle, MonkeyLook } from "../contracts";
 
@@ -41,7 +41,7 @@ function add(k: string, x: number, z: number, o: Partial<Actor> & { look?: Monke
   actors.push(a); return a;
 }
 
-await preloadCharacters();
+await preloadCharacters(); await preloadKingpin();
 const defSpeed = (a: string) => (a === "run" ? 4.6 : a === "walk" ? 1.6 : a === "charge" ? 6 : 0);
 const yaw = THREE.MathUtils.degToRad(num("yaw", view === "gameplay" ? -30 : view === "lineup" ? 172 : 160)), aim = THREE.MathUtils.degToRad(num("aim", 0));
 const look = (QS.get("look") && decodeLook(QS.get("look")!)) || LOOK_PRESETS[num("preset", 0)]?.look || LOOK_PRESETS[0].look;
