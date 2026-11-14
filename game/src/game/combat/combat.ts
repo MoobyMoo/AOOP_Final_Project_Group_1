@@ -11,6 +11,7 @@ import { hud } from "../ui/hud";
 import { alertEnemy, hearNoise } from "../ai/enemies";
 import { dropLoot } from "../loot/raidloot";
 import { breakWallVisual } from "../world/props";
+import { recordBotCombat } from "../core/bot";
 
 const tmp = new THREE.Vector3(), to = new THREE.Vector3();
 // ---- projectile bullets (Moo 2026-11-15: "we should be able to see the bullets like Duckov"): each round is a visible
@@ -32,6 +33,7 @@ function ensureBulletMesh() {
 }
 export function shoot() {
   G.log.shots++;
+  if (G.bot) recordBotCombat("shot", "pistol", G.raidT);
   // the magnet: bend toward the enemy nearest the aim ray within 7 degrees (10 while aiming)
   let yaw = G.aimYaw, target: Enemy | null = null, bestA = G.ads ? KINGPIN.magnetAds : KINGPIN.magnet;
   for (const e of G.enemies) {
@@ -126,6 +128,7 @@ export function damage(e: Enemy, n: number, by: "pistol" | "briefcase" | "slam" 
   if (e.hp <= 0) knockOut(e, by);
 }
 export function knockOut(e: Enemy, by: string) {
+  if (G.bot) recordBotCombat("kill", by === "briefcase" ? "melee" : by === "pistol" ? "pistol" : "environment", G.raidT, e.id);
   e.down = true; e.state = "down"; e.downT = 0; e.vel.set(0, 0, 0);
   G.log.kills[e.kind] = (G.log.kills[e.kind] ?? 0) + 1; if (by === "pistol" || by === "briefcase") G.log.killsBy[by]++;
   sfx("ko"); G.stage.kick.add(e.p.clone().sub(G.pp).setY(0).normalize().multiplyScalar(FEEL.killKick * 0.5));

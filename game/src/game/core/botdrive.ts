@@ -4,22 +4,26 @@ import { G } from "./state";
 import type { Intent } from "./input";
 import type { BotInput } from "../contracts";
 import type { BotObservation } from "./bot";
+import { botTelemetry } from "./bot";
 import { path, walkable, los, state as gridState } from "../world/grid";
 import { exits } from "../world/props";
 import { homeApi, stations } from "../home/bunker";
-import { packValue } from "../loot/raidloot";
+import { packValue, currentSearch } from "../loot/raidloot";
 
 type Bot = { tick(v: BotObservation, dt: number): BotInput; events: object[] };
 let bot: Bot | null = null;
 export function setBot(b: Bot) { bot = b; }
-const t0 = performance.now();
+let deploying = false;
 export function view(): BotObservation {
   return {
-    t: (performance.now() - t0) / 1000, scene: G.scene === "map" ? "raid" : G.scene,
-    player: { x: G.pp.x, z: G.pp.z, hearts: Math.ceil(G.hp / 34), maxHearts: Math.ceil(G.maxHp / 34), ammo: G.ammo, mag: G.mag, reloading: G.reloadT >= 0, rolling: G.rollT >= 0, packFree: G.packSlots - G.pack.length, packValue: packValue(), smoothies: G.pack.filter((i) => i === "smoothie" || i === "bandage" || i === "firstaid").length },
+    t: G.time, scene: G.scene === "map" ? "raid" : G.scene,
+    raidId: botTelemetry.raidId, outcome: botTelemetry.outcome, combatEvents: botTelemetry.combatEvents,
+    homePanelOpen: homeApi.panelOpen(), searching: !!currentSearch(), extracting: !!G.extract.id,
+    exitArmed: Object.fromEntries(exits.map(exit => [exit.id, exit.armed])),
+    player: { x: G.pp.x, z: G.pp.z, hearts: Math.ceil(G.hp / 34), maxHearts: Math.ceil(G.maxHp / 34), hp: G.hp, maxHp: G.maxHp, stamina: G.stamina, usingItem: !!G.useItem, ammo: G.ammo, mag: G.mag, reloading: G.reloadT >= 0, rolling: G.rollT >= 0, packFree: G.packSlots - G.pack.length, packValue: packValue(), smoothies: G.pack.filter((i) => i === "smoothie" || i === "bandage" || i === "firstaid").length },
     enemies: G.enemies.filter((e) => !e.down).map((e) => ({ id: e.id, kind: e.kind, x: e.p.x, z: e.p.z, state: e.state, hp: e.hp, windup: e.state === "windup" || e.state === "aim" || e.state === "charge", awake: e.state !== "sleep" && e.state !== "patrol" })),
     crates: G.crates.map((c) => ({ id: c.id, x: c.x, z: c.z, tier: c.tier, opened: c.opened })),
-    pickups: G.pickups.map((p) => ({ id: p.id, x: p.obj.position.x, z: p.obj.position.z, item: p.item })),
+    pickups: G.pickups.map((p) => ({ id: p.id, x: p.p.x, z: p.p.z, item: p.item })),
     exits: exits.filter((e) => e.open && e.id !== "tunnel").map((e) => ({ id: e.id as "hatch" | "raft", x: e.x, z: e.z })),
     stations: stations.map((s) => ({ id: s.id === "trophies" ? "orders" : s.id, x: s.x, z: s.z })),
     upgrades: { ...G.save.upgrades },
@@ -28,8 +32,16 @@ export function view(): BotObservation {
 }
 export function botTick(dt: number): Intent {
   const v = view(), b: BotInput = bot ? bot.tick(v, dt) : { move: [0, 0] };
-  if (G.scene === "bunker") { // home: sell, buy the cheapest upgrade, deploy
-    if (!homeApi.panelOpen()) { homeApi.act("sellAll"); for (const k of ["pack", "heart", "mag"]) homeApi.act("up:" + k); homeApi.act("deploy"); }
+  if (G.scene !== "bunker") deploying = false;
+  if (G.scene === "bunker" && !deploying) {
+    if (b.ui === "leave") b.interact = true;
+    else if (b.buy) {
+      const before = G.save.upgrades[b.buy], money = G.save.money;
+      homeApi.act("up:" + b.buy);
+      if (G.save.upgrades[b.buy] > before) bot?.events.push({ type: "upgrade-bought", t: G.time, raid: G.save.raids - 1, upgrade: b.buy, level: G.save.upgrades[b.buy], cost: money - G.save.money });
+    }
+    else if (b.ui === "start") { deploying = true; homeApi.act("deploy"); }
+    else if (b.interact && !homeApi.panelOpen()) { homeApi.act("sellAll"); b.interact = false; }
   }
   // world-space move → camera-relative stick
   const yaw = G.stage.cam.yaw, c = Math.cos(yaw), s = Math.sin(yaw), [wx, wz] = b.move;
