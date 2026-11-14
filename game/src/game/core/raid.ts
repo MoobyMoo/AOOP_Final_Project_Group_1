@@ -50,6 +50,8 @@ export function startRaid(end: (r: RaidResult) => void) {
   G.ammo = Math.max(KINGPIN.startAmmo, G.save.ammo); G.mag = Math.min(G.magSize, G.ammo); G.ammo -= G.mag;
   G.fireCd = 0; G.fireT = 1; G.reloadT = -1; G.meleeT = -1; G.rollT = -1; G.rollCd = 0; G.skidT = 0; G.zipping = null;
   G.packSlots = 8 + 2 * G.save.upgrades.pack; G.pouchSlots = 2; G.pack = [];
+  // heals bought at home come along (up to 3)
+  for (const h of ["firstaid", "smoothie", "bandage"]) while (G.pack.length < 3 && G.save.reserved.includes(h)) { G.save.reserved.splice(G.save.reserved.indexOf(h), 1); G.pack.push(h); }
   G.discovered = new Set(); G.area = ""; G.lockTarget = null;
   G.log = { crates: 0, kills: {}, killsBy: { pistol: 0, briefcase: 0 }, shots: 0, hits: 0, hurt: 0, rolls: 0, swaps: 0, missed: 0, firstShot: -1, firstCrate: -1, firstRoll: -1, breaks: [], value: 0 };
   G.lootCtx = { raid: G.save.raids, cratesOpened: 0, usefulFound: 0, emptyStreak: 0, ammoFound: 0, orderNeeds: G.save.order && !G.save.order.done ? Object.keys(G.save.order.progress) : [] };
@@ -80,7 +82,7 @@ export function stepRaid(dt: number) {
 export function renderRaid(dt: number) {
   const action = !G.alive && G.hp <= 0 ? "defeat" : G.rollT >= 0 ? "roll" : G.meleeT >= 0 ? "melee" : G.reloadT >= 0 ? "reload" : G.hurtT >= 0 ? "hurt" : G.fireT < 1 ? "fire" : G.vel.lengthSq() > 0.3 ? "run" : "idle";
   const at = action === "defeat" ? Math.min(1, bonkT / 0.9) : action === "roll" ? G.rollT : action === "melee" ? G.meleeT : action === "reload" ? G.reloadT : action === "hurt" ? G.hurtT : action === "fire" ? G.fireT : 0;
-  G.rig.root.rotation.y = 0;
+  G.rig.root.rotation.y = G.moveYaw;
   G.rig.pose({ time: G.time, speed: G.vel.length(), moveYaw: G.moveYaw, faceYaw: action === "roll" ? G.moveYaw : G.aimYaw, action, actionT: at, armed: G.meleeT >= 0 ? "briefcase" : "pistol", flash: G.iframes > 0.25 ? 1 : 0 });
   G.gun.pose({ fireT: Math.min(1, G.fireT), reloadT: G.reloadT });
   G.fx.update(dt); updateFx(dt); hud.update(dt);

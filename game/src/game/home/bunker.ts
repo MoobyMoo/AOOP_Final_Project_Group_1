@@ -1,0 +1,159 @@
+// The bunker under Exile Beach: a walkable 3D room, no modal menus (advisor 27). Walk up to a station and press E:
+// the fence's counter (sell everything, count-up), workbench (3 upgrades, each adds a visible fixture), order board
+// (Smuggler Sal's job), the mirror (character creator), trophies, and the ladder (island map → deploy).
+// PLACEHOLDER room art until Fable C2's bunker set lands; station logic stays here.
+import * as THREE from "three";
+import { G, V, flat } from "../core/state";
+import { mat } from "../render/shading";
+import { sfx } from "../core/audio";
+import { itemDef, RAR_COLOR } from "../loot/raidloot";
+import { createRig } from "../actors/rig";
+import { createKingpin, createGunFx } from "../combat/kingpin";
+import { save } from "../core/save_interim";
+import { floatText, burst, initFx, updateFx, popIn } from "../../fx";
+import { U } from "../render/shading";
+import { PLAYER } from "../combat/weapons";
+
+export const bunkerScene = new THREE.Scene();
+bunkerScene.background = new THREE.Color("#2a2420");
+export const PRICES = { mag: [120], pack: [80, 190], heart: [110, 240], ammo8: 14, bandage: 8, smoothie: 18 };
+const ORDER = { id: "sal1", from: "Smuggler Sal", text: "Bring me 3 Vine Rope and 1 Old Gear. I'll move my shop in next door. No questions asked.", need: { rope: 3, gear: 1 } as Record<string, number>, reward: "Sal moves in (ammo + heals for sale) and a neon BANANA BANK sign" };
+type Station = { id: "sell" | "bench" | "orders" | "ladder" | "mirror" | "sal" | "trophies"; x: number; z: number; label: string; obj?: THREE.Object3D };
+export const stations: Station[] = [
+  { id: "sell", x: -4.5, z: -2.6, label: "The Fence · sell your haul" },
+  { id: "bench", x: 0.5, z: -3.4, label: "Workbench · upgrades" },
+  { id: "orders", x: 4.6, z: -2.8, label: "Order board" },
+  { id: "mirror", x: -6.2, z: 1.6, label: "Mirror · change your look" },
+  { id: "trophies", x: 6.4, z: 1.4, label: "Trophy shelf" },
+  { id: "ladder", x: 0, z: 3.4, label: "Ladder · back to the island" },
+];
+let built = false; const fixtures = new Map<string, THREE.Object3D>(); let salRig: ReturnType<typeof createRig> | null = null;
+function box(w: number, h: number, d: number, c: string, x: number, y: number, z: number, parent: THREE.Object3D = bunkerScene) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c)); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m; }
+export function buildRoom() {
+  if (built) return; built = true;
+  box(16, 0.2, 10, "#8a7a64", 0, -0.1, 0); // floor
+  box(16, 4, 0.4, "#7a5f44", 0, 2, -5.2); box(0.4, 4, 10, "#6e5640", -8.2, 2, 0); box(0.4, 4, 10, "#6e5640", 8.2, 2, 0); // back + side walls (front cut away)
+  for (const x of [-6, -2, 2, 6]) { box(0.3, 4, 0.3, "#5a4430", x, 2, -4.9); box(0.3, 0.3, 10, "#5a4430", x, 3.9, 0); }
+  // stations
+  const sell = new THREE.Group(); box(3, 1.1, 1, "#9a7348", 0, 0.55, 0, sell); box(3.2, 0.12, 1.2, "#6e4b2e", 0, 1.15, 0, sell); box(2.6, 1.6, 0.15, "#3a3030", 0, 2.3, -0.4, sell); const bell = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 8, 0, 6.3, 0, 1.6), mat("#ffd84a", { rough: 0.3 })); bell.position.set(0.9, 1.22, 0.2); sell.add(bell);
+  sell.position.set(-4.5, 0, -4.1); bunkerScene.add(sell);
+  const bench = new THREE.Group(); box(2.6, 0.15, 1.1, "#a8763f", 0, 1.0, 0, bench); for (const x of [-1.1, 1.1]) box(0.15, 1, 0.9, "#6e4b2e", x, 0.5, 0, bench); box(0.4, 0.3, 0.3, "#5a5a62", -0.8, 1.2, 0, bench); bench.position.set(0.5, 0, -4.4); bunkerScene.add(bench);
+  const board = new THREE.Group(); box(2.2, 1.6, 0.1, "#b8905e", 0, 2.0, 0, board); for (let i = 0; i < 4; i++) box(0.5, 0.6, 0.02, ["#fff3d6", "#ffe0a0", "#fff3d6", "#ffd0c0"][i], -0.6 + (i % 2) * 1.0, 2.2 - Math.floor(i / 2) * 0.7, 0.06, board); board.position.set(4.6, 0, -4.95); bunkerScene.add(board);
+  const mirror = new THREE.Group(); box(1.2, 2.2, 0.12, "#c9a35c", 0, 1.4, 0, mirror); const glass = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 2.0), new THREE.MeshStandardMaterial({ color: "#bfe3ff", roughness: 0.05, metalness: 0.6 })); glass.position.set(0, 1.4, 0.07); mirror.add(glass); mirror.position.set(-7.9, 0, 1.6); mirror.rotation.y = Math.PI / 2; bunkerScene.add(mirror);
+  const shelf = new THREE.Group(); box(0.5, 2.4, 2.2, "#7a5a3c", 0, 1.2, 0, shelf); shelf.position.set(7.9, 0, 1.4); bunkerScene.add(shelf); fixtures.set("shelf", shelf);
+  const ladder = new THREE.Group(); for (const x of [-0.4, 0.4]) box(0.08, 4.2, 0.08, "#8a6a42", x, 2.1, 0, ladder); for (let y = 0.4; y < 4; y += 0.45) box(0.8, 0.06, 0.06, "#8a6a42", 0, y, 0, ladder); ladder.position.set(0, 0, 4.7); bunkerScene.add(ladder);
+  box(0.9, 0.1, 2, "#6a7a5a", -6.6, 0.4, -2.6); box(1.8, 0.4, 0.9, "#9a8a6a", -6.6, 0.25, 3.8); // a crate desk and a cot
+  // lights: warm bulbs on a string
+  for (let i = 0; i < 7; i++) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), new THREE.MeshBasicMaterial({ color: new THREE.Color("#ffd27a").multiplyScalar(2.5) })); b.position.set(-7 + i * 2.33, 3.6 - Math.sin((i / 6) * Math.PI) * 0.3, -1); bunkerScene.add(b); }
+  const lamp = new THREE.PointLight("#ffc27a", 30, 16, 1.4); lamp.position.set(0, 3.4, 0); bunkerScene.add(lamp);
+  // upgrade fixtures (hidden until bought)
+  const rack = new THREE.Group(); box(1.4, 0.9, 0.1, "#5a4430", 0, 0, 0, rack); box(0.9, 0.15, 0.12, "#2a2a30", 0, 0.1, 0.08, rack); rack.position.set(2.3, 2.3, -4.95); fixtures.set("mag", rack);
+  const hook = new THREE.Group(); const pk = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 10), mat("#8a5a34")); pk.scale.set(1, 1.2, 0.7); hook.add(pk); hook.position.set(-2, 2.2, -4.7); fixtures.set("pack", hook);
+  const table = new THREE.Group(); box(1.4, 0.08, 0.9, "#a8763f", 0, 0.8, 0, table); for (const [x, z] of [[-0.6, -0.35], [0.6, -0.35], [-0.6, 0.35], [0.6, 0.35]]) box(0.08, 0.8, 0.08, "#6e4b2e", x, 0.4, z, table); for (let k = 0; k < 4; k++) { const b = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 0.2, 4, 8), mat("#f2cc3b")); b.position.set(-0.3 + k * 0.2, 0.9, 0); b.rotation.z = 1.4; table.add(b); } table.position.set(4.8, 0, 2.4); fixtures.set("heart", table);
+  const neon = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 0.7), new THREE.MeshBasicMaterial({ map: neonTex(), transparent: true })); neon.position.set(-1.6, 3.0, -4.95); fixtures.set("neon", neon);
+  for (const [, f] of fixtures) if (f !== shelf) { f.visible = false; bunkerScene.add(f); }
+}
+function neonTex() { const c = document.createElement("canvas"); c.width = 512; c.height = 112; const x = c.getContext("2d")!; x.font = "bold 70px Trebuchet MS"; x.textAlign = "center"; x.textBaseline = "middle"; x.shadowColor = "#ffd84a"; x.shadowBlur = 24; x.fillStyle = "#fff6b0"; x.fillText("BANANA BANK", 256, 58); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
+function refreshFixtures() {
+  const s = G.save;
+  fixtures.get("mag")!.visible = s.upgrades.mag > 0; fixtures.get("pack")!.visible = s.upgrades.pack > 0; fixtures.get("heart")!.visible = s.upgrades.heart > 0; fixtures.get("neon")!.visible = s.salMovedIn;
+  if (s.salMovedIn && !salRig) { salRig = createRig("monkey", { kind: "bandit", seed: 77 }); salRig.root.position.set(6.6, 0, -2.4); salRig.root.rotation.y = -0.6; bunkerScene.add(salRig.root); stations.push({ id: "sal", x: 6.2, z: -1.6, label: "Smuggler Sal · ammo and heals" }); }
+  // trophies on the shelf
+  const shelf = fixtures.get("shelf")!; shelf.children.filter((c) => c.name === "trophy").forEach((c) => c.removeFromParent());
+  s.trophies.forEach((t, i) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: iconTex(itemDef(t).icon) })); sp.name = "trophy"; sp.scale.setScalar(0.6); sp.position.set(0.3, 0.6 + (i % 3) * 0.7, -0.7 + Math.floor(i / 3) * 0.7); shelf.add(sp); });
+}
+function iconTex(icon: string) { const c = document.createElement("canvas"); c.width = c.height = 96; const x = c.getContext("2d")!; x.font = "72px serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(icon, 48, 52); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
+
+// ---------------------------------------------------------------- the home visit
+let panel: HTMLDivElement | null = null, onDeploy: () => void = () => {}, onMirror: () => void = () => {};
+const pp = new THREE.Vector3(), vel = new THREE.Vector3(); let face = Math.PI;
+export function enterBunker(deploy: () => void, mirror: () => void, summary?: string) {
+  onDeploy = deploy; onMirror = mirror; buildRoom(); refreshFixtures();
+  G.scene = "bunker"; G.stage.setScene(bunkerScene, false); bunkerScene.fog = null; initFx(bunkerScene, G.stage.camera);
+  G.stage.hemi.intensity = 1.4; G.stage.sun.intensity = 2.5;
+  if (!G.rig) { G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(bunkerScene); G.rig.sockets.handR.add(G.gun.root); }
+  G.rig.setLook?.(G.save.look); G.rig.setGear?.(G.save.gear); bunkerScene.add(G.rig.root);
+  pp.set(0, 0, 2.4); vel.set(0, 0, 0); G.rig.root.position.copy(pp);
+  const ui = document.getElementById("ui")!; ui.innerHTML = `<div class="home-top"><span class="home-money">🍌 <b>${G.save.money}</b></span><span class="home-title">The Bunker · raid ${G.save.raids + 1} next</span></div><div class="hud-prompt" id="hp"></div><div class="home-hint">WASD walk · <b>E</b> use · stations glow when you're close</div>`;
+  if (summary) showPanel(summary);
+}
+export function leaveBunker() { closePanel(); G.stage.hemi.intensity = Number(new URLSearchParams(location.search).get("fill") ?? 0.9); G.stage.sun.intensity = 7; }
+function money() { const el = document.querySelector(".home-money b"); if (el) el.textContent = String(G.save.money); }
+function showPanel(html: string) { closePanel(); panel = document.createElement("div"); panel.className = "home-panel"; panel.innerHTML = html + `<div class="close">E / Esc to close</div>`; document.getElementById("ui")!.appendChild(panel); panel.style.pointerEvents = "auto"; panel.querySelectorAll<HTMLButtonElement>("button[data-a]").forEach((b) => b.onclick = () => act(b.dataset.a!)); }
+function closePanel() { panel?.remove(); panel = null; }
+let near: Station | null = null;
+export function stepBunker(dt: number) {
+  const i = G.intent; G.time += dt; U.uTime.value = G.time;
+  if (panel) { if (i.esc || i.interact) { closePanel(); sfx("ui"); } return; }
+  const mv = new THREE.Vector3(i.move.x, 0, i.move.z).applyAxisAngle(new THREE.Vector3(0, 1, 0), G.stage.cam.yaw);
+  vel.lerp(mv.multiplyScalar(PLAYER.speed), Math.min(1, dt * 12)); pp.addScaledVector(vel, dt);
+  pp.x = THREE.MathUtils.clamp(pp.x, -7.4, 7.4); pp.z = THREE.MathUtils.clamp(pp.z, -3.6, 4.2);
+  if (vel.lengthSq() > 0.1) face = Math.atan2(vel.x, vel.z);
+  near = stations.reduce<Station | null>((b, s) => (flat(s, pp) < 1.8 && (!b || flat(s, pp) < flat(b, pp)) ? s : b), null);
+  const hp = document.getElementById("hp"); if (hp) { hp.textContent = near ? `E · ${near.label}` : ""; hp.classList.toggle("on", !!near); }
+  if (near && i.interact) { sfx("ui"); open(near); }
+}
+export function renderBunker(dt: number) {
+  G.rig.root.position.copy(pp); G.rig.root.rotation.y = face;
+  G.rig.pose({ time: G.time, speed: vel.length(), moveYaw: face, faceYaw: face, action: vel.lengthSq() > 0.1 ? "run" : "idle", actionT: 0, armed: "none", flash: 0 });
+  if (salRig) salRig.pose({ time: G.time + 3, speed: 0, moveYaw: -0.6, faceYaw: Math.atan2(pp.x - 6.6, pp.z + 2.4), action: "idle", actionT: 0, armed: "none", flash: 0 });
+  updateFx(dt);
+  const f = pp.clone().setY(0.5).add(V(0, -1.2)); G.stage.cam.dist = 26; G.stage.place(f, dt, G.time); G.stage.cam.dist = 40;
+}
+function open(s: Station) {
+  const sv = G.save;
+  if (s.id === "ladder") return showPanel(islandMap());
+  if (s.id === "mirror") return onMirror();
+  if (s.id === "trophies") return showPanel(`<h2>Trophy shelf</h2><p>${sv.trophies.length ? sv.trophies.map((t) => `${itemDef(t).icon} ${itemDef(t).name}`).join("<br>") : "Nothing yet. Bring home something legendary."}</p><p class="dim">Raids ${sv.raids} · extracts ${sv.stats.extracts} · bonk-outs ${sv.stats.bonkOuts} · best haul 🍌 ${sv.stats.best}</p>`);
+  if (s.id === "sell") { const items = sv.reserved.filter((i) => itemDef(i).kind !== "key"); const v = items.reduce((a, i) => a + itemDef(i).value, 0);
+    return showPanel(`<h2>The Fence</h2><p>"I don't ask where it came from."</p>${items.length ? `<div class="items">${items.map((i) => `<span style="border-color:${RAR_COLOR[itemDef(i).rarity]}">${itemDef(i).icon}<small>${itemDef(i).value}</small></span>`).join("")}</div><button data-a="sellAll">Sell everything · 🍌 ${v}</button>` : "<p class=dim>Your stash is empty. Go get some loot.</p>"}`); }
+  if (s.id === "bench") return showPanel(benchHtml());
+  if (s.id === "orders") return showPanel(orderHtml());
+  if (s.id === "sal") return showPanel(`<h2>Smuggler Sal</h2><p>"Ammo, bandages, smoothies. Cash only."</p><button data-a="buyAmmo">8 rounds · 🍌 ${PRICES.ammo8}</button><button data-a="buyBandage">Bandage · 🍌 ${PRICES.bandage}</button><button data-a="buySmoothie">Smoothie · 🍌 ${PRICES.smoothie}</button><p class="dim">You carry ${sv.ammo} rounds into the next raid (16 minimum).</p>`);
+}
+function benchHtml() {
+  const u = G.save.upgrades, row = (k: "mag" | "pack" | "heart", name: string, desc: string) => { const lvl = u[k], c = PRICES[k][lvl]; return `<div class="up"><b>${name}</b> <small>${desc}</small>${c === undefined ? `<em>MAXED</em>` : `<button data-a="up:${k}" ${G.save.money < c ? "disabled" : ""}>🍌 ${c}</button>`}</div>`; };
+  return `<h2>Workbench</h2>${row("mag", "Extended Mag", "Kingpin 8 → 12 rounds" + (G.save.fixtures.includes("extmag") ? " (already found one in the vault!)" : ""))}${row("pack", "Bigger Pack", "+2 pack slots, +weight")}${row("heart", "Banana Breakfast", "+25 max HP")}<p class="dim">🔒 Contraband Carbine: coming with the Smuggler Caves</p>`;
+}
+function orderHtml() {
+  const o = G.save.order;
+  if (G.save.salMovedIn) return `<h2>Order board</h2><p>Sal's job is done. More jobs arrive with new regions.</p>`;
+  const prog = Object.entries(ORDER.need).map(([k, n]) => `${itemDef(k).icon} ${itemDef(k).name}: ${Math.min(n, G.save.reserved.filter((i) => i === k).length)}/${n}`).join(" · ");
+  const ready = Object.entries(ORDER.need).every(([k, n]) => G.save.reserved.filter((i) => i === k).length >= n);
+  return `<h2>${ORDER.from}'s job</h2><p>"${ORDER.text}"</p><p>${prog}</p><p class="dim">Reward: ${ORDER.reward}</p>${ready ? `<button data-a="deliver">Deliver</button>` : ""}${o ? "" : ""}`;
+}
+function islandMap() {
+  return `<h2>The island</h2><div class="island">
+    <div class="reg on" style="left:30%;top:58%"><b>Banana Grove</b><small>bandits · wild monkeys · the Sleeper</small><button data-a="deploy">Raid ▸</button></div>
+    <div class="reg off" style="left:62%;top:40%"><b>Smuggler Caves</b><small>🔒 orangutan smugglers</small></div>
+    <div class="reg off" style="left:20%;top:22%"><b>Old Prison Fortress</b><small>🔒 robot monkeys, the mandrill warden</small></div>
+    <div class="reg off" style="left:70%;top:12%"><b>The Volcano</b><small>🔒 ???</small></div>
+    <svg class="routes" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M38 62 L66 44 M36 60 L26 28 M66 44 L74 18 M28 26 L72 16"/></svg></div>`;
+}
+function act(a: string) {
+  const sv = G.save;
+  if (a === "deploy") { closePanel(); save(sv); onDeploy(); return; }
+  if (a === "sellAll") {
+    const items = sv.reserved.filter((i) => itemDef(i).kind !== "key"); const v = items.reduce((x, i) => x + itemDef(i).value, 0);
+    sv.reserved = sv.reserved.filter((i) => itemDef(i).kind === "key");
+    let shown = 0; const start = sv.money; sv.money += v; save(sv);
+    const tick = () => { shown = Math.min(v, shown + Math.max(1, Math.ceil(v / 30))); const el = document.querySelector(".home-money b"); if (el) el.textContent = String(start + shown); sfx("cash"); if (shown < v) setTimeout(tick, 33); };
+    tick(); closePanel(); burst(V(-4.5, -3.8, 1.4), 20, "#ffd84a", 1); floatText(`+🍌 ${v}`, V(-4.5, -3.8, 2.4), "#ffd84a", 30); return;
+  }
+  if (a.startsWith("up:")) {
+    const k = a.slice(3) as "mag" | "pack" | "heart", c = PRICES[k][sv.upgrades[k]]; if (c === undefined || sv.money < c) { sfx("nope"); return; }
+    sv.money -= c; sv.upgrades[k]++; save(sv); sfx("buy"); money(); refreshFixtures(); closePanel();
+    const f = fixtures.get(k)!; popIn(f); burst(f.getWorldPosition(new THREE.Vector3()), 24, "#ffd84a", 1); G.stage.trauma = 0.2;
+    floatText({ mag: "Extended Mag!", pack: "Bigger Pack!", heart: "Banana Breakfast!" }[k], f.getWorldPosition(new THREE.Vector3()).add(V(0, 0, 1)), "#fff3c4", 30); return;
+  }
+  if (a === "deliver") {
+    for (const [k, n] of Object.entries(ORDER.need)) for (let j = 0; j < n; j++) sv.reserved.splice(sv.reserved.indexOf(k), 1);
+    sv.salMovedIn = true; sv.money += 40; save(sv); sfx("rare"); refreshFixtures(); closePanel(); money();
+    const f = fixtures.get("neon")!; popIn(f); G.stage.trauma = 0.3; floatText("Sal moved in! +🍌 40", V(6, -2, 3), "#ffd84a", 30); return;
+  }
+  const buy = (cost: number, f: () => void) => { if (sv.money < cost) { sfx("nope"); return; } sv.money -= cost; f(); save(sv); sfx("buy"); money(); open(stations.find((s) => s.id === "sal")!); };
+  if (a === "buyAmmo") buy(PRICES.ammo8, () => { sv.ammo += 8; });
+  if (a === "buyBandage") buy(PRICES.bandage, () => { sv.reserved.push("bandage"); });
+  if (a === "buySmoothie") buy(PRICES.smoothie, () => { sv.reserved.push("smoothie"); });
+}
+export const homeApi = { act, open: (id: string) => { const s = stations.find((q) => q.id === id); if (s) open(s); }, panelOpen: () => !!panel, pos: pp };
