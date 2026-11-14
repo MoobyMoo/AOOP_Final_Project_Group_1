@@ -9,6 +9,8 @@ import { path, walkable, los, state as gridState } from "../world/grid";
 import { exits } from "../world/props";
 import { homeApi, stations } from "../home/bunker";
 import { packValue, currentSearch } from "../loot/raidloot";
+import { SLOTS, equipDef } from "../loot/equipment";
+import { betterEquipment, equipFromLocker, equipFromPack, repair, sellEquip } from "../loot/equipment-actions";
 
 type Bot = { tick(v: BotObservation, dt: number): BotInput; events: object[] };
 let bot: Bot | null = null;
@@ -32,6 +34,10 @@ export function view(): BotObservation {
 }
 export function botTick(dt: number): Intent {
   const v = view(), b: BotInput = bot ? bot.tick(v, dt) : { move: [0, 0] };
+  if (G.scene === "raid" && !G.equipping && !G.extract.id && !currentSearch()) {
+    const index = G.pack.findIndex(inst => { const def = equipDef(inst); return def && betterEquipment(inst, G.gear[def.slot]); });
+    if (index >= 0 && equipFromPack(index)) bot?.events.push({ type: "equipment-start", t: G.time, inst: G.pack[index] });
+  }
   if (G.scene !== "bunker") deploying = false;
   if (G.scene === "bunker" && !deploying) {
     if (b.ui === "leave") b.interact = true;
@@ -40,8 +46,22 @@ export function botTick(dt: number): Intent {
       homeApi.act("up:" + b.buy);
       if (G.save.upgrades[b.buy] > before) bot?.events.push({ type: "upgrade-bought", t: G.time, raid: G.save.raids - 1, upgrade: b.buy, level: G.save.upgrades[b.buy], cost: money - G.save.money });
     }
-    else if (b.ui === "start") { deploying = true; homeApi.act("deploy"); }
-    else if (b.interact && !homeApi.panelOpen()) { homeApi.act("sellAll"); b.interact = false; }
+    else if (b.ui === "start") {
+      for (const slot of SLOTS) { const before = G.save.money; if (repair(slot)) bot?.events.push({ type: "equipment-repaired", t: G.time, slot, cost: before - G.save.money }); }
+      deploying = true; homeApi.act("deploy");
+    }
+    else if (b.interact && !homeApi.panelOpen()) {
+      for (const slot of SLOTS) {
+        let best = G.save.gear[slot], index = -1;
+        G.save.locker.forEach((inst, candidate) => { if (equipDef(inst)?.slot === slot && betterEquipment(inst, best)) { best = inst; index = candidate; } });
+        if (index >= 0) equipFromLocker(index);
+      }
+      for (let index = G.save.locker.length - 1; index >= 0; index--) if (!equipDef(G.save.locker[index])?.bound) {
+        const inst = G.save.locker[index], value = sellEquip(index);
+        bot?.events.push({ type: "equipment-sold", t: G.time, inst, value });
+      }
+      homeApi.act("sellAll"); b.interact = false;
+    }
   }
   // world-space move → camera-relative stick
   const yaw = G.stage.cam.yaw, c = Math.cos(yaw), s = Math.sin(yaw), [wx, wz] = b.move;

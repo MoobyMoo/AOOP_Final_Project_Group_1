@@ -3,6 +3,9 @@ import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { chromium } from "playwright-core";
 
+const outputDir = process.env.BOT_OUT ?? "playlogs/bot";
+const buildDir = process.env.BOT_DIST ?? "/tmp/bv-sol-dist";
+
 async function selfTest() {
   const { rolldown } = await import("rolldown");
   const bundle = await rolldown({ input: "src/game/core/bot.ts" });
@@ -129,7 +132,7 @@ async function runCampaign(browser, { raids, ts, greed, seed, lag = 0.25 }) {
   const url = `${base}/game.html?fresh=1&bot=1&ts=${ts}&post=0&dpr=1&fixdpr=1&greed=${greed}&lag=${lag}&seed=${seed}`;
   const started = Date.now();
   const report = { config: { raids, ts, greed, seed, lag, url }, started: new Date().toISOString(), errors };
-  const destination = `playlogs/bot/g${greed}-s${seed}.json`;
+  const destination = `${outputDir}/g${greed}-s${seed}.json`;
   let logged = -1, lastProgress = 0;
   try {
     await page.goto(url);
@@ -168,7 +171,7 @@ async function runCampaign(browser, { raids, ts, greed, seed, lag = 0.25 }) {
 
 async function writeReport() {
   const files = ["g0.3-s1.json", "g0.5-s2.json", "g0.8-s3.json"];
-  const campaigns = await Promise.all(files.map(async file => JSON.parse(await readFile(`playlogs/bot/${file}`, "utf8"))));
+  const campaigns = await Promise.all(files.map(async file => JSON.parse(await readFile(`${outputDir}/${file}`, "utf8"))));
   for (const campaign of campaigns) {
     assert.equal(campaign.complete, true, "all campaigns must finish before reporting");
     assert.equal(campaign.failure, undefined);
@@ -216,13 +219,13 @@ async function writeReport() {
     { name: "10–30% bonk-out at greed 0.8 / 250 ms lag", pass: bonks / high.length >= 0.1 && bonks / high.length <= 0.3, measured: `${bonks}/${high.length} = ${percentage(bonks, high.length)}` },
     { name: "Zero softlocks", pass: true, measured: `0/${rows.length}; longest raid ${Math.max(...rows.map(row => row.t)).toFixed(2)} s <900 s` },
   ];
-  const assets = await readdir("/tmp/bv-sol-dist/assets");
+  const assets = await readdir(`${buildDir}/assets`);
   const entry = assets.find(file => /^game-.*\.js$/.test(file));
-  const buildSha256 = createHash("sha256").update(await readFile(`/tmp/bv-sol-dist/assets/${entry}`)).digest("hex");
+  const buildSha256 = createHash("sha256").update(await readFile(`${buildDir}/assets/${entry}`)).digest("hex");
   const sourcePaths = ["src/game/core/bot.ts", "src/game/core/botdrive.ts", "src/game/core/raid.ts", "src/game/combat/combat.ts", "src/game/main.ts"];
   const sourceHashes = Object.fromEntries(await Promise.all(sourcePaths.map(async file => [file, createHash("sha256").update(await readFile(file)).digest("hex")])));
   const summary = { generated: new Date().toISOString(), build: { entry, sha256: buildSha256, sourceHashes }, inputs: files, gates, rows };
-  await writeFile("playlogs/bot/G1_PACING.json", JSON.stringify(summary, null, 2) + "\n");
+  await writeFile(`${outputDir}/G1_PACING.json`, JSON.stringify(summary, null, 2) + "\n");
   const perGreed = campaigns.map(campaign => {
     const subset = rows.filter(row => row.greed === campaign.config.greed);
     return `| ${campaign.config.greed} | ${campaign.config.seed} | ${subset.length} | ${(subset.reduce((sum, row) => sum + row.humanSeconds / 60, 0) / subset.length).toFixed(2)} | ${subset.filter(row => row.how === "bonked").length} | ${subset.filter(row => row.ammo === 0).length} |`;
@@ -230,7 +233,7 @@ async function writeReport() {
   const raidRows = rows.map(row => `| ${row.greed} / ${row.botSeed} / ${row.raid + 1} | ${row.how} | ${row.t.toFixed(2)} | ${(row.humanSeconds / 60).toFixed(2)} | ${row.log.crates} | ${row.log.killsBy.pistol} / ${row.log.killsBy.briefcase} / ${row.kills - row.log.killsBy.pistol - row.log.killsBy.briefcase} | ${row.log.shots} | ${row.hpLost} | ${row.value + row.bonus} | ${row.ammo} | ${row.usefulFound} | ${row.upgradesBought.join(", ") || "—"} |`);
   const document = `# G1 pacing: real-game bot runs
 
-Local run date: 2026-11-15 (Asia/Taipei). ${rows.length} completed raids, three fresh-save campaigns, bot seeds 1/2/3, greed 0.3/0.5/0.8, 250 ms simulated reaction lag throughout. These are real rendered production-build raids, not the loot simulator. No gameplay constants, loot probabilities, UI, art, or contracts changed.
+Local run date: 2026-11-15 (Asia/Taipei). ${rows.length} completed raids, three fresh-save campaigns, bot seeds 1/2/3, greed 0.3/0.5/0.8, 250 ms simulated reaction lag throughout. These are real rendered production-build raids, not the loot simulator. Build and source identities are recorded in the accompanying JSON.
 
 ## Gates
 
@@ -281,14 +284,14 @@ Raw evidence: ${files.map(file => `\`${file}\``).join(", ")}; machine-readable a
 
 Validation: TypeScript passes; all seven bot regression checks pass; rebuilding after the final type-only correction produces the identical game bundle SHA-256 used by these runs. Home file audit reports four pre-existing entries: \`/home/moo/0f840a8ea5fae3927f1d1022d7b10fcd0e677cde4bf3681a5fa5d4218c333b86.png\`, \`/home/moo/nltk_data\`, \`/home/moo/shorts-pilot\`, and \`/home/moo/tiny-apps\`. None was created or moved by this task.
 `;
-  await writeFile("playlogs/bot/G1_PACING.md", document);
+  await writeFile(`${outputDir}/G1_PACING.md`, document);
   console.log(gates.map(gate => `${gate.pass ? "PASS" : "FAIL"} ${gate.name}: ${gate.measured}`).join("\n"));
 }
 
 if (process.argv.includes("--report")) await writeReport();
 
 if (!process.argv.includes("--self-test") && !process.argv.includes("--report")) {
-  await mkdir("playlogs/bot", { recursive: true });
+  await mkdir(outputDir, { recursive: true });
   const browser = await chromium.launch({ executablePath: "/usr/bin/chromium", args: ["--use-angle=gl", "--enable-gpu", "--ignore-gpu-blocklist"] });
   try {
     if (process.argv.includes("--matrix")) {

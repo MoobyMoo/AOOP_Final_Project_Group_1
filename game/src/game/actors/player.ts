@@ -2,7 +2,9 @@
 // melee, pain), weight states, timed healing, aim-down-sights. Implements the roll contract and the one cancel rule.
 import * as THREE from "three";
 import { G, V, flat, angDiff, type Enemy } from "../core/state";
-import { PLAYER, KINGPIN, BRIEFCASE, FEEL, HEALS, ARMOR, armorMult } from "../combat/weapons";
+import { PLAYER, KINGPIN, BRIEFCASE, FEEL, HEALS } from "../combat/weapons";
+import { ENEMY_CRIT, SLOTS, equipDef, gearStats } from "../loot/equipment";
+import { EQUIP_MOVE, interruptEquip, protectPlayerHit, updateEquipment } from "../loot/equipment-actions";
 import { collide, walkable } from "../world/grid";
 import { groundHeight } from "../world/terrain";
 import { sfx } from "../core/audio";
@@ -27,8 +29,8 @@ export function nearestToRay(maxD: number, maxAng: number, from = G.pp, yaw = G.
   return best;
 }
 export function useStamina(n: number) { G.stamina = Math.max(0, G.stamina - n); G.staminaDelay = PLAYER.stamina.delay; }
-export function carriedWeight() { return G.pack.reduce((a, id) => a + (itemDef(id).weight ?? 1), 0) + G.ammo * 0.02; }
-export function weightState() { const r = G.weight / PLAYER.maxWeight, w = PLAYER.weight; return r > 1 ? "over" : r > w.heavy ? "heavy" : r <= w.light ? "light" : "normal"; }
+export function carriedWeight() { return G.pack.reduce((a, id) => a + (itemDef(id).weight ?? 1), 0) + SLOTS.reduce((total, slot) => total + (equipDef(G.gear[slot])?.weight ?? 0), 0) + (G.ammo + G.mag) * 0.02; }
+export function weightState() { const r = G.weight / (PLAYER.maxWeight + 4 * G.save.upgrades.pack + gearStats(G.gear).maxWeight), w = PLAYER.weight; return r > 1 ? "over" : r > w.heavy ? "heavy" : r <= w.light ? "light" : "normal"; }
 
 export function updatePlayer(dt: number) {
   const i = G.intent, st = G.stage, S = PLAYER.stamina;
@@ -36,6 +38,7 @@ export function updatePlayer(dt: number) {
   if (G.hurtT >= 0) { G.hurtT += dt / 0.35; if (G.hurtT >= 1) G.hurtT = -1; }
   G.staminaDelay -= dt; if (G.staminaDelay <= 0 && !G.sprinting) G.stamina = Math.min(S.max, G.stamina + S.recover * dt);
   if (!G.alive || G.zipping) return;
+  updateEquipment(dt);
   G.weight = carriedWeight();
 
   // ---- aim (RMB = aim down sights: steadier, longer camera lead, wider magnet)
@@ -58,7 +61,7 @@ export function updatePlayer(dt: number) {
       G.rollBuffer = 0; G.rollT = 0; G.log.rolls++; if (G.log.firstRoll < 0) G.log.firstRoll = G.raidT; useStamina(S.roll);
       const mv = moveVec(i.move);
       G.rollDir.copy(mv.lengthSq() > 0.01 ? mv.normalize() : V(Math.sin(G.aimYaw), Math.cos(G.aimYaw)));
-      G.meleeT = -1; if (G.useItem) { G.useItem = null; hud.use(null); }
+      G.meleeT = -1; interruptEquip(); if (G.useItem) { G.useItem = null; hud.use(null); }
       if (G.reloadT >= 0) G.reloadPaused = true;
       sfx("roll"); makeNoise(G.pp, PLAYER.roll.noise, "roll");
     }
@@ -74,13 +77,14 @@ export function updatePlayer(dt: number) {
 
   // ---- move: walk/sprint, weight state, pain, skid, item use, shooting/ADS
   const mv = moveVec(i.move), moving = mv.lengthSq() > 0.01;
-  const busy = G.fireCd > -0.25 || G.ads || G.useItem || G.reloadT >= 0 || G.meleeT >= 0;
+  const busy = G.fireCd > -0.25 || G.ads || G.useItem || G.equipping || G.reloadT >= 0 || G.meleeT >= 0;
   if (G.sprinting) { if (!i.sprint || !moving || busy || G.stamina <= 0) G.sprinting = false; }
   else if (i.sprint && moving && !busy && G.stamina >= S.sprintStart) G.sprinting = true;
   if (G.sprinting) useStamina(S.sprintDrain * dt);
   const ws = weightState(), W = PLAYER.weight;
   const wMul = ws === "light" ? 1 + W.lightBonus : ws === "heavy" ? 1 - W.heavySlow : ws === "over" ? 1 - W.overSlow : 1;
-  let speed = (G.sprinting ? PLAYER.sprint : PLAYER.speed) * wMul;
+  let speed = (G.sprinting ? PLAYER.sprint : PLAYER.speed) * wMul * gearStats(G.gear).speed;
+  if (G.equipping) speed *= EQUIP_MOVE;
   if (G.skidT > 0) speed *= PLAYER.roll.skidSpeed; G.skidT -= dt;
   if (G.painT > 0) speed *= 1 - PLAYER.pain.slow;
   if (G.useItem) speed *= 1 - HEALS[G.useItem.id].slow;
@@ -96,12 +100,12 @@ export function updatePlayer(dt: number) {
   if (G.useItem) {
     G.useItem.t += dt; hud.use(G.useItem);
     if (G.useItem.t >= G.useItem.time) {
-      const h = HEALS[G.useItem.id]; G.hp = Math.min(G.maxHp, G.hp + h.heal); sfx("heal"); burst(G.pp.clone().setY(1.5), 12, "#ff9ec4", 0.6);
-      floatText(`+${h.heal}`, G.pp.clone().setY(2.6), "#6ad16a", 24);
+      const h = HEALS[G.useItem.id], amount = Math.round(h.heal * gearStats(G.gear).heal); G.hp = Math.min(G.maxHp, G.hp + amount); sfx("heal"); burst(G.pp.clone().setY(1.5), 12, "#ff9ec4", 0.6);
+      floatText(`+${amount}`, G.pp.clone().setY(2.6), "#6ad16a", 24);
       const k = G.pack.indexOf(G.useItem.id); if (k >= 0) G.pack.splice(k, 1);
       G.useItem = null; hud.use(null); hud.health(); hud.pack();
     }
-  } else if (i.heal) {
+  } else if (i.heal && !G.equipping) {
     const id = ["firstaid", "smoothie", "bandage"].find((h) => G.pack.includes(h));
     if (!id) hud.toast("No bandage or smoothie in your pack");
     else if (G.hp >= G.maxHp) hud.toast("You're already at full health");
@@ -124,7 +128,7 @@ export function updatePlayer(dt: number) {
     const hitAt = BRIEFCASE.wind / BRIEFCASE.cycle + 0.05;
     if (before < hitAt && G.meleeT >= hitAt) swingBriefcase();
     if (G.meleeT >= 1) G.meleeT = -1;
-  } else if (i.melee && G.meleeCd <= 0 && !G.useItem) {
+  } else if (i.melee && G.meleeCd <= 0 && !G.useItem && !G.equipping) {
     if (G.stamina < 4) { hud.toast("Too tired to swing!"); sfx("nope"); }
     else {
       G.meleeT = 0; G.meleeCd = BRIEFCASE.cycle; sfx("swing"); useStamina(PLAYER.stamina.melee); G.sprinting = false;
@@ -134,7 +138,7 @@ export function updatePlayer(dt: number) {
   }
 
   // ---- fire (hold to fire at 0.22 s)
-  if (i.fire && G.meleeT < 0 && G.fireCd <= 0 && G.reloadT < 0 && !G.useItem) {
+  if (i.fire && G.meleeT < 0 && G.fireCd <= 0 && G.reloadT < 0 && !G.useItem && !G.equipping) {
     G.sprinting = false;
     if (G.mag > 0) { G.mag--; G.fireCd = KINGPIN.interval; G.fireT = 0; shoot(); hud.ammo(); if (G.log.firstShot < 0) G.log.firstShot = G.raidT; }
     else if (G.ammo > 0) G.reloadT = 0;
@@ -151,12 +155,13 @@ function move(d: THREE.Vector3) {
   }
   G.pp.x = tmp.x; G.pp.z = tmp.z; collide(G.pp, PLAYER.radius); G.pp.y = groundHeight(G.pp.x, G.pp.z);
 }
-export function playerArmor() { return ARMOR[G.gear?.head ?? ""] ?? 0; }
+export function playerArmor(crit = false) { const stats = gearStats(G.gear); return crit ? stats.headArmor : stats.bodyArmor; }
 
 /** the ROLL CONTRACT is enforced here: no damage while rolling, from any source. Returns damage dealt. */
 export function hurtPlayer(from: THREE.Vector3, src: string, dmg: number, steal?: Enemy): number {
   if (!G.alive || G.iframes > 0 || G.rollT >= 0 || G.zipping) return 0;
-  const n = Math.max(1, Math.round(dmg * armorMult(playerArmor())));
+  const crit = G.rng() < ENEMY_CRIT.chance;
+  const n = protectPlayerHit(dmg * (crit ? ENEMY_CRIT.damage : 1), crit);
   G.hp = Math.max(0, G.hp - n); G.iframes = PLAYER.iframesHurt; G.hurtT = 0; G.log.hurt += n;
   G.painT = PLAYER.pain.time; useStamina(PLAYER.stamina.pain); G.sprinting = false;
   if (G.useItem) { G.useItem = null; hud.use(null); hud.toast("Interrupted!"); }
@@ -167,10 +172,6 @@ export function hurtPlayer(from: THREE.Vector3, src: string, dmg: number, steal?
   if (G.reloadT >= 0) G.reloadT = 0;
   hud.hurt(src); hud.health();
   if (steal && G.pack.length > G.pouchSlots) { const loose = G.pack.splice(G.pouchSlots, 1)[0]; steal.stolen.push(loose); hud.toast(`A bandit snatched your ${itemDef(loose).name}! Bonk him to get it back`); hud.pack(); }
-  // a big hit can knock your hat off (cartoon gag): it lands nearby as a pickup
-  if (n >= 25 && G.gear.head && G.rng() < 0.5) { const id = G.gear.head; G.gear = { ...G.gear, head: null }; G.rig.setGear?.(G.gear); dropWear(id); }
   if (G.hp <= 0) { G.alive = false; hud.bonkOut(); }
   return n;
 }
-let dropWear: (id: string) => void = () => {};
-export const setDropWear = (f: (id: string) => void) => { dropWear = f; };

@@ -1,5 +1,7 @@
 import { DEFAULT_LOOK } from "../actors/look";
 import { load, migrate, reset, save } from "./save";
+import "../loot/equipment.test";
+import "../loot/equipment-actions.test";
 
 let checks = 0;
 function assert(ok: boolean, message: string): asserts ok {
@@ -25,6 +27,7 @@ equal(fresh.look, DEFAULT_LOOK, "brand default look");
 fresh.look.tie.color = "#000000";
 assert(load().look.tie.color === DEFAULT_LOOK.tie.color, "fresh nested defaults are not shared");
 assert(fresh.gear.head === "bowler" && fresh.gear.face === "shades" && fresh.satchel === null, "default gear and no satchel");
+assert(fresh.gear.body === "suit" && fresh.gear.ears === null && fresh.locker.length === 0, "bound starter worn, not duplicated in locker");
 data.set("bv_g1", "{bad json");
 assert(load().money === 0, "corrupt JSON recovers");
 for (const raw of [null, undefined, 2, false, "bad", [], { v: 999, money: 100 }]) {
@@ -50,7 +53,18 @@ equal(bad.reserved, ["vine_rope"], "valid sibling list retained");
 assert(bad.look.headSize === DEFAULT_LOOK.headSize && bad.look.ears.size === DEFAULT_LOOK.ears.size, "invalid look numbers default");
 assert(bad.look.ears.style === DEFAULT_LOOK.ears.style && bad.look.tie.color === DEFAULT_LOOK.tie.color, "invalid enum/color defaults");
 assert(bad.look.tie.style === "bowtie" && bad.look.brows.tilt === -0.5 && bad.look.brows.style === "thin", "valid look siblings survive");
-assert(bad.gear.head === "crown" && bad.gear.face === "shades" && bad.locker.includes("crown") && bad.satchel === null, "gear, wardrobe and satchel validated");
+assert(bad.gear.head === "crown" && bad.gear.face === "shades" && !bad.locker.includes("crown") && bad.satchel === null, "legacy ownership list transfers worn piece, not duplicates");
+const wardrobe = migrate({ wardrobe: ["bowler", "shades", "satchel", "hardhat", "crown"], gear: { head: "crown" } });
+assert(wardrobe.gear.head === "crown" && wardrobe.locker.includes("hardhat") && wardrobe.locker.includes("bowler"), "wardrobe ids migrate to owned instances");
+const interim = migrate({ locker: ["bowler", "shades", "satchel", "crown"], gear: { head: "crown", face: "shades", body: null, back: "satchel", ears: null } });
+assert(interim.gear.body === "suit" && interim.gear.head === "crown" && !interim.locker.includes("crown") && interim.locker.includes("bowler"), "five-slot interim id ownership migrates without cloning worn finds");
+const reservedGear = migrate({ reserved: ["hardhat#25", "banana", "banana"] });
+assert(reservedGear.locker.includes("hardhat#25") && reservedGear.reserved.length === 2, "legacy stash equipment migrates into locker without losing duplicate supplies");
+const instances = migrate({ gear: { head: "hardhat#999", face: "goggles#-4", body: "cap", ears: "walkman#nope" }, locker: ["hardhat#50", "hardhat#50", "__proto__", "hardhat#x", "crown#-2"], satchel: { items: ["hardhat#-8", "hardhat#bad", "banana", "banana"], x: 1, z: 2 } });
+equal(instances.locker, ["hardhat#50", "hardhat#50", "crown#0", "bowler", "shades"], "locker preserves duplicate instances and rejects corrupt strings");
+assert(instances.gear.head === "hardhat" && instances.gear.face === "goggles#0" && instances.gear.body === "suit" && instances.gear.ears === null, "gear condition clamps and slot validation");
+equal(instances.satchel?.items, ["hardhat#0", "banana", "banana"], "satchel keeps multiplicity and sanitizes equipment");
+equal(migrate(instances), instances, "instance migration is idempotent");
 equal(bad.stats, { bonkOuts: 0, extracts: 3, best: 0 }, "stats validated field by field");
 equal(bad.order, { id: "sal", progress: { vine_rope: 2 }, done: false }, "order progress sanitized");
 assert(migrate({ order: { id: false } }).order === null, "invalid order id rejected");
