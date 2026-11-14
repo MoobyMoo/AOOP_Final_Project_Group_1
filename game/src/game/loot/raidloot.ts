@@ -121,7 +121,7 @@ function collect(p: Pickup): boolean {
   if (d.kind === "attachment") { if (!G.save.fixtures.includes("extmag")) G.save.fixtures.push("extmag"); G.magSize = KINGPIN.extMag; G.gun.setVariant({ extMag: true }); sfx("rare"); hud.banner("Kingpin Extended Mag: 12 rounds a mag!"); hud.ammo(); return true; }
   if (G.pack.length >= G.packSlots) {
     if (G.intent.interact) { sortPack(); const cheapest = G.pack[G.pack.length - 1]; if (worth(cheapest) < worth(p.item)) { G.pack.pop(); spawnPickup(cheapest, G.pp.clone().setY(1), 0, 1); G.pack.push(p.item); sortPack(); G.log.swaps++; sfx("pick"); hud.pack(); return true; } }
-    hud.prompt(`Pack full · E: swap for your cheapest item (${itemDef(G.pack[G.pack.length - 1]).name})`); return false;
+    hud.prompt(`E · Pack full: swap for your ${itemDef(G.pack[G.pack.length - 1]).name}`); return false;
   }
   G.pack.push(p.item); sortPack(); sfx("pick"); hud.pack();
   floatText(`${d.icon} ${d.name}`, G.pp.clone().setY(2.4), RAR_COLOR[d.rarity] === "#f3ead6" ? "#fff8ec" : RAR_COLOR[d.rarity], 20);

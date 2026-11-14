@@ -50,7 +50,7 @@ function open() {
     const me = (G.pp.x > 90) === (s === under) ? (() => { const p = pos(s, G.pp.x, G.pp.z); return `<b class="me" style="left:${p.l}%;top:${p.t}%;transform:translate(-50%,-50%) rotate(${-G.moveYaw + Math.PI}rad)">▲</b>`; })() : "";
     return `<div class="mp ${cls}" data-s="${s === over ? "o" : "u"}"><h3>${title}</h3><div class="mimg" style="aspect-ratio:${s.maxX - s.minX}/${s.maxZ - s.minZ}"><img src="${s.url}">${fog}${labels}${icons}${me}</div></div>`;
   };
-  el.innerHTML = `<div class="mwrap" style="transform:scale(${zoom})">${panel(over, "Banana Grove", "big")}${panel(under, "Underground", "small")}</div><div class="mfoot">M / Esc close · scroll to zoom · click to drop or remove a pin · discovered ${[...G.discovered].length}/${CLEARINGS.length}</div>`;
+  el.innerHTML = `<div class="mwrap" style="transform:scale(${zoom})">${panel(over, "Banana Grove", "big")}${panel(under, "Underground", "small")}</div><div class="mfoot"><kbd>M</kbd> close, scroll to zoom, click to drop or remove a pin. Areas found: ${[...G.discovered].length} of ${CLEARINGS.length}</div>`;
   document.body.appendChild(el);
   el.onwheel = (e) => { zoom = THREE.MathUtils.clamp(zoom * (e.deltaY < 0 ? 1.1 : 0.9), 0.7, 2.5); (el!.querySelector(".mwrap") as HTMLElement).style.transform = `scale(${zoom})`; };
   el.querySelectorAll<HTMLElement>(".mimg").forEach((m) => m.onclick = (e) => {

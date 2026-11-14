@@ -1,5 +1,8 @@
 // Bananaville G1 entry. Scene flow: creator (first launch) → bunker → raid → bunker (summary). Fixed-step sim (1/60),
 // render per frame. ?bot=1 lets the pacing bot play; ?ts=N speeds time up; ?fresh=1 starts a new save; ?raid=1 skips home.
+import "@fontsource/lilita-one";
+import "@fontsource/nunito/700.css";
+import "@fontsource/nunito/800.css";
 import * as THREE from "three";
 import { Stage } from "./render/stage";
 import { Input } from "./core/input";
@@ -41,12 +44,19 @@ function onRaidEnd(r: RaidResult) {
   for (const i of kept) if (itemDef(i).rarity === "epic" && !sv.trophies.includes(i)) sv.trophies.push(i);
   sv.gear = { ...G.gear };
   save(sv);
-  const title = r.how === "bonked" ? "Bonked! The crew carried you home 🤕" : r.how === "raft" ? "Rafted home with the haul 🛶" : r.how === "tunnel" ? "Home through the Smuggler Tunnel 🕳️" : "Back through the hatch 🏠";
-  const icons = (l: string[]) => l.map((i) => `<span title="${itemDef(i).name}">${itemDef(i).icon}</span>`).join("") || "<span class=dim>nothing</span>";
-  const html = `<h2>${title}</h2><p class="dim">${Math.floor(r.raidT / 60)}:${String(Math.floor(r.raidT % 60)).padStart(2, "0")} in Banana Grove · ${Object.values(r.log.kills).reduce((a, b) => a + b, 0)} bonked · ${r.log.crates} crates</p>
-    <h4>Brought home (into your stash; sell it at the Fence)</h4><div class="items">${icons(r.kept)}</div><p>Worth 🍌 <b>${value}</b>${bonus ? ` + raft bonus 🍌 <b>${bonus}</b> (paid now)` : ""}</p>
-    ${r.lost.length ? `<h4>Left behind in your satchel (recover it next raid!)</h4><div class="items">${icons(r.lost)}</div>` : ""}
-    ${r.kept.includes("key") ? `<p>🗝️ The Vine Key is on your keyring: the vault door is open from now on.</p>` : ""}`;
+  // the raid summary is a receipt from the Businessman's own bank (home UI: ledger paper + a rubber stamp)
+  const stamp = r.how === "bonked" ? ["BONKED", "bad"] : r.how === "raft" ? ["RAFTED", "raft"] : ["HOME SAFE", "ok"];
+  const how = r.how === "bonked" ? "The crew carried you home" : r.how === "raft" ? "Rafted home with the haul" : r.how === "tunnel" ? "Home through the Smuggler Tunnel" : "Back through the hatch";
+  const mmss = `${Math.floor(r.raidT / 60)}:${String(Math.floor(r.raidT % 60)).padStart(2, "0")}`;
+  const counted = new Map<string, number>(); for (const i of kept) counted.set(i, (counted.get(i) ?? 0) + 1);
+  const lines = [...counted].map(([i, n]) => `<div class="line"><span>${itemDef(i).icon} ${itemDef(i).name}${n > 1 ? ` x${n}` : ""}</span><span></span><b>${itemDef(i).value * n}</b></div>`).join("");
+  const lostN = r.lost.length;
+  const html = `<div class="co">Banana Bank Ltd.<small>Raid ${sv.raids}, Banana Grove, ${mmss}</small></div><div class="stamp ${stamp[1]}">${stamp[0]}</div><hr>
+    <p>${how}.</p><hr>${lines || `<p class="dim">Nothing brought home this time.</p>`}
+    ${bonus ? `<div class="line"><span>🛶 Raft bonus</span><span></span><b>+${bonus}</b></div>` : ""}
+    ${lostN ? `<div class="line lost"><span>Left in your satchel (${lostN} item${lostN > 1 ? "s" : ""})</span><span></span><b>recover it</b></div>` : ""}
+    <hr><div class="line total"><span>Total</span><span></span><b>🍌 ${value + bonus}</b></div>
+    <p class="dim">${Object.values(r.log.kills).reduce((x, y) => x + y, 0)} bonked, ${r.log.crates} crates opened. Sell your stash at the Fence.${r.kept.includes("key") ? " The Vine Key is on your keyring: the vault opens next raid." : ""}</p>`;
   (window as unknown as { __raids: object[] }).__raids ??= []; (window as unknown as { __raids: object[] }).__raids.push({ how: r.how, t: Math.round(r.raidT), value, bonus, kept: r.kept.length, lost: r.lost.length, log: r.log });
   G.alive = true; goHome(html);
 }

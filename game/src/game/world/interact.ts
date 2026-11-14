@@ -41,8 +41,8 @@ export function updateInteractions(dt: number) {
     if (moved || hit) { if (G.extract.t > 0.15 && hit) hud.toast("Hit! The countdown starts over"); G.extract.t = 0; }
     else { const before = G.extract.t; G.extract.t += dt; if (Math.floor(before) !== Math.floor(G.extract.t)) sfx("tick"); }
     inEx.fill.scale.setScalar(Math.max(0.01, G.extract.t / EXTRACT_TIME));
-    const label = inEx.id === "raft" ? "🛶 Raft home (+30% sale)" : inEx.id === "tunnel" ? "🕳️ Smuggler Tunnel home" : "🏠 Hatch home";
-    hud.extract(moved ? `${label}<br><small>stand still</small>` : `${label} in ${Math.max(0, EXTRACT_TIME - G.extract.t).toFixed(1)}s`, Math.max(0.02, G.extract.t / EXTRACT_TIME));
+    const label = inEx.id === "raft" ? "🛶 Raft home, +30% sale" : inEx.id === "tunnel" ? "🕳️ Smuggler Tunnel home" : "🏠 Hatch home";
+    hud.extract(label, Math.max(0.02, G.extract.t / EXTRACT_TIME), moved ? null : Math.max(0, EXTRACT_TIME - G.extract.t));
     if (G.extract.t >= EXTRACT_TIME) { sfx("extract"); hud.extract("", 0); const b = inEx.bonus, id = inEx.id; G.alive = false; fadeTo(() => onExtract(id, b)); }
   } else { if (G.extract.id) { for (const e of exits) e.fill.scale.setScalar(0.01); hud.extract("", 0); } G.extract = { id: "", t: 0 }; }
   // ---- portals and the zipline (E when near; crates win ties)

@@ -59,6 +59,9 @@ export function startRaid(end: (r: RaidResult) => void) {
   spawnEnemies(G.save.raids % 2); setupCrates();
   for (const c of raidScene.children) if (!before.has(c)) c.userData.perRaid = true;
   hud.build(); buildMinimap(); startInteractions(); bonkT = 0;
+  // warm-up: compile every shader now (hidden enemies/props would otherwise compile mid-raid and hitch)
+  const hidden: THREE.Object3D[] = []; raidScene.traverse((o) => { if (!o.visible) { hidden.push(o); o.visible = true; } });
+  G.stage.renderer.compile(raidScene, G.stage.camera); hidden.forEach((o) => (o.visible = false));
   setOnExtract((id, bonus) => finish(id, bonus));
   G.stage.focus.copy(G.pp); focus.copy(G.pp);
   hud.banner("Banana Grove", G.save.raids === 0 ? "find loot, bonk bandits, get home with it" : `raid ${G.save.raids + 1}`);

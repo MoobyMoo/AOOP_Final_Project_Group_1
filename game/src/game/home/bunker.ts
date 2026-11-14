@@ -20,12 +20,12 @@ export const PRICES = { mag: [120], pack: [80, 190], heart: [110, 240], ammo8: 1
 const ORDER = { id: "sal1", from: "Smuggler Sal", text: "Bring me 3 Vine Rope and 1 Old Gear. I'll move my shop in next door. No questions asked.", need: { rope: 3, gear: 1 } as Record<string, number>, reward: "Sal moves in (ammo + heals for sale) and a neon BANANA BANK sign" };
 type Station = { id: "sell" | "bench" | "orders" | "ladder" | "mirror" | "sal" | "trophies"; x: number; z: number; label: string; obj?: THREE.Object3D };
 export const stations: Station[] = [
-  { id: "sell", x: -4.5, z: -2.6, label: "The Fence · sell your haul" },
-  { id: "bench", x: 0.5, z: -3.4, label: "Workbench · upgrades" },
+  { id: "sell", x: -4.5, z: -2.6, label: "The Fence: sell your haul" },
+  { id: "bench", x: 0.5, z: -3.4, label: "Workbench: upgrades" },
   { id: "orders", x: 4.6, z: -2.8, label: "Order board" },
-  { id: "mirror", x: -6.2, z: 1.6, label: "Mirror · change your look" },
+  { id: "mirror", x: -6.2, z: 1.6, label: "Mirror: change your look" },
   { id: "trophies", x: 6.4, z: 1.4, label: "Trophy shelf" },
-  { id: "ladder", x: 0, z: 3.4, label: "Ladder · back to the island" },
+  { id: "ladder", x: 0, z: 3.4, label: "Ladder: back to the island" },
 ];
 let built = false; const fixtures = new Map<string, THREE.Object3D>(); let salRig: ReturnType<typeof createRig> | null = null;
 function box(w: number, h: number, d: number, c: string, x: number, y: number, z: number, parent: THREE.Object3D = bunkerScene) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c)); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m; }
@@ -57,7 +57,7 @@ function neonTex() { const c = document.createElement("canvas"); c.width = 512; 
 function refreshFixtures() {
   const s = G.save;
   fixtures.get("mag")!.visible = s.upgrades.mag > 0; fixtures.get("pack")!.visible = s.upgrades.pack > 0; fixtures.get("heart")!.visible = s.upgrades.heart > 0; fixtures.get("neon")!.visible = s.salMovedIn;
-  if (s.salMovedIn && !salRig) { salRig = createRig("monkey", { kind: "bandit", seed: 77 }); salRig.root.position.set(6.6, 0, -2.4); salRig.root.rotation.y = -0.6; bunkerScene.add(salRig.root); stations.push({ id: "sal", x: 6.2, z: -1.6, label: "Smuggler Sal · ammo and heals" }); }
+  if (s.salMovedIn && !salRig) { salRig = createRig("monkey", { kind: "bandit", seed: 77 }); salRig.root.position.set(6.6, 0, -2.4); salRig.root.rotation.y = -0.6; bunkerScene.add(salRig.root); stations.push({ id: "sal", x: 6.2, z: -1.6, label: "Smuggler Sal: ammo and heals" }); }
   // trophies on the shelf
   const shelf = fixtures.get("shelf")!; shelf.children.filter((c) => c.name === "trophy").forEach((c) => c.removeFromParent());
   s.trophies.forEach((t, i) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: iconTex(itemDef(t).icon) })); sp.name = "trophy"; sp.scale.setScalar(0.6); sp.position.set(0.3, 0.6 + (i % 3) * 0.7, -0.7 + Math.floor(i / 3) * 0.7); shelf.add(sp); });
@@ -74,12 +74,12 @@ export function enterBunker(deploy: () => void, mirror: () => void, summary?: st
   if (!G.rig) { G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(bunkerScene); G.rig.sockets.handR.add(G.gun.root); }
   G.rig.setLook?.(G.save.look); G.rig.setGear?.(G.save.gear); bunkerScene.add(G.rig.root);
   pp.set(0, 0, 2.4); vel.set(0, 0, 0); G.rig.root.position.copy(pp);
-  const ui = document.getElementById("ui")!; ui.innerHTML = `<div class="home-top"><span class="home-money">🍌 <b>${G.save.money}</b></span><span class="home-title">The Bunker · raid ${G.save.raids + 1} next</span></div><div class="hud-prompt" id="hp"></div><div class="home-hint">WASD walk · <b>E</b> use · stations glow when you're close</div>`;
-  if (summary) showPanel(summary);
+  const ui = document.getElementById("ui")!; ui.innerHTML = `<div class="home-top"><span class="home-money">🍌 <b>${G.save.money}</b></span><span class="home-title">The Bunker</span></div><div class="hud-prompt" id="hp"></div><div class="home-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk, <kbd>E</kbd> use a station</div>`;
+  if (summary) showPanel(summary, "receipt");
 }
 export function leaveBunker() { closePanel(); G.stage.hemi.intensity = Number(new URLSearchParams(location.search).get("fill") ?? 0.9); G.stage.sun.intensity = 7; }
 function money() { const el = document.querySelector(".home-money b"); if (el) el.textContent = String(G.save.money); }
-function showPanel(html: string) { closePanel(); panel = document.createElement("div"); panel.className = "home-panel"; panel.innerHTML = html + `<div class="close">E / Esc to close</div>`; document.getElementById("ui")!.appendChild(panel); panel.style.pointerEvents = "auto"; panel.querySelectorAll<HTMLButtonElement>("button[data-a]").forEach((b) => b.onclick = () => act(b.dataset.a!)); }
+function showPanel(html: string, cls = "") { closePanel(); panel = document.createElement("div"); panel.className = "home-panel " + cls; panel.innerHTML = html + `<div class="close"><kbd>E</kbd> or <kbd>Esc</kbd> to close</div>`; document.getElementById("ui")!.appendChild(panel); panel.style.pointerEvents = "auto"; panel.querySelectorAll<HTMLButtonElement>("button[data-a]").forEach((b) => b.onclick = () => act(b.dataset.a!)); }
 function closePanel() { panel?.remove(); panel = null; }
 let near: Station | null = null;
 export function stepBunker(dt: number) {
@@ -90,7 +90,7 @@ export function stepBunker(dt: number) {
   pp.x = THREE.MathUtils.clamp(pp.x, -7.4, 7.4); pp.z = THREE.MathUtils.clamp(pp.z, -3.6, 4.2);
   if (vel.lengthSq() > 0.1) face = Math.atan2(vel.x, vel.z);
   near = stations.reduce<Station | null>((b, s) => (flat(s, pp) < 1.8 && (!b || flat(s, pp) < flat(b, pp)) ? s : b), null);
-  const hp = document.getElementById("hp"); if (hp) { hp.textContent = near ? `E · ${near.label}` : ""; hp.classList.toggle("on", !!near); }
+  const hp = document.getElementById("hp"); if (hp) { hp.innerHTML = near ? `<kbd>E</kbd> ${near.label}` : ""; hp.classList.toggle("on", !!near); }
   if (near && i.interact) { sfx("ui"); open(near); }
 }
 export function renderBunker(dt: number) {
@@ -104,12 +104,12 @@ function open(s: Station) {
   const sv = G.save;
   if (s.id === "ladder") return showPanel(islandMap());
   if (s.id === "mirror") return onMirror();
-  if (s.id === "trophies") return showPanel(`<h2>Trophy shelf</h2><p>${sv.trophies.length ? sv.trophies.map((t) => `${itemDef(t).icon} ${itemDef(t).name}`).join("<br>") : "Nothing yet. Bring home something legendary."}</p><p class="dim">Raids ${sv.raids} · extracts ${sv.stats.extracts} · bonk-outs ${sv.stats.bonkOuts} · best haul 🍌 ${sv.stats.best}</p>`);
+  if (s.id === "trophies") return showPanel(`<h2>Trophy shelf</h2><p>${sv.trophies.length ? sv.trophies.map((t) => `${itemDef(t).icon} ${itemDef(t).name}`).join("<br>") : "Nothing yet. Bring home something legendary."}</p><p class="dim">${sv.raids} raids, ${sv.stats.extracts} made it home, ${sv.stats.bonkOuts} bonked. Best haul 🍌 ${sv.stats.best}.</p>`);
   if (s.id === "sell") { const items = sv.reserved.filter((i) => itemDef(i).kind !== "key"); const v = items.reduce((a, i) => a + itemDef(i).value, 0);
-    return showPanel(`<h2>The Fence</h2><p>"I don't ask where it came from."</p>${items.length ? `<div class="items">${items.map((i) => `<span style="border-color:${RAR_COLOR[itemDef(i).rarity]}">${itemDef(i).icon}<small>${itemDef(i).value}</small></span>`).join("")}</div><button data-a="sellAll">Sell everything · 🍌 ${v}</button>` : "<p class=dim>Your stash is empty. Go get some loot.</p>"}`); }
+    return showPanel(`<h2>The Fence</h2><p>"I don't ask where it came from."</p>${items.length ? `<div class="items">${items.map((i) => `<span style="--rc:${RAR_COLOR[itemDef(i).rarity]}" title="${itemDef(i).name}">${itemDef(i).icon}<small>${itemDef(i).value}</small></span>`).join("")}</div><button data-a="sellAll">Sell everything for 🍌 ${v}</button>` : "<p class=dim>Your stash is empty. Go get some loot.</p>"}`); }
   if (s.id === "bench") return showPanel(benchHtml());
   if (s.id === "orders") return showPanel(orderHtml());
-  if (s.id === "sal") return showPanel(`<h2>Smuggler Sal</h2><p>"Ammo, bandages, smoothies. Cash only."</p><button data-a="buyAmmo">8 rounds · 🍌 ${PRICES.ammo8}</button><button data-a="buyBandage">Bandage · 🍌 ${PRICES.bandage}</button><button data-a="buySmoothie">Smoothie · 🍌 ${PRICES.smoothie}</button><p class="dim">You carry ${sv.ammo} rounds into the next raid (16 minimum).</p>`);
+  if (s.id === "sal") return showPanel(`<h2>Smuggler Sal</h2><p>"Ammo, bandages, smoothies. Cash only."</p><button data-a="buyAmmo">8 rounds, 🍌 ${PRICES.ammo8}</button><button data-a="buyBandage">Bandage, 🍌 ${PRICES.bandage}</button><button data-a="buySmoothie">Smoothie, 🍌 ${PRICES.smoothie}</button><p class="dim">You carry ${sv.ammo} rounds into the next raid (16 minimum).</p>`);
 }
 function benchHtml() {
   const u = G.save.upgrades, row = (k: "mag" | "pack" | "heart", name: string, desc: string) => { const lvl = u[k], c = PRICES[k][lvl]; return `<div class="up"><b>${name}</b> <small>${desc}</small>${c === undefined ? `<em>MAXED</em>` : `<button data-a="up:${k}" ${G.save.money < c ? "disabled" : ""}>🍌 ${c}</button>`}</div>`; };
@@ -118,13 +118,13 @@ function benchHtml() {
 function orderHtml() {
   const o = G.save.order;
   if (G.save.salMovedIn) return `<h2>Order board</h2><p>Sal's job is done. More jobs arrive with new regions.</p>`;
-  const prog = Object.entries(ORDER.need).map(([k, n]) => `${itemDef(k).icon} ${itemDef(k).name}: ${Math.min(n, G.save.reserved.filter((i) => i === k).length)}/${n}`).join(" · ");
+  const prog = Object.entries(ORDER.need).map(([k, n]) => `${itemDef(k).icon} ${itemDef(k).name}: ${Math.min(n, G.save.reserved.filter((i) => i === k).length)}/${n}`).join("<br>");
   const ready = Object.entries(ORDER.need).every(([k, n]) => G.save.reserved.filter((i) => i === k).length >= n);
   return `<h2>${ORDER.from}'s job</h2><p>"${ORDER.text}"</p><p>${prog}</p><p class="dim">Reward: ${ORDER.reward}</p>${ready ? `<button data-a="deliver">Deliver</button>` : ""}${o ? "" : ""}`;
 }
 function islandMap() {
   return `<h2>The island</h2><div class="island">
-    <div class="reg on" style="left:30%;top:58%"><b>Banana Grove</b><small>bandits · wild monkeys · the Sleeper</small><button data-a="deploy">Raid ▸</button></div>
+    <div class="reg on" style="left:30%;top:58%"><b>Banana Grove</b><small>bandits, wild monkeys and the Sleeper</small><button data-a="deploy">Raid ▸</button></div>
     <div class="reg off" style="left:62%;top:40%"><b>Smuggler Caves</b><small>🔒 orangutan smugglers</small></div>
     <div class="reg off" style="left:20%;top:22%"><b>Old Prison Fortress</b><small>🔒 robot monkeys, the mandrill warden</small></div>
     <div class="reg off" style="left:70%;top:12%"><b>The Volcano</b><small>🔒 ???</small></div>
