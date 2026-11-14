@@ -115,6 +115,7 @@ export type BuildingDef = {
   interiors: { x: number; z: number; w: number; d: number; h: number }[];   // inside volumes: roof fade + dark tint
   doors: { id: string; leaf: string /* parts key */; axis: "y"; open: number; breakable?: boolean; locked?: string /* key item id */ }[];
   lights: string[];                           // parts keys of point-light anchors inside
+  breakables?: { id: string; intact: string; debris: string; remains: string }[]; // breakable wall parts (collider carries the id)
 };
 // world/kit_house.ts (Fable W2) exports preloadHouse(), building(id, opts?): BuildingDef, houseModule(name, opts?) for
 //   one-off assembly. Each kit (nature/build/house) also exports collidersFor(k, o?): Collider[] for its placed pieces.
