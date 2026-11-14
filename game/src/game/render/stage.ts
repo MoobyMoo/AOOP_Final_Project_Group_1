@@ -24,7 +24,7 @@ export class Stage {
   constructor(canvas: HTMLCanvasElement, haze = "#d9cfa8") {
     const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance", stencil: false, depth: true });
     r.setPixelRatio(Math.min(devicePixelRatio, Number(QS.get("dpr") ?? 1.5)));
-    r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFShadowMap;
+    r.info.autoReset = false; r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFShadowMap;
     r.toneMapping = THREE.NoToneMapping; r.toneMappingExposure = Number(QS.get("exp") ?? 1.3);
     const s = this.scene;
     s.background = new THREE.Color(haze); s.fog = new THREE.Fog(haze, 52, 110);
@@ -59,7 +59,7 @@ export class Stage {
     this.sun.position.copy(sp).addScaledVector(this.sunDir, 45); this.sun.target.position.copy(sp);
     U.uRimDir.value.set(-0.55, 0.65, 0.35).normalize();
   }
-  render(dt: number) { if (this.post) this.composer.render(dt); else this.renderer.render(this.scene, this.camera); }
+  render(dt: number) { this.renderer.info.reset(); if (this.post) this.composer.render(dt); else this.renderer.render(this.scene, this.camera); }
   /** world point under the mouse on the plane y = h */
   pick(ndcX: number, ndcY: number, h = 0.9) {
     const rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2(ndcX, ndcY), this.camera);

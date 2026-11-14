@@ -4,7 +4,7 @@ import type { Rig, RigState, MonkeyLook, EnemyStyle } from "../contracts";
 import { Monkey3D } from "./monkey3d";
 export function createRig(plan: "monkey" | "gorilla", style: MonkeyLook | EnemyStyle): Rig {
   const look = "v" in style ? style : null, en = "kind" in style ? style : null;
-  const m = new Monkey3D(look ? { fur: look.fur, face: look.face, suit: look.suit, pants: look.pants, tie: look.tie.color, hat: "bowler", band: look.hat.band, shades: look.eyes.style === "shades", briefcase: false, rim: 1.3 }
+  const m = new Monkey3D(look ? { fur: look.fur, face: look.face, suit: look.suit, pants: look.pants, tie: look.tie.color, hat: "bowler", band: "#ffb02a", shades: true, briefcase: false, rim: 1.3 }
     : en!.kind === "bandit" ? { fur: "#8a5a34", face: "#e6b483", suit: "#ffffff", pants: "#3a3340", hat: "bandana", hatColor: "#d9493a", mask: true, stripes: true, sack: true, scale: 0.92 }
     : en!.kind === "wild" ? { fur: "#9a6a3a", face: "#e8c09a", suit: "#9a6a3a", hat: "none", scale: 0.85 }
     : { fur: "#4a4450", face: "#8a8090", suit: "#4a4450", hat: "none", scale: plan === "gorilla" ? (en!.kind === "sleeper" ? 2.4 : 1.9) : 1 });

@@ -4,27 +4,32 @@
 import type * as THREE from "three";
 
 // ---------------------------------------------------------------- actors/ (Fable A: rig v2)
-/** Everything the character creator sets. DEFAULT_LOOK (actors/look.ts) = the brand Businessman (BRAND.md). */
+/** Everything the character creator sets (the body). DEFAULT_LOOK (actors/look.ts) = the brand Businessman (BRAND.md).
+ *  Wearables are NOT part of the body: shades, hats and packs are gear on sockets (Duckov's CharacterModel has
+ *  helmet/face/backpack/armor/hand sockets, and a helmet or mask can hide hair/mouth), so they can be swapped,
+ *  found in raids and knocked off by hits. */
 export type MonkeyLook = {
-  v: 1;
+  v: 2;
   fur: string; face: string;  // hex colours
   headSize: number;           // -0.25..0.25 offset on the default head scale
   ears: { style: EarStyle; size: number };            // size 0.75..1.35
-  eyes: { style: EyeStyle; spacing: number };         // spacing 0.85..1.15
+  eyes: { style: EyeStyle; spacing: number };         // spacing 0.85..1.15 (always modelled: visible when no face gear)
   brows: { style: BrowStyle; tilt: number };          // tilt -1 (worried)..1 (scheming)
   mouth: MouthStyle;
-  hat: { style: HatStyle; color: string; band: string };
   suit: string; pants: string; tie: { style: TieStyle; color: string };
-  tail: { curl: number };     // 0 (straight-ish)..1 (tight curl)
+  tail: { curl: number };     // 0 (loose)..1 (tight curl)
   feet: { style: FeetStyle; color: string };
 };
 export type EarStyle = "round" | "pointy" | "floppy";
-export type EyeStyle = "shades" | "round" | "sleepy" | "sparkle" | "monocle";
+export type EyeStyle = "round" | "sleepy" | "sparkle" | "beady";
 export type BrowStyle = "bold" | "thin" | "bushy" | "none";
 export type MouthStyle = "smile" | "grin" | "smirk" | "toothy" | "whistle";
-export type HatStyle = "bowler" | "tophat" | "cap" | "fedora" | "none";
 export type TieStyle = "tie" | "bowtie" | "none";
 export type FeetStyle = "round" | "shoes";
+/** gear worn on sockets; ids from WEARABLES (actors/wearables.ts). Default Businessman: bowler + shades + satchel. */
+export type Gear = { head: string | null; face: string | null; back: string | null };
+export type WearSlot = keyof Gear;
+export type Wearable = { id: string; slot: WearSlot; name: string; rarity: "common" | "uncommon" | "rare" | "epic"; hidesEars?: boolean; hidesBrows?: boolean };
 /** non-player looks: wild monkeys, bandits (bandana, mask, striped shirt, sack), gorillas */
 export type EnemyStyle = { kind: "wild" | "bandit" | "brute" | "sleeper"; seed: number };
 
@@ -47,9 +52,12 @@ export interface Rig {
   bounds: { radius: number; height: number };
   pose(s: RigState): void;
   setLook?(look: MonkeyLook): void;   // monkeys: rebuild the changed parts live (creator)
+  setGear?(gear: Gear): void;         // monkeys: swap wearables on the head/face/back sockets
+  knockOff?(slot: WearSlot): THREE.Object3D | null; // detach a wearable (world space) for the hit gag; gameplay animates it and re-attaches via setGear
   dispose(): void;
 }
 // actors/rig.ts exports: createRig(plan: "monkey", look: MonkeyLook): Rig; createRig(plan: "monkey" | "gorilla", style: EnemyStyle): Rig
+// actors/wearables.ts exports: WEARABLES: Wearable[], DEFAULT_GEAR: Gear, buildWearable(id): THREE.Object3D (for icons/pickups too)
 // actors/look.ts exports: DEFAULT_LOOK, LOOK_PRESETS: {name, look}[], randomLook(rng), encodeLook(l): string, decodeLook(s): MonkeyLook | null
 // Budget per rig: <= 8 draw calls, <= 6k triangles, zero allocation in pose().
 
@@ -76,7 +84,7 @@ export type KitPiece = { geo: THREE.BufferGeometry /* position, normal, color (v
 
 // ---------------------------------------------------------------- loot/ (Codex Sol)
 export type Rarity = "common" | "uncommon" | "rare" | "epic";
-export type ItemKind = "sell" | "heal" | "key" | "ammo" | "attachment" | "part";
+export type ItemKind = "sell" | "heal" | "key" | "ammo" | "attachment" | "part" | "wear";
 export type ItemDef = { id: string; name: string; icon: string; rarity: Rarity; value: number; kind: ItemKind; stack?: number };
 export type CrateTier = "wood" | "green" | "gold";
 export type RaidLootCtx = { raid: number; cratesOpened: number; usefulFound: number; emptyStreak: number; ammoFound: number; orderNeeds: string[] };
@@ -86,7 +94,7 @@ export type RaidLootCtx = { raid: number; cratesOpened: number; usefulFound: num
 // ---------------------------------------------------------------- core/save.ts (Codex Sol)
 export type SaveV1 = {
   v: 1; createdAt: string; raids: number; money: number; ammo: number;
-  look: MonkeyLook; lookDone: boolean;
+  look: MonkeyLook; lookDone: boolean; gear: Gear; wardrobe: string[]; // wardrobe = wearable ids owned
   upgrades: { mag: number; pack: number; heart: number };
   keys: string[]; trophies: string[]; reserved: string[];   // keys auto-kept, trophies shown in the bunker, order items reserved
   order: { id: string; progress: Record<string, number>; done: boolean } | null;
