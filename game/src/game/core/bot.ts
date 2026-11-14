@@ -113,7 +113,7 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
         if (!segment(v, from, point)) { valid = false; break; }
         from = point;
       }
-      if (valid && distance(from, target) <= 1.25) return points;
+      if (valid && distance(from, target) <= 1.8) return points; // path ends on a cell centre; the game searches crates from 1.9 u
       const repaired = repairRoute(v, target);
       if (repaired) return repaired;
     }

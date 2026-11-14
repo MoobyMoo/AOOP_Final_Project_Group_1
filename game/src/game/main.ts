@@ -28,7 +28,7 @@ G.stage = new Stage(document.getElementById("game") as HTMLCanvasElement);
 G.input = new Input(G.stage.renderer.domElement);
 if (QS.has("fresh")) localStorage.removeItem("bv_g1");
 G.save = load(); G.bot = QS.has("bot"); G.intent = G.input.read(0);
-if (G.bot) setBot(createBot({ greed: Number(QS.get("greed") ?? 0.5), reactionLag: Number(QS.get("lag") ?? 0.25), seed: Number(QS.get("seed") ?? 1) }));
+if (G.bot) { const bot = createBot({ greed: Number(QS.get("greed") ?? 0.5), reactionLag: Number(QS.get("lag") ?? 0.25), seed: Number(QS.get("seed") ?? 1) }); setBot(bot); (window as unknown as { __bot: unknown }).__bot = bot; }
 addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlockAudio);
 
 // world + rig up front (the map snapshot needs the raid scene built)
