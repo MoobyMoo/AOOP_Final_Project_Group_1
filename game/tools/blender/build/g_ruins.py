@@ -167,15 +167,16 @@ def vault(name, seed):
     X, Y = 4.4, 3.4
     # floor: big slabs with a darker inlaid border
     g.box(2 * X + 0.2, 2 * Y + 0.2, 0.06, (0, 0, -0.05), col="#7f6c52", b=0, jit=0)
+    FX, FY = X - 0.3, Y - 0.3               # the slabs stop at the inner wall faces
     for i in range(6):
         for k in range(5):
-            x, y = (i - 2.5) * (2 * X / 6), (k - 2) * (2 * Y / 5)
+            x, y = (i - 2.5) * (2 * FX / 6), (k - 2) * (2 * FY / 5)
             edge = i in (0, 5) or k in (0, 4)
-            g.box(2 * X / 6 - 0.06, 2 * Y / 5 - 0.06, 0.1, (x, y, -0.03), (0, 0, r.uniform(-0.5, 0.5)), col=pick(r, ["#a88f6c", "#9c8462"] if edge else STONE), b=0.03, jit=0.04)
-    stone_run(g, (-X, Y), (X, Y), 6, thick=0.7, bl=1.1, crest=lambda row, t: row < 5 or 0.12 < t < 0.9)
-    stone_run(g, (X, Y - 0.36), (X, -Y), 6, thick=0.7, bl=1.1, crest=lambda row, t: row < 6 - max(0, t - 0.55) * 9)        # butts into the north wall
-    stone_run(g, (X - 0.36, -Y), (0.2, -Y), 2, thick=0.7, bl=1.1, crest=lambda row, t: row < 2 - t * 1.6)
-    stone_run(g, (-X, Y - 0.36), (-X, 0.8), 3, thick=0.7, bl=1.1, crest=lambda row, t: row < 3.2 - t * 3)
+            g.box(2 * FX / 6 - 0.06, 2 * FY / 5 - 0.06, 0.1, (x, y, -0.03), (0, 0, r.uniform(-0.5, 0.5)), col=pick(r, ["#a88f6c", "#9c8462"] if edge else STONE), b=0.03, jit=0.04)
+    stone_run(g, (-X, Y), (X, Y), 6, z0=-0.075, thick=0.7, bl=1.45, crest=lambda row, t: row < 5 or 0.12 < t < 0.9)
+    stone_run(g, (X, Y - 0.36), (X, -Y), 6, z0=-0.075, thick=0.7, bl=1.45, crest=lambda row, t: row < 6 - max(0, t - 0.55) * 9)        # butts into the north wall
+    stone_run(g, (X - 0.36, -Y), (0.2, -Y), 2, z0=-0.075, thick=0.7, bl=1.1, crest=lambda row, t: row < 2 - t * 1.6)
+    stone_run(g, (-X, Y - 0.36), (-X, 0.8), 3, z0=-0.075, thick=0.7, bl=1.1, crest=lambda row, t: row < 3.2 - t * 3)
     for (x, y) in ((-X + 0.75, Y - 0.75), (X - 0.75, Y - 0.75), (X - 0.75, -Y + 1.2)):      # pillars at the corners
         stone_block(g, 0.95, 0.95, 0.26, (x, y, 0.05), b=0.06)
         for i in range(4):
@@ -191,10 +192,10 @@ def vault(name, seed):
     gold_stack(g, (X - 1.0, 0.3, 0.07), 3, 84)
     for (x, y, s) in [(-1.5, Y - 0.9, 0.7), (1.0, Y - 0.85, 0.55), (X - 0.95, 1.6, 0.6), (X - 1.1, -1.0, 0.5)]:
         g.ball(s * 0.8, (x, y, 0.05), col=GOLD_D, n=9, m=3, s=(1, 1, 0.55), z0=0.0, z1=1.0, jit=0.03)       # coin heaps
-        for i in range(9):
+        for i in range(6):
             ang = r.uniform(0, 2 * pi)
             rad = s * r.uniform(0.1, 1.0)
-            g.cyl(0.1, 0.035, (x + cos(ang) * rad, y + sin(ang) * rad, 0.045 + 0.42 * s * max(0, 1 - (rad / (s * 0.8)) ** 2) ** 0.5), (r.uniform(-30, 30), r.uniform(-30, 30), 0), col=pick(r, [GOLD_L, GOLD]), n=7, b=0.01, jit=0.03, hl=1.2)
+            g.cyl(0.1, 0.035, (x + cos(ang) * rad, y + sin(ang) * rad, 0.045 + 0.42 * s * max(0, 1 - (rad / (s * 0.8)) ** 2) ** 0.5), (r.uniform(-30, 30), r.uniform(-30, 30), 0), col=pick(r, [GOLD_L, GOLD]), n=6, b=0.0, jit=0.03, hl=1.2)
     # wall torches
     em = a.mesh("emissive")
     for i, (x, y, fy) in enumerate([(-2.2, Y - 0.36, -1), (2.2, Y - 0.36, -1)]):

@@ -60,8 +60,24 @@ def zip_end(name, seed, AH=5.0):
     lashing(g, (0, 0, AH - 0.08), (0, 0, 1), 0.16, turns=4)
     log(g, (0.0, 0, AH), (-1.9, 0, -0.1), 0.09, r2=0.08, n=6)       # back stay
     g.emit(p_lathe([(0.1, -0.04), (0.14, 0.0), (0.1, 0.04)], 8, cap0=False, cap1=False), IRON, T(0.12, 0, AH - 0.2, 90, 0, 0))
-    for (x, y, rz) in [(1.3, -0.4, 10), (1.35, 0.35, -8), (2.0, 0.0, 80), (1.3, 0.0, 95)]:
-        g.box(0.86, 0.46, 0.26, (x, y, 0.0 if x != 1.3 or y != 0.0 else 0.24), (0, 0, rz), col=pick(r, ["#b99a66", "#ad8d5a", "#c4a672"]), b=0.1, jit=0.05)
+    # the landing platform (layout to.h = 1.2), on the tower side of the frame, with steps down
+    PH, cx = 1.2, 1.25
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            log(g, (cx + sx * 0.95, sy * 0.95, -0.1), (cx + sx * 0.95, sy * 0.95, PH + (0.75 if sx > 0 else 0.0)), 0.11, r2=0.1, n=7)
+    for sy in (-1, 1):
+        log(g, (cx - 1.25, sy * 0.85, PH - 0.1), (cx + 1.25, sy * 0.85, PH - 0.1), 0.08, n=6)
+    for i in range(6):
+        x = cx - 1.1 + 2.2 * (i + 0.5) / 6
+        plank(g, (x, -1.2, PH), (x, 1.2, PH), 2.2 / 6 - 0.03, 0.07, wob=0.01, pal=WOOD + WOOD_PALE)
+    g.pole((cx + 0.95, -0.95, PH + 0.65), (cx + 0.95, 0.95, PH + 0.65), 0.05, pick(r, WOOD), n=6, cap=ENDGRAIN)
+    for i in range(3):
+        g.box(0.9, 0.34, 0.1, (cx - 0.2, -1.36 - i * 0.32, PH - 0.1 - (i + 1) * 0.3), col=pick(r, WOOD), b=0.02)
+    for sx in (-1, 1):
+        g.beam((cx - 0.2 + sx * 0.42, -1.2, PH - 0.1), (cx - 0.2 + sx * 0.42, -2.36, 0.0), 0.07, 0.14, pick(r, WOOD_D), b=0.02)
+    for (x, y, z, rz) in [(cx + 1.75, -0.3, 0.0, 10), (cx + 1.8, 0.4, 0.0, -8), (cx + 1.78, 0.05, 0.22, 95)]:
+        g.box(0.86, 0.46, 0.26, (x, y, z), (0, 0, rz), col=pick(r, ["#b99a66", "#ad8d5a", "#c4a672"]), b=0.1, jit=0.05)
+    a.point("land", (cx, 0, PH))
     g.box(0.62, 0.07, 0.42, (0.0, -0.93, 1.3), col=pick(r, WOOD_PALE), b=0.02)
     icon_banana(g, FRONT(0, -0.966, 1.37), 0.42, RED_D)
     a.point("anchor", (0.12, 0, AH - 0.2))

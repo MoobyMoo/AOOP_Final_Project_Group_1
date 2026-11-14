@@ -1,11 +1,11 @@
 {
  "groups": {
   "bunker": {
-   "glb_bytes": 1155980,
-   "tris": 23943,
+   "glb_bytes": 1147108,
+   "tris": 23693,
    "assets": {
     "bunker_room": {
-     "tris": 10002,
+     "tris": 9712,
      "parts": [],
      "points": [
       "sal",
@@ -70,7 +70,7 @@
      "glow": 1.8
     },
     "bunker_ladder": {
-     "tris": 784,
+     "tris": 824,
      "parts": [],
      "points": [
       "climb",
@@ -190,8 +190,8 @@
    }
   },
   "camp": {
-   "glb_bytes": 693036,
-   "tris": 14954,
+   "glb_bytes": 679948,
+   "tris": 14634,
    "assets": {
     "tent_a": {
      "tris": 684,
@@ -329,7 +329,7 @@
      "glow": 1.8
     },
     "well": {
-     "tris": 2233,
+     "tris": 1913,
      "parts": [
       "bucket",
       "dark"
@@ -636,8 +636,8 @@
    }
   },
   "ruins": {
-   "glb_bytes": 1117632,
-   "tris": 24900,
+   "glb_bytes": 1009404,
+   "tris": 22448,
    "assets": {
     "ruin_floor_a": {
      "tris": 728,
@@ -744,7 +744,7 @@
      "glow": 1.6
     },
     "vault": {
-     "tris": 10328,
+     "tris": 7876,
      "parts": [],
      "points": [
       "crate",
@@ -798,8 +798,8 @@
    }
   },
   "traversal": {
-   "glb_bytes": 744124,
-   "tris": 16725,
+   "glb_bytes": 781664,
+   "tris": 17533,
    "assets": {
     "zip_tower": {
      "tris": 2940,
@@ -815,10 +815,11 @@
      "glow": 1.8
     },
     "zip_end": {
-     "tris": 556,
+     "tris": 1364,
      "parts": [],
      "points": [
-      "anchor"
+      "anchor",
+      "land"
      ],
      "footprint": 0.9,
      "blocksMove": false,
@@ -1193,6 +1194,6 @@
    }
   }
  },
- "total_tris": 126501,
- "total_bytes": 5795972
+ "total_tris": 124287,
+ "total_bytes": 5703324
 }

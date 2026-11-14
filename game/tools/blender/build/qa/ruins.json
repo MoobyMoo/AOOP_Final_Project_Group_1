@@ -105,13 +105,13 @@
   },
   "vault": {
    "pass": true,
-   "tris": 10328,
+   "tris": 7876,
    "errors": [],
    "warnings": [
-    "hidden back-to-back faces: vault__matte (95 pairs) - delete to save tris",
-    "asset lowest point z=-0.0537 (not resting on ground plane z=0)"
+    "hidden back-to-back faces: vault__matte (109 pairs) - delete to save tris",
+    "asset lowest point z=-0.0924 (not resting on ground plane z=0)"
    ],
-   "ground_z": -0.0537
+   "ground_z": -0.0924
   },
   "vault_plinth": {
    "pass": true,

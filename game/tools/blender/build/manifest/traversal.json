@@ -1,6 +1,6 @@
 {
  "group": "traversal",
- "glb_bytes": 744124,
+ "glb_bytes": 781664,
  "assets": {
   "zip_tower": {
    "tris": 2940,
@@ -16,10 +16,11 @@
    "glow": 1.8
   },
   "zip_end": {
-   "tris": 556,
+   "tris": 1364,
    "parts": [],
    "points": [
-    "anchor"
+    "anchor",
+    "land"
    ],
    "footprint": 0.9,
    "blocksMove": false,

@@ -1,6 +1,6 @@
 {
  "group": "camp",
- "glb_bytes": 693036,
+ "glb_bytes": 679948,
  "assets": {
   "tent_a": {
    "tris": 684,
@@ -138,7 +138,7 @@
    "glow": 1.8
   },
   "well": {
-   "tris": 2233,
+   "tris": 1913,
    "parts": [
     "bucket",
     "dark"

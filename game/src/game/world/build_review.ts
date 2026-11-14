@@ -160,6 +160,25 @@ function bunker() {
   if (QS.has("fx") && !QS.has("fz")) focus.set(Number(QS.get("fx")) || 0, 0.5, -1.2);
   monkey(0, 2.4, Math.PI);
 }
+/** call every builder once and report what came back (window.selftest; used by the scripted check) */
+function selftest() {
+  ground("#c9b384");
+  const out: Record<string, { pieces: number; tris: number; parts: string[]; bad: number }> = {};
+  const run = (name: string, f: () => K.Built) => {
+    const b = f(); let tris = 0, bad = 0;
+    for (const p of b.pieces) { const a = p.geo.attributes; tris += a.position.count / 3; if (!a.normal || !a.color || a.color.itemSize !== 3 || p.geo.index) bad++; for (let i = 0; i < a.position.array.length; i++) if (!Number.isFinite(a.position.array[i])) { bad++; break; } }
+    out[name] = { pieces: b.pieces.length, tris, parts: Object.keys(b.parts).filter((k) => k !== "root"), bad };
+  };
+  for (const t of ["wood", "green", "gold"] as const) run(`crate(${t})`, () => K.crate(t, { open: true }));
+  for (const [n, f] of Object.entries({ barrel: K.barrel, sack: K.sack, bananaStash: K.bananaStash, ammoBox: K.ammoBox, satchel: K.satchel, tent: K.tent, tarp: K.tarp, bedroll: K.bedroll, campfire: K.campfire, lantern: K.lantern, fence: K.fence, gate: K.gate, watchtower: K.watchtower, well: K.well, logBench: K.logBench, signpost: K.signpost,
+    rubblePile: K.rubblePile, ruinFloor: K.ruinFloor, ruinSteps: K.ruinSteps, pillar: K.pillar, brokenWall: K.brokenWall, arch: K.arch, door: K.door, vault: K.vault, plinth: K.plinth, fusebox: K.fusebox, statue: K.statue,
+    ferry: K.ferry, bomber: K.bomber, vat: K.vat, tractor: K.tractor, audit: K.audit, falls: K.falls, bottle: K.bottle, lemon: K.lemon, boardwalk: K.boardwalk, bridge: K.bridge, raft: K.raft, hatch: K.hatch, supplyDrop: K.supplyDrop, bunkerRoom: K.bunkerRoom })) run(n, f as () => K.Built);
+  for (const k of ["palisade", "stone", "hull", "rock", "fence"] as const) { run(`wallSection(${k})`, () => K.wallSection(k, { length: 6 })); if (k !== "fence") run(`wallSection(${k}, breakable)`, () => K.wallSection(k, { length: 6, breakable: true })); }
+  for (const k of ["camp-well", "cove-cave", "hollow-roots", "back"]) run(`portal(${k})`, () => K.portal(k));
+  run("zipline", () => K.zipline(new THREE.Vector3(9, 0, 6), new THREE.Vector3(15, 0, 61)));
+  (window as unknown as { selftest: unknown }).selftest = { builders: Object.keys(out).length, assets: K.buildAssetNames().length, bad: Object.entries(out).filter(([, v]) => v.bad || (!v.pieces && !v.parts.length)).map(([k]) => k), out };
+  label = `selftest: ${Object.keys(out).length} builders`;
+}
 function one() {
   ground(QS.get("ground") ?? "#c9b384");
   const name = QS.get("name") ?? "crate_wood", fn = (K as unknown as Record<string, (...a: unknown[]) => K.Built>)[name];
@@ -173,7 +192,7 @@ async function main() {
   const groups = (QS.get("groups") ?? "").split(",").filter(Boolean);
   await K.preloadBuild(undefined, groups.length ? groups : undefined);
   try { const man = await (await fetch("/models/build/manifest.json")).json(); for (const g of Object.keys(man.groups ?? {})) for (const n of Object.keys(man.groups[g].assets)) GROUP_OF.set(n, g); } catch { /* optional */ }
-  ({ lineup, camp, ruin, landmarks, traversal, bunker, one } as Record<string, () => void>)[view]?.();
+  ({ lineup, camp, ruin, landmarks, traversal, bunker, one, selftest } as Record<string, () => void>)[view]?.();
   scene.add(mergePieces(pieces));
   let tris = 0; scene.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh && m.geometry) tris += (m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3; });
   document.getElementById("tag")!.innerHTML = `<b>${view}</b> ${label} · ${Math.round(tris)} tris`;

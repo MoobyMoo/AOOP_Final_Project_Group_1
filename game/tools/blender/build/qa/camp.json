@@ -162,13 +162,13 @@
   },
   "well": {
    "pass": true,
-   "tris": 2233,
+   "tris": 1913,
    "errors": [],
    "warnings": [
     "well__matte: duplicate verts=5 loose verts=0",
-    "asset lowest point z=-0.0467 (not resting on ground plane z=0)"
+    "asset lowest point z=-0.0501 (not resting on ground plane z=0)"
    ],
-   "ground_z": -0.0467
+   "ground_z": -0.0501
   }
  }
 }

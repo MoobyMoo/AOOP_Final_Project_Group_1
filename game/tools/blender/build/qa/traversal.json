@@ -99,10 +99,11 @@
   },
   "zip_end": {
    "pass": true,
-   "tris": 556,
+   "tris": 1364,
    "errors": [],
    "warnings": [
     "zip_end__matte: duplicate verts=24 loose verts=0",
+    "hidden back-to-back faces: zip_end__matte (1 pairs) - delete to save tris",
     "asset lowest point z=-0.1223 (not resting on ground plane z=0)"
    ],
    "ground_z": -0.1223

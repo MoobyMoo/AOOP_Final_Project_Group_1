@@ -291,16 +291,15 @@ def well(name, seed):
     g, r = a.mesh(), a.rng
     R = 1.2
     for course in range(2):
-        n = 12
+        n = 10
         for i in range(n):
             ang = 2 * pi * (i + 0.5 * course) / n
-            stone_block(g, 0.66, 0.4, 0.4, (cos(ang) * R, sin(ang) * R, course * 0.37 - 0.03), (0, 0, degrees(ang) + 90), b=0.08, chip=3)
+            stone_block(g, 0.8, 0.4, 0.4, (cos(ang) * R, sin(ang) * R, course * 0.37 - 0.03), (0, 0, degrees(ang) + 90), b=0.08, chip=3)
     # the dark shaft: an inner wall and a black bottom that reads as depth
     g.emit(p_lathe([(R - 0.17, 0.74), (R - 0.2, 0.4), (R - 0.3, 0.06)], 14, cap0=False, cap1=False), lambda c, tg: mix("#0e0a08", "#4a3f33", max(0, (c.z - 0.2) / 0.55)), None, jit=0, smooth=80, flat=False)
     dk = a.part("dark", (0, 0, 0.07), "emissive")
     dk.emit(p_lathe([(0.0, 0.07), (R - 0.3, 0.07)], 14, cap0=False, cap1=False), "#070504", None, jit=0)
-    moss_pad(g, 0.5, 0.3, (-0.75, -0.72, 0.68), rz=40)
-    moss_pad(g, 0.4, 0.26, (0.9, 0.5, 0.7), rz=120)
+    moss_pad(g, 0.5, 0.3, (-0.85, -0.82, 0.69), rz=40)
     for sx in (-1, 1):
         g.pole((sx * (R + 0.02), 0, 0.1), (sx * (R + 0.02), 0, 3.3), 0.1, pick(r, WOOD_D), n=7, cap=ENDGRAIN)
     for sy in (-1, 1):          # a small shingle cap, high enough that the camera sees the hole under it
@@ -316,8 +315,8 @@ def well(name, seed):
     g.pole((-R - 0.08, 0, 1.75), (R + 0.3, 0, 1.75), 0.075, pick(r, WOOD), n=8, cap=ENDGRAIN)
     g.pole((R + 0.3, 0, 1.75), (R + 0.3, 0.0, 1.45), 0.03, IRON, n=5)
     g.pole((R + 0.28, 0, 1.45), (R + 0.52, 0, 1.45), 0.035, IRON, n=5)
-    for i in range(5):
-        g.emit(p_lathe([(0.076, 0), (0.105, 0.03), (0.076, 0.06)], 8, cap0=False, cap1=False), ROPE, T(-0.14 + i * 0.058, 0, 1.75, 0, 90, 0), jit=0.04)
+    for i in range(3):
+        g.emit(p_lathe([(0.076, 0), (0.105, 0.03), (0.076, 0.06)], 7, cap0=False, cap1=False), ROPE, T(-0.09 + i * 0.058, 0, 1.75, 0, 90, 0), jit=0.04)
     bk = a.part("bucket", (0.05, 0, 1.68))
     bk.pole((0.05, 0, 1.68), (0.05, 0, 1.22), 0.02, ROPE, n=4, b=0)
     bk.lathe([(0.15, 0.82), (0.2, 1.1), (0.17, 1.1), (0.13, 0.86)], (0.05, 0, 0), col=pick(r, WOOD), n=9, cap0=True, cap1=False)

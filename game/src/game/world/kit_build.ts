@@ -12,37 +12,51 @@
 //
 // PARTS  Every part is an Object3D whose origin is its pivot, parented to parts.root (so its local transform is in asset
 //        space). Meshes use kitMaterial(mat); never mutate that shared material. Empty nodes are attach points.
-//   crate(tier)          lid     hinge on the back top edge, axis x. Closed = rotation.x 0, open = rotation.x -1.9
-//                        glint   (gold only) point above the treasure for a sparkle
-//   campfire()           flame   scale/flicker it (origin at the log pile); light: point for a PointLight
-//   lantern()            light   point inside the glass for a PointLight
-//   gate()               leaf    hinge on the -x post, axis y; open = rotation.y -1.5
-//   well()               bucket  hangs on the rope (bob it); drop: point at the bottom of the dark shaft
-//   wallSection(kind,{breakable:true})
-//                        intact  the whole breakable wall (hide it on break)
-//                        debris  Group of chunk_0..n meshes, hidden; each chunk's origin is its centroid. On break:
-//                                show, throw each chunk along (chunk.position - hit).setY(+) with gravity and spin,
-//                                fade or leave on the ground
-//                        remains the stumps / low rubble left standing after the break (hidden until then)
-//   door()               leaf    the vine door leaf: hinge on the -x jamb, axis y. Closed 0, open = rotation.y -1.6
-//                        keyhole point at the big keyhole (prompt / key fx)
-//   fusebox()            lever   pivot at its axle, axis x: up = 0, pulled = rotation.x 1.1;  spark: point at the crossed wires
-//   statue()             glint   point at the statue's shades
-//   ferry()              hold    the breakable side boards are wallSection("hull", { breakable: true }) at WALLS hull-boards
-//                        smoke   point on the funnel
-//   bomber()             prop_l / prop_r   propellers, axis z (spin if you like)
-//   vat()                puddle  the amber spill decal mesh (a flat piece at y 0.03; kept separate so gameplay can scale it)
-//   falls()              water   the falling sheet (scroll or wobble it); foam: point at the splash
-//   zipline(from, to)    handle  the trolley + grip: move it along the cable from parts.a to parts.b (points, world space
-//                                relative to parts.root); cable is rebuilt for the given span
-//   raft()               flag    pivot on the mast, axis y: yaw it into the wind / wobble rotation.y
-//   hatch()              lid     hinge at the back of the collar, axis x: closed 0, open = rotation.x -1.9
-//                        scope   the periscope head, axis y (it can turn to watch the player)
-//   supplyDrop()         smoke   point: red smoke emitter;  crate: the gold crate body (lid: its lid, as in crate())
-//   portal(kind)         well: see well().  cave / roots: dark: the dark opening mesh (fade target)
-//   bunkerRoom()         fixtures mag | pack | heart | neon (hidden until bought: set .visible), bulbs: emissive string
-//                        lights, ladder / sell / bench / mirror / board / shelf / desk / cot: station nodes at their
-//                        spots (BUNKER_SPOTS), bell: the counter bell (ding it: scale), lightA..: points for PointLights
+//        Rotations below are three.js axes on the part itself (x = hinge running east-west, y = vertical hinge).
+//   crate(tier)          lid      hinge on the back top edge, axis x. Closed rotation.x = 0, open = CRATE_LID_OPEN (-1.9)
+//                        glint    (gold only) point above the treasure for a sparkle
+//   campfire()           flame    emissive flame, origin in the log pile: scale / flicker it.  light: point for a PointLight
+//   lantern(post?)       light    point inside the glass for a PointLight
+//   gate()               leaf     hinge on the -x post, axis y. Closed 0, open = rotation.y -1.5
+//   watchtower()         flag     red rag, pivot on its pole (wobble rotation.y);  crate: point on the deck for the key
+//                                 crate (y = 3.07);  lookout: point where a bandit stands
+//   well()               bucket   hangs from the windlass (bob position.y);  dark: the black bottom of the shaft (fade
+//                                 target);  drop: point at the bottom
+//   wallSection(kind, { breakable: true })
+//                        intact   the whole breakable wall, one Object3D (hide it on break)
+//                        debris   hidden Group of chunk_<i>_<module> meshes, each with its origin on the chunk centroid,
+//                                 posed exactly where it sat in the wall. On break: show, give each chunk a velocity along
+//                                 (chunk.position - hit) with some up, gravity and spin, then fade or leave on the ground
+//                        remains  hidden Group: the stumps / low rubble left standing (show on break, and at load for
+//                                 walls already opened in an earlier raid)
+//                        The warm X is in the emissive material, so the mark reads the same in sun and in shade.
+//   door()               leaf     the vine door leaf (with its vines and glowing keyhole): hinge on the -x jamb, axis y.
+//                                 Closed 0, open = DOOR_OPEN (-1.6).  keyhole: point in front of the keyhole
+//   vault()              crate    point on the strongbox plinth;  light0 / light1: wall torches
+//   fusebox()            lever    pivot on its axle, axis x: up = 0, pulled = rotation.x 1.1;  spark: point at the crossed wires
+//   statue()             glint    point at the statue's shades
+//   ferry()              smoke    point on top of the funnel. (The stern is open: build the breakable boards with
+//                                 wallSection("hull", { length: 5, breakable: true }) on WALLS hull-boards.)
+//   bomber()             prop_l / prop_r   propellers, origin on the hub, spin axis x;  loot: point beside the fuselage
+//   vat()                puddle   the amber spill (a flat mesh at y 0.03, its own node so gameplay can scale or fade it);
+//                                 pour: point where the molasses leaves the tank
+//   falls()              water    the falling sheet, already on waterMaterial() (scroll / wobble it);  foam: point at the
+//                                 splash;  nook: point inside the hidden nook
+//   bottle()             note     point for the "read the note" prompt
+//   zipline(a, b)        handle   trolley + grip: move it from parts.a to parts.b (cable anchors, world space). The rider's
+//                                 root runs from parts.from to parts.to (ZIP_HANG below the cable).  tower_start / end_land:
+//                                 points on the two platforms
+//   raft()               flag     pivot on the mast, axis y: yaw it into the wind / wobble.  board: point to stand on
+//   hatch()              lid      hinge at the back of the collar, axis x: closed 0, open = rotation.x -1.9
+//                        scope    periscope head, axis y (turn it to watch the player);  enter: point over the shaft
+//   supplyDrop()         smoke    point: red smoke emitter;  crate: the gold crate (its lid is parts.lid, as in crate())
+//   portal(kind)         dark     the black opening (fade target);  enter: point in front of it. "camp-well" is well().
+//   bunkerRoom()         mag | pack | heart | neon   the four upgrade fixtures: hidden Groups, set .visible when bought
+//                        bulbs    the string lights (one emissive node: flicker by scale or visibility)
+//                        bell     the fence's counter bell (ding: scale pulse);  glass: the mirror pane (swap in a
+//                                 reflective material if wanted);  slot0..8: trophy positions on the shelf
+//                        counter / read / stand / climb / sal / spawn: points for prompts and actors
+//                        workbench_light / desk_light / ladder_light / string_light0..7: points for PointLights
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import type { KitPiece, MatId, CrateTier } from "../contracts";

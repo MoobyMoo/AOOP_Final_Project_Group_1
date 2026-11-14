@@ -81,7 +81,7 @@ def room(name, seed):
         ns = abs(d.x) > 0.5                                  # the north wall owns the corner: the east wall butts into it
         g.beam(Vector((m0.x, m0.y, 1.85 if ns else 1.84)), Vector((m1.x, m1.y, 1.85 if ns else 1.84)), 1.0, 3.9 if ns else 3.88, pick(r, EARTH), b=0.1, ext=0.5 if ns else -0.3, jit=0.03, grad=(0.9, 1.0))
         g.beam(Vector((m0.x, m0.y, 3.9 if ns else 3.89)), Vector((m1.x, m1.y, 3.9 if ns else 3.89)), 1.06, 0.26 if ns else 0.24, SAND, b=0.08, ext=0.53 if ns else -0.3, jit=0.02)
-    lined_wall((-8.1, 5.1), (8.1, 5.1), [0.1, 2.1, 4.1, 6.1, 8.1, 10.1, 12.1, 14.1, 16.1])
+    lined_wall((-8.1, 5.1), (8.1, 5.1), [0.1, 2.1, 6.1, 8.1, 10.1, 12.1, 14.1, 16.1])      # no post at x = -4: the fence's window is there
     lined_wall((8.1, 5.1), (8.1, -5.1), [0.5, 2.8, 5.2, 7.6, 10.0])
     # ---- cut-away south and west walls: a low section showing boards, earth and sand
     for (p0, p1) in (((-8.1, -5.1), (8.1, -5.1)), ((-8.1, -5.1), (-8.1, 5.1))):
@@ -195,8 +195,8 @@ def workbench(name, seed, x=0.5, y=4.4):
             g.cyl(0.03, 0.12, (0.42 + i * 0.08, 0.14, 1.04), col=GOLD, n=6, b=0.008, hl=1.2)
         g.lathe([(0.09, 0), (0.1, 0.14), (0.03, 0.2), (0.02, 0.32), (0.0, 0.32)], (1.1, 0.2, 1.04), col=RED, n=8)
         # pegboard + tools
-        g.box(2.3, 0.07, 1.25, (-0.1, 0.62, 1.25), col="#b89a6a", b=0.02, jit=0.03)
-        P = lambda px, pz, poly, col, rz=0, dy=0.0: g.emit(p_prism(poly, 0.06), col, T(px, 0.58 - dy, pz, 90, 0, 0) @ T(rz=rz), jit=0.03)
+        g.box(2.3, 0.07, 1.25, (-0.1, 0.442, 1.25), col="#b89a6a", b=0.02, jit=0.03)
+        P = lambda px, pz, poly, col, rz=0, dy=0.0: g.emit(p_prism(poly, 0.06), col, T(px, 0.39 - dy, pz, 90, 0, 0) @ T(rz=rz), jit=0.03)
         P(-0.95, 1.9, [(-0.2, 0.08), (0.2, 0.08), (0.2, 0.3), (-0.2, 0.3)], STEEL)          # hammer
         P(-0.95, 1.6, [(-0.05, -0.3), (0.05, -0.3), (0.05, 0.4), (-0.05, 0.4)], WOOD_D[0], 0, 0.006)
         P(-0.45, 1.85, [(-0.05, -0.42), (0.05, -0.42), (0.05, 0.1), (0.16, 0.16), (0.16, 0.34), (0.06, 0.26), (-0.06, 0.26), (-0.16, 0.34), (-0.16, 0.16), (-0.05, 0.1)], STEEL_L)   # wrench
@@ -216,7 +216,7 @@ def workbench(name, seed, x=0.5, y=4.4):
     return a
 
 
-def pinboard(name, seed, x=4.6, y=5.01):
+def pinboard(name, seed, x=4.6, y=4.81):
     a = A(name, seed, footprint=0.3)
     g, r = a.mesh(), a.rng
     with g.at(T(x, y, 0)):
@@ -281,14 +281,13 @@ def bunker_ladder(name, seed, x=0.0, y=-4.7):
     """ladder to the hatch: rises into a steel shaft collar with daylight in it"""
     a = A(name, seed, footprint=0.5, tall=True, glow=2.0)
     g, r = a.mesh(), a.rng
-    ladder(g, (x, y + 0.35, 0), (x, y, 4.3), 0.7, 0.4, col=WOOD[1], r=0.055, rr=0.04)
+    ladder(g, (x, y + 0.35, 0), (x, y, 4.42), 0.7, 0.4, col=WOOD[1], r=0.055, rr=0.04)
     # the shaft: a cut section of steel pipe behind the ladder, open toward the camera, daylight inside
     g.emit(p_lathe([(0.78, 3.0), (0.86, 3.05), (0.86, 4.45), (0.78, 4.5), (0.72, 4.45), (0.72, 3.05)], 12, cap0=False, cap1=False, arc=180), STEEL_D, T(x, y + 0.1, 0), smooth=50)
     for k in range(5):
         ang = radians(18 + k * 36)
         g.emit(p_sphere(0.05, 5, 2, z0=0, z1=1), STEEL_L, along((x + cos(ang) * 0.86, y + 0.1 + sin(ang) * 0.86, 3.3), (x + cos(ang) * 3, y + 0.1 + sin(ang) * 3, 3.3)))
-    em = a.mesh("emissive")
-    em.emit(p_lathe([(0.707, 4.4), (0.707, 3.1)], 12, cap0=False, cap1=False, arc=180), lambda c, tg: mix("#fff3c8", "#c9a868", max(0.0, (4.4 - c.z) / 1.3)), T(x, y + 0.1, 0), jit=0, smooth=80)
+    g.emit(p_lathe([(0.707, 4.4), (0.707, 3.1)], 12, cap0=False, cap1=False, arc=180), lambda c, tg: mix("#d9b877", "#7a6248", max(0.0, (4.4 - c.z) / 1.3)), T(x, y + 0.1, 0), jit=0, smooth=80)
     g.box(1.0, 0.7, 0.04, (x, y + 0.9, 0.0), col="#6b7a4f", b=0.012)       # mat
     a.point("light", (x, y, 3.9))
     a.point("climb", (x, y + 0.7, 0))
@@ -391,7 +390,7 @@ def string_lights(name, seed):
 
 
 # ------------------------------------------------------------------ the four upgrade fixtures
-def fx_gun_rack(name, seed, x=2.6, y=5.03, z=1.75):
+def fx_gun_rack(name, seed, x=2.6, y=4.85, z=1.75):
     """Extended Mag: a gun rack on the back wall"""
     a = A(name, seed, True, footprint=0.2)
     g, r = a.mesh(), a.rng
@@ -413,7 +412,7 @@ def fx_gun_rack(name, seed, x=2.6, y=5.03, z=1.75):
     return a
 
 
-def fx_pack_hook(name, seed, x=-2.0, y=4.84, z=2.3):
+def fx_pack_hook(name, seed, x=-2.0, y=4.66, z=2.3):
     """Bigger Pack: a big backpack hanging on a hook"""
     a = A(name, seed, True, footprint=0.2)
     g, r = a.mesh(), a.rng
@@ -465,7 +464,7 @@ def fx_breakfast(name, seed, x=4.8, y=-2.4):
     return a
 
 
-def fx_neon(name, seed, x=-1.6, y=5.0, z=3.05):
+def fx_neon(name, seed, x=-1.6, y=4.83, z=3.05):
     """BANANA BANK in neon tube on a dark board (reward for Sal's job)"""
     a = A(name, seed, True, footprint=0.2, glow=2.6)
     g = a.mesh()

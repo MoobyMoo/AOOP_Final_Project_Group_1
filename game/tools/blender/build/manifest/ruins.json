@@ -1,6 +1,6 @@
 {
  "group": "ruins",
- "glb_bytes": 1117632,
+ "glb_bytes": 1009404,
  "assets": {
   "ruin_floor_a": {
    "tris": 728,
@@ -107,7 +107,7 @@
    "glow": 1.6
   },
   "vault": {
-   "tris": 10328,
+   "tris": 7876,
    "parts": [],
    "points": [
     "crate",

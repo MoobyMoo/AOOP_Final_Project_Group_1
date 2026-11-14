@@ -579,4 +579,4 @@ def build():
     lemon_stand("lemon_stand", 88)
 
 
-REVIEW = dict(cols=3, cell=14, dist=64)
+REVIEW = dict(cols=4, cell=13, dist=84, focus=(0, 0, 0.6))
