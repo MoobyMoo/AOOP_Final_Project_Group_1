@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <title>Bananaville: feel test v5a</title>
+    <link rel="stylesheet" href="/src/hud.css" />
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div id="hud">
+      <div class="top"><div class="pill money"><span class="bill"></span><b id="wallet">$0</b></div>
+        <div class="goal"><span id="goaltext">Next</span><div class="goalbar"><div id="goalfill"></div></div></div></div>
+      <div class="help">Move: WASD / arrows, or drag anywhere. Everything else happens by walking into it.</div>
+      <div id="toasts"></div>
+    </div>
+    <div id="joy"><div id="knob"></div></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

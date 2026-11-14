@@ -1,0 +1,7 @@
+node_modules/
+dist/
+playlogs/
+research/look/refs/raw/
+research/refs/**/*.mp4
+spikes/**/*.png
+.playwright-mcp/
