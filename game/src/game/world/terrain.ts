@@ -7,7 +7,7 @@ import { fbm } from "./noise";
 import { patch } from "../render/shading";
 
 export const GROUND_C: Record<Ground | "jungle" | "wet", THREE.Color> = {
-  grass: new THREE.Color("#86a64e"), sand: new THREE.Color("#ecd39c"), dirt: new THREE.Color("#d9ae74"), stone: new THREE.Color("#c4ab84"),
+  grass: new THREE.Color("#86a64e"), sand: new THREE.Color("#dcc08a"), dirt: new THREE.Color("#d9ae74"), stone: new THREE.Color("#c4ab84"),
   cave: new THREE.Color("#6f6458"), plank: new THREE.Color("#a98a5c"), jungle: new THREE.Color("#5e7d3e"), wet: new THREE.Color("#b89c6a"),
 };
 const G2 = { grassDry: new THREE.Color("#9aa85c"), grassMoist: new THREE.Color("#6f8a48"), worn: new THREE.Color("#a99262"), dirtD: new THREE.Color("#c99a62") };

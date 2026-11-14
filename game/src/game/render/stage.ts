@@ -32,7 +32,7 @@ export class Stage {
     this.sun = new THREE.DirectionalLight("#ffe0b0", Number(QS.get("sun") ?? 7.0));
     const sh = this.sun.shadow; this.sun.castShadow = true; sh.mapSize.set(4096, 4096); sh.radius = 3; sh.bias = -0.0004; sh.normalBias = 0.03;
     Object.assign(sh.camera, { left: -24, right: 24, top: 24, bottom: -24, near: 1, far: 100 });
-    this.sunDir = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - Number(QS.get("sunel") ?? 35)), THREE.MathUtils.degToRad(Number(QS.get("sunaz") ?? 160)));
+    this.sunDir = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - Number(QS.get("sunel") ?? 50)), THREE.MathUtils.degToRad(Number(QS.get("sunaz") ?? 160)));
     this.hemi = new THREE.HemisphereLight("#a9c4ff", "#4a3e2e", Number(QS.get("fill") ?? 0.9));
     s.add(this.sun, this.sun.target, this.hemi);
     this.composer = new EffectComposer(r, { frameBufferType: THREE.HalfFloatType });

@@ -19,6 +19,7 @@ import { hud } from "../ui/hud";
 import { initFx, updateFx } from "../../fx";
 import { U } from "../render/shading";
 import { updateCutout } from "../render/cutout";
+import { buildMinimap, updateMinimap } from "../ui/mapview";
 
 export const raidScene = new THREE.Scene();
 let built = false;
@@ -57,7 +58,7 @@ export function startRaid(end: (r: RaidResult) => void) {
   G.lootCtx = { raid: G.save.raids, cratesOpened: 0, usefulFound: 0, emptyStreak: 0, ammoFound: 0, orderNeeds: G.save.order && !G.save.order.done ? Object.keys(G.save.order.progress) : [] };
   spawnEnemies(G.save.raids % 2); setupCrates();
   for (const c of raidScene.children) if (!before.has(c)) c.userData.perRaid = true;
-  hud.build(); startInteractions(); bonkT = 0;
+  hud.build(); buildMinimap(); startInteractions(); bonkT = 0;
   setOnExtract((id, bonus) => finish(id, bonus));
   G.stage.focus.copy(G.pp); focus.copy(G.pp);
   hud.banner("Banana Grove", G.save.raids === 0 ? "find loot, bonk bandits, get home with it" : `raid ${G.save.raids + 1}`);
@@ -85,7 +86,7 @@ export function renderRaid(dt: number) {
   G.rig.root.rotation.y = G.moveYaw;
   G.rig.pose({ time: G.time, speed: G.vel.length(), moveYaw: G.moveYaw, faceYaw: action === "roll" ? G.moveYaw : G.aimYaw, action, actionT: at, armed: G.meleeT >= 0 ? "briefcase" : "pistol", flash: G.iframes > 0.25 ? 1 : 0 });
   G.gun.pose({ fireT: Math.min(1, G.fireT), reloadT: G.reloadT });
-  G.fx.update(dt); updateFx(dt); hud.update(dt);
+  G.fx.update(dt); updateFx(dt); hud.update(dt); updateMinimap();
   U.uTime.value = G.time; U.uPlayer.value.copy(G.pp);
   // camera: damped follow + a small lead toward the aim point (CODE_FINDINGS 8.1: aim lookahead, kept modest, rule 19)
   const lead = G.aimPoint.clone().sub(G.pp).setY(0); const L = Math.min(lead.length(), 10); lead.setLength(L * 0.22);

@@ -61,3 +61,42 @@ function open() {
   });
   void POI;
 }
+
+// ---------------------------------------------------------------- corner minimap (camera-up, like the game view)
+let mini: HTMLDivElement | null = null, miniImg: HTMLDivElement | null = null, miniFog: HTMLCanvasElement | null = null, fogKey = "";
+const MINI_PX = 190, MINI_RANGE = 38; // world units across the circle
+export function buildMinimap() {
+  if (!over) return; mini?.remove();
+  mini = document.createElement("div"); mini.className = "minimap";
+  mini.innerHTML = `<div class="mm-rot"><div class="mm-img"></div><canvas class="mm-fog"></canvas><div class="mm-icons"></div></div><b class="mm-me">▲</b><i class="mm-n">N</i>`;
+  document.getElementById("ui")!.appendChild(mini);
+  miniImg = mini.querySelector(".mm-img") as HTMLDivElement; miniFog = mini.querySelector(".mm-fog") as HTMLCanvasElement; fogKey = "";
+}
+export function updateMinimap() {
+  if (!mini || !over || !miniImg || !miniFog) return;
+  const isUnder = G.pp.x > 90, shot = isUnder ? under : over; if (!shot) return;
+  const W = shot.maxX - shot.minX, H = shot.maxZ - shot.minZ, scale = MINI_PX / MINI_RANGE; // px per world unit
+  const rot = mini.querySelector(".mm-rot") as HTMLDivElement;
+  // the camera looks along yaw; screen-up is world direction -(sin yaw, cos yaw); rotate the north-up image so that is up
+  rot.style.transform = `rotate(${(G.stage.cam.yaw * 180) / Math.PI}deg)`;
+  const ox = (G.pp.x - shot.minX) * scale, oz = (G.pp.z - shot.minZ) * scale;
+  for (const el of [miniImg, miniFog]) { el.style.width = W * scale + "px"; el.style.height = H * scale + "px"; el.style.left = MINI_PX / 2 - ox + "px"; el.style.top = MINI_PX / 2 - oz + "px"; }
+  miniImg.style.backgroundImage = `url(${shot.url})`;
+  const key = (isUnder ? "u" : "o") + [...G.discovered].join(",");
+  if (key !== fogKey) { fogKey = key; drawFog(miniFog, shot); }
+  // nearby icons: exits, the door, pins
+  const icons = [...exits.filter((e) => e.open).map((e) => ({ x: e.x, z: e.z, i: e.id === "raft" ? "🛶" : e.id === "tunnel" ? "🕳️" : "🏠" })), { x: DOOR.x, z: DOOR.z, i: gridState.doorOpen ? "🚪" : "🔒" }, ...pins.map((q) => ({ x: q.x, z: q.z, i: "📍" }))]
+    .filter((o) => (o.x > 90) === isUnder && Math.hypot(o.x - G.pp.x, o.z - G.pp.z) < MINI_RANGE * 0.7);
+  (mini.querySelector(".mm-icons") as HTMLDivElement).innerHTML = icons.map((o) => `<em style="left:${MINI_PX / 2 + (o.x - G.pp.x) * scale}px;top:${MINI_PX / 2 + (o.z - G.pp.z) * scale}px;transform:translate(-50%,-50%) rotate(${(-G.stage.cam.yaw * 180) / Math.PI}deg)">${o.i}</em>`).join("");
+  (mini.querySelector(".mm-me") as HTMLElement).style.transform = `translate(-50%,-50%) rotate(${((G.stage.cam.yaw - G.moveYaw + Math.PI) * 180) / Math.PI}deg)`;
+  (mini.querySelector(".mm-n") as HTMLElement).style.transform = `rotate(${(G.stage.cam.yaw * 180) / Math.PI}deg) translateY(-${MINI_PX / 2 - 10}px) rotate(${(-G.stage.cam.yaw * 180) / Math.PI}deg)`;
+}
+function drawFog(c: HTMLCanvasElement, s: Shot) {
+  c.width = 240; c.height = Math.round(240 * (s.maxZ - s.minZ) / (s.maxX - s.minX)); const x = c.getContext("2d")!;
+  x.fillStyle = "rgba(26,22,18,0.9)"; x.fillRect(0, 0, c.width, c.height); x.globalCompositeOperation = "destination-out";
+  for (const a of CLEARINGS) if (G.discovered.has(a.id) && (a.under ?? false) === (s === under)) {
+    const p = pos(s, a.x, a.z), rx = (a.rx * 1.8 / (s.maxX - s.minX)) * c.width, rz = (a.rz * 1.8 / (s.maxZ - s.minZ)) * c.height;
+    const g = x.createRadialGradient(0, 0, 0, 0, 0, 1); g.addColorStop(0.55, "rgba(0,0,0,1)"); g.addColorStop(1, "rgba(0,0,0,0)");
+    x.save(); x.translate((p.l / 100) * c.width, (p.t / 100) * c.height); x.scale(rx, rz); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 1, 0, 7); x.fill(); x.restore();
+  }
+}

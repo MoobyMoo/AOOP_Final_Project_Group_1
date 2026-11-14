@@ -96,3 +96,11 @@ canvas{display:block;width:100vw;height:100vh;cursor:none}
 .mimg .ico{position:absolute;transform:translate(-50%,-50%);font-style:normal;font-size:18px;pointer-events:none}
 .mimg .me{position:absolute;color:#ffd84a;font-size:20px;text-shadow:0 0 4px #000;pointer-events:none}
 .mfoot{margin-top:10px;font-size:13px;opacity:.75}
+.minimap{position:absolute;top:62px;right:18px;width:190px;height:190px;border-radius:50%;overflow:hidden;border:3px solid #ffd84a99;background:#1a1612;box-shadow:0 6px 18px #0007}
+.minimap .mm-rot{position:absolute;inset:0;transform-origin:50% 50%}
+.minimap .mm-img{position:absolute;background-size:100% 100%;filter:saturate(.95) brightness(1.05)}
+.minimap .mm-fog{position:absolute}
+.minimap .mm-icons em{position:absolute;font-style:normal;font-size:15px}
+.minimap .mm-me{position:absolute;left:50%;top:50%;color:#ffd84a;font-size:16px;text-shadow:0 0 3px #000}
+.minimap .mm-n{position:absolute;left:50%;top:50%;margin:-8px 0 0 -5px;font-style:normal;font-size:12px;font-weight:bold;color:#fff3c4}
+.hud-raidt{top:262px!important;right:18px;left:auto!important;text-align:right}
