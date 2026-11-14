@@ -15,6 +15,7 @@ export class Stage {
   renderPass: RenderPass;
   sun: THREE.DirectionalLight;
   hemi: THREE.HemisphereLight;
+  bounce: THREE.DirectionalLight;
   sunDir: THREE.Vector3;
   focus = new THREE.Vector3();
   cam = { pitch: THREE.MathUtils.degToRad(Number(QS.get("pitch") ?? 55)), yaw: THREE.MathUtils.degToRad(Number(QS.get("yaw") ?? -30)), dist: Number(QS.get("dist") ?? 40) };
@@ -34,7 +35,12 @@ export class Stage {
     Object.assign(sh.camera, { left: -24, right: 24, top: 24, bottom: -24, near: 1, far: 100 });
     this.sunDir = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - Number(QS.get("sunel") ?? 50)), THREE.MathUtils.degToRad(Number(QS.get("sunaz") ?? 160)));
     this.hemi = new THREE.HemisphereLight("#a9c4ff", "#4a3e2e", Number(QS.get("fill") ?? 0.9));
-    s.add(this.sun, this.sun.target, this.hemi);
+    // warm bounce from the camera side: the sun sits behind the scene (long shadows toward the camera), so every
+    // camera-facing wall was lit by the hemisphere alone (~0.3 sRGB; flagged by the structures and house kits).
+    // No shadows; Duckov-style soft "plastic" fill rather than a second sun.
+    this.bounce = new THREE.DirectionalLight("#ffd8b0", Number(QS.get("bounce") ?? 1.6));
+    this.bounce.position.setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - 28), THREE.MathUtils.degToRad(Number(QS.get("sunaz") ?? 160) - 180));
+    s.add(this.sun, this.sun.target, this.hemi, this.bounce);
     this.composer = new EffectComposer(r, { frameBufferType: THREE.HalfFloatType });
     this.renderPass = new RenderPass(s, this.camera); this.composer.addPass(this.renderPass);
     this.composer.addPass(new EffectPass(this.camera, new BloomEffect({ mipmapBlur: true, luminanceThreshold: 0.95, intensity: 0.4 }), new VignetteEffect({ offset: 0.42, darkness: 0.28 }), new SMAAEffect()));
@@ -42,7 +48,7 @@ export class Stage {
   }
   /** switch the rendered scene; the sun and fill move with it */
   setScene(s: THREE.Scene, fog = true) {
-    s.add(this.sun, this.sun.target, this.hemi);
+    s.add(this.sun, this.sun.target, this.hemi, this.bounce);
     if (!s.background) s.background = (this.scene.background as THREE.Color)?.clone() ?? new THREE.Color("#d9cfa8");
     if (fog && !s.fog && this.scene.fog) s.fog = (this.scene.fog as THREE.Fog).clone();
     this.scene = s; this.renderPass.mainScene = s;

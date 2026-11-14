@@ -102,7 +102,7 @@ function occludes(h: House, cam: THREE.Vector3, pt: THREE.Vector3) {
 }
 /** how dark the daylight is right now (0 = outside, 1 = deep inside a room) */
 export let darkK = 0;
-let base: { sun: number; hemi: number } | null = null;
+let base: { sun: number; hemi: number; bounce: number } | null = null;
 const chest = new THREE.Vector3();
 /** start of a raid: doors as authored, cracked walls whole again unless the save keeps them open */
 export function resetHouses() {
@@ -121,7 +121,7 @@ const dq = new THREE.Quaternion(), ev = new THREE.Euler();
 const ease = (v: { value: number }, to: number, dt: number) => { v.value += (to - v.value) * Math.min(1, dt * 7); if (Math.abs(to - v.value) < 0.01) v.value = to; };
 /** per render frame: roof/wall fade, dark-room tint, door swing, flying debris */
 export function updateHouses(dt: number, under = false) {
-  const st = G.stage; base ??= { sun: st.sun.intensity, hemi: st.hemi.intensity };
+  const st = G.stage; base ??= { sun: st.sun.intensity, hemi: st.hemi.intensity, bounce: st.bounce.intensity };
   chest.copy(G.pp).setY(G.pp.y + 1.1);
   let inside = false;
   for (const h of houses) {
@@ -143,7 +143,7 @@ export function updateHouses(dt: number, under = false) {
     }
   }
   darkK += ((under ? 1.45 : inside ? 1 : 0) - darkK) * Math.min(1, dt * 4); // the grotto is darker still: only its lamps and the cave mouth light it
-  st.sun.intensity = base.sun * (1 - 0.5 * darkK); st.hemi.intensity = base.hemi * (1 - 0.3 * darkK);
+  st.sun.intensity = base.sun * (1 - 0.5 * darkK); st.hemi.intensity = base.hemi * (1 - 0.3 * darkK); st.bounce.intensity = base.bounce * (1 - 0.5 * darkK);
 }
 const doorOf = (gateId: string) => { for (const h of houses) for (const d of h.doors) if (d.gateId === gateId) return d; return null; };
 const hasKey = (id: string) => G.pack.includes(id) || G.save.keys.includes(id);

@@ -91,14 +91,14 @@ const pp = new THREE.Vector3(), vel = new THREE.Vector3(); let face = Math.PI;
 export function enterBunker(deploy: () => void, mirror: () => void, summary?: string) {
   onDeploy = deploy; onMirror = mirror; buildRoom(); refreshFixtures();
   G.scene = "bunker"; G.stage.setScene(bunkerScene, false); bunkerScene.fog = null; initFx(bunkerScene, G.stage.camera);
-  G.stage.hemi.intensity = 1.4; G.stage.sun.intensity = 2.5;
+  G.stage.hemi.intensity = 1.4; G.stage.sun.intensity = 2.5; G.stage.bounce.intensity = 0.5;
   if (!G.rig) { G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(bunkerScene); G.rig.sockets.handR.add(G.gun.root); }
   G.rig.setLook?.(G.save.look); G.gear = { ...G.save.gear }; G.rig.setGear?.(G.save.gear); G.pack = []; bunkerScene.add(G.rig.root); G.gun.root.visible = false; // holstered at home (the raid shows it each frame)
   pp.set(0, 0, 2.4); vel.set(0, 0, 0); G.rig.root.position.copy(pp);
   const ui = document.getElementById("ui")!; ui.innerHTML = `<div class="home-top"><div class="place"><b>The Bunker</b><span>Under Exile Beach</span></div><span class="home-money">🍌 <b>${G.save.money}</b></span></div><div class="hud-prompt" id="hp"></div><div class="home-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk &nbsp;<kbd>E</kbd> use a station</div>`;
   if (summary) showPanel(summary, "result");
 }
-export function leaveBunker() { closePanel(); G.stage.hemi.intensity = Number(new URLSearchParams(location.search).get("fill") ?? 0.9); G.stage.sun.intensity = 7; }
+export function leaveBunker() { closePanel(); G.stage.hemi.intensity = Number(new URLSearchParams(location.search).get("fill") ?? 0.9); G.stage.sun.intensity = 7; G.stage.bounce.intensity = Number(new URLSearchParams(location.search).get("bounce") ?? 1.6); }
 function money() { const el = document.querySelector(".home-money b"); if (el) el.textContent = String(G.save.money); }
 function showPanel(html: string, cls = "") { closePanel(); panel = document.createElement("div"); panel.className = "panel " + cls; panel.innerHTML = html + `<div class="foot"><kbd>E</kbd> or <kbd>Esc</kbd> to close</div>`; document.getElementById("ui")!.appendChild(panel); panel.style.pointerEvents = "auto"; panel.querySelectorAll<HTMLButtonElement>("button[data-a]").forEach((b) => b.onclick = () => act(b.dataset.a!)); }
 function closePanel() { panel?.remove(); panel = null; }
