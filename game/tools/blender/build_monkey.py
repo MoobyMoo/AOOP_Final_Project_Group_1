@@ -99,18 +99,32 @@ for st in ("round", "pointy", "floppy"):
     assemble("ears_" + st, [(P.ear(st).both(), 0, P.w_ear), (inner.both(), 0, P.w_ear)])
 
 # ---------------------------------------------------------------- bodies
-for kind in ("suit", "fur", "tee"):
-    t_ob = C.build("_torso", P.torso(kind), 1)
+for kind in ("suit", "vest", "fur", "tee"):
+    tk = "suit" if kind == "vest" else kind                   # the vest shares the jacket torso, with shirt sleeves
+    t_ob = C.build("_torso", P.torso(tk), 1)
     surfT = C.Surf(C.bvh_of([t_ob]))
     bpy.data.objects.remove(t_ob)
-    pieces = [(P.torso(kind), 1, P.w_torso), (P.arm(kind).both(), 1, w_arm), (P.leg(kind).both(), 1, w_leg)]
+    pieces = [(P.torso(tk), 1, P.w_torso), (P.arm(kind).both(), 1, w_arm), (P.leg(tk).both(), 1, w_leg)]
     if kind == "suit":
-        pieces.append((P.suit_front(surfT), 0, P.w_torso))
+        for st in P.JACKETS:
+            assemble("front_" + st, [(P.front(surfT, st), 0, P.w_torso)])
         for st in ("tie", "bowtie"):
             assemble("tie_" + st, [(P.tie(surfT, st), 0, P.w_torso)])
+        assemble("square", [(P.square(surfT), 0, P.w_torso)])
     if kind == "fur":
         pieces.append((P.belly(surfT), 0, P.w_torso))
     assemble("torso_" + kind, pieces)
+# 'build' shape key (slim <- 0 -> chubby) on everything that sits on the torso
+for name, ob in PARTS.items():
+    if name.split("_")[0] not in ("torso", "front", "tie", "square"):
+        continue
+    piece = ob.data.attributes["piece"].data
+    kinds = {pid: ("arm" if fn is w_arm else "leg" if fn is w_leg else "torso") for pid, fn in WFN.items()}
+    sk0 = ob.data.shape_keys or ob.shape_key_add(name="Basis", from_mix=False)
+    sk = ob.shape_key_add(name="build", from_mix=False)
+    for v in ob.data.vertices:
+        sk.data[v.index].co = P.build_morph(v.co, kinds[piece[v.index].value])
+    sk.value = 0
 hm = P.hand()
 n_fist = len(C.qsphere(4).v)
 fist, thumb = M(), M()
@@ -166,7 +180,7 @@ for name, ob in PARTS.items():
     C.skin_to(ob, arm)
 
 # ---------------------------------------------------------------- AO + colour channels
-DEFAULT = ["head", "ears_round", "eyes_round", "lids_round", "brows_bold", "mouth_smile", "torso_suit", "tie_tie", "hands", "feet_round", "tail"]
+DEFAULT = ["head", "ears_round", "eyes_round", "lids_round", "brows_bold", "mouth_smile", "torso_suit", "front_two", "tie_tie", "hands", "feet_round", "tail"]
 
 
 def slot(n):
@@ -175,8 +189,8 @@ def slot(n):
 
 for name, ob in PARTS.items():
     occ = [PARTS[d] for d in DEFAULT if slot(d) != slot(name)] + [ob]
-    if name.startswith("torso_") and name != "torso_suit":
-        occ = [o for o in occ if not o.name.startswith("tie_")]
+    if name in ("torso_fur", "torso_tee"):
+        occ = [o for o in occ if not o.name.startswith(("tie_", "front_"))]
     C.bake_ao([ob], occ, samples=24, strength=1.15)
     C.write_uv_and_col(ob)
 
@@ -224,3 +238,4 @@ bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, "build", "monkey.blend")
 out = os.path.join(ROOT, "public", "models", "monkey.glb")
 C.export_glb(out, [arm] + list(PARTS.values()))
 print("@@GLB", out, os.path.getsize(out))
+print("@@GAIT", json.dumps(MA.GAIT_LEN))

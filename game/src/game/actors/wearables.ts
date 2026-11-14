@@ -4,7 +4,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import type { Wearable, Gear } from "../contracts";
-import { charMaterial, prepGeometry, STATIC_PALETTE } from "./charmat";
+import { charMaterial, prepGeometry, STATIC_PALETTE, type Region } from "./charmat";
 
 export const WEARABLES: Wearable[] = [
   { id: "bowler", slot: "head", name: "Bowler Hat", rarity: "common" }, { id: "tophat", slot: "head", name: "Top Hat", rarity: "rare" },
@@ -18,6 +18,15 @@ export const WEARABLES: Wearable[] = [
   { id: "satchel", slot: "back", name: "Satchel", rarity: "common" }, { id: "bigpack", slot: "back", name: "Big Backpack", rarity: "uncommon" }, { id: "cratepack", slot: "back", name: "Banana Crate Pack", rarity: "rare" },
 ];
 export const DEFAULT_GEAR: Gear = { head: "bowler", face: "shades", back: "satchel" };
+/** recolourable zones of each wearable: main + accent map to palette regions (creator: LookExt.gear[slot].main / .accent) */
+export const WEAR_ZONES: Record<string, { main: Region; accent?: Region }> = {
+  bowler: { main: "hat", accent: "band" }, tophat: { main: "hat", accent: "red" }, fedora: { main: "khaki", accent: "dark" }, cap: { main: "blue", accent: "banana" },
+  hardhat: { main: "yellow" }, pith: { main: "khaki", accent: "leather" }, beanie: { main: "green", accent: "pink" }, crown: { main: "gold", accent: "red" },
+  shades: { main: "hat", accent: "lens" }, aviators: { main: "gold", accent: "green" }, monocle: { main: "gold", accent: "glass" }, eyepatch: { main: "dark" },
+  goggles: { main: "white", accent: "band" }, heartglasses: { main: "red", accent: "pink" }, banditmask: { main: "dark" },
+  satchel: { main: "leather", accent: "leather2" }, bigpack: { main: "green", accent: "khaki" }, cratepack: { main: "wood", accent: "banana" },
+  prop_bandana: { main: "red", accent: "white" }, prop_sack: { main: "prop", accent: "prop2" },
+};
 export const wearable = (id: string | null) => WEARABLES.find((w) => w.id === id);
 
 type Tmpl = { geo: THREE.BufferGeometry; gloss: boolean }[];

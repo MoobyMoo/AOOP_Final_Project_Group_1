@@ -306,11 +306,11 @@ def walk(t):
     sp = {}
     for s, sx, ph in (("L", 1, p), ("R", -1, p + math.pi)):
         sw = max(0.0, -S_(ph))                      # fist swing
-        sp["hand_" + s] = (sx * WR[0], WR[1] + 0.32 * C_(ph), WR[2] + 0.34 * sw ** 0.8)
+        sp["hand_" + s] = (sx * WR[0], WR[1] - 0.1 + 0.45 * C_(ph), WR[2] + 0.36 * sw ** 0.8)
         ph2 = ph + math.pi                          # opposite foot moves with this fist
         sw2 = max(0.0, -S_(ph2))
         k = "R" if s == "L" else "L"
-        sp["foot_" + k] = (-sx * AN[0], AN[1] + 0.26 * C_(ph2), AN[2] + 0.2 * sw2 ** 0.8)
+        sp["foot_" + k] = (-sx * AN[0], AN[1] + 0.4 * C_(ph2), AN[2] + 0.22 * sw2 ** 0.8)
         sp["foot_%s_rot" % k] = (18 * sw2 * (1 if C_(ph2) < 0 else -0.5), 0)
         sp["shoulder_" + s] = (6 * sw, 8 * C_(ph))
     sp.update({"hips": (0.05 * S_(p), 0, -0.03 + 0.05 * abs(S_(p + 0.3))), "hips_rot": (2, 4 * S_(p), 4 * S_(p)), "spine": (2, -3 * S_(p), -3 * S_(p)),

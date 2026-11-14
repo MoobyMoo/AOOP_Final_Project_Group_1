@@ -49,7 +49,7 @@ const armed = (QS.get("armed") ?? (kind === "player" ? (action === "melee" ? "br
 let focus = new THREE.Vector3(0, 1.0, 0);
 if (view === "lineup") {
   const gears: Gear[] = [{ ...DEFAULT_GEAR }, { head: "tophat", face: "monocle", back: "bigpack" }, { head: "fedora", face: "aviators", back: "cratepack" }, { head: "crown", face: "heartglasses", back: null }, { head: "hardhat", face: "goggles", back: "bigpack" }, { head: "pith", face: "eyepatch", back: "satchel" }];
-  LOOK_PRESETS.forEach((p, i) => add("player", 9.5 - i * 2.1, -2.2, { look: p.look, gear: gears[i % gears.length], yaw, armed: i === 0 ? "pistol" : "none" }));
+  LOOK_PRESETS.forEach((p, i) => add("player", 9.8 - i * 1.95, -2.2, { look: p.look, gear: gears[i % gears.length], yaw, armed: i === 0 ? "pistol" : "none" }));
   add("wild", 8.6, 1.2, { seed: 1, yaw }); add("wild", 6.6, 1.2, { seed: 2, yaw }); add("wild", 4.6, 1.2, { seed: 5, yaw });
   add("bandit", 2.2, 1.2, { seed: 1, yaw }); add("bandit", 0.2, 1.2, { seed: 4, yaw }); add("bandit", -1.8, 1.2, { seed: 7, yaw });
   if (QS.get("gorillas") !== "0") { add("brute", -5.2, 1.6, { seed: 2, yaw }); add("sleeper", -9.6, 1.8, { seed: 1, yaw }); }
@@ -68,10 +68,11 @@ if (view === "lineup") {
   } else { focus.y = 0.9; stage.cam.dist = num("dist", 40); }
 }
 
-const info = document.getElementById("info")!, fixed = QS.has("t"), loop = QS.get("loop") === "1", clock = new THREE.Clock();
+const info = document.getElementById("info")!, loop = QS.get("loop") === "1", clock = new THREE.Clock();
+let fixed = QS.has("t"), fixedT = num("t", 0);
 let shown = "";
 function frame() {
-  const dt = Math.min(clock.getDelta(), 0.1), now = fixed ? num("t", 0) : clock.elapsedTime;
+  const dt = Math.min(clock.getDelta(), 0.1), now = fixed ? fixedT : clock.elapsedTime;
   for (const a of actors) {
     const ci = CLIP_INFO[a.action], timed = ci && !ci.loop;
     let act = a.action, at = 0;
@@ -88,5 +89,5 @@ function frame() {
   if (txt !== shown) { shown = txt; info.textContent = QS.get("hud") === "0" ? "" : txt; }
   requestAnimationFrame(frame);
 }
-(window as unknown as { __rig: unknown }).__rig = { stats: () => actors.map((a) => rigStats(a.rig)), actors };
+(window as unknown as { __rig: unknown }).__rig = { stats: () => actors.map((a) => rigStats(a.rig)), actors, setT: (t: number) => { fixed = true; fixedT = t; } };
 requestAnimationFrame(frame);

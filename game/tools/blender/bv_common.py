@@ -17,19 +17,20 @@ from mathutils.bvhtree import BVHTree
 REGIONS = ["fur", "face", "suit", "pants", "tie", "feet", "shirt", "dark", "white", "pupil", "gold", "mouth",
            "tongue", "suit2", "stripeA", "stripeB", "sole", "prop", "prop2", "fur2", "skin", "metal", "red",
            "cloth", "chain", "mask", "hat", "band", "lens", "leather", "leather2", "banana", "green", "blue", "pink",
-           "yellow", "khaki", "wood", "wood2", "glass", "skin2", "vest", "vest2", "nail"]
+           "yellow", "khaki", "wood", "wood2", "glass", "skin2", "vest", "vest2", "nail", "ear", "square"]
 REG = {n: i for i, n in enumerate(REGIONS)}
 NREG = 48
 # preview palette (Blender turnarounds only; the game sets these from MonkeyLook)
 PALETTE = {
-    "fur": "#e07a32", "face": "#f6c896", "suit": "#3c5a8c", "pants": "#2c3550", "tie": "#ff8a2a", "feet": "#c4612a",
+    "fur": "#e07a32", "face": "#f6c896", "suit": "#4d4848", "pants": "#3a3838", "tie": "#f46a10", "feet": "#c4612a",
     "shirt": "#fff6e6", "dark": "#3a2420", "white": "#ffffff", "pupil": "#1c1416", "gold": "#e8b84a",
-    "mouth": "#5a1f24", "tongue": "#e8707a", "suit2": "#31497a", "stripeA": "#f3eadb", "stripeB": "#2f2a36",
+    "mouth": "#5a1f24", "tongue": "#e8707a", "suit2": "#403c3c", "stripeA": "#f3eadb", "stripeB": "#2f2a36",
     "sole": "#2a2024", "prop": "#a8875a", "prop2": "#6e5334", "fur2": "#b85e24", "skin": "#4a4652",
     "metal": "#c9ccd6", "red": "#d9493a", "cloth": "#3a3d4c", "chain": "#e8c860", "mask": "#7a4ea0",
-    "hat": "#2a2630", "band": "#ff8a2a", "lens": "#15131a", "leather": "#8a5a34", "leather2": "#6a4226", "banana": "#ffd84a",
+    "hat": "#343036", "band": "#f46a10", "lens": "#15131a", "leather": "#8a5a34", "leather2": "#6a4226", "banana": "#ffd84a",
     "green": "#5a9a4a", "blue": "#3a6ad1", "pink": "#ff6aa0", "yellow": "#ffc93a", "khaki": "#cdbd8c", "wood": "#b98a52",
     "wood2": "#8f6638", "glass": "#bfe6f2", "skin2": "#6a6674", "vest": "#4a4458", "vest2": "#d9d2c4", "nail": "#2c2a33",
+    "ear": "#f0a468", "square": "#f6f2ea",
 }
 
 

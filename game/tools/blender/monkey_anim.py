@@ -44,39 +44,59 @@ def idle(t):
     return sp
 
 
-def _gait(t, A, h, bob, lean, arm, twist, kick):
+def _gait(t, d, A, h, duty, bob, lean, arm, twist):
+    """directional gait, stride-matched: each foot is on the ground for `duty` of the cycle and travels 2A against
+    the move direction d = (x, forward) while planted, so one cycle covers 2A / duty (GAIT_LEN). The rest of the
+    cycle is flight: the body hops between contacts. Left foot lands at t = 0, right at t = 0.5."""
     p = t * TAU
+    dx, df = d
     sp = {}
-    for s, sx, ph in (("L", 1, p), ("R", -1, p + math.pi)):
-        c, sn = C(ph), S(ph)
-        swing_k = max(0.0, -sn)                    # 0 in stance, 0..1 through the swing
-        f = A * c
-        z = ANKLE[2] + h * swing_k ** 0.85 + kick * max(0.0, -sn) * max(0.0, -c)       # heel kick early in the swing
-        sp["foot_" + s] = (sx * (ANKLE[0] - 0.012), f - 0.02, z)
-        sp["foot_%s_rot" % s] = (38 * max(0.0, -sn) * max(0.0, -c) * (kick > 0) + 10 * max(0.0, -c) * (1 - swing_k) - 16 * max(0.0, c) * swing_k, 0)
-        sp["knee_" + s] = (0.1 * sx, 1, 0.25)
-        # arms swing against the legs
-        a = -c
-        sp["hand_" + s] = (sx * (0.40 + 0.03 * a), 0.05 + arm * a, 0.60 + 0.5 * arm * a + 0.05 * abs(a))
-        sp["hand_%s_dir" % s] = (sx * 0.1, 0.55 + 0.5 * a, -0.75 + 0.5 * a)
+    for s, sx, off in (("L", 1, 0.0), ("R", -1, 0.5)):
+        u = (t + off) % 1.0
+        if u < duty:                                     # planted: slides back under the body
+            k = u / duty
+            along, lift, pitch = A * (1 - 2 * k), 0.0, -10 + 26 * k
+        else:                                            # swing: lift, reach, come down
+            v = (u - duty) / (1 - duty)
+            e = v * v * (3 - 2 * v)
+            along, lift = -A + 2 * A * e, h * S(math.pi * v) ** 0.9
+            pitch = 34 * S(math.pi * v) * (1 - v) ** 1.5 - 14 * v * v
+        sp["foot_" + s] = (sx * (ANKLE[0] - 0.012) + dx * along, df * along - 0.01, ANKLE[2] + lift)
+        sp["foot_%s_rot" % s] = (pitch * (df if abs(df) > 0.3 else 0.4), 0)
+        sp["knee_" + s] = (0.1 * sx + 0.5 * dx, 1, 0.25)
+        a = -C((u - duty / 2) * TAU)                     # arms swing against the legs
+        sp["hand_" + s] = (sx * (0.40 + 0.03 * a + 0.05 * abs(dx)), 0.05 + arm * a * df, 0.60 + 0.5 * arm * a * abs(df) + 0.05 * abs(a) + 0.06 * abs(dx))
+        sp["hand_%s_dir" % s] = (sx * (0.1 + 0.3 * abs(dx)), 0.55 + 0.5 * a * df, -0.75 + 0.5 * a * abs(df))
         sp["hand_%s_up" % s] = (-sx * 0.3, 1, 0.3)
         sp["elbow_" + s] = (0.5 * sx, -1, -0.25)
-        sp["shoulder_" + s] = (3, 10 * a)
-    b2 = abs(S(p + 0.35))
-    sp.update({"hips": (0.012 * S(p), 0.0, -0.035 + bob * b2), "hips_rot": (lean, twist * S(p), 2.5 * S(p)),
-               "spine": (lean * 0.6, -twist * 0.6 * S(p), -1.5 * S(p)), "chest": (lean * 0.3, -twist * 1.1 * S(p), 0),
-               "neck": (-lean * 0.5, twist * 0.5 * S(p), 0), "head": (-lean * 0.9 + 2.5 * b2, twist * 0.6 * S(p), -1.5 * S(p)),
-               "ear_L": (-5 + 9 * S(2 * p + 0.9), -4), "ear_R": (-5 + 9 * S(2 * p + 0.9), -4),
-               "tail": tail(lambda i: (-7 + 6 * S(2 * p - i * 0.7) - lean * 0.3, (7 + 3 * i) * S(p - 0.6 - i * 0.6)))})
+        sp["shoulder_" + s] = (3 + 4 * abs(dx), 10 * a * df)
+    hop = -C(2 * TAU * (t - duty / 2))                  # -1 at each mid-stance, +1 mid-flight
+    sw = S(p - duty * math.pi)                            # which side carries the weight
+    sp.update({"hips": (0.014 * sw - 0.02 * dx, -0.01 * df, -0.055 + 0.5 * bob * hop), "hips_rot": (lean * df, twist * sw * df, 2.5 * sw + lean * 0.6 * dx),
+               "spine": (lean * 0.6 * df, -twist * 0.6 * sw * df, -1.5 * sw + lean * 0.3 * dx), "chest": (lean * 0.3 * df, -twist * 1.1 * sw * df, 0),
+               "neck": (-lean * 0.5 * df - 2.5 * hop, twist * 0.5 * sw * df, 0), "head": (-lean * 0.8 * df - 4.5 * hop, twist * 0.6 * sw * df, -1.5 * sw - lean * 0.5 * dx),
+               "ear_L": (-4 - 9 * hop, -4 * df), "ear_R": (-4 - 9 * hop, -4 * df),
+               "tail": tail(lambda i: (-5 * df + 5 * S(2 * p - i * 0.7), (5 + 2 * i) * S(p - 0.6 - i * 0.6) - 9 * dx))})
     return sp
 
 
-def run(t):
-    return _gait(t, 0.21, 0.17, 0.085, 13, 0.2, 9, 0.1)
+# metres travelled per cycle (2A / duty): the game sets the cycle rate to speed / GAIT_LEN so feet do not slide
+GAITS = {"walk": ((0, 1), 0.16, 0.07, 0.40, 0.035, 4, 0.1, 5), "run": ((0, 1), 0.22, 0.17, 0.20, 0.11, 12, 0.2, 9),
+         "runBack": ((0, -1), 0.18, 0.13, 0.22, 0.085, 7, 0.12, 6), "strafeL": ((1, 0), 0.13, 0.12, 0.22, 0.075, 7, 0.0, 0),
+         "strafeR": ((-1, 0), 0.13, 0.12, 0.22, 0.075, 7, 0.0, 0)}
+GAIT_LEN = {n: round(2 * g[1] / g[3], 3) for n, g in GAITS.items()}
 
 
-def walk(t):
-    return _gait(t, 0.125, 0.065, 0.03, 4, 0.1, 5, 0.0)
+def gait(name):
+    d, A, h, duty, bob, lean, arm, twist = GAITS[name]
+    return lambda t: _gait(t, d, A, h, duty, bob, lean, arm, twist)
+
+
+def carry(t):
+    """hand state 'briefcase': the case hangs from the right fist, forearm a little forward"""
+    sp = relaxed_arms()
+    sp.update({"hand_R": (-0.41, 0.2, 0.63), "hand_R_dir": (0.05, 1, -0.25), "hand_R_up": (0.1, 0.1, 1), "elbow_R": (-0.6, -0.8, -0.3), "shoulder_R": (2, 4)})
+    return sp
 
 
 def aim(t):
@@ -166,7 +186,7 @@ def roll(solver):
         a = math.radians(ang)
         k = math.sin(math.pi * min(1.0, t / 0.16) / 2) if t < 0.16 else (math.sin(math.pi * (1 - t) / 0.2 / 2) if t > 0.8 else 1.0)
         # hips orbit the tuck centre, which stays at a constant height while tucked
-        centre_z = 0.5 + cz - (0.5 + cz - 0.47) * k
+        centre_z = 0.5 + cz + (0.82 - 0.5 - cz) * k          # a small hop keeps the big head off the ground
         hz = centre_z - (cz * C(a) - cf * S(a)) * k - cz * (1 - k) - 0.5
         hf = (cf - (cf * C(a) + cz * S(a))) * k
         sp["hips"] = (0, hf, hz)
@@ -273,14 +293,16 @@ def cheer(t):
 
 
 # name -> (frames, loop, real seconds for one play: the game maps actionT 0..1 over the clip)
-CLIPS = {"idle": (60, True, 2.0), "walk": (24, True, 0.8), "run": (20, True, 0.45), "aim": (2, True, 1.0), "fire": (12, False, 0.25),
+CLIPS = {"idle": (60, True, 2.0), "walk": (24, True, 0.5), "run": (24, True, 0.45), "runBack": (24, True, 0.4), "strafeL": (24, True, 0.35), "strafeR": (24, True, 0.35),
+         "aim": (2, True, 1.0), "carry": (2, True, 1.0), "fire": (12, False, 0.25),
          "reload": (36, False, 1.2), "melee": (27, False, 0.45), "roll": (20, False, 0.34), "hurt": (12, False, 0.35),
          "throw": (30, False, 0.75), "use": (40, False, 1.6), "defeat": (40, False, 0.9), "cheer": (30, True, 0.9)}
 
 
 def make_clips(solver):
     b = solver.base
-    fns = {"idle": idle, "walk": walk, "run": run, "aim": aim, "fire": fire(b), "reload": reload(b), "melee": melee(b),
+    fns = {"idle": idle, "walk": gait("walk"), "run": gait("run"), "runBack": gait("runBack"), "strafeL": gait("strafeL"), "strafeR": gait("strafeR"),
+           "aim": aim, "carry": carry, "fire": fire(b), "reload": reload(b), "melee": melee(b),
            "roll": roll(solver), "hurt": hurt(b), "throw": throw(b), "use": use(b), "defeat": defeat(solver), "cheer": cheer}
     spaces = {"roll": ("hips", "hips"), "defeat": ("hips", "hips")}
     acts = []

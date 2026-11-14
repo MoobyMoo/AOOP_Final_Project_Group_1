@@ -95,9 +95,10 @@ def liner(prof, r_in, z_in, reg, sy=None):
 
 
 def hat_bowler():
+    """the brand bowler: soft black, WIDE orange band, perched and tipped back"""
     rx, _ = head_r(0.09)
-    prof = [(rx + 0.105, -0.092, None), (rx + 0.135, -0.076, "hat"), (rx + 0.125, -0.06, "hat"), (rx + 0.03, -0.07, "hat"), (rx + 0.014, -0.062, "hat"),
-            (rx + 0.018, 0.0, "band"), (rx + 0.01, 0.006, "hat")] + dome(rx + 0.008, 0.006, 0.235)
+    prof = [(rx + 0.105, -0.092, None), (rx + 0.135, -0.076, "hat"), (rx + 0.125, -0.06, "hat"), (rx + 0.03, -0.07, "hat"), (rx + 0.014, -0.064, "hat"),
+            (rx + 0.02, -0.058, "band"), (rx + 0.016, 0.034, "band"), (rx + 0.006, 0.04, "hat")] + dome(rx + 0.004, 0.04, 0.2)
     m = lathe(prof, MH, SY).add(liner(prof, rx - 0.01, -0.08, "hat"))
     return [(tilt(m, 15, 0.0, 0.006), 0, None)]
 
@@ -241,13 +242,18 @@ def face_local(m):
 
 
 def g_shades():
-    rfn = lambda a: 0.118 * (1 - 0.06 * abs(math.sin(a)))
+    """the brand wayfarers: wide trapezoid lenses, thick black frame, lenses nearly meeting at a chunky bridge"""
+    def rfn(a, sx=1):
+        c, sn = math.cos(a) * sx, math.sin(a)
+        w = 0.132 * (1 + 0.1 * sn) * (1 + 0.06 * max(0.0, c) * max(0.0, sn))      # wider along the top, outer corner flicks up
+        return 1.0 / ((abs(c) / w) ** 4 + (abs(sn) / 0.094) ** 4) ** 0.25
     pcs = []
     for sx in (1, -1):
-        pcs.append((face_local(_lens(sx, rfn, 0.046, "lens", 6, 0.0, -0.006, 0.02)), 0, None, True))
-        pcs.append((face_local(_frame(sx, lambda a: rfn(a) * 0.99, 0.04, "hat", 0.02, 14, 0.0, -0.006)), 0, None))
-    pcs.append((face_local(_bridge(0.046, "hat", 0.03, 0.05, 0.02)), 0, None))
-    pcs.append((face_local(_temples(0.03, "hat", 0.27, 0.016)), 0, None))
+        r2 = (lambda a, sx=sx: rfn(a, sx))
+        pcs.append((face_local(_lens(sx, r2, 0.046, "lens", 6, 0.008, -0.002, 0.016)), 0, None, True))
+        pcs.append((face_local(_frame(sx, r2, 0.042, "hat", 0.021, 16, 0.008, -0.002)), 0, None))
+    pcs.append((face_local(_bridge(0.048, "hat", 0.034, 0.04, 0.024)), 0, None))
+    pcs.append((face_local(_temples(0.03, "hat", 0.295, 0.018)), 0, None))
     return pcs
 
 

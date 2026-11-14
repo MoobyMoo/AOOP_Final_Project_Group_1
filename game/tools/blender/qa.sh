@@ -16,9 +16,10 @@ sys.exit(0 if d.get('pass') else 1)" || FAIL=1
 }
 FAIL=0
 H="p_head p_hands p_tail"
-run monkey "monkey: businessman" $H p_ears_round p_eyes_round p_lids_round p_brows_bold p_mouth_smile p_torso_suit p_tie_tie p_feet_round
-run monkey "monkey: variant set A" $H p_ears_pointy p_eyes_sleepy p_lids_sleepy p_brows_thin p_mouth_grin p_torso_suit p_tie_bowtie p_feet_shoes
-run monkey "monkey: variant set B" $H p_ears_floppy p_eyes_sparkle p_lids_sparkle p_brows_bushy p_mouth_toothy p_torso_suit p_feet_shoes
+run monkey "monkey: businessman" $H p_ears_round p_eyes_round p_lids_round p_brows_bold p_mouth_smile p_torso_suit p_front_two p_tie_tie p_feet_round
+run monkey "monkey: double-breasted" $H p_ears_pointy p_eyes_sleepy p_lids_sleepy p_brows_thin p_mouth_grin p_torso_suit p_front_double p_tie_bowtie p_square p_feet_shoes
+run monkey "monkey: vest" $H p_ears_floppy p_eyes_sparkle p_lids_sparkle p_brows_bushy p_mouth_toothy p_torso_vest p_front_vest p_tie_tie p_feet_shoes
+run monkey "monkey: open jacket" $H p_ears_round p_eyes_round p_lids_round p_brows_bold p_mouth_smirk p_torso_suit p_front_open p_tie_tie p_square p_feet_round
 run monkey "monkey: wild" $H p_ears_round p_eyes_beady p_lids_beady p_brows_bushy p_mouth_whistle p_torso_fur p_feet_round p_tuft
 run monkey "monkey: bandit" $H p_ears_round p_eyes_round p_lids_round p_brows_bold p_mouth_smirk p_torso_tee p_feet_round
 run gorilla "gorilla: brute" p_body p_face

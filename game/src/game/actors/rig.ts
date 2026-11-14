@@ -1,33 +1,48 @@
 // Rig v2: characters built in Blender (tools/blender/*.py -> public/models/*.glb) and posed here.
+// Armature, zones and part names are documented in tools/blender/README.md (keep them stable: other meshes get
+// rigged to this skeleton).
 //
 // - preloadCharacters() loads the GLBs once; createRig() is synchronous after that.
-// - Every character is ONE skinned mesh: the chosen part meshes (ears, eyes, torso...) are merged per part
-//   combination and cached, so instances with the same parts share geometry. Colour comes from a per-instance
-//   palette material (charmat.ts), so setLook colour/slider changes are uniform and bone writes only.
-// - Clips are pre-sampled at 30 fps into flat tables shared by all instances. pose() is a pure function of the
-//   RigState stream: it keeps no clock of its own (fades and the run phase advance by the delta of state.time)
-//   and allocates nothing.
-// - Layers: locomotion (idle/walk/run by speed) -> pistol hold on the upper body -> the action clip (upper body
-//   while moving, whole body when standing or for roll/defeat) -> procedural spine twist toward faceYaw, recoil,
-//   tail curl, blink, brow expression, hurt flash.
+// - Every character is ONE skinned mesh: the chosen part meshes (ears, eyes, torso, suit front...) are merged per
+//   part combination and cached, so instances with the same parts share geometry. Colour comes from a per-instance
+//   palette material (charmat.ts): a Look change is a uniform write plus bone/morph values.
+// - Clips are pre-sampled at 30 fps into flat tables shared by all instances. pose() keeps no clock of its own:
+//   clip times come from state.time / state.actionT, and fades, springs and the stride phase advance by the delta
+//   of state.time between calls. It allocates nothing.
+//
+// Animation system (our build of the mechanism Duckov's CharacterAnimationControl uses: blend tree + hand state +
+// attack layer + dash state + procedural aim/recoil):
+//   1 locomotion   idle <-> 2D directional blend of walk/run (forward), runBack, strafeL, strafeR. Inputs: speed and
+//                  the move direction in the facing frame (moveYaw - body yaw). The body faces faceYaw. The cycle
+//                  rate is speed / stride length of the blend (GAIT_LEN), so planted feet do not slide.
+//   2 hand state   by RigState.armed: none | pistol ("aim": right hand out, two-hand hold) | briefcase ("carry");
+//                  during action "reload" the layer plays the reload clip instead (gun drops, left-hand mag swap).
+//   3 attack       fire / melee / throw / hurt / use on the spine and up, ramped in 0.08 s and out 0.12 s; the legs
+//                  keep the locomotion blend.
+//   4 full body    roll (dash), defeat, cheer override everything for their duration (actionT).
+//   5 procedural   gun-arm aim toward faceYaw at 360 deg/s, recoil kick, head look, chin-up, blink, brow expression,
+//                  tail and ear springs driven by the body's own motion, squash on roll landings and hits, hurt flash.
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
 import type { Rig, RigState, RigAction, MonkeyLook, EnemyStyle, Gear, WearSlot } from "../contracts";
-import { charMaterial, newPalette, setRegion, shade, regionBytes, STATIC_PALETTE } from "./charmat";
-import { preloadWearables, instWearable, wearable } from "./wearables";
-import { monkeyEnemy, mulberry, DEFAULT_LOOK, type MonkeyEnemySpec } from "./look";
+import { charMaterial, newPalette, setRegion, shade, regionBytes, regionDefault, STATIC_PALETTE } from "./charmat";
+import { preloadWearables, instWearable, wearable, WEAR_ZONES } from "./wearables";
+import { monkeyEnemy, mulberry, DEFAULT_LOOK, lookExt, type MonkeyEnemySpec } from "./look";
 
 /** actions the rigs can play beyond the contract's RigAction (report: contracts.ts lacks these) */
 export type RigActionX = RigAction | "use" | "cheer";
 /** real seconds for one play of each timed clip (the game maps actionT 0..1 over it); loops give their period */
 export const CLIP_INFO: Record<string, { dur: number; loop?: boolean }> = {
-  idle: { dur: 2, loop: true }, walk: { dur: 0.8, loop: true }, run: { dur: 0.45, loop: true }, fire: { dur: 0.25 }, reload: { dur: 1.2 },
+  idle: { dur: 2, loop: true }, walk: { dur: 0.5, loop: true }, run: { dur: 0.45, loop: true }, runBack: { dur: 0.4, loop: true }, strafeL: { dur: 0.35, loop: true },
+  strafeR: { dur: 0.35, loop: true }, aim: { dur: 1, loop: true }, carry: { dur: 1, loop: true }, fire: { dur: 0.25 }, reload: { dur: 1.2 },
   melee: { dur: 0.45 }, roll: { dur: 0.34 }, hurt: { dur: 0.35 }, throw: { dur: 0.75 }, use: { dur: 1.6 }, defeat: { dur: 0.9 }, cheer: { dur: 0.9, loop: true },
   windup: { dur: 0.9 }, slam: { dur: 0.6 }, charge: { dur: 0.5, loop: true }, stunned: { dur: 1.6, loop: true }, sleep: { dur: 3.2, loop: true },
 };
+/** metres one cycle of each gait covers with planted feet (from tools/blender/monkey_anim.py GAIT_LEN / build_gorilla.py) */
+export const GAIT_LEN = { walk: 0.8, run: 2.2, runBack: 1.636, strafe: 1.182, gorillaWalk: 1.7 };
 
-const FPS = 30, ST = 7, MORPHS = ["blink", "eyeWide", "browTilt"];
+const FPS = 30, ST = 7, MORPHS = ["blink", "eyeWide", "browTilt", "build"];
 type Clip = { frames: number; data: Float32Array };
 type Part = { n: number; pos: Float32Array; nrm: Float32Array; ra: Uint8Array; si: Uint16Array; sw: Float32Array; idx: ArrayLike<number>; morph: (Float32Array | null)[] };
 type Model = {
@@ -156,22 +171,47 @@ function blend(dst: Float32Array, src: Float32Array, w: number, nb: number, mask
 }
 
 let rigCount = 0;
-type ActDef = { clip: string; full?: boolean; loop?: boolean; snap?: boolean };
+type Spring = { x: number; v: number };
+/** damped spring step (semi-implicit Euler); w = angular frequency, z = damping ratio */
+function spring(s: Spring, target: number, w: number, z: number, h: number) { s.v += (w * w * (target - s.x) - 2 * z * w * s.v) * h; s.x += s.v * h; }
+
+/** one animation layer: the current clip fades in, the clip it replaced fades out, weights ease and never pop */
+class Layer {
+  private cur: Clip | null = null; private curU = 0; private curW = 0;
+  private prv: Clip | null = null; private prvU = 0; private prvW = 0;
+  constructor(private tin: number, private tout: number) {}
+  /** dt < 0 = snap (first frame or a clock jump) */
+  set(clip: Clip | null, u: number, dt: number, snapIn = false) {
+    if (clip !== this.cur) {
+      if (this.cur && this.curW > 0.01 && dt >= 0) { this.prv = this.cur; this.prvU = this.curU; this.prvW = this.curW; }
+      this.cur = clip; this.curW = dt < 0 || snapIn ? 1 : 0;
+    }
+    if (clip) { this.curU = u; this.curW = dt < 0 ? 1 : Math.min(1, this.curW + dt / this.tin); }
+    this.prvW = dt < 0 ? 0 : Math.max(0, this.prvW - dt / this.tout);
+    if (this.prvW <= 0) this.prv = null;
+  }
+  get weight() { return Math.min(1, (this.cur ? this.curW : 0) + (this.prv ? this.prvW : 0)); }
+  /** blend over the pose in PA; mask = per-bone weight (null = every bone) */
+  apply(nb: number, mask: Float32Array | null) {
+    if (this.prv) { sample(this.prv, this.prvU, PB, nb); blend(PA, PB, this.prvW, nb, mask, 0); }
+    if (this.cur) { sample(this.cur, this.curU, PB, nb); blend(PA, PB, this.curW, nb, mask, 0); }
+  }
+}
+type GearMats = { pal: Float32Array; matte: THREE.MeshStandardMaterial; gloss: THREE.MeshStandardMaterial };
 
 abstract class CharRig implements Rig {
   root = new THREE.Group();
-  /** inner group: turns to the hips heading and carries the seeded size, so gameplay owns root entirely */
+  /** inner group: turns to the facing and carries the seeded size + squash, so gameplay owns root entirely */
   body = new THREE.Group();
   sockets: Rig["sockets"];
   bounds = { radius: 0.45, height: 2 };
   protected bones: THREE.Bone[]; protected nb: number; protected mesh: THREE.SkinnedMesh;
   protected pal = newPalette(); protected mat: THREE.MeshStandardMaterial;
-  protected gearMats: { matte: THREE.MeshStandardMaterial; gloss: THREE.MeshStandardMaterial } | null = null;
-  protected upper: Float32Array;                       // 1 = upper-body bone, 0 = hips/legs
-  protected t0 = NaN; protected seed: number;
-  private curClip: Clip | null = null; private curFull = false; private curU = 0; private curW = 0;
-  private prvClip: Clip | null = null; private prvFull = false; private prvU = 0; private prvW = 0;
-  protected fullW = 0;                                 // how much of the pose is a whole-body action (kills twist)
+  protected gm: Record<string, GearMats> = {};
+  protected upper: Float32Array;                       // 1 = spine and up, 0 = hips/legs
+  protected t0 = NaN; protected seed: number; protected scale = 1;
+  protected attack = new Layer(0.08, 0.12); protected full = new Layer(0.06, 0.12);
+  protected squash: Spring = { x: 0, v: 0 }; protected prevAct = ""; protected prevAT = 0; protected prevFlash = 0;
   protected faceSock: THREE.Object3D;
 
   constructor(protected model: Model, lower: RegExp) {
@@ -180,7 +220,7 @@ abstract class CharRig implements Rig {
     this.bones = model.names.map((n) => byName[n]); this.nb = this.bones.length;
     this.mat = charMaterial(this.pal);
     this.mesh = new THREE.SkinnedMesh(merge(model, []), this.mat);
-    this.mesh.castShadow = true; this.mesh.receiveShadow = true; this.mesh.morphTargetInfluences = [0, 0, 0];
+    this.mesh.castShadow = true; this.mesh.receiveShadow = true; this.mesh.morphTargetInfluences = MORPHS.map(() => 0);
     arm.add(this.mesh); this.mesh.bind(new THREE.Skeleton(this.bones, model.inverses), model.bind);
     this.mesh.boundingSphere = this.mesh.geometry.boundingSphere!; this.mesh.boundingBox = this.mesh.geometry.boundingBox!;
     this.body.add(arm); this.root.add(this.body);
@@ -193,77 +233,70 @@ abstract class CharRig implements Rig {
   }
   protected bone(n: string) { return this.bones[this.model.bi[n]]; }
   protected clip(n: string) { return this.model.clips[n]; }
-  protected mats() { return (this.gearMats ??= { matte: charMaterial(STATIC_PALETTE), gloss: charMaterial(STATIC_PALETTE, true) }); }
+  /** per-instance gear materials for one slot (own palette copy, so gear can be recoloured and flashed per rig) */
+  protected matsFor(key: string): GearMats {
+    return (this.gm[key] ??= (() => { const pal = STATIC_PALETTE.slice(); return { pal, matte: charMaterial(pal), gloss: charMaterial(pal, true) }; })());
+  }
   protected setParts(names: string[]) {
     const g = merge(this.model, names);
     if (this.mesh.geometry !== g) this.mesh.geometry = g;
   }
-  /** delta of the gameplay clock since the last pose(); a jump (first call, scrub, pause) snaps every fade */
-  protected tick(s: RigState) { let dt = s.time - this.t0; this.t0 = s.time; return dt >= 0 && dt < 0.25 ? dt : -1; }
-  /** choose the action clip for this frame and advance the two overlay fades */
-  protected setAction(def: ActDef | undefined, s: RigState, dt: number) {
-    const clip = def ? this.clip(def.clip) ?? null : null, snap = dt < 0;
-    if (clip !== this.curClip) {
-      if (this.curClip && this.curW > 0.01 && !snap) { this.prvClip = this.curClip; this.prvFull = this.curFull; this.prvU = this.curU; this.prvW = this.curW; }
-      this.curClip = clip; this.curFull = !!def?.full; this.curW = snap || def?.snap ? 1 : 0;
-    }
-    if (clip && def) {
-      this.curU = def.loop ? frac(s.time / CLIP_INFO[def.clip].dur + this.seed) : clamp(s.actionT, 0, 1);
-      this.curW = snap ? 1 : Math.min(1, this.curW + dt / 0.07);
-    }
-    this.prvW = snap ? 0 : Math.max(0, this.prvW - dt / 0.12);
-    if (this.prvW <= 0) this.prvClip = null;
-    this.fullW = clamp((this.curClip && this.curFull ? this.curW : 0) + (this.prvClip && this.prvFull ? this.prvW : 0), 0, 1);
-  }
-  /** blend the fading-out and current action clips over the pose in PA */
-  protected overlays(lowerW: number) {
-    if (this.prvClip) { sample(this.prvClip, this.prvU, PB, this.nb); blend(PA, PB, this.prvW, this.nb, this.upper, this.prvFull ? 1 : lowerW); }
-    if (this.curClip) { sample(this.curClip, this.curU, PB, this.nb); blend(PA, PB, this.curW, this.nb, this.upper, this.curFull ? 1 : lowerW); }
-  }
+  /** delta of the gameplay clock since the last pose(); -1 on a jump (first call, scrub, pause): fades snap */
+  protected tick(s: RigState) { const dt = s.time - this.t0; this.t0 = s.time; return dt >= 0 && dt < 0.25 ? dt : -1; }
   protected write() {
     for (let b = 0, o = 0; b < this.nb; b++, o += ST) {
       const bn = this.bones[b];
       bn.position.set(PA[o], PA[o + 1], PA[o + 2]); bn.quaternion.set(PA[o + 3], PA[o + 4], PA[o + 5], PA[o + 6]).normalize();
     }
   }
+  /** squash and stretch: a spring kicked by landings and hits, applied to the body scale */
+  protected squashStep(s: RigState, h: number, land: boolean) {
+    const hit = (s.flash > 0 && this.prevFlash <= 0) || (s.action === "hurt" && (this.prevAct !== "hurt" || s.actionT < this.prevAT - 0.2));
+    if (h > 0) { if (land) this.squash.v += 3.4; if (hit) this.squash.v += 2.2; spring(this.squash, 0, 24, 0.33, h); } else { this.squash.x = 0; this.squash.v = 0; }
+    const q = clamp(this.squash.x, -0.14, 0.24);
+    this.body.scale.set(this.scale * (1 + q * 0.5), this.scale * (1 - q), this.scale * (1 + q * 0.5));
+    this.prevAct = s.action; this.prevAT = s.actionT; this.prevFlash = s.flash;
+  }
   protected flash(v: number) {
     const e = v > 0 ? Math.min(1, v) * 0.85 : 0;
     this.mat.emissiveIntensity = e;
-    if (this.gearMats) { this.gearMats.matte.emissiveIntensity = e; this.gearMats.gloss.emissiveIntensity = e; }
+    for (const k in this.gm) { this.gm[k].matte.emissiveIntensity = e; this.gm[k].gloss.emissiveIntensity = e; }
   }
   /** blink pulse from the gameplay clock (every ~3.3 s, offset per instance) */
   protected blink(time: number) { const p = frac(time / 3.3 + this.seed) * 3.3; return p < 0.16 ? Math.sin((p / 0.16) * Math.PI) : 0; }
   abstract pose(s: RigState): void;
   dispose() {
     this.root.removeFromParent(); this.mat.dispose();
-    if (this.gearMats) { this.gearMats.matte.dispose(); this.gearMats.gloss.dispose(); }
+    for (const k in this.gm) { this.gm[k].matte.dispose(); this.gm[k].gloss.dispose(); }
     this.mesh.skeleton.dispose();
   }
 }
 
 // ---------------------------------------------------------------- monkey (player, wild, bandit)
-const M_ACT: Record<string, ActDef> = {
-  fire: { clip: "fire", snap: true }, reload: { clip: "reload" }, melee: { clip: "melee", snap: true }, roll: { clip: "roll", full: true, snap: true },
-  hurt: { clip: "hurt", snap: true }, throw: { clip: "throw" }, use: { clip: "use" }, defeat: { clip: "defeat", full: true }, cheer: { clip: "cheer", full: true, loop: true },
-};
-/** look tuning the game may change: headUp = how far monkeys lift their chin toward the top-down camera (rad) */
-export const RIG_TUNE = { headUp: 0.24 };
-const TW_MAX = 1.3;   // upper body twists up to ~75 deg from the hips; past that the hips turn
+const M_ATTACK: Record<string, string> = { fire: "fire", melee: "melee", throw: "throw", hurt: "hurt", use: "use" };
+const M_FULL: Record<string, string> = { roll: "roll", defeat: "defeat", cheer: "cheer" };
+/** look tuning the game may change: headUp = how far monkeys lift their chin toward the top-down camera (rad);
+ *  aimRate = how fast the gun arm turns toward faceYaw (rad/s, 360 deg/s like Duckov's right-hand sync) */
+export const RIG_TUNE = { headUp: 0.24, aimRate: Math.PI * 2 };
+const TW_MAX = 1.3;   // the gun arm can lead or trail the body by up to ~75 deg
 
 class MonkeyRig extends CharRig {
   private look: MonkeyLook = DEFAULT_LOOK; private spec: MonkeyEnemySpec | null;
   private gear: Gear = { head: null, face: null, back: null };
   private gearObj: Record<WearSlot, THREE.Object3D | null> = { head: null, face: null, back: null };
-  private aimMask: Float32Array; private aimW = 0; private hip = 0; private phase = 0; private back = false;
+  private hand = new Layer(0.12, 0.14); private aimMask: Float32Array; private aimK = 0;
+  private yaw = 0; private aimYaw = 0; private phase = 0; private wd = new Float32Array(4);   // fwd, back, left, right
   private briefcase: THREE.Object3D | null = null; private handProp: THREE.Object3D | null = null; private propBack = 0;
-  private spine: THREE.Bone; private chest: THREE.Bone; private neck: THREE.Bone; private head: THREE.Bone; private tail: THREE.Bone[]; private curl = 0;
-  private scale = 1;
+  private spine: THREE.Bone; private chest: THREE.Bone; private neck: THREE.Bone; private head: THREE.Bone; private earL: THREE.Bone; private earR: THREE.Bone;
+  private tail: THREE.Bone[]; private curl = 0; private build = 0; private hipsI: number; private hipsY = 0;
+  private tSway: Spring = { x: 0, v: 0 }; private tSway2: Spring = { x: 0, v: 0 }; private tLift: Spring = { x: 0, v: 0 }; private ear: Spring = { x: 0, v: 0 };
 
   constructor(model: Model, style: MonkeyLook | EnemyStyle) {
     super(model, /^(root|hips|thigh|shin|foot)/);
     this.aimMask = new Float32Array(this.nb);
     model.names.forEach((n, i) => { this.aimMask[i] = /^(chest|shoulder|upperarm|forearm|hand|thumb|sk_hand)/.test(n) ? 1 : n === "spine" ? 0.6 : 0; });
-    this.spine = this.bone("spine"); this.chest = this.bone("chest"); this.neck = this.bone("neck"); this.head = this.bone("head"); this.tail = [2, 3, 4, 5].map((i) => this.bone("tail" + i));
+    this.spine = this.bone("spine"); this.chest = this.bone("chest"); this.neck = this.bone("neck"); this.head = this.bone("head");
+    this.earL = this.bone("ear_L"); this.earR = this.bone("ear_R"); this.tail = [1, 2, 3, 4, 5].map((i) => this.bone("tail" + i)); this.hipsI = model.bi.hips;
     this.spec = "kind" in style ? monkeyEnemy(style) : null;
     this.scale = this.spec?.scale ?? 1; this.body.scale.setScalar(this.scale);
     this.bounds = { radius: 0.45 * this.scale, height: 2.0 * this.scale };
@@ -271,36 +304,58 @@ class MonkeyRig extends CharRig {
     if (this.spec) {
       this.gear = { head: this.spec.head, face: this.spec.face, back: this.spec.back };
       for (const slot of ["head", "face", "back"] as const) this.attach(slot, this.gear[slot]);
-      if (this.spec.hand) { this.handProp = instWearable(this.spec.hand, this.mats()); this.bone("sk_hand_R").add(this.handProp); }
+      if (this.spec.bandana) setRegion(this.matsFor("face").pal, "red", this.spec.bandana);
+      if (this.spec.hand) { this.handProp = instWearable(this.spec.hand, this.matsFor("prop")); this.bone("sk_hand_R").add(this.handProp); }
       this.refresh();
     } else {
-      this.briefcase = instWearable("prop_briefcase", this.mats()); this.briefcase.visible = false; this.bone("sk_hand_R").add(this.briefcase);
+      this.briefcase = instWearable("prop_briefcase", this.matsFor("prop")); this.briefcase.visible = false; this.bone("sk_hand_R").add(this.briefcase);
     }
   }
   private socketFor(slot: WearSlot) { return slot === "head" ? this.sockets.head : slot === "back" ? this.sockets.back : this.faceSock; }
   private attach(slot: WearSlot, id: string | null) {
     this.gearObj[slot]?.removeFromParent(); this.gearObj[slot] = null;
     if (!id) return;
-    const o = instWearable(id, this.mats()); this.socketFor(slot).add(o); this.gearObj[slot] = o;
+    const o = instWearable(id, this.matsFor(slot)); this.socketFor(slot).add(o); this.gearObj[slot] = o;
+  }
+  /** gear colours: each slot has its own palette copy; LookExt.gear[slot].main / .accent recolour the item's zones */
+  private gearColors() {
+    const g = lookExt(this.look).gear;
+    for (const slot of ["head", "face", "back"] as const) {
+      const id = this.gear[slot], z = id ? WEAR_ZONES[id] : undefined;
+      if (!id || !z || this.spec) continue;
+      const pal = this.matsFor(slot).pal, c = g?.[slot];
+      setRegion(pal, z.main, c?.main ?? regionDefault(z.main));
+      if (z.accent) setRegion(pal, z.accent, c?.accent ?? regionDefault(z.accent));
+    }
   }
   /** part list from the look + what the gear hides */
   private refresh() {
-    const l = this.look, torso = this.spec ? this.spec.torso : "suit", hides = [wearable(this.gear.head), wearable(this.gear.face), wearable(this.gear.back)];
-    const parts = ["head", "torso_" + torso, "hands", "tail", "feet_" + l.feet.style, "eyes_" + l.eyes.style, "lids_" + l.eyes.style, "mouth_" + l.mouth];
+    const l = this.look, x = lookExt(l), suit = !this.spec, jacket = x.jacket ?? "two", hides = [wearable(this.gear.head), wearable(this.gear.face), wearable(this.gear.back)];
+    const parts = ["head", this.spec ? "torso_" + this.spec.torso : jacket === "vest" ? "torso_vest" : "torso_suit", "hands", "tail", "feet_" + l.feet.style, "eyes_" + l.eyes.style, "lids_" + l.eyes.style, "mouth_" + l.mouth];
     if (!hides.some((w) => w?.hidesEars)) parts.push("ears_" + l.ears.style);
     if (l.brows.style !== "none" && !hides.some((w) => w?.hidesBrows)) parts.push("brows_" + l.brows.style);
-    if (torso === "suit" && l.tie.style !== "none") parts.push("tie_" + l.tie.style);
+    if (suit) {
+      parts.push("front_" + jacket);
+      if (l.tie.style !== "none") parts.push("tie_" + l.tie.style);
+      if (x.pocketSquare && jacket !== "vest") parts.push("square");
+    }
     if (this.spec?.tuft) parts.push("tuft");
     this.setParts(parts);
+    this.gearColors();
   }
   setLook(look: MonkeyLook) {
-    this.look = look; const p = this.pal;
+    this.look = look; const p = this.pal, x = lookExt(look), c = x.colors ?? {};
     setRegion(p, "fur", look.fur); setRegion(p, "fur2", shade(look.fur, -0.1)); setRegion(p, "face", look.face);
-    setRegion(p, "suit", look.suit); setRegion(p, "suit2", shade(look.suit, -0.07, 1.05)); setRegion(p, "pants", look.pants);
+    setRegion(p, "ear", c.innerEar ?? new THREE.Color(look.fur).lerp(new THREE.Color(look.face), 0.5));
+    setRegion(p, "pupil", c.eyes ?? regionDefault("pupil")); setRegion(p, "shirt", c.shirt ?? regionDefault("shirt"));
+    setRegion(p, "dark", c.brows ?? regionDefault("dark")); setRegion(p, "gold", c.buttons ?? regionDefault("gold")); setRegion(p, "square", c.square ?? regionDefault("square"));
+    setRegion(p, "suit", look.suit); setRegion(p, "suit2", shade(look.suit, -0.055, 1.05)); setRegion(p, "pants", look.pants);
     setRegion(p, "tie", look.tie.color); setRegion(p, "feet", look.feet.color); setRegion(p, "sole", shade(look.feet.color, -0.22));
-    this.bone("head").scale.setScalar(1 + look.headSize);
-    this.bone("ear_L").scale.setScalar(look.ears.size); this.bone("ear_R").scale.setScalar(look.ears.size);
+    this.head.scale.setScalar(1 + look.headSize);
+    this.earL.scale.setScalar(look.ears.size); this.earR.scale.setScalar(look.ears.size);
     this.curl = (look.tail.curl - 0.3) * 0.62;
+    this.build = clamp(this.spec ? this.spec.build : x.build ?? 0, -1, 1);
+    this.sockets.back.scale.set(1 + 0.18 * this.build, 1, 1 + 0.2 * this.build);   // packs and straps follow the belly
     this.refresh();
   }
   setGear(gear: Gear) {
@@ -316,47 +371,71 @@ class MonkeyRig extends CharRig {
     return o;
   }
   pose(s: RigState) {
-    const nb = this.nb, dt = this.tick(s), snap = dt < 0, act = s.action as string, def = M_ACT[act];
-    this.setAction(def, s, dt);
-    // ---- heading: legs follow moveYaw (backpedal when facing the other way), the upper body twists to faceYaw
-    const d = wrap(s.faceYaw - s.moveYaw);
-    if (s.speed < 0.4 || def?.full) this.back = false; else if (this.back ? Math.abs(d) < 1.7 : Math.abs(d) > 2.0) this.back = !this.back;
-    let hip = s.moveYaw + (this.back ? Math.PI : 0);
-    const over = wrap(s.faceYaw - hip);
-    if (over > TW_MAX) hip += over - TW_MAX; else if (over < -TW_MAX) hip += over + TW_MAX;
-    this.hip = snap ? hip : this.hip + wrap(hip - this.hip) * Math.min(1, dt * 14);
-    this.body.rotation.y = this.hip - this.root.rotation.y;
-    const twist = clamp(wrap(s.faceYaw - this.hip), -1.6, 1.6) * (1 - this.fullW);
-    // ---- locomotion
-    const wMove = smooth(0.25, 1.4, s.speed), runMix = smooth(2.0, 3.6, s.speed);
-    const rate = clamp(s.speed / 1.15 + (s.speed / 2.3 - s.speed / 1.15) * runMix, 0.9, 3.3) * (this.back ? -1 : 1);
+    const nb = this.nb, dt = this.tick(s), snap = dt < 0, h = snap ? 0 : Math.min(dt, 1 / 30), act = s.action as string;
+    const fullClip = M_FULL[act], atkClip = M_ATTACK[act];
+    // ---- facing: the body faces faceYaw (eased); the gun arm chases it at aimRate so it never snaps
+    let yawRate = 0;
+    if (snap) { this.yaw = s.faceYaw; this.aimYaw = s.faceYaw; }
+    else {
+      const prev = this.yaw, st = RIG_TUNE.aimRate * dt;
+      this.yaw += wrap(s.faceYaw - this.yaw) * (1 - Math.exp(-dt * (fullClip ? 26 : 13)));
+      this.aimYaw += clamp(wrap(s.faceYaw - this.aimYaw), -st, st);
+      yawRate = dt > 0 ? wrap(this.yaw - prev) / dt : 0;
+    }
+    this.body.rotation.y = this.yaw - this.root.rotation.y;
+    // ---- locomotion: 2D directional blend in the facing frame, cycle rate matched to the stride
+    const a = wrap(s.moveYaw - this.yaw), ca = Math.cos(a), sa = Math.sin(a), nrm = 1 / (Math.abs(ca) + Math.abs(sa)), k = snap ? 1 : 1 - Math.exp(-dt * 12), wd = this.wd;
+    wd[0] += (Math.max(0, ca) * nrm - wd[0]) * k; wd[1] += (Math.max(0, -ca) * nrm - wd[1]) * k; wd[2] += (Math.max(0, sa) * nrm - wd[2]) * k; wd[3] += (Math.max(0, -sa) * nrm - wd[3]) * k;
+    const wMove = smooth(0.15, 1.0, s.speed), runMix = smooth(1.6, 3.4, s.speed);
+    const stride = wd[0] * (GAIT_LEN.walk + (GAIT_LEN.run - GAIT_LEN.walk) * runMix) + wd[1] * GAIT_LEN.runBack + (wd[2] + wd[3]) * GAIT_LEN.strafe;
+    const rate = clamp(s.speed / Math.max(0.3, stride), 0.8, 3.6);
     this.phase = snap ? s.time * rate : this.phase + dt * rate;
     sample(this.clip("idle"), frac(s.time / 2 + this.seed), PA, nb);
     if (wMove > 0.001) {
       const ph = frac(this.phase);
-      sample(this.clip("run"), ph, PB, nb);
-      if (runMix < 0.999) { sample(this.clip("walk"), ph, PC, nb); blend(PB, PC, 1 - runMix, nb, null); }
-      blend(PA, PB, wMove, nb, null);
+      let acc = 0;
+      acc = this.dir("run", wd[0] * runMix, ph, acc); acc = this.dir("walk", wd[0] * (1 - runMix), ph, acc);
+      acc = this.dir("runBack", wd[1], ph, acc); acc = this.dir("strafeL", wd[2], ph, acc); acc = this.dir("strafeR", wd[3], ph, acc);
+      if (acc > 0) blend(PA, PC, wMove, nb, null);
     }
-    // ---- pistol hold on the upper body
-    const aimT = s.armed === "pistol" ? 1 : 0;
-    this.aimW = snap ? aimT : this.aimW + clamp(aimT - this.aimW, -dt / 0.12, dt / 0.12);
-    if (this.aimW > 0.001) { sample(this.clip("aim"), 0, PB, nb); blend(PA, PB, this.aimW, nb, this.aimMask, 0); }
-    // ---- action clip: upper body while moving, whole body when standing
-    this.overlays(1 - wMove);
+    const hipsY = PA[this.hipsI * ST + 1], vy = h > 0 ? (hipsY - this.hipsY) / h : 0; this.hipsY = hipsY;
+    // ---- hand state: what is held decides the arm pose; a reload takes the layer over
+    this.hand.set(act === "reload" ? this.clip("reload") : s.armed === "pistol" ? this.clip("aim") : s.armed === "briefcase" ? this.clip("carry") : null, act === "reload" ? clamp(s.actionT, 0, 1) : 0, dt);
+    this.hand.apply(nb, this.aimMask);
+    // ---- attack layer (spine and up) and the full-body state (roll, defeat)
+    this.attack.set(atkClip ? this.clip(atkClip) : null, clamp(s.actionT, 0, 1), dt);
+    this.attack.apply(nb, this.upper);
+    this.full.set(fullClip ? this.clip(fullClip) : null, act === "cheer" ? frac(s.time / CLIP_INFO.cheer.dur + this.seed) : clamp(s.actionT, 0, 1), dt, act === "roll");
+    this.full.apply(nb, null);
     this.write();
-    // ---- procedural: twist, tail curl, recoil, props, face
-    if (twist !== 0) { this.spine.quaternion.premultiply(Q.setFromAxisAngle(UP, twist * 0.4)); this.chest.quaternion.premultiply(Q.setFromAxisAngle(UP, twist * 0.6)); }
-    if (this.curl !== 0) { Q.setFromAxisAngle(XA, this.curl); for (const t of this.tail) t.quaternion.multiply(Q); }
-    // chin up toward the high camera so the face reads from above (the old monkey did the same)
-    const up = RIG_TUNE.headUp * (1 - this.fullW);
-    if (up !== 0) { this.neck.quaternion.multiply(Q.setFromAxisAngle(XA, -up * 0.4)); this.head.quaternion.multiply(Q.setFromAxisAngle(XA, -up * 0.6)); }
-    const hr = this.sockets.handR, kick = act === "fire" ? Math.exp(-s.actionT * 7) * (1 - s.actionT) : 0;
-    hr.position.z = -0.11 * kick; hr.rotation.x = -0.32 * kick;
-    if (kick > 0) this.chest.quaternion.multiply(Q.setFromAxisAngle(XA, -0.06 * kick));
+    // ---- procedural: gun-arm aim, head look, chin up, tail, ears, recoil
+    const free = 1 - this.full.weight;
+    this.aimK += ((s.armed === "pistol" ? 1 : 0) - this.aimK) * (snap ? 1 : 1 - Math.exp(-dt * 10));
+    const twist = clamp(wrap(this.aimYaw - this.yaw), -TW_MAX, TW_MAX) * this.aimK * free;
+    if (twist !== 0) { this.spine.quaternion.premultiply(Q.setFromAxisAngle(UP, twist * 0.35)); this.chest.quaternion.premultiply(Q.setFromAxisAngle(UP, twist * 0.65)); }
+    const look = (clamp(wrap(s.faceYaw - this.yaw), -0.8, 0.8) - twist) * free, up = RIG_TUNE.headUp * free;
+    this.neck.quaternion.premultiply(Q.setFromAxisAngle(UP, look * 0.4)).multiply(Q.setFromAxisAngle(XA, -up * 0.4));
+    this.head.quaternion.premultiply(Q.setFromAxisAngle(UP, look * 0.6)).multiply(Q.setFromAxisAngle(XA, -up * 0.6));
+    // tail: a follow-through chain (two springs in series) dragged by turning, side-stepping and the hop; ears wobble
+    if (h > 0) {
+      spring(this.tSway, clamp(-yawRate * 0.11 - sa * wMove * 0.22, -0.55, 0.55), 13, 0.42, h); spring(this.tSway2, this.tSway.x * 1.5, 9, 0.38, h);
+      spring(this.tLift, clamp(-vy * 0.13 - ca * wMove * 0.1, -0.35, 0.35), 15, 0.4, h); spring(this.ear, clamp(-vy * 0.22, -0.45, 0.45), 19, 0.3, h);
+    } else { this.tSway.x = this.tSway.v = this.tSway2.x = this.tSway2.v = this.tLift.x = this.tLift.v = this.ear.x = this.ear.v = 0; }
+    for (let i = 0; i < 5; i++) {
+      const t = this.tail[i], far = i >= 2;
+      t.quaternion.multiply(Q.setFromAxisAngle(ZA, (far ? this.tSway2.x : this.tSway.x) * 0.4 * free));
+      t.quaternion.multiply(Q.setFromAxisAngle(XA, (i > 0 ? this.curl : 0) + this.tLift.x * (far ? 0.55 : 0.3) * free));
+    }
+    this.earL.quaternion.multiply(Q.setFromAxisAngle(ZA, this.ear.x)); this.earR.quaternion.multiply(Q.setFromAxisAngle(ZA, -this.ear.x));
+    // recoil: fast out, slower recover (Duckov: back 20/s, recover 8/s); moves the gun socket, a little of it reaches the chest
+    const hr = this.sockets.handR, ft = act === "fire" ? s.actionT * CLIP_INFO.fire.dur : -1, kick = ft < 0 ? 0 : ft < 0.035 ? ft / 0.035 : Math.exp(-(ft - 0.035) * 9);
+    hr.position.z = -0.1 * kick; hr.rotation.x = -0.3 * kick;
+    if (kick > 0) this.chest.quaternion.multiply(Q.setFromAxisAngle(XA, -0.05 * kick));
+    this.squashStep(s, h, (this.prevAct === "roll" && act !== "roll") || (act === "roll" && this.prevAT < 0.86 && s.actionT >= 0.86));
+    // ---- props and face
     const brief = s.armed === "briefcase";
     hr.visible = !brief; if (this.briefcase) this.briefcase.visible = brief;
-    if (this.handProp) {              // the boomerang leaves the hand at the release and comes back a moment later
+    if (this.handProp) {              // the boomerang leaves the hand at the release and is back a moment later
       if (act === "throw" && s.actionT >= 0.3) this.propBack = s.time + 0.9;
       this.handProp.visible = !(s.time < this.propBack && s.time > this.propBack - 5);
     }
@@ -364,37 +443,50 @@ class MonkeyRig extends CharRig {
     mi[0] = Math.max(this.blink(s.time), shut);
     mi[1] = (l.eyes.spacing - 1) / 0.15;
     mi[2] = clamp(l.brows.tilt + (act === "hurt" || act === "defeat" ? -1.4 : act === "melee" || act === "throw" ? 0.7 : act === "fire" ? 0.3 : 0), -1.3, 1.3);
+    mi[3] = this.build;
     this.flash(s.flash);
+  }
+  /** add one directional gait to the running blend in PC (weights are normalised as they accumulate) */
+  private dir(name: string, w: number, ph: number, acc: number) {
+    if (w <= 0.001) return acc;
+    if (acc === 0) sample(this.clip(name), ph, PC, this.nb); else { sample(this.clip(name), ph, PB, this.nb); blend(PC, PB, w / (acc + w), this.nb, null); }
+    return acc + w;
   }
 }
 
 // ---------------------------------------------------------------- gorilla (brute, the Sleeper)
-const G_ACT: Record<string, ActDef> = {
-  windup: { clip: "windup", full: true }, slam: { clip: "slam", full: true, snap: true }, charge: { clip: "charge", full: true, loop: true },
-  stunned: { clip: "stunned", full: true, loop: true }, sleep: { clip: "sleep", full: true, loop: true }, hurt: { clip: "hurt", snap: true },
-  defeat: { clip: "defeat", full: true },
-};
+// Same system: locomotion blend (idle <-> knuckle-walk, stride-matched) + attack layer (hurt) + full-body states.
+// windup / slam / charge / stunned / sleep / defeat are full-body: rearing up moves the hips, so the legs must follow.
+const G_FULL: Record<string, string> = { windup: "windup", slam: "slam", charge: "charge", stunned: "stunned", sleep: "sleep", defeat: "defeat" };
 class GorillaRig extends CharRig {
-  private phase = 0;
+  private phase = 0; private yaw = 0; private headB: THREE.Bone; private neckB: THREE.Bone;
   constructor(model: Model, style: EnemyStyle) {
     super(model, /^(root|hips|thigh|shin|foot)/);
     const rng = mulberry(style.seed * 7919 + 13), boss = style.kind === "sleeper", size = (boss ? 1.26 : 1) * (1 + (rng() - 0.5) * (boss ? 0.04 : 0.16));
-    this.body.scale.setScalar(size); this.bounds = { radius: 0.9 * size, height: 2.9 * size };
+    this.scale = size; this.body.scale.setScalar(size); this.bounds = { radius: 0.9 * size, height: 2.9 * size };
     const fur = shade(boss ? "#3d3a4a" : "#4f4a58", (rng() - 0.5) * 0.08), p = this.pal;
     setRegion(p, "fur", fur); setRegion(p, "fur2", boss ? "#b9b4c4" : shade(fur, 0.08)); setRegion(p, "skin", shade(fur, -0.07)); setRegion(p, "skin2", shade(fur, 0.14, 0.8));
     setRegion(p, "vest", "#7a3142"); setRegion(p, "vest2", "#ecdfc2"); setRegion(p, "mask", "#7a4ea0");
+    this.headB = this.bone("head"); this.neckB = this.bone("neck");
     this.setParts(boss ? ["body", "face", "vest", "sleepmask", "chain"] : ["body", "face"]);
   }
   pose(s: RigState) {
-    const nb = this.nb, dt = this.tick(s), snap = dt < 0, act = s.action as string;
-    this.setAction(G_ACT[act], s, dt);
-    this.body.rotation.y = s.moveYaw - this.root.rotation.y;
-    const wMove = smooth(0.2, 1.2, s.speed), rate = clamp(s.speed / 2.4, 0.6, 2.2);
+    const nb = this.nb, dt = this.tick(s), snap = dt < 0, h = snap ? 0 : Math.min(dt, 1 / 30), act = s.action as string, fullClip = G_FULL[act];
+    this.yaw = snap ? s.moveYaw : this.yaw + wrap(s.moveYaw - this.yaw) * (1 - Math.exp(-dt * 9));
+    this.body.rotation.y = this.yaw - this.root.rotation.y;
+    const wMove = smooth(0.2, 1.2, s.speed), rate = clamp(s.speed / GAIT_LEN.gorillaWalk, 0.5, 2.4);
     this.phase = snap ? s.time * rate : this.phase + dt * rate;
     sample(this.clip("idle"), frac(s.time / 2.6 + this.seed), PA, nb);
-    if (wMove > 0.001) { sample(this.clip("walk"), frac(this.phase), PB, nb); blend(PA, PB, wMove, nb, null); }
-    this.overlays(1 - wMove);
+    if (wMove > 0.001) { sample(this.clip("walk"), frac(this.phase), PC, nb); blend(PA, PC, wMove, nb, null); }
+    this.attack.set(act === "hurt" ? this.clip("hurt") : null, clamp(s.actionT, 0, 1), dt);
+    this.attack.apply(nb, this.upper);
+    const loop = act === "charge" || act === "stunned" || act === "sleep";
+    this.full.set(fullClip ? this.clip(fullClip) : null, loop ? frac(s.time / CLIP_INFO[act].dur + this.seed) : clamp(s.actionT, 0, 1), dt, act === "slam");
+    this.full.apply(nb, null);
     this.write();
+    const look = clamp(wrap(s.faceYaw - this.yaw), -0.7, 0.7) * (1 - this.full.weight);
+    if (look !== 0) { this.neckB.quaternion.premultiply(Q.setFromAxisAngle(UP, look * 0.4)); this.headB.quaternion.premultiply(Q.setFromAxisAngle(UP, look * 0.6)); }
+    this.squashStep(s, h, act === "slam" && s.actionT >= 0.6 && (this.prevAct !== "slam" || this.prevAT < 0.6));
     const mi = this.mesh.morphTargetInfluences!;
     mi[0] = act === "sleep" || act === "stunned" ? 1 : act === "defeat" ? smooth(0.4, 0.6, s.actionT) : this.blink(s.time);
     this.flash(s.flash);

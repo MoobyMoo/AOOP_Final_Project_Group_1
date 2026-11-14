@@ -6,7 +6,7 @@ ears, chibi body. Slot naming: <slot>_<style>; the runtime merges one style per 
 import math
 from mathutils import Vector, Matrix
 from bv_common import (M, V, REG, qsphere, ell, ring, loft, tube, plate, disc_plate, blob_on, frame_at, Surf, bvh_of,
-                       build, smooth, lerp, tight)
+                       build, smooth, lerp, tight, sgn)
 
 # ---------------------------------------------------------------- design constants (Blender metres)
 HC = V(0, 0.02, 1.455)                 # head centre
@@ -256,7 +256,7 @@ def ear_inner(ear_ob, style):
         cx, cz = cx + 0.0, cz - 0.03
     else:
         rfn = lambda th: 0.128
-    return disc_plate(surf, cx + 0.012, cz, rfn, 4, lambda x, z, rr: 0.004, "face", sink=0.006, rows=[0, 0.62, 1.0])
+    return disc_plate(surf, cx + 0.012, cz, rfn, 4, lambda x, z, rr: 0.004, "ear", sink=0.006, rows=[0, 0.62, 1.0])
 
 
 # ---------------------------------------------------------------- body
@@ -296,9 +296,10 @@ def arm(kind):
     S, E, W = J["shoulder"], J["elbow"], J["wrist"]
     d2 = (W - E).normalized()
     path = [V(0.19, 0, 0.925), S + V(0.006, 0, -0.012), E, W - d2 * 0.035, W + d2 * 0.012]
-    if kind == "suit":
-        rad = [0.075, 0.104, 0.097, 0.104, 0.114]
-        regs = ["suit"] * 4
+    if kind in ("suit", "vest"):                      # vest = shirt sleeves
+        cloth = "suit" if kind == "suit" else "shirt"
+        rad = [0.075, 0.104, 0.097, 0.104, 0.114] if kind == "suit" else [0.075, 0.1, 0.092, 0.098, 0.108]
+        regs = [cloth] * 4
         m = tube(path, rad, 6, regs=regs, up=Vector((0, -1, 0)), cap0=True, cap1=False)
         # recessed shirt cuff + end cap (the last ring sits before the start-cap vertex)
         base = (len(path) - 1) * 6
@@ -306,7 +307,7 @@ def arm(kind):
         cc = W + d2 * 0.012
         inner = [cc + (p - cc) * 0.8 + d2 * 0.004 for p in last]
         inner2 = [cc + (p - cc) * 0.74 + d2 * 0.03 for p in last]
-        for rr, reg in ((inner, "suit2"), (inner2, "shirt")):
+        for rr, reg in ((inner, "suit2" if kind == "suit" else "shirt"), (inner2, "shirt")):
             st = len(m.v)
             m.v += rr
             for k in range(6):
@@ -410,19 +411,69 @@ def belly(surf):
     return disc_plate(surf, 0, 0.66, lambda th: 0.2 * (1 + 0.16 * abs(math.sin(th))), 6, lambda x, z, rr: 0.016, "face", sink=0.014, rows=[0, 0.5, 0.94, 1.0])
 
 
-def suit_front(surf):
+JACKETS = ("two", "double", "vest", "open")
+
+
+def _collar(surf):
+    return plate(surf, [(0.02, 0.9), (0.1, 0.925), (0.104, 0.972), (0.034, 0.978)], 3, 3, 0.027, "shirt", edge=0.18).both()
+
+
+def _buttons(surf, pts, r=0.019):
     m = M()
-    m.add(plate(surf, [(-0.016, 0.66), (0.016, 0.66), (0.112, 0.965), (-0.112, 0.965)], 4, 5, 0.007, "shirt", edge=0.1))
-    lap = plate(surf, [(0.006, 0.628), (0.07, 0.606), (0.168, 0.925), (0.092, 0.972)], 3, 6, 0.017, "suit2", edge=0.14,
-                bow=lambda s, t: (0.03 * math.sin(math.pi * t) * (s - 0.2), 0))
-    m.add(lap.both())
-    col = plate(surf, [(0.02, 0.9), (0.1, 0.925), (0.104, 0.972), (0.034, 0.978)], 3, 3, 0.027, "shirt", edge=0.18)
-    m.add(col.both())
-    for z in (0.592, 0.545):
-        m.add(blob_on(surf, 0.0, z, 0.019, 0.019, 0.014, 2, "gold", 0.25))
-    # pocket square on the character's left chest
-    m.add(plate(surf, [(0.168, 0.79), (0.238, 0.785), (0.24, 0.83), (0.174, 0.82)], 3, 3, 0.012, "tie", edge=0.22))
+    for x, z in pts:
+        m.add(blob_on(surf, x, z, r, r, r * 0.75, 2, "gold", 0.25))
     return m
+
+
+def front(surf, style):
+    """the suit front as a swappable part: two-button jacket, double-breasted jacket, vest over shirt, open jacket"""
+    m = M()
+    if style == "two":
+        m.add(plate(surf, [(-0.016, 0.66), (0.016, 0.66), (0.112, 0.965), (-0.112, 0.965)], 4, 5, 0.007, "shirt", edge=0.1))
+        m.add(plate(surf, [(0.006, 0.628), (0.07, 0.606), (0.168, 0.925), (0.092, 0.972)], 3, 6, 0.017, "suit2", edge=0.14,
+                    bow=lambda s, t: (0.03 * math.sin(math.pi * t) * (s - 0.2), 0)).both())
+        m.add(_buttons(surf, [(0.0, 0.592), (0.0, 0.545)]))
+    elif style == "double":
+        m.add(plate(surf, [(-0.014, 0.75), (0.014, 0.75), (0.105, 0.965), (-0.105, 0.965)], 4, 4, 0.007, "shirt", edge=0.1))
+        # peak lapels, short and wide
+        m.add(plate(surf, [(0.004, 0.724), (0.1, 0.7), (0.19, 0.9), (0.086, 0.972)], 3, 5, 0.018, "suit2", edge=0.14,
+                    bow=lambda s, t: (0.035 * math.sin(math.pi * t) * (s - 0.1), 0.02 * s * t)).both())
+        # the wrap-over panel: its free edge runs down the character's left
+        m.add(plate(surf, [(-0.2, 0.538), (0.135, 0.538), (0.118, 0.722), (-0.19, 0.708)], 5, 4, 0.011, "suit", edge=0.08))
+        m.add(_buttons(surf, [(sx * 0.082, z) for z in (0.682, 0.622, 0.562) for sx in (1, -1)], 0.018))
+    elif style == "vest":
+        m.add(plate(surf, [(-0.018, 0.69), (0.018, 0.69), (0.118, 0.965), (-0.118, 0.965)], 4, 5, 0.007, "shirt", edge=0.1))
+        # piped edge of the V neck
+        m.add(plate(surf, [(0.008, 0.668), (0.05, 0.662), (0.158, 0.94), (0.112, 0.968)], 2, 6, 0.014, "suit2", edge=0.2).both())
+        m.add(_buttons(surf, [(0.0, 0.63), (0.0, 0.585), (0.0, 0.54)], 0.016))
+    elif style == "open":
+        m.add(plate(surf, [(-0.1, 0.536), (0.1, 0.536), (0.118, 0.965), (-0.118, 0.965)], 5, 6, 0.007, "shirt", edge=0.08))
+        m.add(plate(surf, [(0.082, 0.534), (0.168, 0.534), (0.182, 0.915), (0.098, 0.972)], 3, 7, 0.02, "suit2", edge=0.14,
+                    bow=lambda s, t: (0.022 * math.sin(math.pi * t) * (s - 0.3), 0)).both())
+        m.add(plate(surf, [(-0.096, 0.541), (0.096, 0.541), (0.096, 0.578), (-0.096, 0.578)], 4, 2, 0.021, "dark", edge=0.12, sink=-0.012))        # belt
+        m.add(blob_on(surf, 0.0, 0.559, 0.03, 0.024, 0.016, 2, "gold", 0.2))
+    m.add(_collar(surf))
+    return m
+
+
+def square(surf):
+    """pocket square on the character's left chest (a toggle in the creator)"""
+    return plate(surf, [(0.168, 0.79), (0.238, 0.785), (0.24, 0.83), (0.174, 0.82)], 3, 3, 0.022, "square", edge=0.22)
+
+
+def build_morph(co, kind):
+    """target of the 'build' shape key at +1 (chubby); the game also drives it negative for slim.
+    kind: torso | arm | leg. Wrists, ankles and the neck stay put so hands, feet, head and sockets still fit."""
+    z = co.z
+    if kind == "arm":
+        k = smooth(0.95, 0.72, z) * smooth(0.46, 0.62, z)
+        return Vector((co.x + sgn(co.x) * 0.055 * k, co.y, co.z))
+    if kind == "leg":
+        k = smooth(0.12, 0.3, z)
+        cx = sgn(co.x) * J["hip"].x
+        return Vector((cx + (co.x - cx) * (1 + 0.1 * k) + sgn(co.x) * 0.014 * k, co.y * (1 + 0.1 * k), co.z))
+    k = smooth(0.36, 0.56, z) * (1 - smooth(0.66, 0.98, z))
+    return Vector((co.x * (1 + 0.18 * k), co.y * (1 + 0.18 * k) - 0.022 * k * (co.y < 0), co.z))
 
 
 def tie(surf, style):
