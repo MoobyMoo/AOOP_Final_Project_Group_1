@@ -123,11 +123,11 @@ export function sampleGround(x: number, z: number, bare: THREE.Color, grass: THR
   const rd = roadDist(x, z, rinfo), road = rinfo.road;
   if (road && rd < 2.4) {
     const sd = -(rd + wob * 0.2), gr = road.ground, kc = sstep(sd, -1.5, 0.1) * (gr === "sand" ? 0.6 : 1);
-    tmp.copy(GROUND_C[gr]); if (gr === "dirt") tmp.lerp(G2.dirtD, m * 0.7).multiplyScalar(1.03); if (gr === "plank") tmp.multiplyScalar(0.8);
+    tmp.copy(GROUND_C[gr]); if (gr === "dirt") tmp.lerp(G2.dirtD, m); if (gr === "plank") tmp.multiplyScalar(0.8);
     bare.lerp(tmp, kc); fine += (FINE[gr] - fine) * kc; g = Math.min(g, 1 - ramp(sd, 0.9));
   }
   if (d < 4) {
-    if (kind === "coast" || kind === "river") { bare.lerp(GROUND_C.sand, sstep(-d, -3, -0.6) * 0.85).lerp(G2.deep, sstep(-d, 1.5, 6) * 0.6); g = Math.min(g, ramp(d - 2.0 + wob * 0.3)); }
+    if (kind === "coast" || kind === "river") { bare.lerp(GROUND_C.sand, sstep(-d, -3, -0.6) * 0.85).lerp(G2.deep, sstep(-d, 1.5, 5) * 0.75).multiplyScalar(1 - sstep(-d, 3, 9) * 0.45); g = Math.min(g, ramp(d - 2.0 + wob * 0.3)); }
     else if (kind === "cliff") { bare.lerp(GROUND_C.rock, sstep(-d, -1.6, 1.0)).lerp(G2.rockD, sstep(m, 0.4, 0.8) * sstep(-d, 0, 2) * 0.6); g = Math.min(g, ramp(d + 0.3 + wob * 0.25)); fine += (0.6 - fine) * sstep(-d, -1.6, 1.0); }
     else { const k = sstep(-d, -1.5, 3); grass.lerp(GROUND_C.jungle, k); bare.lerp(G2.loam, k); }
   }
@@ -172,9 +172,9 @@ const GROUND_GLSL = /* glsl */ `
     // bare ground: mid-scale mottling (plus or minus 8 percent at 3 to 5 m) and a fine grain, so no plate is one tone
     float b1 = lt_noise(wp * 0.23 + 5.0), b2 = lt_noise(wp * 0.57 + 31.0), b3 = lt_noise(wp * 4.7);
     float blot = smoothstep(0.32, 0.68, b1 * 0.62 + b2 * 0.38);
-    // Sunlit dirt sits on the tone mapper's shoulder, where 8 percent of light is 2 percent on screen: the swing is
-    // wider in light and biased down so it lands as about 8 percent of displayed value.
-    bare *= 1.0 + ((blot - 0.62) * 0.5 + (b3 - 0.5) * 0.09 + (n2 - 0.5) * 0.06) * vMask.z;
+    // The swing is kept for after the lighting (gndMot, applied below): 8 percent of light is 2 percent on screen where
+    // sunlit dirt sits on the tone mapper's shoulder, and far too much in shade.
+    gndMot = ((blot - 0.5) * 0.26 + (b3 - 0.5) * 0.05 + (n2 - 0.5) * 0.035) * vMask.z * (1.0 - gk);
     // the soil shoulder: darker, damper earth in a narrow band under the turf edge
     float lip = smoothstep(0.31, 0.46, e) * (1.0 - gk);
     bare = mix(bare, bare * vec3(0.55, 0.58, 0.52), lip * 0.75);
@@ -202,9 +202,13 @@ function groundShader<T extends THREE.Material>(mat: T): T {
   mat.onBeforeCompile = (sh, r) => {
     base.call(mat, sh, r);
     sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute vec3 aGrass;\nattribute vec3 aMask;\nvarying vec3 vGrass;\nvarying vec3 vMask;").replace("#include <color_vertex>", "#include <color_vertex>\n  vGrass = aGrass; vMask = aMask;");
-    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vGrass;\nvarying vec3 vMask;").replace("#include <color_fragment>", GROUND_GLSL);
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vGrass;\nvarying vec3 vMask;\nfloat gndMot = 0.0;").replace("#include <color_fragment>", GROUND_GLSL)
+      // after the lighting (shading.ts leaves one opaque_fragment include behind its own block): the mottling swings wider
+      // the brighter the pixel, so it lands near 8 percent of displayed value in sun and in shade alike. In sun only the
+      // dark half grows: the light half would push lit dirt back into clipping
+      .replace("#include <opaque_fragment>", "  { float gndLum = max(outgoingLight.r, max(outgoingLight.g, outgoingLight.b)); float gndB = smoothstep(0.35, 1.3, gndLum); outgoingLight *= 1.0 + min(gndMot, 0.0) * mix(0.75, 2.1, gndB) + max(gndMot, 0.0) * mix(0.75, 0.15, gndB); }\n#include <opaque_fragment>");
   };
-  mat.customProgramCacheKey = () => "ground2";
+  mat.customProgramCacheKey = () => "ground3";
   return mat;
 }
 
@@ -235,7 +239,7 @@ export function buildTerrain(scene: THREE.Scene) {
     const m = new THREE.Mesh(g, patch(new THREE.MeshStandardMaterial({ color, roughness: rough, transparent: true, opacity }), { rim: 0, water: true }));
     m.position.set(x, y, z); m.receiveShadow = true; m.name = "water"; scene.add(m); return m;
   };
-  water(420, 90, 0, -0.32, SEA_Z + 41, "#3a9bb0"); water(420, 106, 0, -0.32, RIVER_Z - 37, "#2f8296"); // the river reaches south into the landing bay (z -98)
+  water(420, 90, 0, -0.32, SEA_Z + 41, "#3a9bb0", 0.8); water(420, 106, 0, -0.32, RIVER_Z - 37, "#2f8296", 0.8); // 0.9 -> 0.8: the shallows show their sand, the water deepens away from the shore // the river reaches south into the landing bay (z -98)
   for (const w of WET) { const b = w.bb; water(b[1] - b[0], b[3] - b[2], (b[0] + b[1]) / 2, w.z.water!, (b[2] + b[3]) / 2, "#4c8f84", 0.78, 0.95); }
   for (const p of POOLS) { // the waterfall pool: a disc that sits in the dip the terrain cut for it
     const r = Number(p.o?.r ?? 6) + 1.2, g = new THREE.CircleGeometry(r, 40); g.rotateX(-Math.PI / 2);

@@ -1,9 +1,9 @@
 // Ground decals (G1 council fix round 1, F2 items 1 and 2): contact darkening under props and along wall bases,
-// scorch, worn soil, stains and ruts. Every decal is a few flat triangles whose vertex colour is a MULTIPLIER on
-// whatever is under it (1 = no change), drawn with dst * src blending after the opaque pass. All of them merge into
+// scorch, worn soil, stains and ruts. Every decal is a few flat triangles whose vertex colour says how much of each
+// channel it takes from whatever is under it (0 = no change), blended after the opaque pass. All of them merge into
 // one mesh per 48 u tile, so a whole place costs one or two draw calls however many props stand in it.
-// Why multiply and not a dark transparent card: it keeps the hue of sand, dirt, grass and floorboards, it darkens the
-// same way in sun and in shade, and there is no alpha to sort.
+// Why this and not a dark transparent card: it keeps the hue of sand, dirt, grass and floorboards, each channel can
+// drop by its own amount (a tint), and there is no alpha to sort.
 import * as THREE from "three";
 
 const TILE = 48, LIFT = 0.035;
@@ -22,7 +22,7 @@ export function setDecalSurface(h: (x: number, z: number) => number) { heightAt 
 const acc = (x: number, z: number) => { const k = `${Math.floor(x / TILE)},${Math.floor(z / TILE)}`; return tiles.get(k) ?? tiles.set(k, { pos: [], col: [] }).get(k)!; };
 type V = { x: number; z: number; m: number };
 function tri(a: Acc, p: V, q: V, r: V, t: RGB, y?: number) {
-  for (const v of [p, q, r]) { a.pos.push(v.x, y ?? NaN, v.z); a.col.push(1 - (1 - t[0]) * v.m, 1 - (1 - t[1]) * v.m, 1 - (1 - t[2]) * v.m); }
+  for (const v of [p, q, r]) { a.pos.push(v.x, y ?? NaN, v.z); a.col.push((1 - t[0]) * v.m, (1 - t[1]) * v.m, (1 - t[2]) * v.m); }
 }
 const hash = (a: number, b: number) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
 
@@ -83,7 +83,10 @@ let MAT: THREE.Material | null = null;
 function material() {
   return (MAT ??= new THREE.MeshBasicMaterial({
     vertexColors: true, fog: false, toneMapped: false, transparent: true, depthWrite: false,
-    blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.DstColorFactor, blendDst: THREE.ZeroFactor,
+    // out = FLOOR * s + dst * (1 - s), s = the vertex colour (how much of each channel the decal takes away). Against
+    // sunlit ground that is the tint as a plain multiplier; in shade and indoors, where the ground is already near FLOOR,
+    // the same decal takes about half as much. A pure multiply went black under trees and inside the buildings.
+    blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.ConstantColorFactor, blendDst: THREE.OneMinusSrcColorFactor, blendSrcAlpha: THREE.ZeroFactor, blendDstAlpha: THREE.OneFactor /* the frame keeps its alpha */, blendColor: new THREE.Color().setRGB(0.06, 0.05, 0.045, THREE.LinearSRGBColorSpace),
     polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, side: THREE.DoubleSide,
   }));
 }
