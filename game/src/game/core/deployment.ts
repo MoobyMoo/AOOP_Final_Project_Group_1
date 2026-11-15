@@ -9,9 +9,16 @@
 //  - spawn: an explicit location wins; otherwise a random candidate from the entry group's start points, with a
 //    fallback. Ours makes the fallback explicit and adds a 12 m enemy exclusion (SYSTEMS_PORT R02 port spec).
 // This module never moves items: the only transaction is the fare (Sol's settlement owns everything else).
+// Prerequisites (G1.5 row 40, Moo: "like how the teleporter works, we need to unlock something to be able to TP
+// there"): Duckov's MapSelectionEntry carries Condition[]; while any fails the card shows its lock indicator and can't be
+// picked. Ours are data on each destination, each with the reason the board shows: a job's unlock (the plantation road
+// opens with Sal's road map) or an item you keep in the stash (the cove needs a signal flare, like Duckov's item-gated
+// boat route).
 import type { SaveV1 } from "../contracts";
 import { ROADS, START } from "../world/layout";
 import { mulberry32 } from "../loot/tables";
+import { itemType } from "../loot/instances";
+import { homeItems, unlocked } from "./quests";
 
 export type EntryPoint = { id: string; group: string; x: number; z: number; facing: number; safeRadius: number };
 export type DestinationDef = {
@@ -19,9 +26,11 @@ export type DestinationDef = {
   cost: number;                                   // bananas, paid once on confirm
   blurb: string;                                  // what you'll find (destination card)
   preview: { x: number; z: number; r: number };   // map crop for the card (world centre, radius in u)
-  needsExtracts: number;                          // successful returns before it opens
-  lockedReason: string;
+  requires: Prereq[];                             // all must hold (Duckov MapSelectionEntry conditions); [] = always open
 };
+/** a destination condition and the lock reason the card shows while it fails */
+export type Prereq = { unlock: string; reason: string } | { item: string; reason: string };
+export const prereqMet = (p: Prereq, save: SaveV1) => "unlock" in p ? unlocked(save, p.unlock) : homeItems(save).some((inst) => itemType(inst) === p.item);
 export const SAFE_RADIUS = 12;
 const facePlantation = (x: number, z: number) => Math.atan2(4 - x, 21 - z); // yaw toward the Old Plantation's yard
 /** where each destination drops you. Beach: 3 authored spots around the hatch. Plantation road: taken from the road
@@ -31,15 +40,23 @@ export const ENTRY_POINTS: EntryPoint[] = [
   { id: "beach-hatch", group: "beach", x: START.x, z: START.z, facing: Math.PI, safeRadius: SAFE_RADIUS },
   { id: "beach-west", group: "beach", x: -24, z: 100.4, facing: Math.PI * 0.85, safeRadius: SAFE_RADIUS },
   { id: "beach-east", group: "beach", x: 14, z: 101.2, facing: -Math.PI * 0.85, safeRadius: SAFE_RADIUS },
+  // Smuggler's Cove: on the sand inside the cove's rock arms, facing the water (the grotto cave is a short walk west)
+  { id: "cove-picnic", group: "cove", x: -76.4, z: 98.6, facing: -Math.PI * 0.6, safeRadius: SAFE_RADIUS },
+  { id: "cove-arm", group: "cove", x: -81.5, z: 94.2, facing: -Math.PI * 0.75, safeRadius: SAFE_RADIUS },
+  { id: "cove-trail", group: "cove", x: -74.5, z: 97.7, facing: -Math.PI * 0.5, safeRadius: SAFE_RADIUS },
   ...([["west-trail", 1], ["boardwalk", 1], ["hatch-road", 2]] as const).flatMap(([id, i]) => {
     const p = road(id, i); return p ? [{ id: `road-${id}`, group: "plantation-road", x: p.x, z: p.z, facing: facePlantation(p.x, p.z), safeRadius: SAFE_RADIUS }] : [];
   }),
 ];
 export const DESTINATIONS: DestinationDef[] = [
-  { id: "beach", name: "Exile Beach", region: "Exile Beach", entryGroup: "beach", cost: 0, needsExtracts: 0, lockedReason: "",
+  { id: "beach", name: "Exile Beach", region: "Exile Beach", entryGroup: "beach", cost: 0, requires: [],
     blurb: "Land by the hatch on the sand. Crates in the palms, the prison ferry, the cove.", preview: { x: -2, z: 96, r: 26 } },
-  { id: "plantation", name: "Old Plantation Road", region: "Old Plantation", entryGroup: "plantation-road", cost: 20, needsExtracts: 1, lockedReason: "Come home from one raid to open this route",
+  { id: "plantation", name: "Old Plantation Road", region: "Old Plantation", entryGroup: "plantation-road", cost: 20,
+    requires: [{ unlock: "dest:plantation", reason: "Needs the foreman's road map: Sal's job \"Scout the Plantation Road\"" }],
     blurb: "Land on a trail above the palms, halfway up the island. Closer to the plantation and the foreman's yard.", preview: { x: 0, z: 62, r: 26 } },
+  { id: "cove", name: "Smuggler's Cove", region: "Smuggler's Cove", entryGroup: "cove", cost: 15,
+    requires: [{ item: "cove_flare", reason: "Needs a cove signal flare in your stash: the Radio Operator's job \"Signal Fire\"" }],
+    blurb: "Land on the smugglers' sand at the west end of the beach. The grotto cave and the cove boat are steps away.", preview: { x: -82, z: 96, r: 24 } },
 ];
 export const destOf = (id: string) => DESTINATIONS.find((d) => d.id === id);
 
@@ -47,8 +64,8 @@ export type DestState = { unlocked: boolean; affordable: boolean; ok: boolean; r
 export function destinationState(id: string, save: SaveV1): DestState {
   const d = destOf(id);
   if (!d) return { unlocked: false, affordable: false, ok: false, reason: "Unknown destination" };
-  const unlocked = save.stats.extracts >= d.needsExtracts, affordable = save.money >= d.cost;
-  return { unlocked, affordable, ok: unlocked && affordable, reason: !unlocked ? d.lockedReason : !affordable ? `The fare is 🍌 ${d.cost}` : "" };
+  const missing = d.requires.find((p) => !prereqMet(p, save)), unlocked = !missing, affordable = save.money >= d.cost;
+  return { unlocked, affordable, ok: unlocked && affordable, reason: missing ? missing.reason : !affordable ? `The fare is 🍌 ${d.cost}` : "" };
 }
 export const canDeploy = (id: string, save: SaveV1) => { const s = destinationState(id, save); return { ok: s.ok && !pending, reason: pending ? "Already on the way" : s.reason }; };
 

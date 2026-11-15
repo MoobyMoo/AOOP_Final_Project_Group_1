@@ -7,6 +7,7 @@ import { equipLines, SLOT_NAME } from "./equipui";
 import { attachmentDef, SLOT_LABEL, statLines, type StatLine } from "../loot/attachments";
 import { TIERS } from "../loot/tiers";
 import { CALIBERS, CLASS_LABEL, gunOf, isCaliber } from "../combat/guns";
+import { STORY_BLURBS } from "../loot/storyitems";
 
 /** the tier names (loot/tiers.ts) */
 const RARITY: Record<string, string> = Object.fromEntries(Object.values(TIERS).map(t => [t.key, t.name]));
@@ -43,7 +44,7 @@ export type ItemCopy = { name: string; rarity: string; rarityLine: string; blurb
 export function itemCopy(inst: string): ItemCopy {
   const d = itemDef(inst), e = equipDef(inst), id = inst.split(/[#@]/)[0];
   const rarity = d.rarity, r = RARITY[rarity] ?? "Common";
-  let does: string[] = [], use = "", lines: StatLine[] | undefined, blurb = BLURB[id] ?? "";
+  let does: string[] = [], use = "", lines: StatLine[] | undefined, blurb = BLURB[id] ?? STORY_BLURBS[id] ?? "";
   let rarityLine = `${r}, sells at the Fence`;
   if (e) {
     does = equipLines(inst);
@@ -67,6 +68,14 @@ export function itemCopy(inst: string): ItemCopy {
     does = [`${d.stack ?? 8} ${isCaliber(cal) ? CALIBERS[cal].name.toLowerCase() : "rounds"}`, "Goes straight into your ammo pouch; only guns of this caliber load it"];
     use = "Take it to add the rounds";
     rarityLine = "Ammunition";
+  } else if (d.kind === "note") {
+    does = ["Click it to read it", "Reading it counts for jobs that want it"];
+    use = "Click it to read it. The Fence buys paper for a banana";
+    rarityLine = "Lore note";
+  } else if (d.kind === "key" && (id === "road_map" || id === "cove_flare")) {
+    does = ["A job wants this", "Sorted to your cheek pouch: safe if you get bonked"];
+    use = "Carry it home to your stash";
+    rarityLine = `${r} job item`;
   } else if (d.kind === "key") {
     does = ["Opens something on the island", "Kept on your keyring when you get home"];
     use = "Carry it home";

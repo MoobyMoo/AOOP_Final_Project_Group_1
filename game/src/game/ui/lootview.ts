@@ -32,7 +32,7 @@ import { ATT_SLOTS, SLOT_LABEL, attachmentDef, isAttachment, statLines } from ".
 import { GUN, fit, unfit, statsFor } from "../combat/gunstats";
 import { CALIBERS, CLASS_LABEL, gunOf, isCaliber } from "../combat/guns";
 import { placeGun, takeGun, swapSlots, freeGunSlot } from "../combat/arsenal";
-import { tierOf } from "../loot/tiers";
+import { tierAtLeast, tierOf } from "../loot/tiers";
 import { itemType, withCount } from "../loot/instances";
 import { checkpointInventory, consumeInstance } from "../core/raid-journal";
 
@@ -53,7 +53,9 @@ export type LootTarget = {
   actions?: { label: string; run: () => void }[];
 };
 /** set by hud.ts: refresh the HUD after a transfer */
-export const lootHooks = { changed: () => {} };
+/** changed: after any move. side: the right panel's content when the screen has no target (the raid's job log,
+ *  story/raid.ts). note: a lore note's paper for the tag; read: a note was clicked (read) */
+export const lootHooks = { changed: () => {}, side: null as null | (() => string), note: null as null | ((type: string) => string), read: (_inst: string) => {} };
 
 /** gun:k = gun slot k (0 = key 1); att = "k.slot" (an attachment slot on gun k) */
 type Src = { z: "pack"; i: number } | { z: "slot"; s: WearSlot } | { z: "fixed"; s: "case" } | { z: "gun"; s: "0" | "1" } | { z: "them"; i: number } | { z: "att"; s: string };
@@ -447,6 +449,11 @@ function tagHtml() {
   }
   if (isGun(inst)) return gunTagHtml(src, inst);
   const d = itemDef(inst), cp = itemCopy(inst), e = equipDef(inst), c = e ? condition(inst) : null;
+  if (d.kind === "note" && lootHooks.note) { // a lore note: the paper itself; clicking it reads it (counts for jobs)
+    if (src === sel && (src.z !== "them" || entries()[src.i]?.revealed)) lootHooks.read(inst);
+    const acts = src.z === "pack" ? `<div class="acts"><button class="b3" data-act="drop">Drop</button></div>` : src.z === "them" && !home() ? `<div class="acts"><button class="b3 pri" data-act="primary">Take</button></div>` : "";
+    return `<div class="tag3 note3" style="--rar:var(--rar-${d.rarity})"><span class="hole"></span>${lootHooks.note(itemType(inst))}${acts}</div>`;
+  }
   const worn = e && src.z !== "slot" ? gear()[e.slot] : null;
   const facts: string[] = [];
   const att = attachmentDef(inst);
@@ -529,8 +536,9 @@ function render() {
   const s = sigs(), focus = (document.activeElement as HTMLElement | null)?.dataset?.src;
   if (s.left !== sigLeft) { sigLeft = s.left; (root.querySelector(".lv-me") as HTMLElement).innerHTML = leftHtml(); }
   const them = root.querySelector(".lv-them") as HTMLElement;
-  if (s.them !== sigThem) { sigThem = s.them; them.innerHTML = themHtml(); popped.clear(); }
-  const disp = target ? "" : "none"; if (them.style.display !== disp) them.style.display = disp;
+  if (target && s.them !== sigThem) { sigThem = s.them; them.innerHTML = themHtml(); popped.clear(); }
+  if (!target && lootHooks.side) { const side = lootHooks.side(); if (side !== sigThem) { sigThem = side; them.innerHTML = side; } } // the job log beside your pack (Tab)
+  const disp = target || (lootHooks.side && G.scene === "raid") ? "" : "none"; if (them.style.display !== disp) them.style.display = disp;
   renderTag();
   if (focus) (root.querySelector(`[data-src="${focus}"]`) as HTMLElement | null)?.focus({ preventScroll: true });
 }
@@ -538,7 +546,7 @@ let tagKey = "";
 function renderTag() {
   if (!root) return;
   const src = sel ?? hover, inst = itemAt(src), en = src?.z === "them" ? entries()[src.i] : undefined;
-  const k = (src ? key(src) : "") + "|" + (inst ?? "") + "|" + (target?.name ?? "") + "|" + G.mag + "/" + G.ammo + "|" + (en ? stackOf(en) : "") + "|" + (src?.z === "slot" || src?.z === "pack" ? (gear() ? Object.values(gear()).join() : "") : "") + "|" + JSON.stringify(G.save.guns) + G.loaded.join();
+  const k = (src ? key(src) : "") + (src && src === sel ? "!" : "") + "|" + (inst ?? "") + "|" + (target?.name ?? "") + "|" + G.mag + "/" + G.ammo + "|" + (en ? stackOf(en) : "") + "|" + (src?.z === "slot" || src?.z === "pack" ? (gear() ? Object.values(gear()).join() : "") : "") + "|" + JSON.stringify(G.save.guns) + G.loaded.join();
   if (k === tagKey) return; tagKey = k;
   (root.querySelector(".lv-tagwrap") as HTMLElement).innerHTML = tagHtml();
 }
@@ -578,7 +586,7 @@ export function updateLoot(dt: number) {
   if (s && s.elapsed < s.duration) {
     const fresh = advanceSearch(s, dt);
     if (fresh.length) {
-      for (const f of fresh) { popped.add(f); const r = itemDef(f.item).rarity, big = r === "rare" || r === "epic"; sfx(big ? "rare" : "crateTick", big ? 0.5 : 1); if (big) sting("stingRare"); }
+      for (const f of fresh) { popped.add(f); const big = tierAtLeast(itemDef(f.item).rarity, "rare"); /* Executive (q4) and up: the find sting */ sfx(big ? "rare" : "crateTick", big ? 0.5 : 1); if (big) sting("stingRare"); }
     } else {
       const slots = s.slots, i = slots.findIndex((q) => !q.revealed && !q.taken);
       if (i >= 0) {

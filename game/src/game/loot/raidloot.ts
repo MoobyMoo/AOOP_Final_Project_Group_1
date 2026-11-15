@@ -15,6 +15,7 @@ import { itemDef, rollCrate, isUseful, type LootContext } from "./tables";
 import { bodySearch } from './bodies';
 import { CONTAINERS, rollContainer, demoContainerType, type ContainerType } from './containers';
 import { createSearch, advanceSearch, take, type SearchSession } from './search';
+import { lootPriority } from './bot-priority';
 export { bodyContents, bodySearch } from './bodies';
 export { advanceSearch, take, takeAll } from './search';
 import { equipDef, gearStats, isEquip } from "./equipment";
@@ -33,13 +34,14 @@ import { hud } from "../ui/hud";
 import { KINGPIN } from "../combat/weapons";
 import { CALIBERS, isCaliber, type Caliber } from "../combat/guns";
 import { equipFound, freeGunSlot } from "../combat/arsenal";
-import { TIERS } from "./tiers";
+import { TIERS, tierAtLeast } from "./tiers";
 import { makeNoise } from "../combat/combat";
 import { takeModel, releaseModel, throwVelocity, stepThrow, poseModel, PICK_REACH, hullResolution } from "./ground";
 import { openLoot, closeLoot, lootOpen, type LootTarget } from "../ui/hud";
 import { lootTarget } from "../ui/lootview";
 import { own, itemType, withCount } from "./instances";
 import { consumeInstance } from "../core/raid-journal";
+import { storyExtras, storyForced } from "../story/raid";
 
 export const containerType = (crate: Crate) => crate.type;
 /** tier colours (loot/tiers.ts): the float text, item icons' rims, ground beams */
@@ -79,7 +81,7 @@ export function setupCrates() {
     G.crates.push({ id: nid++, x: s.x, z: s.z, tier: s.tier, fixed: s.fixed, obj, opened: false, search: 0, items: null, kind: "crate", type, label: s.fixed === "key" ? "the gang's strongbox" : `${s.tier} crate`, r: 0.6 });
   }
   // typed containers (G1.5-27): their own models, lids and readability marks
-  for (const s of selectContainers(G.rng)) {
+  for (const s of selectContainers(G.rng, storyForced())) {
     const b = containerKit(s.type), obj = mergePieces(b.pieces); obj.add(b.parts.root); obj.userData.lid = b.parts.lid;
     const host = s.in ? PLACED.find((p) => p.id === s.in) : undefined;
     obj.position.set(s.x, groundHeight(s.x, s.z) + (s.y ?? 0), s.z); obj.rotation.y = s.yaw ?? (host ? (host.yaw ?? 0) + (Math.floor(G.rng() * 2) * Math.PI) : G.rng() * 6.28);
@@ -116,7 +118,9 @@ export function sessionOf(c: Crate): SearchSession | null {
     if (c.fixed === "satchel") items = [...(c.items ?? [])];
     else if (c.kind === "container" && c.type) items = rollContainer(c.type, G.rng, ctx);
     else { ctx.fixed = c.fixed as LootContext["fixed"]; ctx.ownsExtendedMag = [...G.save.guns.map(g => g?.atts.mag), ...G.save.locker, ...G.pack].some(inst => inst && itemType(inst) === "att_mag_ext"); ctx.containerType = c.type; items = rollCrate(c.tier, ctx, G.rng); ctx.fixed = undefined; ctx.containerType = undefined; }
-    items = items.map(own); c.items = items;
+    items = items.map(own);
+    if (c.kind === "container" && c.socket) items.push(...storyExtras(c.socket)); // a lore note or a job item hidden in this one (story/raid.ts)
+    c.items = items;
     c.session = createSearch(items, { openSeconds: c.kind === "container" && c.type ? CONTAINERS[c.type].openSeconds : OPEN[c.tier], searchFactor: factor });
   }
   return c.session ?? null;
@@ -135,7 +139,7 @@ const BODY_NAME: Record<Enemy["kind"], string> = { wild: "Wild monkey", bandit: 
 function lootTargetOf(c: Crate, s: SearchSession): LootTarget {
   if (c.kind === "body") c.items = s.slots.filter((q) => !q.taken).map((q) => q.item);
   c.items ??= s.slots.filter((q) => !q.taken).map((q) => q.item);
-  const name = c.kind === "body" ? (c.enemy?.tag === "plantation-foreman" ? "Foreman Knucklebark" : c.enemy?.fauna ? { boar: "Boar", croc: "Crocodile" }[c.enemy.fauna] : BODY_NAME[c.enemy?.kind ?? "bandit"]) : c.kind === "container" && c.type ? CONTAINER_NAME[c.type] : c.fixed === "satchel" ? "Your satchel" : c.fixed === "supply" ? "Supply gondola" : c.fixed === "key" ? "Gang strongbox" : `${c.tier[0].toUpperCase()}${c.tier.slice(1)} crate`;
+  const name = c.fixed === "story" ? c.label ?? "Cache" : c.kind === "body" ? (c.enemy?.tag === "plantation-foreman" ? "Foreman Knucklebark" : c.enemy?.fauna ? { boar: "Boar", croc: "Crocodile" }[c.enemy.fauna] : BODY_NAME[c.enemy?.kind ?? "bandit"]) : c.kind === "container" && c.type ? CONTAINER_NAME[c.type] : c.fixed === "satchel" ? "Your satchel" : c.fixed === "supply" ? "Supply gondola" : c.fixed === "key" ? "Gang strongbox" : `${c.tier[0].toUpperCase()}${c.tier.slice(1)} crate`;
   const sub = c.kind === "body" ? (c.enemy?.fauna ? "Out cold" : "Knocked out") : c.note;
   return { name, sub, kind: c.kind === "body" ? "body" : "container", items: c.items, search: s,
     near: () => G.alive && G.rollT < 0 && flat(c, G.pp) < 2.2,
@@ -145,6 +149,11 @@ function lootTargetOf(c: Crate, s: SearchSession): LootTarget {
 export function beginSearch(c: Crate) {
   const s = sessionOf(c);
   if (!c.started) {
+    if (c.kind === 'body') for (const slot of s?.slots ?? []) {
+      if (isUseful(slot.item, G.lootCtx)) G.lootCtx.usefulFound++;
+      const definition = itemDef(slot.item);
+      if (definition.kind === 'ammo') G.lootCtx.ammoFound += definition.stack ?? 1;
+    }
     c.started = true; G.log.crates++; if (G.log.firstCrate < 0) G.log.firstCrate = G.raidT;
     if (c.kind !== "body") { sfx("crate"); squashOpen(c); makeNoise(V(c.x, c.z), { wood: 3, green: 6, gold: 10 }[c.tier], "loot"); }
     if (c.fixed === "satchel") hud.toast("Your satchel. Take what fits; the rest stays here.");
@@ -213,12 +222,12 @@ export function updateLoot(dt: number) {
         const item = slot.item, d = itemDef(item);
         if (!fits(item)) { // a full pack: swap the cheapest loose item into the container if this one is worth more
           if (equipDef(item)?.bound || G.pack.length < G.packSlots) continue;
-          sortPack(); const cheapest = G.pack[G.pack.length - 1]; if (!(worth(cheapest) < worth(item))) continue;
-          G.pack.pop(); s.slots.push({ item: cheapest, revealAt: 0, revealed: true, taken: false }); c.items?.push(cheapest); G.log.swaps++;
+          const cheapest = cheapestLoot(); if (!(priority(cheapest) < priority(item))) continue;
+          G.pack.splice(G.pack.indexOf(cheapest), 1); s.slots.push({ item: cheapest, revealAt: 0, revealed: true, taken: false }); c.items?.push(cheapest); G.log.swaps++;
         }
         take(s, i); const k = c.items?.indexOf(item) ?? -1; if (k >= 0) c.items!.splice(k, 1);
         if (!giveItem(item, d.kind === "ammo" ? d.stack : undefined)) { slot.taken = false; c.items?.push(item); continue; }
-        if (d.rarity === "rare" || d.rarity === "epic") sfx("rare");
+        if (tierAtLeast(d.rarity, "rare")) sfx("rare"); // Executive (q4) and up: loot/tiers.ts
       }
       // searched out, or fully revealed with only what it can't carry left: done with this one
       if (emptied(c) || s.elapsed >= s.duration && s.slots.every((q) => q.taken || !fits(q.item))) { c.opened = true; endSearch(); }
@@ -289,6 +298,10 @@ export function spawnPickup(id: string, from: THREE.Vector3, k = 0, n = 1, n2?: 
   return placeItem(id, tx, tz, n2);
 }
 /** can this item go into the pack (or onto you) right now. The lead's looting screen asks before take() */
+let botHealingReserve = 0;
+export function setBotHealingReserve(healing: number) { botHealingReserve = Math.max(0, healing); }
+const priority = (item: string) => G.bot && botHealingReserve > 0 ? lootPriority(item, G.pack, botHealingReserve) : worth(item);
+const cheapestLoot = () => G.pack.reduce((cheapest, item) => priority(item) < priority(cheapest) ? item : cheapest);
 export function fits(item: string) {
   const d = itemDef(item);
   if (equipDef(item)?.bound) return false;
@@ -322,9 +335,9 @@ function collect(p: Pickup): boolean {
   if (equipDef(p.item)?.bound) return false;
   if (G.pack.length >= G.packSlots) {
     // a full pack: swap for the cheapest loose item, which is tossed out where you stand
-    sortPack(); const cheapest = G.pack[G.pack.length - 1];
-    if (worth(cheapest) < worth(p.item)) {
-      G.pack.pop(); dropItem(cheapest, G.pp.clone().setY(G.pp.y + 1), G.aimYaw); G.pack.push(p.item);
+    const cheapest = cheapestLoot();
+    if (priority(cheapest) < priority(p.item)) {
+      G.pack.splice(G.pack.indexOf(cheapest), 1); dropItem(cheapest, G.pp.clone().setY(G.pp.y + 1), G.aimYaw); G.pack.push(p.item);
       const equipment = equipDef(p.item); if (equipment && !G.gear[equipment.slot]) equipFromPack(G.pack.length - 1);
       sortPack(); G.log.swaps++; sfx("pick"); hud.pack(); return true;
     }

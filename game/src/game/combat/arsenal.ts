@@ -48,7 +48,6 @@ export function switchTo(k: 0 | 1): boolean {
   if (k === G.slot || !G.save.guns[k] || !canSwitch()) return false;
   cancelReload(); // Duckov: the reload clock lives on the old hand agent; its progress is lost
   G.slot = k; G.drawT = 0; G.burstLeft = 0; G.fireCd = Math.max(G.fireCd, 0);
-  G.log.swaps++;
   mountActiveGun(); resetHandling(); sfx("slide");
   arsenalHooks.changed?.();
   return true;

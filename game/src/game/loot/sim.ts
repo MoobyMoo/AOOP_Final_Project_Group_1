@@ -7,6 +7,7 @@ import { demoRaidLoot, DEMO_ROUTES, upgradePacing } from './demo-economy';
 import { CATALOG } from '../home/facilities';
 import { rollContainer } from './containers';
 import { DESTINATIONS } from '../core/deployment';
+import { selectContainers } from './sockets';
 
 function assert(ok: boolean, message: string): asserts ok {
   if (!ok) throw new Error(message);
@@ -17,6 +18,7 @@ function fresh(): LootContext {
 }
 
 function verifyLoot() {
+  for (let seed = 0; seed < 200; seed++) assert(selectContainers(mulberry32(seed)).filter(socket => socket.type === 'ammo').length >= 4, 'selected raid keeps four authored ammo stops');
   for (const tier of ["wood", "green", "gold"] as const) {
     const table = CRATE_TABLES[tier];
     assert(Math.abs(Object.values(table.items).reduce((sum, chance) => sum + chance, 0) - 1) < 1e-9, `${tier}: normalized probabilities`);

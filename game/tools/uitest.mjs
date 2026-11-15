@@ -164,7 +164,7 @@ async function run(w, h) {
   await task("7 reload uses the right caliber", async () => {
     // rounds must come from somewhere (the settlement ledger rejects rounds from nothing): take two rifle stacks (30)
     await G(() => window.__ui.crate("ammo", ["ammo_rifle", "ammo_rifle"]));
-    if (!(await until(() => window.__ui.lootDebug().them.filter((t) => t === "ammo_rifle").length >= 2 && !window.__ui.lootDebug().them.includes("?"), null, 9000))) throw new Error("rifle rounds never revealed");
+    if (!(await until(() => window.__ui.lootDebug().them.filter((t) => t === "ammo_rifle").length >= 2 && !window.__ui.lootDebug().them.includes("?"), null, 15000))) throw new Error("rifle rounds never revealed"); // the tin rolls 6-7 (Sol), plus these two
     await click('.lv-them [data-act="takeall"]'); await closeAll();
     await G(() => { const g = window.__G; g.loaded[1] = 0; window.__arsenal.switchTo(1); g.drawT = 1; window.__ui.hud.ammo(); });
     const have = await G(() => ({ ...window.__G.reserve }));
@@ -176,7 +176,7 @@ async function run(w, h) {
     const r = await G(() => ({ ...window.__G.reserve }));
     if (r.ammo_rifle !== have.ammo_rifle - 30 || r.ammo45 !== have.ammo45) throw new Error(`reserve before ${JSON.stringify(have)}, after ${JSON.stringify(r)}`);
     await G(() => window.__ui.crate("ammo", ["ammo45"]));
-    if (!(await until(() => window.__ui.lootDebug().them.includes("ammo45"), null, 9000))) throw new Error("no .45 revealed");
+    if (!(await until(() => window.__ui.lootDebug().them.includes("ammo45"), null, 15000))) throw new Error("no .45 revealed");
     const i = await G(() => window.__ui.lootDebug().them.indexOf("ammo45"));
     const a0 = await G(() => ({ ...window.__G.reserve }));
     await dbl(`.lv-them [data-src="them:${i}"]`);

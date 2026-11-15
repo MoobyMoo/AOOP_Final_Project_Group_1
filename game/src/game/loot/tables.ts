@@ -12,6 +12,7 @@ export const GUN_ITEMS: Record<string, ItemDef> = Object.fromEntries([
   ...Object.values(GUNS).map(g => [g.id, { id: g.id, name: g.name, icon: GUN_ICON[g.cls], rarity: g.tier, value: g.value, kind: "gun" as const, weight: g.weight }]),
   ["kingpin", { id: "kingpin", name: GUNS.kingpin45.name, icon: "🔫", rarity: GUNS.kingpin45.tier, value: 0, kind: "gun" as const, weight: GUNS.kingpin45.weight }],
 ]);
+import { STORY_ITEMS } from "./storyitems";
 
 export type LootContext = RaidLootCtx & {
   fixed?: CrateSocket["fixed"] | "radio" | "radio_shack";
@@ -47,6 +48,7 @@ export const ITEMS: Record<string, ItemDef> = {
   scrap_tin: { id: "scrap_tin", name: "Scrap Tin", icon: "🥫", rarity: "common", value: 4, kind: "part", weight: 0.3 },
   banana_notes: { id: "banana_notes", name: "Banana Notes", icon: "💵", rarity: "uncommon", value: 25, kind: "sell", weight: 0.1 },
   plank: { id: "plank", name: "Plank", icon: "🪵", rarity: "common", value: 8, kind: "part", weight: 2.0 },
+  ...STORY_ITEMS, // lore notes, quest items, the Keeper carving (loot/storyitems.ts)
   ...ATTACHMENT_ITEMS, // gun attachments (loot/attachments.ts; att_mag_ext is the old extended_mag)
   ...GUN_ITEMS,
   oar: { id: "oar", name: "Cove boat oar", icon: "🪵", rarity: "common", value: 8, kind: "part", weight: 1.5 },
@@ -96,7 +98,7 @@ export function mulberry32(seed: number): () => number {
   };
 }
 
-export function isUseful(id: string, ctx: RaidLootCtx): boolean {
+export function isUseful(id: string, ctx: Pick<RaidLootCtx, 'orderNeeds'>): boolean {
   const item = itemDef(id);
   return Boolean(item && (item.kind !== "sell" || item.value >= 39 || ctx.orderNeeds.includes(itemType(id))));
 }

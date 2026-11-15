@@ -8,7 +8,8 @@
 //   persist  reload the page: the same layout and tokens
 //   deploy   walk to the pod, E, click Exile Beach, Launch: free, lands on a beach candidate
 //   extract  stand in the hatch ring (teleport there, then real waiting) and come home
-//   deploy 2 the Old Plantation Road is unlocked now: double-click Launch, the 20 banana fare is paid once
+//   deploy 2 a return alone keeps the Old Plantation Road locked (it opens with Sal's road map job: tools/questtest.mjs);
+//            with the job's unlock granted through ?dev, double-click Launch: the 20 banana fare is paid once
 // node tools/basetest.mjs [--shots DIR]   BASE=http://127.0.0.1:5357 (never 5318 or 5340). Exit code 1 on any failure.
 import { chromium } from "playwright-core";
 const BASE = process.env.BASE ?? "http://127.0.0.1:5357";
@@ -104,7 +105,7 @@ await G(() => window.__g.home.pos.set(0, 0, -8.2)); await p.waitForTimeout(200);
 const walkToPod = async () => { await p.keyboard.down("w"); await until(() => window.__g.home.stations().length && document.getElementById("hp")?.classList.contains("on"), null, 3000); await p.keyboard.up("w"); await p.waitForTimeout(150); };
 await walkToPod();
 await p.keyboard.press("e"); await p.waitForSelector(".panel.dest .dcard");
-log((await p.locator('.dcard[data-a="dest:plantation"]').isDisabled()), "Old Plantation Road is locked before the first return", await p.locator('.dcard[data-a="dest:plantation"] .dlock').innerText());
+log((await p.locator('.dcard[data-a="dest:plantation"]').isDisabled()), "Old Plantation Road is locked on a new save", await p.locator('.dcard[data-a="dest:plantation"] .dlock').innerText());
 await shot("08-pod-board");
 await p.click('.dcard[data-a="dest:beach"]'); await p.waitForSelector(".panel.dest.confirm");
 await shot("09-confirm-beach");
@@ -127,7 +128,11 @@ await p.waitForTimeout(1500); await shot("11-arrived-beach");
 // ---- deploy to the Old Plantation Road: double-click Launch, pay once
 await walkToPod();
 await p.keyboard.press("e"); await p.waitForSelector(".panel.dest .dcard");
-log(!(await p.locator('.dcard[data-a="dest:plantation"]').isDisabled()), "Old Plantation Road is open after a return");
+log((await p.locator('.dcard[data-a="dest:plantation"]').isDisabled()) && /road map/i.test(await p.locator('.dcard[data-a="dest:plantation"] .dlock').innerText()), "a return alone doesn't open the plantation road: the road map job does");
+await p.keyboard.press("Escape"); await p.waitForTimeout(250);
+await G(() => { window.__G.save.quests.unlocks.push("dest:plantation"); window.__g.home.refresh(); }); // setup: the road map job's unlock (core/quests.ts)
+await p.keyboard.press("e"); await p.waitForSelector(".panel.dest .dcard");
+log(!(await p.locator('.dcard[data-a="dest:plantation"]').isDisabled()), "Old Plantation Road is open with the job's unlock");
 await shot("12-pod-board-unlocked");
 await p.click('.dcard[data-a="dest:plantation"]'); await p.waitForSelector(".panel.dest.confirm");
 await shot("13-confirm-plantation");

@@ -1,0 +1,98 @@
+/* The story's UI (G1.5 row 40) in UI v3 direction A "Corner office" (ui/ui3.css tokens): dialogue plates with a
+   portrait, job cards, the job log, the tracker line, barks over heads, the note's paper tag and the arrival intro. */
+
+/* ---------------------------------------------------------------- dialogue */
+.panel.npc{width:min(660px,94vw)}
+.npc3{display:grid;grid-template-columns:112px 1fr;gap:16px;align-items:center;margin:4px 20px 10px}
+.npc3-face{width:112px;height:112px;display:grid;place-items:center;overflow:hidden;position:relative;
+  background:radial-gradient(circle at 50% 38%,#4a4248,#1d1c20 70%);border:1px solid var(--a-brass);box-shadow:inset 0 0 0 3px #19181c,0 6px 16px rgba(0,0,0,.5)}
+.npc3-face img{width:112%;height:112%;object-fit:cover;object-position:50% 35%}
+.panel.npc header h2{white-space:nowrap}.panel.npc header small{text-align:right}
+.npc3-face b{font:700 54px/1 var(--a-font);color:var(--a-brass)}
+.npc3-lines p{margin:0 0 6px;font:500 20px/1.35 var(--a-font);color:#efe2c6;text-wrap:pretty}
+.npc3-lines p::before{content:"“";color:var(--a-brass);margin-right:2px}
+.npc3-lines p::after{content:"”";color:var(--a-brass);margin-left:1px}
+.q3-job{margin:10px 20px 0;padding:10px 12px 12px;border:1px solid var(--a-line);background:rgba(0,0,0,.18);position:relative}
+.q3-job.ready{border-color:var(--a-stam);box-shadow:inset 3px 0 0 var(--a-stam)}
+.q3-job.available{border-color:var(--a-brass);box-shadow:inset 3px 0 0 var(--a-tie)}
+.q3-job.tracked{box-shadow:inset 3px 0 0 var(--a-tie)}
+.q3-jh{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.q3-jh b{font:700 23px/1.1 var(--a-font)}
+.q3-jh em{font:600 15px/1 var(--a-font);font-style:normal;color:var(--a-brass);white-space:nowrap;text-transform:uppercase;letter-spacing:.06em}
+.q3-job.ready .q3-jh em{color:var(--a-stam)}
+.panel .q3-brief,.q3-brief{margin:4px 0 6px;font:500 17px/1.35 var(--a-font);color:var(--a-dim)}
+.q3-tasks{list-style:none;margin:4px 0 0;padding:0}
+.q3-tasks li{display:grid;grid-template-columns:20px 1fr auto;gap:6px;align-items:baseline;padding:4px 0;border-top:1px dashed var(--a-line);font:600 18px/1.3 var(--a-font)}
+.q3-tasks li i{font-style:normal;color:var(--a-brass)}
+.q3-tasks li.ok{color:var(--a-dim)}.q3-tasks li.ok i{color:var(--a-stam)}
+.q3-tasks li small{display:block;font:500 15px/1.3 var(--a-font);color:var(--a-faint)}
+.q3-tasks li em{font-style:normal;color:var(--a-warn);font-weight:600}
+.q3-tasks li b{font:700 18px/1 var(--a-font);font-variant-numeric:tabular-nums}
+.panel .q3-reward,.q3-reward{margin:8px 0 0;font:600 16px/1.3 var(--a-font);color:#f3d48a}
+.q3-reward span{color:var(--a-faint);text-transform:uppercase;letter-spacing:.08em;font-size:13px;margin-right:4px}
+.q3-job .actions{margin-top:10px}
+.q3-trk{font:600 15px/1 var(--a-font);font-style:normal;color:var(--a-tie);text-transform:uppercase;letter-spacing:.06em}
+.panel h4 .dim,.panel h4 .q3-dim{font-size:15px;margin-left:6px}
+
+/* ---------------------------------------------------------------- the job log (home panel, raid Tab screen) */
+.panel.qlog{width:min(640px,94vw)}
+.q3-log h4{margin:16px 0 6px;font:600 17px/1 var(--a-font);color:var(--a-brass)}
+.q3-log .q3-job{margin:10px 0 0}
+.panel .q3-log{margin:0 20px 6px}
+.q3-done{list-style:none;margin:0;padding:0;font:600 17px/1.6 var(--a-font);color:var(--a-dim)}
+.q3-note{border-top:1px solid var(--a-line);padding:6px 0}
+.q3-note summary{cursor:pointer;font:600 18px/1.3 var(--a-font);list-style:none}
+.q3-note summary::-webkit-details-marker{display:none}
+.q3-note[open] summary{color:var(--a-brass-hi)}
+.q3-note p{margin:6px 0 4px;padding:10px 12px;background:#efe3c4;color:#2a2018;font:500 17px/1.45 var(--a-font);box-shadow:inset 0 0 0 1px #c9b48a}
+.lv-them .q3-side{padding:0 16px 10px}
+.lv-them .q3-side .q3-job{margin:10px 0 0}
+.q3-dim{color:var(--a-dim);font:500 17px/1.35 var(--a-font)}
+.lv-them .q3-side p,.lv-them .q3-side .q3-dim{font:500 17px/1.35 var(--a-font);color:var(--a-dim)}
+.lv-them .q3-side button{font:700 16px/1 var(--a-font);background:#2a2125;color:var(--a-ink);border:1px solid var(--a-brass);padding:7px 12px;cursor:pointer}
+.lv-them .q3-side .actions{display:flex;gap:8px;margin-top:8px}
+
+/* ---------------------------------------------------------------- tracker line */
+.q3-track{position:absolute;display:flex;align-items:flex-start;gap:8px;max-width:400px;pointer-events:none;color:var(--a-ink)}
+.q3-track .q3-dia{color:var(--a-tie);font:700 20px/1.2 var(--a-font)}
+.q3-track .q3-t{display:flex;flex-direction:column;gap:2px}
+.q3-track .q3-t>b{font:700 21px/1.1 var(--a-font)}
+.q3-track .q3-t>span{font:600 17px/1.25 var(--a-font);color:#e6dac0}
+.q3-track .q3-t>span b{color:#f3d48a}.q3-track .q3-t>span em{font-style:normal;color:var(--a-warn)}
+.q3-track.raid{right:24px;top:236px;text-align:right;flex-direction:row-reverse;text-shadow:0 1px 3px rgba(0,0,0,.85),0 0 10px rgba(0,0,0,.35)}
+.q3-track.raid .q3-t{align-items:flex-end}
+.q3-track.home{right:22px;top:76px;text-align:right;flex-direction:row-reverse;text-shadow:0 1px 3px rgba(0,0,0,.85)}
+.q3-track.home .q3-t{align-items:flex-end}
+#ui:has(> .panel) .q3-track.home,#ui:has(.bld3) .q3-track.home,#ui:has(.lv) .q3-track{opacity:0}
+
+/* ---------------------------------------------------------------- barks */
+.npc3-bark{position:absolute;left:0;top:0;max-width:300px;padding:8px 12px 9px;pointer-events:none;z-index:5;
+  background:#f3ead6;color:#24201c;font:600 18px/1.3 var(--a-font);border:2px solid #24201c;box-shadow:0 6px 0 rgba(0,0,0,.25);animation:q3-pop .22s cubic-bezier(.2,.9,.3,1.35)}
+.npc3-bark b{display:block;font:700 13px/1 var(--a-font);text-transform:uppercase;letter-spacing:.08em;color:var(--a-tie-d);margin-bottom:3px}
+.npc3-bark::after{content:"";position:absolute;left:50%;bottom:-10px;margin-left:-8px;border:8px solid transparent;border-top-color:#24201c;border-bottom:0}
+@keyframes q3-pop{from{transform:var(--t,none) scale(.6);opacity:0}}
+
+/* ---------------------------------------------------------------- a note's paper (loot / Tab item tag) */
+.tag3.note3 .q3-paper{margin:26px 18px 12px;padding:16px 18px 14px;background:linear-gradient(180deg,#f3e7c8,#e6d6ae);color:#2a2018;
+  box-shadow:0 4px 0 rgba(0,0,0,.35),inset 0 0 0 1px #c9b48a;transform:rotate(-1deg)}
+.q3-paper h4{margin:0 0 8px;font:700 22px/1.15 var(--a-font);color:#3a2a1c}
+.q3-paper p{margin:0 0 10px;font:500 18px/1.45 var(--a-font);text-wrap:pretty}
+.q3-paper small{font:600 14px/1.2 var(--a-font);color:#7a6248}
+
+/* ---------------------------------------------------------------- payout slip line */
+.q3-sum{margin:4px 0;font:600 16px/1.35 var(--a-font)}
+
+/* ---------------------------------------------------------------- the arrival intro */
+.intro3{position:fixed;inset:0;z-index:30;pointer-events:auto;cursor:pointer}
+.intro3 .bar{position:absolute;left:0;right:0;height:11vh;background:#0d0c0e;transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+.intro3 .bar.top{top:0;transform:translateY(-100%)}.intro3 .bar.bot{bottom:0;transform:translateY(100%)}
+.intro3.on .bar{transform:none}
+.intro3 .cap{left:50%;bottom:calc(11vh + 22px);transform:translateX(-50%);max-width:min(760px,90vw);padding:12px 22px 0;text-align:center;opacity:0}
+.intro3 .cap.in{animation:q3-cap .5s ease-out forwards}
+.intro3 .cap p{margin:0 0 12px;font:600 26px/1.3 var(--a-font);color:var(--a-ink);text-wrap:balance}
+.intro3 .cap .tie{margin:0 -22px}
+@keyframes q3-cap{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%)}}
+.intro3 .skip{position:absolute;right:22px;bottom:calc(11vh - 34px);font:600 16px/1 var(--a-font);color:var(--a-dim)}
+.intro3 .blk{position:absolute;inset:0;background:#0d0c0e;opacity:0;transition:opacity .4s;pointer-events:none}
+.intro3 .blk.on{opacity:1}
+@media (prefers-reduced-motion:reduce){.intro3 .bar,.intro3 .blk{transition:none}.intro3 .cap.in{animation:none;opacity:1}.npc3-bark{animation:none}}

@@ -28,18 +28,21 @@ import { AREA, STARTERS, SPAWN, RECIPES, canCraft, cellsOf, centreOf, craft, def
 import { buildVault, facilityModel, animateFacilities, LAMPS, openBuild, closeBuild, buildOpen, stepBuild, placeBuildCamera, choose, confirmAt, startMove, packSelected, buildState } from "./basebuild";
 import { makePod, makeBoard, destinationsHtml, confirmHtml, showCurtain, POD_DOOR_OPEN, POD_GAUGE_REST, type Pod, type Board } from "./dispatch";
 import { deploy, destOf, type DeployRequest } from "../core/deployment";
+import { unlocked, wantedItems, type NpcId } from "../core/quests";
+import { initVault, syncNpcs, poseNpcs, stepNpcs, npcBlockers, openNpc, openQuestLog, questAct, setExtras, clearBarks } from "../story/vault";
+import { dialogueHtml } from "../story/dialogue";
+import { trackerHtml } from "../story/dialogue";
 
 export const bunkerScene = new THREE.Scene();
 bunkerScene.background = new THREE.Color("#1d1a17");
 // prices from Sol's economy sim (loot/tables.ts PRICES; gate: a median first raid buys one upgrade, all three take 4 raids)
 export const PRICES = { mag: LOOT_PRICES.upgrades.mag, pack: LOOT_PRICES.upgrades.pack, heart: LOOT_PRICES.upgrades.heart, ammo8: LOOT_PRICES.ammo8, bandage: LOOT_PRICES.bandage, smoothie: LOOT_PRICES.smoothie };
-const ORDER = { id: "sal1", from: "Smuggler Sal", text: "Bring me 3 Vine Rope and 1 Old Gear. I'll move my shop in next door. No questions asked.", need: { vine_rope: 3, old_gear: 1 } as Record<string, number>, reward: "Sal moves in (ammo + heals for sale) and a neon BANANA BANK sign" };
 /** a place you can press E at: a starter fixture or a built facility. rect = its footprint in world space */
-export type Station = { id: StationId; x: number; z: number; label: string; rect: { x0: number; x1: number; z0: number; z1: number }; uid?: number };
+export type Station = { id: StationId; x: number; z: number; label: string; rect: { x0: number; x1: number; z0: number; z1: number }; uid?: number; npc?: NpcId };
 export const stations: Station[] = [];
 
 // ---------------------------------------------------------------- the room and what stands in it
-let built = false, pod: Pod | null = null, board: Board | null = null, salRig: ReturnType<typeof createRig> | null = null;
+let built = false, pod: Pod | null = null, board: Board | null = null;
 const objects = new Map<number, THREE.Object3D>(), trophies = new THREE.Group();
 let blocked = new Set<string>();
 const rectOf = (def: { w: number; d: number }, x: number, z: number, r: number) => { const c = centreOf(def, x, z, r), f = rotFoot(def.w, def.d, r); return { x0: c.x - f.w / 2, x1: c.x + f.w / 2, z0: c.z - f.d / 2, z1: c.z + f.d / 2 }; };
@@ -69,18 +72,15 @@ function sync() {
   for (const it of items) { const d = defOf(it.def)!; if (!d.station) continue; const c = centreOf(d, it.x, it.z, it.r); stations.push({ id: d.station, x: c.x, z: c.z, label: d.label!, rect: rectOf(d, it.x, it.z, it.r), uid: it.uid }); }
   blocked = new Set(occupancy(G.save.base).keys());
   refreshFixtures(); board?.refresh(G.save);
+  syncNpcs(bunkerScene, facObj, stations); // the cast (story/vault.ts): at their facilities, or free-standing with a talk station
 }
 const facObj = (id: string) => { const it = G.save.base.items.find((i) => i.def === id); return it ? objects.get(it.uid) ?? null : null; };
 function refreshFixtures() {
   const s = G.save, bench = facObj("bench"), sal = facObj("sal");
   const show = (o: THREE.Object3D | null, name: string, on: boolean) => { const f = o?.getObjectByName(name); if (f) f.visible = on; };
   show(bench, "fx_mag", s.upgrades.mag > 0); show(bench, "fx_pack", s.upgrades.pack > 0); show(bench, "fx_heart", s.upgrades.heart > 0); show(sal, "neon", s.salMovedIn);
-  // Sal stands behind his desk once he has moved in (and the desk is built)
-  if (s.salMovedIn && sal) {
-    salRig ??= createRig("monkey", { kind: "bandit", seed: 77 });
-    sal.updateMatrixWorld(true); salRig.root.position.copy(sal.localToWorld(new THREE.Vector3(0.1, 0, -0.3))); salRig.root.rotation.y = sal.rotation.y;
-    if (!salRig.root.parent) bunkerScene.add(salRig.root);
-  } else salRig?.root.removeFromParent();
+  // the radio desk's lamp glows once the Radio Operator is in (story/vault.ts places him)
+  const radio = facObj("radio")?.getObjectByName("radio_lamp"); if (radio) radio.visible = true;
   // trophies on the wall's shelf slots
   trophies.clear(); const wall = facObj("trophy");
   if (wall) {
@@ -101,6 +101,7 @@ let panel: HTMLDivElement | null = null, onDeploy: (req: DeployRequest) => void 
 const pp = new THREE.Vector3(), vel = new THREE.Vector3(); let face = 0, launching = false, lift = 0, squish = 1;
 export function enterBunker(deploy: (req: DeployRequest) => void, mirror: () => void, summary?: string) {
   onDeploy = deploy; onMirror = mirror; launching = false; lift = 0; squish = 1; buildRoom();
+  initVault({ show: showPanel, close: closePanel, refresh: () => sync(), money }); setExtras({ sal: salShopHtml }); trackT = 0;
   G.scene = "bunker"; G.stage.setScene(bunkerScene, false); bunkerScene.fog = null; initFx(bunkerScene, G.stage.camera);
   G.stage.hemi.intensity = 1.2; G.stage.sun.intensity = 2.2; G.stage.bounce.intensity = 0.5;
   if (!G.rig) { G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(bunkerScene); G.rig.sockets.handR.add(G.gun.root); }
@@ -111,7 +112,7 @@ export function enterBunker(deploy: (req: DeployRequest) => void, mirror: () => 
   sync(); drawHud();
   if (summary) showPanel(summary, "result");
 }
-export function leaveBunker() { closeBuild(); closePanel(); squish = 1; lift = 0; G.rig?.root.scale.setScalar(1); // the raid shares the rig: undo the pod's stretch
+export function leaveBunker() { closeBuild(); closePanel(); clearBarks(); squish = 1; lift = 0; G.rig?.root.scale.setScalar(1); // the raid shares the rig: undo the pod's stretch
   G.stage.hemi.intensity = Number(new URLSearchParams(location.search).get("fill") ?? 0.9); G.stage.sun.intensity = Number(new URLSearchParams(location.search).get("sun") ?? 6); G.stage.bounce.intensity = Number(new URLSearchParams(location.search).get("bounce") ?? 1.6); }
 function drawHud() {
   const empty = !G.save.base.items.length;
@@ -129,6 +130,22 @@ function openBuildMode() {
   openBuild({ scene: bunkerScene, objects, sync: () => { sync(); money(); }, money, exit: () => { drawHud(); } });
   document.querySelector(".home-tip")?.remove();
 }
+/** the job tracker line under the money chip (story/dialogue.ts trackerHtml), refreshed a few times a second */
+let trackT = 0;
+function trackerTick(dt: number) {
+  if ((trackT -= dt) > 0) return; trackT = 0.25;
+  const ui = document.getElementById("ui"); if (!ui) return;
+  let el = ui.querySelector<HTMLElement>(":scope > .q3-track"); const html = trackerHtml(G.save);
+  if (!el) { el = document.createElement("div"); el.className = "q3-track home"; ui.appendChild(el); }
+  if (el.innerHTML !== html) el.innerHTML = html; el.style.display = html ? "" : "none";
+}
+// Tab or J: the job log (the raid's Tab screen shows the same log beside your pack)
+addEventListener("keydown", (e) => {
+  const k = e.key.toLowerCase();
+  if ((k !== "tab" && k !== "j") || e.repeat || G.scene !== "bunker" || G.bot || launching || buildOpen() || lootOpen()) return;
+  e.preventDefault();
+  if (panel?.classList.contains("qlog")) { closePanel(); sfx("ui"); } else if (!panel) { openQuestLog(); sfx("ui"); }
+});
 addEventListener("keydown", (e) => {
   if (e.key.toLowerCase() !== "b" || e.repeat || G.scene !== "bunker" || G.bot || launching) return;
   if (buildOpen()) closeBuild(); else if (!panel && !lootOpen()) openBuildMode();
@@ -138,6 +155,7 @@ const rectDist = (r: Station["rect"], p: { x: number; z: number }) => Math.hypot
 /** keep the player out of occupied cells and inside the vault floor (radius 0.35) */
 function collide() {
   const R = 0.35;
+  for (const b of npcBlockers) { const dx = pp.x - b.x, dz = pp.z - b.z, d = Math.hypot(dx, dz), m = b.r + R; if (d < m && d > 1e-5) { pp.x = b.x + (dx / d) * m; pp.z = b.z + (dz / d) * m; } } // free-standing NPCs
   pp.x = THREE.MathUtils.clamp(pp.x, AREA.minX - 0.5 + R, AREA.maxX + 0.5 - R); pp.z = THREE.MathUtils.clamp(pp.z, AREA.minZ - 0.5 + R, AREA.maxZ + 0.5 - R);
   for (let pass = 0; pass < 2; pass++) for (let cx = Math.round(pp.x) - 1; cx <= Math.round(pp.x) + 1; cx++) for (let cz = Math.round(pp.z) - 1; cz <= Math.round(pp.z) + 1; cz++) {
     if (!blocked.has(`${cx},${cz}`)) continue;
@@ -152,19 +170,20 @@ export function stepBunker(dt: number) {
   if (launching) return;
   if (buildOpen()) { stepBuild(dt); return; }
   if (lootOpen() || lootSwallowsInteract()) return; // the locker (ui/lootview.ts) owns Esc and E while open
-  if (panel) { if (i.esc || i.interact) { closePanel(); sfx("ui"); } return; }
+  if (panel) { stepNpcs(dt, pp, true); if (i.esc || i.interact) { closePanel(); sfx("ui"); } return; }
+  stepNpcs(dt, pp, false); trackerTick(dt);
   const mv = new THREE.Vector3(i.move.x, 0, i.move.z).applyAxisAngle(new THREE.Vector3(0, 1, 0), G.stage.cam.yaw);
   vel.lerp(mv.multiplyScalar(PLAYER.speed), Math.min(1, dt * 12)); pp.addScaledVector(vel, dt); collide();
   if (vel.lengthSq() > 0.1) face = Math.atan2(vel.x, vel.z);
   near = stations.reduce<Station | null>((b, s) => (rectDist(s.rect, pp) < 1.15 && (!b || rectDist(s.rect, pp) < rectDist(b.rect, pp)) ? s : b), null);
-  const hp = document.getElementById("hp"); if (hp) { hp.innerHTML = near ? `<kbd>E</kbd> ${near.id === "sal" ? (G.save.salMovedIn ? "Smuggler Sal: ammo and heals" : "Sal's desk: his job") : near.label}` : ""; hp.classList.toggle("on", !!near); }
+  const hp = document.getElementById("hp"); if (hp) { hp.innerHTML = near ? `<kbd>E</kbd> ${near.id === "sal" ? (G.save.salMovedIn ? "Smuggler Sal: jobs and his shop" : "Smuggler Sal: jobs") : near.label}` : ""; hp.classList.toggle("on", !!near); }
   if (near && i.interact) { sfx("ui"); open(near); }
 }
 export function renderBunker(dt: number) {
   G.rig.root.position.copy(pp); G.rig.root.position.y += lift; G.rig.root.rotation.y = face;
   G.rig.root.scale.set(1 / Math.sqrt(squish), squish, 1 / Math.sqrt(squish));
   G.rig.pose({ time: G.time, speed: launching ? 0 : vel.length(), moveYaw: face, faceYaw: face, action: !launching && vel.lengthSq() > 0.1 ? "run" : "idle", actionT: 0, armed: "none", flash: 0 });
-  if (salRig?.root.parent) salRig.pose({ time: G.time + 3, speed: 0, moveYaw: salRig.root.rotation.y, faceYaw: Math.atan2(pp.x - salRig.root.position.x, pp.z - salRig.root.position.z), action: "idle", actionT: 0, armed: "none", flash: 0 });
+  poseNpcs(G.time, pp);
   updateFx(dt); animateFacilities(objects.values(), dt, G.time, powered(G.save));
   if (buildOpen()) { placeBuildCamera(dt); return; }
   const f = (launching ? new THREE.Vector3(0, 0, -9.5) : pp.clone()).setY(0.5).add(V(0, -1.2)); const d = G.stage.cam.dist; G.stage.cam.dist = 32; G.stage.setFov(); G.stage.place(f, dt, G.time); G.stage.cam.dist = d;
@@ -178,28 +197,41 @@ function open(s: Station) {
   if (s.id === "locker") return openLocker();
   if (s.id === "trophies") return showPanel(`${head("Trophy wall", `${sv.raids} raids`)}${sv.trophies.length ? `<div class="grid">${sv.trophies.map(cell).join("")}</div>` : `<p class="dim">Nothing yet. Bring home something legendary.</p>`}
     <div class="stats" style="margin-top:12px"><div class="stat"><b>${sv.stats.extracts}</b><span>made it home</span></div><div class="stat"><b>${sv.stats.bonkOuts}</b><span>bonked</span></div><div class="stat"><b>🍌 ${sv.stats.best}</b><span>best haul</span></div></div>`);
+  if (s.id === "talk" && s.npc) return openNpc(s.npc); // a free-standing NPC (story/vault.ts)
+  if (s.id === "radio") return openNpc("radio");
   if (s.id === "sell") { const items = sv.reserved.filter((i) => itemDef(i).kind !== "key"); const v = items.reduce((a, i) => a + itemDef(i).value, 0);
-    return showPanel(`${head("The Fence", `${items.length} items in your stash`)}<p class="quote">"I don't ask where it came from."</p>${items.length ? `<div class="grid">${items.map(cell).join("")}</div><div class="total"><span>Stash value</span><b>🍌 ${v}</b></div><div class="actions"><button data-a="sellAll">Sell everything for 🍌 ${v}</button></div>` : `<p class="dim">Your stash is empty. Go get some loot.</p>`}${gearSaleHtml()}`); }
+    return showPanel(`${fenceHead(`${items.length} items in your stash`)}${items.length ? `<div class="grid">${items.map(cell).join("")}</div><div class="total"><span>Stash value</span><b>🍌 ${v}</b></div><div class="actions"><button data-a="sellAll">Sell everything for 🍌 ${v}</button></div>` : `<p class="dim">Your stash is empty. Go get some loot.</p>`}${gearSaleHtml()}`); }
   if (s.id === "bench") return showPanel(benchHtml());
-  if (s.id === "sal") return showPanel(sv.salMovedIn ? salShopHtml() : orderHtml());
+  if (s.id === "sal") return openNpc("sal"); // Sal's jobs, then his shop (salShopHtml, below the jobs)
   if (s.id === "med" || s.id === "press") return showPanel(craftHtml(s.id));
   if (s.id === "stash") return showPanel(`${head("Safe-deposit wall", `${stashUsed(sv)} of ${stashCapacity(sv)} slots used`)}<p class="quote">"Every box has a key. Most of them are yours."</p>
     <div class="stats"><div class="stat"><b>${sv.reserved.length}</b><span>loot waiting</span></div><div class="stat"><b>${sv.locker.length}</b><span>gear in the locker</span></div><div class="stat"><b>${stashCapacity(sv)}</b><span>slots</span></div></div>
     <p class="dim">Crafting and Sal's shop stop when the stash is full. Each safe-deposit wall adds 12 slots. ${sv.delivery?.length ?? 0} owned items wait safely in delivery and arrive automatically when space opens.</p>`);
   if (s.id === "generator") return showPanel(`${head("Vault generator", "running")}<p class="quote">"Don't touch the red one."</p><p>It powers the ammo press and the second bank of ceiling lamps.${has(sv, "press") ? " The press is running." : " Build the Coin-Op Ammo Press to use the power."}</p>`);
 }
+/** the Fence's window: his dialogue head (portrait, name, a line keyed to your progress) over the sell counter */
+const fenceHead = (sub: string) => dialogueHtml("fence", G.save, { lines: undefined }).replace(/<header>[\s\S]*?<\/header>/, `<header><h2>The Fence</h2><small>${sub}</small></header>`);
+/** Sal's shop rows (under his jobs once he's moved in). Stock grows with his and the Radio Operator's jobs
+ *  (SYSTEMS_PORT E01: quest-unlocked stock): first-aid kits, then hard hats */
+const STOCK = [
+  { key: "stock:firstaid", item: "firstaid", price: 60, name: "Jungle first-aid kit", small: "Heals a lot. Dial told me to stock it" },
+  { key: "stock:hardhat", item: "hardhat", price: 90, name: "Hard hat", small: "Head armor 1.5. Lifted off the foreman's payroll" },
+];
 function salShopHtml() {
   const sv = G.save;
-  return `${head("Smuggler Sal", "cash only")}<p class="quote">"Ammo, bandages, smoothies."</p><div class="rows">
+  if (!sv.salMovedIn) return "";
+  return `<h4>Sal's shop <span class="q3-dim">cash only</span></h4><div class="rows">
     <div class="row"><b>8 rounds of .45</b><small>You carry ${sv.ammo.ammo45} rounds of .45 into the next raid${sv.ammo.ammo_rifle + sv.ammo.ammo_shell + sv.ammo.ammo_sniper ? ` (plus ${sv.ammo.ammo_rifle} rifle, ${sv.ammo.ammo_shell} shells, ${sv.ammo.ammo_sniper} sniper)` : ""}.</small><button class="act" data-a="buyAmmo">🍌 ${PRICES.ammo8}</button></div>
     <div class="row"><b>Banana-leaf bandage</b><small>Heals 15, quick to use</small><button class="act" data-a="buyBandage">🍌 ${PRICES.bandage}</button></div>
-    <div class="row"><b>Banana smoothie</b><small>Heals 40, slow to drink</small><button class="act" data-a="buySmoothie">🍌 ${PRICES.smoothie}</button></div></div>`;
+    <div class="row"><b>Banana smoothie</b><small>Heals 40, slow to drink</small><button class="act" data-a="buySmoothie">🍌 ${PRICES.smoothie}</button></div>
+    ${STOCK.map((r) => unlocked(sv, r.key) ? `<div class="row"><b>${iconHtml(r.item, 26)} ${r.name}</b><small>${r.small}</small><button class="act" data-a="buyStock:${r.item}">🍌 ${r.price}</button></div>` : "").join("")}</div>
+    ${STOCK.some((r) => !unlocked(sv, r.key)) ? `<div class="dim" style="margin-top:8px">More stock arrives as you finish jobs.</div>` : ""}`;
 }
 function craftHtml(at: "med" | "press") {
   const sv = G.save, list = RECIPES.filter((r) => r.at === at);
   const rows = list.map((r) => {
     const can = canCraft(sv, r), need = Object.entries(r.inputs).map(([id, n]) => `${n} ${itemDef(id).name} (${sv.reserved.filter((inst) => itemDef(inst).id === id).length} in stash)`).join(", ");
-    const wanted = !sv.salMovedIn && Object.keys(r.inputs).some((id) => ORDER.need[id]) ? ". Sal's job needs this too" : "";
+    const wanted = Object.keys(r.inputs).some((id) => wantedItems(sv).includes(id)) ? ". A job needs this too" : "";
     return `<div class="row"><b>${r.out === "ammo" ? "🔸" : iconHtml(r.out, 26)} ${r.name}</b><small>From ${need}${wanted}${can.ok ? "" : `. ${can.reason}`}</small><button class="act" data-a="craft:${r.id}" ${can.ok ? "" : "disabled"}>Make</button></div>`;
   }).join("");
   return at === "med" ? `${head("First-aid kiosk", `${stashUsed(sv)}/${stashCapacity(sv)} stash`)}<p class="quote">"Wrap it tight. Drink it slow."</p><div class="rows">${rows}</div><p class="dim" style="margin-top:10px">Heals you make wait in the stash; up to three come along on the next raid.</p>`
@@ -224,12 +256,6 @@ function repairRow() {
 function benchHtml() {
   const u = G.save.upgrades, row = (k: "mag" | "pack" | "heart", name: string, desc: string) => { const lvl = u[k], c = PRICES[k][lvl]; return `<div class="row"><b>${name}</b><small>${desc}</small>${c === undefined ? `<em class="act">Done</em>` : `<button class="act" data-a="up:${k}" ${G.save.money < c ? "disabled" : ""}>🍌 ${c}</button>`}</div>`; };
   return `${head("Workbench", `🍌 ${G.save.money} to spend`)}<div class="rows">${row("mag", "Extended Mag", "A magazine attachment: half as many rounds again (the Kingpin holds 12 instead of 8)" + (G.save.guns.some(g => g?.atts.mag && itemType(g.atts.mag) === "att_mag_ext") || G.save.locker.some(i => itemType(i) === "att_mag_ext") ? ". You already have one" : ""))}${row("pack", "Bigger Pack", "2 more pack slots")}${row("heart", "Banana Breakfast", "25 more max HP")}${repairRow()}</div><p class="dim" style="margin-top:10px">🔒 Contraband Carbine arrives with the Smuggler Caves.</p>`;
-}
-function orderHtml() {
-  if (G.save.salMovedIn) return `${head("Order board")}<p>Sal's job is done. New jobs arrive with new regions.</p>`;
-  const rows = Object.entries(ORDER.need).map(([k, n]) => { const have = Math.min(n, G.save.reserved.filter((i) => itemDef(i).id === k).length); return `<div class="row"><b>${itemDef(k).icon} ${itemDef(k).name}</b><small>${have} of ${n} in your stash</small><em class="act" style="color:${have >= n ? "var(--leaf)" : "var(--dim)"}">${have >= n ? "Ready" : `${n - have} to go`}</em></div>`; }).join("");
-  const ready = Object.entries(ORDER.need).every(([k, n]) => G.save.reserved.filter((i) => itemDef(i).id === k).length >= n);
-  return `${head(`${ORDER.from}'s job`)}<p class="quote">"${ORDER.text}"</p><div class="rows">${rows}</div><p class="dim" style="margin-top:10px">Reward: ${ORDER.reward}</p>${ready ? `<div class="actions"><button data-a="deliver">Deliver</button></div>` : ""}`;
 }
 /** where floating text rises for a facility (its object, or the spawn if it isn't built) */
 const atFac = (id: string, up = 2.4) => { const o = facObj(id); return o ? o.position.clone().setY(up) : V(SPAWN.x, SPAWN.z, up); };
@@ -298,11 +324,7 @@ function act(a: string) {
     G.stage.trauma = 0.2;
     floatText({ mag: "Extended Mag!", pack: "Bigger Pack!", heart: "Banana Breakfast!" }[k], atFac("bench", 3), "#fff3c4", 30); return;
   }
-  if (a === "deliver") {
-    for (const [k, n] of Object.entries(ORDER.need)) for (let j = 0; j < n; j++) { const index = sv.reserved.findIndex(inst => itemDef(inst).id === k); if (index < 0) return; sv.reserved.splice(index, 1); }
-    sv.salMovedIn = true; sv.money += 40; save(sv); sfx("rare"); refreshFixtures(); closePanel(); money();
-    const f = facObj("sal")?.getObjectByName("neon"); if (f) popIn(f, 0, 0.42, f.scale.x || 1); G.stage.trauma = 0.3; floatText("Sal moved in! +🍌 40", atFac("sal", 3), "#ffd84a", 30); return;
-  }
+  if (questAct(a)) return; // jobs and dialogue (story/vault.ts)
   const buy = (cost: number, grow: number, f: () => void) => {
     if (sv.money < cost) { sfx("nope"); return; }
     if (grow && stashUsed(sv) + grow > stashCapacity(sv)) { sfx("nope"); floatText("Stash full", atFac("sal"), "#ffb648", 24); return; }
@@ -311,6 +333,7 @@ function act(a: string) {
   if (a === "buyAmmo") buy(PRICES.ammo8, 0, () => { sv.ammo.ammo45 += 8; });
   if (a === "buyBandage") buy(PRICES.bandage, 1, () => { sv.reserved.push("bandage"); });
   if (a === "buySmoothie") buy(PRICES.smoothie, 1, () => { sv.reserved.push("smoothie"); });
+  if (a.startsWith("buyStock:")) { const r = STOCK.find((q) => q.item === a.slice(9)); if (r && unlocked(sv, r.key)) buy(r.price, 1, () => { if (equipDef(r.item)) sv.locker.push(own(r.item)); else sv.reserved.push(own(r.item)); }); }
 }
 /** a cell's screen position in CSS px (tests drive the build UI with the real mouse) */
 function cellToScreen(x: number, z: number) {

@@ -21,6 +21,9 @@ let lastPp = new THREE.Vector3(), lastHp = 100, fading = false;
 export let onExtract: (id: "hatch" | "raft" | "tunnel" | "boat", bonus: number) => void = () => {};
 export const setOnExtract = (f: typeof onExtract) => { onExtract = f; };
 let drop: { t: number; at: { x: number; z: number; area: string }; done: boolean; smoke?: THREE.Points; gondola?: THREE.Object3D } | null = null;
+/** seconds until the supply balloon comes down this raid (null once it has): the Radio Operator warns you (story/raid.ts) */
+export const supplyDropIn = () => (drop && !drop.done ? drop.t - G.raidT : null);
+export const supplyDropArea = () => drop?.at.area ?? "";
 
 export function startInteractions() {
   lastPp.copy(G.pp); lastHp = G.hp; G.extract = { id: "", t: 0 }; fading = false; for (const e of exits) e.armed = false;

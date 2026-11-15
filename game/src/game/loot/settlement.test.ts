@@ -11,6 +11,8 @@ import { ATT_SLOTS, attachmentDef } from "./attachments";
 import { CALIBER_IDS, gunOf, noRounds, type Rounds } from "../combat/guns";
 import { craft, stashCapacity, stashUsed } from "../home/facilities";
 import { deploy, cancelDeploy, settleDeploy, destOf } from "../core/deployment";
+import { qs, accept, questStatus } from "../core/quests";
+import { payQuest } from "../core/settlement";
 
 let checks = 0;
 function assert(ok: unknown, message: string): asserts ok { checks++; if (!ok) throw new Error(message); }
@@ -230,7 +232,7 @@ assert(advanceExit(EXIT_DEFS.hatch, 2, 1, { inside: true, alive: false, open: tr
   assert(home.money === money && home.ammo.ammo45 === rounds + 8 && home.reserved.every(inst => !!instanceId(inst)), "craft outputs own identities and conserve currency and explicit ammunition output");
   assert(!home.reserved.some(inst => original.includes(inst)) && home.reserved.length === 3, "crafting consumes each input identity once and mints exact outputs");
   const unchanged = JSON.stringify(home); assert(!craft(home, "rounds8") && JSON.stringify(home) === unchanged, "missing crafting inputs change nothing");
-  home.stats.extracts = 1;
+  home.stats.extracts = 1; qs(home).unlocks.push("dest:plantation"); // the road map job's unlock (core/quests.ts)
   const fare = destOf("plantation");
   assert(!!fare, "test destination exists");
   settleDeploy(); const identity = ids(ownedItems(home)); let writes = 0;
@@ -241,7 +243,7 @@ assert(advanceExit(EXIT_DEFS.hatch, 2, 1, { inside: true, alive: false, open: tr
   assert(home.money === money && Number(writes) === 2 && ids(ownedItems(home)) === identity, "failed load refunds once without changing owned item ids");
 }
 {
-  const home = commitSave(migrate(null)); home.money = 100; home.stats.extracts = 1;
+  const home = commitSave(migrate(null)); home.money = 100; home.stats.extracts = 1; qs(home).unlocks.push("dest:plantation");
   const outbound = structuredClone(home);
   const request = deploy("plantation", outbound, next => {
     Object.assign(next, { deployReceipt: { id: "interrupted-load", paid: 20 } }); commitSave(next);
@@ -263,4 +265,45 @@ assert(advanceExit(EXIT_DEFS.hatch, 2, 1, { inside: true, alive: false, open: tr
   Object.defineProperty(globalThis, "localStorage", { configurable: true, value: storage });
   assert(deploy("plantation", structuredClone(home), () => {}).ok, "failed fare write does not leave deployment stuck pending"); settleDeploy();
 }
-console.log(`Settlement self-test: PASS (${checks} checks; 150 seeds × 100 operations, migration, reload, capacity, delivery, crafting, fares, atomic failure, extraction)`);
+{ // job payouts (G1.5 row 40): pay exactly once through the ledger, at home and to a raid NPC
+  const home = commitSave(migrate(null)); home.money = 10;
+  assert(qs(home).active.length === 0 && questStatus(home, "sal_roadmap") === "available", "Sal's first job (the road map) is on offer on a new save");
+  assert(questStatus(home, "sal_office") === "locked" && !accept(home, "sal_office"), "a job with unfinished prerequisites can't be taken");
+  assert(accept(home, "sal_roadmap") && !accept(home, "sal_roadmap") && questStatus(home, "sal_roadmap") === "active", "accepting is once; the job is active");
+  assert(payQuest(home, "sal_roadmap") === null, "an unfinished job pays nothing");
+  const map = own("road_map"), spare = own("banana"); home.reserved.push(map, spare);
+  assert(questStatus(home, "sal_roadmap") === "ready", "the road map in the stash makes the job ready");
+  const before = ids(ownedItems(home)), paid = payQuest(home, "sal_roadmap");
+  assert(!!paid && paid.record.consumed.length === 1 && instanceId(paid.record.consumed[0]) === instanceId(map), "the turn-in consumes the exact road map instance");
+  const after = paid!.save;
+  assert(after.money === 30 && qs(after).unlocks.includes("dest:plantation") && qs(after).done.includes("sal_roadmap") && !qs(after).active.includes("sal_roadmap"), "money and the plantation unlock pay once");
+  assert(!after.reserved.some(inst => instanceId(inst) === instanceId(map)) && after.reserved.some(inst => instanceId(inst) === instanceId(spare)), "only the job's item leaves the stash");
+  assert(ids([...ownedItems(after), ...paid!.record.consumed]) === before, "the ledger balances: before = after + consumed");
+  assert(qs(after).ledger.length === 1 && qs(after).ledger[0].quest === "sal_roadmap", "one ledger record per paid job");
+  assert(payQuest(after, "sal_roadmap") === null && home.money === 10, "a second turn-in pays nothing; the input save is untouched");
+  const reloaded = load(); void reloaded;
+  commitSave(after); const back = load();
+  assert(qs(back).ledger.length === 1 && back.money === 30 && payQuest(back, "sal_roadmap") === null, "a reload keeps the record and still refuses a second payout");
+  // an item reward arrives with an owned identity through delivery (stash full: it waits safely, nothing is lost)
+  const flare = structuredClone(back); qs(flare).done.push("sal_office", "sal_supplies", "radio_static"); flare.base.items.push({ uid: 9, def: "radio", x: 0, z: 0, r: 0 });
+  assert(accept(flare, "radio_flare"), "the flare job is on offer once the radio desk is built");
+  qs(flare).notes.push("note_pirate_iou"); flare.reserved.push(own("spring"), own("spring"), own("scrap_tin"));
+  flare.reserved.push(...Array.from({ length: stashCapacity(flare) - stashUsed(flare) }, () => own("coconut")));
+  const fp = payQuest(flare, "radio_flare");
+  assert(!!fp && fp.record.granted.length === 1 && itemType(fp.record.granted[0]) === "cove_flare", "the flare reward is a newly owned instance");
+  assert([...fp!.save.reserved, ...(fp!.save.delivery ?? [])].some(inst => instanceId(inst) === instanceId(fp!.record.granted[0])), "the reward is owned (stash or delivery)");
+  validateOwnership(fp!.save);
+  // a raid NPC's job (the Grove Keeper): from the live pack, into activeRaid.consumed; the reward joins the pack
+  const base = commitSave(migrate(null)), raid = beginRaid(base, "keeper-raid", [], base.gear);
+  accept(raid, "keeper_lanterns");
+  const pots = [own("honey_pot"), own("honey_pot")], pack = [...pots, own("banana")];
+  assert(questStatus(raid, "keeper_lanterns", pack) === "ready" && payQuest(raid, "keeper_lanterns") === null, "a raid job is only paid with the live pack");
+  const kp = payQuest(raid, "keeper_lanterns", { pack, slots: 8 });
+  assert(!!kp && kp.pack!.length === 2 && kp.pack!.some(inst => itemType(inst) === "keeper_carving") && !kp.pack!.some(inst => itemType(inst) === "honey_pot"), "the honey leaves the pack, the carving joins it");
+  assert(kp!.save.activeRaid!.consumed.filter(inst => pots.includes(inst)).length === 2 && qs(kp!.save).unlocks.includes("secret:root-cellar"), "the consumed honey is in the raid ledger; the secret unlocks");
+  const cp = checkpointRaid(kp!.save, { pack: kp!.pack!, gear: kp!.save.activeRaid!.gear, guns: kp!.save.guns, world: [], consumed: kp!.save.activeRaid!.consumed, x: 0, z: 0, ammo: kp!.save.ammo, elapsed: 5 });
+  const settled = settleRaid(cp, "hatch", 2);
+  assert(settled.reserved.some(inst => itemType(inst) === "keeper_carving") && settled.trophies.includes("keeper_carving"), "the raid settlement brings the carving home (and onto the trophy wall)");
+  assert(payQuest(settled, "keeper_lanterns", { pack: [], slots: 8 }) === null, "a paid raid job can't be paid again");
+}
+console.log(`Settlement self-test: PASS (${checks} checks; 150 seeds × 100 operations, migration, reload, capacity, delivery, crafting, fares, atomic failure, extraction, job payouts)`);

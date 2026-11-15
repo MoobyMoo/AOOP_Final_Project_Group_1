@@ -8,6 +8,7 @@ import { CALIBER_IDS, GUNS, gunOf, noRounds, type Rounds } from "../combat/guns"
 import { emptyBase, legacyBase, sanitizeBase } from "../home/facilities";
 import { itemType } from "../loot/instances";
 import { claimDelivery, identifySave, isLockerItem, settleRaid, validateOwnership } from "./settlement";
+import { freshQuests, sanitizeQuests } from "./quests";
 
 export function retainKeys(save: SaveV1, kept: readonly string[]) {
   for (const id of kept) if (itemDef(id).kind === "key" && !save.keys.includes(itemType(id))) save.keys.push(itemType(id));
@@ -30,6 +31,7 @@ function fresh(): SaveV1 {
     upgrades: { mag: 0, pack: 0, heart: 0 }, keys: [], trophies: [], reserved: [], order: null,
     fixtures: [], salMovedIn: false, guns: [{ inst: "kingpin", atts: { ...EMPTY_GUN } }, null], stats: { bonkOuts: 0, extracts: 0, best: 0 },
     base: emptyBase(), // a new vault starts empty (G1.5 row 17)
+    quests: freshQuests(), // no jobs yet; the intro hasn't played (core/quests.ts)
   };
 }
 
@@ -150,6 +152,9 @@ export function migrate(value: unknown): SaveV1 {
       stats: { bonkOuts: integer(stats.bonkOuts, 0), extracts: integer(stats.extracts, 0), best: integer(stats.best, 0) },
       // a save from before the buildable vault had the fixed room's stations: they come along, already placed
       base: Object.hasOwn(raw, "base") ? sanitizeBase(raw.base) : Object.keys(raw).length ? legacyBase() : emptyBase(),
+      // jobs (G1.5 row 40): validated, or built for a save from before them (Sal moved in = his first two jobs done; a
+      // return already made keeps the plantation road it used to open; the intro never plays for a played save)
+      quests: sanitizeQuests(raw.quests, { salMovedIn: boolean(raw.salMovedIn, false), extracts: integer(stats.extracts, 0), raids: integer(raw.raids, 0), lookDone: boolean(raw.lookDone, false) }),
       ...(typeof object(raw.boundWeapons).kingpin === "string" && typeof object(raw.boundWeapons).briefcase === "string" ? { boundWeapons: { kingpin: object(raw.boundWeapons).kingpin as string, briefcase: object(raw.boundWeapons).briefcase as string } } : {}),
     };
   } catch {
