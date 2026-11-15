@@ -102,7 +102,7 @@ function open(start?: Level) {
         <dl><dt>Areas found</dt><dd class="num">${[...G.discovered].filter((id) => inDemo(CLEARINGS.find((c) => c.id === id)?.x ?? 0, CLEARINGS.find((c) => c.id === id)?.z ?? 0)).length} / ${areaLabels("surface").length + areaLabels("under").length}</dd><dt>Pins</dt><dd class="num pins">${pins.length}</dd></dl>
       </aside>
     </div>
-    <footer class="mv3-keys"><span><b class="k">M</b>Close</span><span><b class="k">Wheel</b>Zoom</span><span><b class="k">Drag</b>Pan</span><span><b class="k">Click</b>Drop or remove a pin</span><span><b class="k">L</b>Switch level</span></footer>
+    <footer class="mv3-keys"><span><b class="a-kbd">M</b>Close</span><span><b class="a-kbd">Wheel</b>Zoom</span><span><b class="a-kbd">Drag</b>Pan</span><span><b class="a-kbd">Click</b>Drop or remove a pin</span><span><b class="a-kbd">L</b>Switch level</span></footer>
   </div>`;
   document.body.appendChild(el);
   addEventListener("keydown", onKey, true);
