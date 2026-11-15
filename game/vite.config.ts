@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 import { mkdirSync, writeFileSync } from "node:fs";
 
 export default defineConfig({
-  build: { rollupOptions: { input: { game: "game.html", look: "look.html", raid: "raid.html", index: "index.html" } } },
+  build: { rollupOptions: { input: { game: "game.html", look: "look.html", raid: "raid.html", index: "index.html", feeltest: "feeltest.html" } } },
   plugins: [{
     name: "playlog",
     configureServer(server) {

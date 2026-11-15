@@ -2,21 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-    <title>Bananaville: feel test v5b</title>
-    <link rel="stylesheet" href="/src/hud.css" />
+    <title>Bananaville</title>
+    <!-- the root opens the current game (G1); the old feel-test prototype lives at /feeltest.html -->
+    <script>location.replace("/game.html" + location.search + location.hash);</script>
+    <meta http-equiv="refresh" content="0; url=/game.html" />
   </head>
-  <body>
-    <canvas id="game"></canvas>
-    <div id="vig"></div>
-    <div id="pip"><span id="piparrow">➤</span><span id="piptext"></span></div>
-    <div id="hud">
-      <div class="top"><div class="pill money"><span class="bill"></span><b id="wallet">$0</b></div>
-        <div class="goal"><span id="goaltext">Next</span><div class="goalbar"><div id="goalfill"></div></div></div></div>
-      <div class="help">Move: WASD / arrows, or drag anywhere. Everything else happens by walking into it. Carry past the dashed line for a BIG HAUL, if you dare.</div>
-      <div id="toasts"></div>
-    </div>
-    <div id="joy"><div id="knob"></div></div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+  <body><a href="/game.html">Bananaville</a></body>
 </html>
