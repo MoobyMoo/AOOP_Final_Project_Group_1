@@ -146,7 +146,7 @@ const MIX: Partial<Record<Sfx | GunLayer | StepKind, Mix>> = {
   pick: { g: 0.4, cap: 3, max: 0.4, climb: true }, rare: { g: 0.21, cap: 1, max: 2 }, cash: { g: 0.38, cap: 3, max: 0.8, climb: true }, buy: { g: 0.24, cap: 1, max: 1.2 },
   ui: { g: 0.28, cap: 2, max: 0.25 }, pop: { g: 0.21, cap: 3, max: 0.4, climb: true }, nope: { g: 0.41, cap: 1, max: 0.5 },
   // guns by class (GUN_KITS): cores rotate takes; voice caps let auto fire overlap; gains from measured punch (QUEUE.md "Mix")
-  smgCore: { g: 0.47, jit: 0.05, cap: 8, max: 0.5 }, rifleCore: { g: 0.28, jit: 0.04, cap: 6, max: 0.7 }, shotgunCore: { g: 0.31, jit: 0.03, cap: 3, max: 1.0 },
+  smgCore: { g: 0.47, jit: 0.05, cap: 8, max: 0.5 }, rifleCore: { g: 0.38, jit: 0.04, cap: 6, max: 0.7 }, shotgunCore: { g: 0.31, jit: 0.03, cap: 3, max: 1.0 },
   sniperCore: { g: 0.53, jit: 0.03, cap: 2, max: 1.0 }, lmgCore: { g: 0.26, jit: 0.05, cap: 8, max: 0.6 }, zapperCore: { g: 0.29, jit: 0.06, cap: 4, max: 0.8 },
   smgMech: { g: 0.24, jit: 0.08, cap: 4, max: 0.3 }, rifleMech: { g: 0.24, jit: 0.06, cap: 4, max: 0.35 }, lmgBelt: { g: 0.24, jit: 0.08, cap: 4, max: 0.4 },
   pumpRack: { g: 0.23, jit: 0.03, cap: 1, max: 0.9 }, boltCycle: { g: 0.26, jit: 0.03, cap: 1, max: 1.1 }, breakClunk: { g: 0.35, jit: 0.04, cap: 1, max: 0.9 },
