@@ -4,6 +4,7 @@
   blender -b tools/blender/build/blend/containers.blend --python-exit-code 1 --python tools/items/icon_containers.py
   blender -b spikes/items/container_icons.blend --python-exit-code 1 --python tools/items/render.py
   python3 tools/items/compose.py
+  (add `-- --only cont_safe,...` to render.py and `--only cont_safe,...` to compose.py to redo some of them)
 
 Each container's meshes (the body and its closed lid) are joined into one object named after the asset, with the
 colours it ships with (the "Col" attribute: albedo x baked AO). The icons are for the looting screen and the map
@@ -17,7 +18,10 @@ import bpy
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 NAMES = {"cont_weapon": ("Weapon Crate", (0, 0, 0), 0.88), "cont_food": ("Food Basket", (0, 0, 20), 0.84), "cont_ammo": ("Ammo Tin", (0, 0, 0), 0.84),
-         "cont_parts": ("Parts Bin", (0, 0, 0), 0.86), "cont_medical": ("Medical Case", (0, 0, 0), 0.84)}
+         "cont_parts": ("Parts Bin", (0, 0, 0), 0.86), "cont_medical": ("Medical Case", (0, 0, 0), 0.84),
+         # G2: lunchbox, toolbox, wall medicine cabinet, safe, junk heap, supply sack
+         "cont_lunchbox": ("Lunchbox", (0, 0, 0), 0.82), "cont_toolbox": ("Toolbox", (0, 0, 0), 0.86), "cont_medcabinet": ("Medicine Cabinet", (0, 0, 0), 0.82),
+         "cont_safe": ("Safe", (0, 0, 0), 0.84), "cont_trash": ("Junk Heap", (0, 0, 0), 0.88), "cont_sack": ("Supply Sack", (0, 0, 0), 0.84)}
 sp = os.path.join(ROOT, "spikes", "items", "stats.json")
 stats = json.load(open(sp)) if os.path.exists(sp) else {}
 scene = bpy.context.scene

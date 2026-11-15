@@ -143,3 +143,60 @@ its socket with no transform and it is fitted.
 Every piece uses `MAT_Kingpin` with the gun's palette UVs and AO in `COLOR_0`, so the game can put the Kingpin's own
 `gunMat` on it. A node with a second primitive loads in three.js as a Group of two meshes; find the emitter by
 material name.
+
+## Wildlife (`tools/blender/fauna/`)
+
+```
+B=/home/moo/.local/bin/blender
+$B -b --factory-startup --python-exit-code 1 -P tools/blender/fauna/build_fauna.py     # -> public/models/fauna.glb, build/fauna.blend, fauna/manifest.json
+$B -b --factory-startup --python-exit-code 1 -P tools/blender/fauna/build_fauna.py -- --only boar --preview /tmp/prev   # pose strips of one animal, no export
+tools/blender/fauna/gate.sh                                                            # asset QA + clip gate + clip contracts (chain_check.py)
+node tools/blender/fauna/check_glb.mjs                                                 # three.js: every node, bone and clip name, levels on the skinned mesh
+$B -b tools/blender/build/fauna.blend --python-exit-code 1 -P tools/blender/fauna/render_fauna.py -- /tmp/fauna_shots 480
+$B -b tools/blender/build/blend/containers.blend --python-exit-code 1 -P tools/blender/fauna/render_containers.py -- /tmp/cont_shots 520
+python3 tools/blender/fauna/sheet.py /tmp/fauna_shots /tmp/cont_shots research/look/fauna   # review_sheet.png, clips.png, containers.png
+```
+`render_fauna.py` needs `tools/blender/build/monkey.blend` (run `build_monkey.py` first): the monkey is the scale reference.
+
+`fauna_lib.py` holds the shared parts: the mesh helpers (on top of `bv_common.py`), the fauna colour zones, the pose
+solver and the clip baker. One file per animal (`crab.py`, `parrot.py`, `frog.py`, `boar.py`, `croc.py`) holds its
+mesh, bones and clips.
+
+**In the GLB.** One root per animal, at the identity: the armature `fauna_<id>` with one skinned mesh `<id>_mesh` under
+it. Bones are named `<id>_<bone>`, so every name in the file is unique and three.js binds a clip to a clone of the root
+by name. Clips are named `<id>_<clip>`, baked at 30 fps with a rotation and a location key on every bone on every
+frame (a clip never leaves a bone where the last clip put it). Colour is baked: glTF `COLOR_0` (linear) = zone colour
+times the AO tint, the numbers `charmat.ts` computes for a monkey; one shared material `MAT_Fauna` (roughness 0.62).
+Each root carries extras: `fauna` (the id), `tris`, `clips` (`{clip: {frames, seconds, loop}}`) and the notes below.
+Space is the characters': x left, y up, +z forward; the origin is on the ground (the water line for the crocodile).
+
+| Root | Tris | Bones | Clips (seconds, L = loop) | Notes |
+|---|---|---|---|---|
+| `fauna_crab` | 782 | 14 | `idle` 2.0 L, `scuttle` 0.4 L, `flee` 0.33 L, `burrow` 1.2 | It walks sideways: `scuttle` and `flee` read as moving toward the crab's own left (+x), so yaw it a quarter turn off its heading. `burrow` starts on idle's first frame; only the eyes show from 0.6 to 0.8 of the clip and nothing is above y = 0 at the end. |
+| `fauna_parrot` | 1,094 | 9 | `perch_idle` 2.4 L, `takeoff` 0.6, `fly` 0.4 L, `land` 0.67 | The origin is the perch point under the feet in every clip (the body sits about 0.35 above it): the game moves the root. `takeoff` runs from perch_idle's first frame to fly's first frame; `land` runs back. |
+| `fauna_frog` | 558 | 11 | `idle` 2.0 L, `hop` 0.8 | `hop` starts and ends on idle's first frame. The arc (apex 0.42 m) is baked on the body bone; the frog is airborne from 0.24 to 0.78 of the clip, so slide the root along the ground only then. |
+| `fauna_boar` | 1,312 | 15 | `idle` 2.0 L, `walk` 0.8 L, `run` 0.4 L, `charge_windup` 1.0 L, `charge` 0.33 L, `hit` 0.4, `death` 1.2 | Hooves are planted by IK: one loop covers 0.7 m (`walk`), 1.3 m (`run`), 1.8 m (`charge`) with no slip, so speed = stride / clip seconds. `charge_windup` is a loop (two paws of the right fore hoof per cycle): hold it for the telegraph. `hit` starts and ends on idle's first frame; `death` starts there and ends lying on its right side. |
+| `fauna_croc` | 1,720 | 13 | `lurk` 3.0 L, `surface` 0.8, `bite` 0.6, `swim` 1.0 L, `retreat` 1.0, `death` 1.5 | The origin is on the water line. The bind pose is surfaced (back and head out); `lurk` hangs 0.15 m lower (eyes, nostrils and scutes out), `swim` 0.10 m lower. `surface` runs from lurk's first frame to the surfaced pose; `bite`, `retreat` and `death` start on it. `bite` returns to it, and its jaws snap shut 0.95 m ahead of the origin at 0.47 of the clip. `retreat` backs off 0.7 m and ends with nothing above y = 0. `death` ends belly-up. |
+
+**Gates.** `gate.sh` runs the asset QA gate on each animal, `clip_check.py` on every clip (`--arm fauna_<id>` picks the
+armature; loops must close, `frog_hop`, `boar_hit` and `croc_bite` must ease out of and into their shared pose, the
+boar's hooves must stay on the ground) and `chain_check.py`, which holds the contracts in the table: a one-shot starts
+or ends on the exact pose its neighbour starts on, and the mesh sits where the game expects against the ground or the
+water at the frames that matter.
+
+## G2 containers (`tools/blender/build/g_containers.py`)
+
+Six more typed containers in the `containers` kit group, built and gated like the first five
+(`build/build_all.sh containers`, `build/qa_all.sh containers`). Same contract: a `lid` part whose origin is its hinge
+(axis x, closed 0, open = `CRATE_LID_OPEN`), a `mark` point, origin on the ground, front at +z in three.js.
+
+| Asset | Tris | What the `lid` is |
+|---|---|---|
+| `cont_lunchbox` | 928 | the barrel-vault lid of a yellow tin, hinged at the back |
+| `cont_toolbox` | 1,184 | the gabled lid of an orange steel box, hinged at the back |
+| `cont_medcabinet` | 1,160 | the door, hinged along its top edge: the standard open lifts it up and out. Wall-mounted: the origin is on the wall plane at the foot of the wall, the box hangs `mountZ` (0.82) above it and stands 0.46 proud of the wall with its door and handle. Extras `wallMount: true`, `mountZ`. |
+| `cont_safe` | 1,158 | the small dial door, on top of a squat floor safe, hinged at its back edge |
+| `cont_trash` | 1,187 | the loose top layer of the junk heap (a dented bin lid over the pocket with the finds). It has no hinge; the standard open tosses it back off the heap. |
+| `cont_sack` | 858 | the gathered neck of the sack, hinged at the back of the mouth: it flops back |
+
+Icons: `tools/items/icon_containers.py`, then `tools/items/render.py` and `tools/items/compose.py` with `--only`.

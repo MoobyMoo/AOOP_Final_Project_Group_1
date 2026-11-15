@@ -24,6 +24,8 @@ export const ICON_IDS: string[] = [
   "att_sight_holo", "att_sight_2x", "att_muzzle_comp", "att_muzzle_supp", "att_mag_ext", "att_laser",
   // typed loot containers, for the looting screen and the map legend: iconUrl(`cont_${type}`)
   "cont_weapon", "cont_food", "cont_ammo", "cont_parts", "cont_medical",
+  // G2 containers (tools/blender/build/g_containers.py)
+  "cont_lunchbox", "cont_toolbox", "cont_medcabinet", "cont_safe", "cont_trash", "cont_sack",
 ];
 
 const KNOWN = new Set(ICON_IDS);

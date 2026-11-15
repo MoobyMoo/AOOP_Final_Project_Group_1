@@ -15,6 +15,27 @@
    "warnings": [],
    "ground_z": 0.0
   },
+  "cont_lunchbox": {
+   "pass": true,
+   "tris": 928,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: cont_lunchbox__matte (13 pairs) - delete to save tris",
+    "hidden back-to-back faces: cont_lunchbox__lid (4 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "cont_medcabinet": {
+   "pass": true,
+   "tris": 1160,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: cont_medcabinet__matte (35 pairs) - delete to save tris",
+    "hidden back-to-back faces: cont_medcabinet__lid<->cont_medcabinet__matte (8 pairs) - delete to save tris",
+    "asset lowest point z=0.7 (not resting on ground plane z=0)"
+   ],
+   "ground_z": 0.7
+  },
   "cont_medical": {
    "pass": true,
    "tris": 1314,
@@ -34,6 +55,43 @@
     "hidden back-to-back faces: cont_parts__lid<->cont_parts__matte (8 pairs) - delete to save tris"
    ],
    "ground_z": 0.0
+  },
+  "cont_sack": {
+   "pass": true,
+   "tris": 858,
+   "errors": [],
+   "warnings": [],
+   "ground_z": -0.01
+  },
+  "cont_safe": {
+   "pass": true,
+   "tris": 1158,
+   "errors": [],
+   "warnings": [
+    "cont_safe__lid: duplicate verts=4 loose verts=0",
+    "hidden back-to-back faces: cont_safe__lid (16 pairs) - delete to save tris",
+    "hidden back-to-back faces: cont_safe__matte (10 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "cont_toolbox": {
+   "pass": true,
+   "tris": 1184,
+   "errors": [],
+   "warnings": [
+    "cont_toolbox__matte: duplicate verts=1 loose verts=0",
+    "hidden back-to-back faces: cont_toolbox__matte (36 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "cont_trash": {
+   "pass": true,
+   "tris": 1187,
+   "errors": [],
+   "warnings": [
+    "cont_trash__matte: duplicate verts=10 loose verts=0"
+   ],
+   "ground_z": -0.012
   },
   "cont_weapon": {
    "pass": true,
