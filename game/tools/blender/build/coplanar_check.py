@@ -2,6 +2,7 @@
 
   blender -b tools/blender/build/blend/<group>.blend --python-exit-code 1 --python tools/blender/build/coplanar_check.py [-- --list 8] [--only fac_press,fac_locker]
   blender -b tools/blender/build/blend/vault.blend --python-exit-code 1 --python tools/blender/build/coplanar_check.py -- --shell
+  blender -b --factory-startup --python-exit-code 1 --python tools/blender/build/coplanar_check.py -- --glb public/models/build/house.glb
 
 Default: every asset on its own. It is the same rule as src/game/dev/glitch.ts assetFaces() / coplanar()
 (tools/glitchcheck.mjs, the G1.5 zero-glitch gate): inside one asset, two triangles that face the same way
@@ -14,6 +15,7 @@ and still fail here.
 placed as the game places them (vault_layout.py), and faces of DIFFERENT pieces are tested against each other with the
 game's cross-piece tolerance (4 mm). glitchcheck does not walk the base, so this is the only check of its seams.
 
+--strict also counts wall-like faces up to 2 mm apart (the game's box pre-test lets those through; see SLACK).
 Exit code 1 when any pair is found. --list N prints the N largest pairs of each failing asset (Blender coords).
 """
 import os, sys, bpy, bmesh
@@ -25,10 +27,14 @@ LIST = int(argv[argv.index("--list") + 1]) if "--list" in argv else 6
 ONLY = set(argv[argv.index("--only") + 1].split(",")) if "--only" in argv else None
 SHELL = "--shell" in argv
 MIN_A = 2e-4
+# The game compares bounding boxes before planes, and only the vertical axis (three.js y, Blender z) gets the plane
+# tolerance there. So it sees two floor-like faces 1.5 mm apart, but two wall-like faces must lie on one plane (or lean
+# a little) to count. --strict gives every axis the tolerance: more than the gate asks, useful when authoring.
+SLACK = (1, 1, 1) if "--strict" in argv else (0, 0, 1)
 
 
 def tris_of(root, M=None, owner=0, label=None, into=None):
-    """(a, b, c, normal, plane d, area, label, owner, bbox) for every triangle under root, in world space (or under M)"""
+    """(a, b, c, normal, plane d, area, label, owner, bbox, foliage) for every triangle under root, in world space (or under M)"""
     out = [] if into is None else into
     for ob in root.children_recursive:
         if ob.type != "MESH":
@@ -44,7 +50,7 @@ def tris_of(root, M=None, owner=0, label=None, into=None):
             if M is not None and M.determinant() < 0:
                 n = -n
             bb = (min(a.x, b.x, c.x), min(a.y, b.y, c.y), min(a.z, b.z, c.z), max(a.x, b.x, c.x), max(a.y, b.y, c.y), max(a.z, b.z, c.z))
-            out.append((a, b, c, n, n.dot(a), area, label or ob.name, owner, bb))
+            out.append((a, b, c, n, n.dot(a), area, label or ob.name, owner, bb, ob.get("mat") == "foliage"))
         bm.free()
     return out
 
@@ -80,10 +86,13 @@ def overlap(t, u):
 
 
 def coplanar(tris, cross=False, d_tol=0.002):
-    """pairs of same-facing triangles on one plane that overlap. cross: only between different owners (else only within one)"""
+    """pairs of same-facing triangles on one plane that overlap (and back-to-back ones when either is double-sided
+    foliage, which the game draws from both sides). cross: only between different owners (else only within one)"""
     groups = {}
     for t in tris:                                   # a pair may straddle two normal buckets: file each triangle under its neighbours too
         n = t[3]
+        if not (n.x > 0.05 or (abs(n.x) <= 0.05 and (n.y > 0.05 or (abs(n.y) <= 0.05 and n.z > 0)))):
+            n = -n                                   # canonical facing, so back-to-back faces share a group
         k = (round(n.x * 12), round(n.y * 12), round(n.z * 12))
         for dk in ((0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1)):
             f = (n.x * 12 - k[0], n.y * 12 - k[1], n.z * 12 - k[2])
@@ -103,13 +112,20 @@ def coplanar(tris, cross=False, d_tol=0.002):
             tb = t[8]
             for j in range(i + 1, len(g)):
                 u = g[j]; ub = u[8]
-                if ub[0] > tb[3] + 1e-4:
+                if ub[0] > tb[3] + SLACK[0] * d_tol + 1e-4:
                     break
                 if (t[7] == u[7]) if cross else (t[7] != u[7]):
                     continue
-                if ub[1] > tb[4] + 1e-4 or tb[1] > ub[4] + 1e-4 or ub[2] > tb[5] + 1e-4 or tb[2] > ub[5] + 1e-4:
+                if ub[1] > tb[4] + SLACK[1] * d_tol + 1e-4 or tb[1] > ub[4] + SLACK[1] * d_tol + 1e-4 or ub[2] > tb[5] + SLACK[2] * d_tol + 1e-4 or tb[2] > ub[5] + SLACK[2] * d_tol + 1e-4:
                     continue
-                if t[3].dot(u[3]) <= 0.995 or abs(t[4] - u[4]) > d_tol:
+                dot = t[3].dot(u[3])
+                if dot > 0.995:
+                    if abs(t[4] - u[4]) > d_tol:
+                        continue
+                elif dot < -0.995 and (t[9] or u[9]):
+                    if abs(t[4] + u[4]) > d_tol:
+                        continue
+                else:
                     continue
                 key = (id(t), id(u)) if id(t) < id(u) else (id(u), id(t))
                 if key in seen:
@@ -126,10 +142,14 @@ def report(name, hits):
     print(f"[coplanar] {'VISIBLE' if area > 0.02 else 'minor  '} {name}: {len(hits)} pairs, {area:.4f} m2")
     for a, t, u in sorted(hits, key=lambda h: -h[0])[:LIST]:
         c, c2 = (t[0] + t[1] + t[2]) / 3, (u[0] + u[1] + u[2]) / 3
-        print(f"      {a * 1e4:7.1f} cm2  at ({c.x:.3f}, {c.y:.3f}, {c.z:.3f}) [{t[5] * 1e4:.0f} cm2] and ({c2.x:.3f}, {c2.y:.3f}, {c2.z:.3f}) [{u[5] * 1e4:.0f} cm2]  n ({t[3].x:.2f}, {t[3].y:.2f}, {t[3].z:.2f})  gap {abs(t[4] - u[4]) * 1000:.2f} mm  {t[6]} <-> {u[6]}")
+        print(f"      {a * 1e4:7.1f} cm2  at ({c.x:.3f}, {c.y:.3f}, {c.z:.3f}) [{t[5] * 1e4:.0f} cm2] and ({c2.x:.3f}, {c2.y:.3f}, {c2.z:.3f}) [{u[5] * 1e4:.0f} cm2]  n ({t[3].x:.2f}, {t[3].y:.2f}, {t[3].z:.2f})  gap {min(abs(t[4] - u[4]), abs(t[4] + u[4])) * 1000:.2f} mm{"  back-to-back foliage" if t[3].dot(u[3]) < 0 else ""}  {t[6]} <-> {u[6]}")
     return area > 0.02
 
 
+if "--glb" in argv:                                  # test the shipped file (float32, as the game loads it), not the .blend
+    for o in list(bpy.data.objects):
+        bpy.data.objects.remove(o)
+    bpy.ops.import_scene.gltf(filepath=os.path.abspath(argv[argv.index("--glb") + 1]))
 bpy.context.view_layer.update()
 ROOTS = {o.name: o for o in bpy.data.objects if o.type == "EMPTY" and "asset" in o}
 bad = vis = 0

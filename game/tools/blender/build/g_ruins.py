@@ -154,9 +154,9 @@ def vine_door(name, seed, W=3.4, H=3.0):
         stone_block(g, 1.15, 1.1, 0.34, (x, 0, -0.06), b=0.08)
     for i in range(5):
         stone_block(g, (W + 1.9) / 5 - 0.02, 1.0, 0.62, ((i - 2) * (W + 1.9) / 5, 0, H + 0.42), b=0.09, chip=1.0)
-    g.box(1.0, 1.08, 0.8, (0, 0, H + 0.36), col=STONE[3], b=0.09, jit=0.03)                            # keystone
+    g.box(1.0, 1.08, 0.8, (0, 0, H + 0.352), col=STONE[3], b=0.09, jit=0.03)                           # keystone (8 mm low: its chamfers lay within 2 mm of the lintel stones')
     icon_banana(g, FRONT(0, -0.545, H + 0.5), 0.56, "#8a765a")
-    stone_block(g, W + 0.1, 0.5, 0.14, (0, 0, -0.06), col=STONE_D, b=0.03)                          # sill
+    stone_block(g, W + 0.1, 0.5, 0.135, (0, 0, -0.055), col=STONE_D, b=0.03)                        # sill (its underside 5 mm above the jamb footings it runs into)
     # static vines over the frame
     vine(g, [(-W / 2 - 0.6, -0.5, H + 0.9), (-W / 2 - 0.75, -0.52, H + 0.2), (-W / 2 - 0.6, -0.5, 2.2), (-W / 2 - 0.72, -0.5, 1.4), (-W / 2 - 0.6, -0.5, 0.5)], 0.06, leaves=8, ls=0.26)
     vine(g, [(W / 2 + 0.3, -0.52, H + 1.0), (W / 2 + 0.55, -0.55, H + 0.1), (W / 2 + 0.7, -0.5, 2.4), (W / 2 + 0.55, -0.5, 1.7)], 0.06, leaves=6, ls=0.26)

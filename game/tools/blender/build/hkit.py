@@ -303,8 +303,8 @@ class House:
                     Pm = FRONT(0, yy, 0) if sgn > 0 else BACK(0, yy, 0)
                     for i in range(1, n):
                         u = (a + L * i / n + self.r.uniform(-0.1, 0.1)) * sgn
-                        g.paint_line([(u, 0.02), (u + self.r.uniform(-0.03, 0.03), 0.38)], 0.035, Pm, STONE_D)
-                    g.paint_line([(a * sgn + 0.05 * sgn, 0.2), (b * sgn - 0.05 * sgn, 0.2)], 0.03, Pm, STONE_D)
+                        g.paint_line([(u, 0.02), (u + self.r.uniform(-0.03, 0.03), 0.38)], 0.035, Pm, STONE_D, lift=0.006)
+                    g.paint_line([(a * sgn + 0.05 * sgn, 0.2), (b * sgn - 0.05 * sgn, 0.2)], 0.03, Pm, STONE_D, lift=0.009)      # the bed joint 3 mm above the upright joints it crosses; both stay behind a door jamb's face (15 mm)
                 if not inner:
                     g.paint_poly([(a + 0.02, 0.74), (b - 0.02, 0.74), (b - 0.02, 0.96), (a + 0.02, 0.96)], Fm, S["trim"])          # the painted band
                     chips(g, Fm, a, b, 0.42, 0.74, max(1, int(L / 1.3)), STONE[:3])
@@ -396,10 +396,11 @@ class House:
             if b2 - a2 > 0.04:
                 self._lower(M, a2, b2, S, inner)
         piers = solid(lambda o: True)
+        zt_ = H - 0.004 if isinstance(trim, (tuple, list)) else H     # a partition that runs into another wall ends under that wall's top
         for a, b in piers:
             a2, b2 = clip(a, b)
             if b2 - a2 > 0.04:
-                self._upper(M, a2, b2, zu, H, S, inner, side, band)
+                self._upper(M, a2, b2, zu, zt_, S, inner, side, band)
             self.c_seg(W(a), W(b), max(th, 0.3))
         for x0, x1, zb, zt, k, i in ops:
             if zt < H - 1e-6:
@@ -447,7 +448,7 @@ class House:
                     g.box(w + 0.04, 0.05, 0.05, (c, 0, (zb + zt) / 2 - 0.025), col=IRON, b=0)
             else:                                                                    # mullions
                 g.box(0.06, 0.06, zt - zb + 0.02, (c, 0, zb - 0.01), col=shade(tr, 0.9), b=0)
-                g.box(w + 0.02, 0.06, 0.06, (c, 0, (zb + zt) / 2 - 0.03), col=shade(tr, 0.9), b=0)
+                g.box(w + 0.02, 0.05, 0.06, (c, 0, (zb + zt) / 2 - 0.03), col=shade(tr, 0.9), b=0)
             if small:
                 g.box(w + 0.24, th + 0.12, 0.08, (c, 0, zb - 0.07), col=STONE[3], b=0)
             elif not inner and S["kind"] != "stone":                                 # shutters, folded back on the wall
@@ -526,7 +527,7 @@ class House:
         g, L, c = self.lo, x1 - x0, (x0 + x1) / 2
         with g.at(M):
             g.box(L, 0.24, 0.16, (c, 0, -0.04), col=STONE[2], b=0)                   # curb
-            g.box(L, 0.09, 0.09, (c, 0, 2.52), col=STEEL_D, b=0.0)                   # top rail
+            g.box(L, 0.09, 0.085, (c, 0, 2.512), col=STEEL_D, b=0.0)                 # top rail (stops under the header)
             for x in (x0, x1):
                 w = M @ Vector((x, 0, 0))
                 key = ("bar", round(w.x, 2), round(w.y, 2))
@@ -740,12 +741,14 @@ class House:
                 ln = ez.length
                 ez.normalize()
                 ext = over if i == 0 else 0.12
-                o = Vector((xa, sg * ua, z + za - 0.02 + (0.03 * i))) - ez * ext
+                dx = 0.004 * (i + (2 if sg > 0 else 0))      # this plane's station along the ridge: where two slopes (or the two pitches of a
+                #                                              gambrel) cross, their boards, sheets and barge boards must not share a face plane
+                o = Vector((xa + dx, sg * ua, z + za - 0.02 + (0.03 * i))) - ez * ext
                 self.plane(R @ o, R3 @ Vector((1, 0, 0)), R3 @ ez, xb - xa, ln + ext + (0.06 if style != "thatch" and i == len(prof) - 2 else 0.0), style, g=g, **kw)
                 for k, xg in enumerate((xa, xb)):            # barge boards on the rakes
                     with g.at(R):
-                        p0 = Vector((xg, sg * ua, z + za)) - ez * ext + Vector((0, 0, 0.08))
-                        p1 = Vector((xg, sg * ub, z + zb + 0.08))
+                        p0 = Vector((xg + dx, sg * ua, z + za)) - ez * ext + Vector((0, 0, 0.08))
+                        p1 = Vector((xg + dx, sg * ub, z + zb + 0.08))
                         g.beam(p0, p1, 0.2, 0.08, tr, b=0.0, ext=0.04, jit=0.03, roll=90)
         hf = lambda u: next((za + (zb - za) * (ua - abs(u)) / (ua - ub) for (ua, za), (ub, zb) in zip(prof, prof[1:]) if ub - 1e-9 <= abs(u) <= ua + 1e-9), 0.0)
         with g.at(R):
@@ -808,11 +811,11 @@ class House:
         d = y1 - y0
         ez = Vector((0, d, rise)).normalized()
         ln = sqrt(d * d + rise * rise)
-        o = Vector((x0 - over, y0, z - 0.02)) - ez * over
+        o = Vector((x0 - over + 0.004, y0, z - 0.02)) - ez * over     # 4 mm off the module grid: a sheet edge must not land in a window jamb's plane
         self.plane(o, (1, 0, 0), ez, x1 - x0 + 2 * over, ln + 2 * over, style, g=g, **kw)
         S = STY[fill]
         th = S["th"]
-        g.box(x1 - x0 + th - 0.012, th, rise, ((x0 + x1) / 2, y1, z), col=S["core"], b=0.0, jit=0)                       # high wall
+        g.box(x1 - x0 + th - 0.012, th, rise - 0.004, ((x0 + x1) / 2, y1, z + 0.004), col=S["core"], b=0.0, jit=0)       # high wall (its underside clear of the wedges')
         boards(g, BACK(0, y1 + th / 2, 0), x0, x1, z, z + rise - 0.03, S["ext"], pw=0.25, vertical=True, gap=0.045, flip=True)
         boards(g, FRONT(0, y1 - th / 2, 0), x0, x1, z, z + rise - 0.03, S["int"], pw=0.5, vertical=True)
         for sg, x in ((-1, x0), (1, x1)):
@@ -841,8 +844,9 @@ class House:
         for (ax, ay), (bx, by) in segs if rail else []:
             if gap and abs(ay - by) < 1e-6 and ax >= gap[0] - 0.3 and bx <= gap[1] + 0.3:
                 continue
-            g.beam((ax, ay, 0.95), (bx, by, 0.95), 0.1, 0.09, S["trim"], b=0.0, jit=0.03)
-            g.beam((ax, ay, 0.42), (bx, by, 0.42), 0.07, 0.07, S["post"], b=0.0)
+            dz = -0.004 if abs(ax - bx) < 1e-6 else 0.0          # side rails sit 4 mm under the front rails they meet at the corner
+            g.beam((ax, ay, 0.95 + dz), (bx, by, 0.95 + dz), 0.1, 0.09, S["trim"], b=0.0, jit=0.03)
+            g.beam((ax, ay, 0.42 + dz), (bx, by, 0.42 + dz), 0.07, 0.07, S["post"], b=0.0)
             L = sqrt((bx - ax) ** 2 + (by - ay) ** 2)
             k = max(2, int(L / 0.5))
             for i in range(1, k):
@@ -867,7 +871,7 @@ class House:
         c = WOOD_D[1] if kind == "plank" else STONE[1]
         with g.at(T(x, y, 0, 0, 0, rz)):
             for i in range(n):
-                g.box(w - 0.1 * i, 0.4, 0.06 - 0.03 * i + 0.16, (0, -0.2 - i * 0.36, -0.16), col=shade(c, 1.0 + 0.06 * i), b=0, jit=0.03)
+                g.box(w - 0.1 * i, 0.4, 0.06 - 0.03 * i + 0.16 - 0.005 * i, (0, -0.2 - i * 0.36, -0.16 + 0.005 * i), col=shade(c, 1.0 + 0.06 * i), b=0, jit=0.03)
 
     def stilts(self, pts, depth=1.9, r=0.12):
         for x, y in pts:
@@ -941,9 +945,9 @@ def door_leaf(h, g, em, w, top, kind, S, o):
             for z in (0.22, hgt - 0.34):
                 g.box(w - 0.06, 0.05, 0.14, (w / 2, y, z0 + z), col=tr, b=0.0, jit=0.04)
             if not o.get("breakable"):
-                g.beam((0.1, y, z0 + 0.36), (w - 0.1, y, z0 + hgt - 0.34), 0.05, 0.13, tr, b=0.0, jit=0.04)
-            if kind == "barn" and not o.get("breakable"):
-                g.beam((w - 0.1, y, z0 + 0.36), (0.1, y + sy * 0.012, z0 + hgt - 0.34), 0.05, 0.13, tr, b=0.0, jit=0.04)
+                g.beam((0.1, y + sy * 0.003, z0 + 0.36), (w - 0.1, y + sy * 0.003, z0 + hgt - 0.34), 0.05, 0.13, tr, b=0.0, jit=0.04)
+            if kind == "barn" and not o.get("breakable"):      # the crossing brace lies 4 mm proud of the first, flat (a leaning one reads as coplanar)
+                g.beam((w - 0.1, y + sy * 0.007, z0 + 0.36), (0.1, y + sy * 0.007, z0 + hgt - 0.34), 0.05, 0.13, tr, b=0.0, jit=0.04)
     for z in (0.35, hgt - 0.45):       # strap hinges + knuckles that bite into the jamb
         g.box(0.5, t + 0.05, 0.08, (0.22, 0, z0 + z), col=IRON, b=0.0)
         g.pole((-0.035, 0, z0 + z - 0.06), (-0.035, 0, z0 + z + 0.14), 0.05, IRON, n=5, b=0)

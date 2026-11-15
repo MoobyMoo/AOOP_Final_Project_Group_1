@@ -22,10 +22,8 @@
     "hidden back-to-back faces: barn__door2<->barn__matte (6 pairs) - delete to save tris",
     "hidden back-to-back faces: barn__upper_s (6 pairs) - delete to save tris",
     "hidden back-to-back faces: barn__door1<->barn__matte (6 pairs) - delete to save tris",
-    "hidden back-to-back faces: barn__door1 (5 pairs) - delete to save tris",
     "hidden back-to-back faces: barn__roof<->barn__upper_n (4 pairs) - delete to save tris",
     "hidden back-to-back faces: barn__matte<->barn__upper_n (4 pairs) - delete to save tris",
-    "hidden back-to-back faces: barn__door0 (4 pairs) - delete to save tris",
     "asset lowest point z=-0.3 (not resting on ground plane z=0)"
    ],
    "ground_z": -0.3
@@ -162,7 +160,6 @@
     "hidden back-to-back faces: radio_shack__roof (7 pairs) - delete to save tris",
     "hidden back-to-back faces: radio_shack__door0<->radio_shack__matte (6 pairs) - delete to save tris",
     "hidden back-to-back faces: radio_shack__matte<->radio_shack__upper_w (6 pairs) - delete to save tris",
-    "hidden back-to-back faces: radio_shack__roof<->radio_shack__upper_n (4 pairs) - delete to save tris",
     "hidden back-to-back faces: radio_shack__emissive<->radio_shack__matte (4 pairs) - delete to save tris",
     "hidden back-to-back faces: radio_shack__matte<->radio_shack__upper_n (4 pairs) - delete to save tris",
     "hidden back-to-back faces: radio_shack__matte<->radio_shack__upper_e (4 pairs) - delete to save tris",

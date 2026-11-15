@@ -517,10 +517,8 @@
     "hidden back-to-back faces: wall_barn_double__upper (6 pairs) - delete to save tris",
     "hidden back-to-back faces: wall_barn_double__door1<->wall_barn_double__matte (6 pairs) - delete to save tris",
     "hidden back-to-back faces: wall_barn_double__door0<->wall_barn_double__matte (6 pairs) - delete to save tris",
-    "hidden back-to-back faces: wall_barn_double__door1 (4 pairs) - delete to save tris",
     "hidden back-to-back faces: wall_barn_double__emissive<->wall_barn_double__matte (4 pairs) - delete to save tris",
     "hidden back-to-back faces: wall_barn_double__matte (4 pairs) - delete to save tris",
-    "hidden back-to-back faces: wall_barn_double__door0 (4 pairs) - delete to save tris",
     "asset lowest point z=-0.05 (not resting on ground plane z=0)"
    ],
    "ground_z": -0.05
