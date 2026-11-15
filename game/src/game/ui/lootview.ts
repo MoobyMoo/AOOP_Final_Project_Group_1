@@ -21,6 +21,7 @@ import { HEALS, KINGPIN } from "../combat/weapons";
 import { cancelReload } from "../combat/reload";
 import { carriedWeight } from "../actors/player";
 import { sfx } from "../core/audio";
+import { sting } from "../core/music";
 import { save } from "../core/save";
 import { carryLimit, condition, gearSummary, SLOT_NAME } from "./equipui";
 import { iconHtml } from "./itemicon";
@@ -395,7 +396,7 @@ export function updateLoot(dt: number) {
   if (s && s.elapsed < s.duration) {
     const fresh = advanceSearch(s, dt);
     if (fresh.length) {
-      for (const f of fresh) { popped.add(f); const r = itemDef(f.item).rarity; sfx(r === "rare" || r === "epic" ? "rare" : "crateTick", r === "rare" || r === "epic" ? 0.5 : 1); }
+      for (const f of fresh) { popped.add(f); const r = itemDef(f.item).rarity, big = r === "rare" || r === "epic"; sfx(big ? "rare" : "crateTick", big ? 0.5 : 1); if (big) sting("stingRare"); }
     } else {
       const slots = s.slots, i = slots.findIndex((q) => !q.revealed && !q.taken);
       if (i >= 0) {

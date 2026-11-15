@@ -22,6 +22,7 @@
 //   4 full body    roll (dash), defeat, cheer override everything for their duration (actionT).
 //   5 procedural   gun-arm aim toward faceYaw at 360 deg/s, recoil kick, head look, chin-up, blink, brow expression,
 //                  tail and ear springs driven by the body's own motion, squash on roll landings and hits, hurt flash.
+import { tuneObject } from "../core/tune";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -328,7 +329,14 @@ const M_ATTACK: Record<string, string> = { fire: "fire", melee: "melee", throw: 
 const M_FULL: Record<string, string> = { roll: "roll", defeat: "defeat", cheer: "cheer" };
 /** look tuning the game may change: headUp = how far monkeys lift their chin toward the top-down camera (rad);
  *  aimRate = how fast the gun arm turns toward faceYaw (rad/s, 360 deg/s like Duckov's right-hand sync) */
-export const RIG_TUNE = { headUp: 0.24, aimRate: Math.PI * 2, headSteady: 14 }; // headSteady: head low-pass rate /s (0 = off)
+export const RIG_TUNE = { headUp: 0.24, aimRate: Math.PI * 2, headSteady: 14, kickBack: 0.1, kickPitch: 0.3, kickOut: 0.035, kickRecover: 9, kickChest: 0.05 }; // headSteady: head low-pass rate /s (0 = off)
+tuneObject("rig", RIG_TUNE, {
+  headUp: { min: 0, max: 0.8, step: 0.01, label: "chin up (rad)" }, aimRate: { min: 0.5, max: 30, step: 0.1, label: "aim turn rate (rad/s)" },
+  headSteady: { min: 0, max: 60, step: 0.5, label: "head steady low-pass /s (0 = off)" },
+  kickBack: { min: 0, max: 0.4, step: 0.005, label: "gun kick back (u)" }, kickPitch: { min: 0, max: 1.2, step: 0.01, label: "gun kick pitch (rad)" },
+  kickOut: { min: 0.005, max: 0.2, step: 0.005, label: "kick out time (s)" }, kickRecover: { min: 1, max: 40, step: 0.5, label: "kick recover rate /s" },
+  kickChest: { min: 0, max: 0.3, step: 0.005, label: "kick into chest (rad)" },
+}, { note: "procedural rig (actors/rig.ts)" });
 const TW_MAX = 1.3;   // the gun arm can lead or trail the body by up to ~75 deg
 
 /** how far a pack moves out when body armour is worn under it (fractions added to the back socket's x / z scale) */
@@ -529,9 +537,9 @@ class MonkeyRig extends CharRig {
     }
     this.stabiliseHead(dt, snap);
     // recoil: fast out, slower recover (Duckov: back 20/s, recover 8/s); moves the gun socket, a little of it reaches the chest
-    const hr = this.sockets.handR, ft = act === "fire" ? s.actionT * CLIP_INFO.fire.dur : -1, kick = ft < 0 ? 0 : ft < 0.035 ? ft / 0.035 : Math.exp(-(ft - 0.035) * 9);
-    hr.position.z = -0.1 * kick; hr.rotation.x = -0.3 * kick;
-    if (kick > 0) this.chest.quaternion.multiply(Q.setFromAxisAngle(XA, -0.05 * kick));
+    const hr = this.sockets.handR, ft = act === "fire" ? s.actionT * CLIP_INFO.fire.dur : -1, T = RIG_TUNE, kick = ft < 0 ? 0 : ft < T.kickOut ? ft / T.kickOut : Math.exp(-(ft - T.kickOut) * T.kickRecover);
+    hr.position.z = -T.kickBack * kick; hr.rotation.x = -T.kickPitch * kick;
+    if (kick > 0) this.chest.quaternion.multiply(Q.setFromAxisAngle(XA, -T.kickChest * kick));
     this.squashStep(s, h, (this.prevAct === "roll" && act !== "roll") || (act === "roll" && this.prevAT < 0.86 && s.actionT >= 0.86));
     // ---- props and face
     const brief = s.armed === "briefcase";

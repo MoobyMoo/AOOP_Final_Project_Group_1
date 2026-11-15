@@ -19,8 +19,9 @@ export class Input {
     addEventListener("mouseup", (e) => { if (e.button === 0) this.mouse.down = false; if (e.button === 2) this.mouse.rdown = false; });
     el.addEventListener("contextmenu", (e) => e.preventDefault());
   }
-  /** usingMouse: true while the mouse is the aim device */
-  get usingMouse() { return !this.kbMode && this.t - this.mouse.movedAt < 1.5 || (!this.kbMode && this.mouse.down); }
+  /** usingMouse: true while the mouse is the aim device (a held button counts: holding still in ADS is careful aiming,
+   *  not a switch to keyboard auto-aim) */
+  get usingMouse() { return !this.kbMode && (this.t - this.mouse.movedAt < 1.5 || this.mouse.down || this.mouse.rdown); }
   read(dt: number): Intent {
     this.t += dt;
     const k = this.keys, p = this.pressed;

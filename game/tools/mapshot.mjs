@@ -12,6 +12,8 @@ export const VIEWS = {
   mangrove: [49, 54], colony: [66, 5], cellblock_in: [64.5, -5.5], cellblock_cell: [60.5, -9.5], warden: [72.5, -7.5], shrine: [61.5, -15.5], vault_door: [80, -19.5], vault: [81, -27],
   radio: [-27.5, -11.5], radio_in: [-27.5, -15.5], hut_in: [6.5, 78.5], bomber: [-62, -42], hollow: [3, -54], falls: [66, -62], nook: [66, -81], checkpoint_n: [8, -82], landing: [12, -103], boathouse_in: [-6.5, -109.5],
   road_n: [0, 50], road_ridge: [-1, -20], road_west: [-66, -16], open_east: [40, 30], open_west: [-30, 40],
+  // G1.5 demo slice: the route locks, the boss yard, the cove boat, the boarded well
+  lock_camp: [-64, 16.5], lock_north: [0, 4], lock_colony: [43, 7], lock_boardwalk: [65, 38], lock_cave: [-90, 93], cove_boat: [-86, 102], boss_yard: [1, 57], well: [-52, 27],
   grotto_mouth: [150, 62], grotto_hall: [168, 26], grotto_roots: [154, -24], tunnel: [190, 43],
 };
 const views = only ? only.split(",") : Object.keys(VIEWS);

@@ -122,7 +122,7 @@ export function renderBunker(dt: number) {
   G.rig.pose({ time: G.time, speed: vel.length(), moveYaw: face, faceYaw: face, action: vel.lengthSq() > 0.1 ? "run" : "idle", actionT: 0, armed: "none", flash: 0 });
   if (salRig) salRig.pose({ time: G.time + 3, speed: 0, moveYaw: -0.6, faceYaw: Math.atan2(pp.x - 6.6, pp.z + 2.4), action: "idle", actionT: 0, armed: "none", flash: 0 });
   updateFx(dt);
-  const f = pp.clone().setY(0.5).add(V(0, -1.2)); G.stage.cam.dist = 26; G.stage.place(f, dt, G.time); G.stage.cam.dist = 40;
+  const f = pp.clone().setY(0.5).add(V(0, -1.2)); const d = G.stage.cam.dist; G.stage.cam.dist = 26; G.stage.setFov(); G.stage.place(f, dt, G.time); G.stage.cam.dist = d;
 }
 const head = (title: string, sub = "") => `<header><h2>${title}</h2>${sub ? `<small>${sub}</small>` : ""}</header>`;
 const cell = (i: string) => `<div class="cell" style="--rar:var(--rar-${itemDef(i).rarity})" title="${itemDef(i).name}">${iconHtml(i, 54)}<span class="v">${itemDef(i).value}</span></div>`;

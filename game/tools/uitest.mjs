@@ -39,8 +39,11 @@ async function run(w, h) {
     try { const r = await f(); ok = r !== false; if (typeof r === "string") note = r; } catch (e) { note = String(e.message ?? e).split("\n")[0]; }
     const s = ((Date.now() - t0) / 1000).toFixed(1); results.push({ size: `${w}x${h}`, task: name, ok, s, note }); if (!ok) failed++;
     console.log(`${ok ? "PASS" : "FAIL"}  ${w}x${h}  ${name.padEnd(34)} ${s} s ${note}`);
-    await p.keyboard.press("Escape"); await p.waitForTimeout(250);
+    await closeAll();
   };
+  // Esc with nothing open now opens the settings plate (ui/settings.ts) and pauses the raid, so only press it while the
+  // loot screen or that plate is up
+  const closeAll = async () => { for (let k = 0; k < 3 && (await p.locator(".lv, .set3").count()); k++) { await p.keyboard.press("Escape"); await p.waitForTimeout(250); } };
   const cell = (panel, name) => `.lv-${panel} button[aria-label="${name}"]`;
 
   // ---- 1 equip a vest
@@ -88,7 +91,7 @@ async function run(w, h) {
     return await until(() => window.__G.hp > 50 && window.__G.pack.filter((i) => i === "bandage").length === 1, null, 3000);
   });
   await task("3b use a heal (quick key 3)", async () => {
-    await p.keyboard.press("Escape"); await G(() => { window.__G.hp = 50; });
+    await closeAll(); await G(() => { window.__G.hp = 50; });
     const hint = await p.locator(".h3-quick .h3-q").first().innerText(); if (!hint.includes("3")) return "quick slot 3 has no key label";
     await p.keyboard.press("3");
     return await until(() => window.__G.hp > 50 && !window.__G.pack.includes("bandage"), null, 3000);

@@ -12,7 +12,7 @@ import { pieceRec, type PieceOwner } from "../world/dress";
 import { groundHeight, meshHeight, meshHeightMax } from "../world/terrain";
 import { houses } from "../world/buildings";
 import { debugGrid, walkable, path, gates, edgeDist, roadDist, flood } from "../world/grid";
-import { PLACED, CRATES, SPAWNS, START, POI, PORTALS, ZIPLINES, SUPPLY_DROPS, UNDER_X, PIERS, PIER_Y } from "../world/map/grove";
+import { PLACED, CRATES, SPAWNS, START, POI, PORTALS, ZIPLINES, SUPPLY_DROPS, UNDER_X, PIERS, PIER_Y, inDemo, portalOpen, CONTAINER_SOCKETS } from "../world/map/grove";
 import { collidersFor, NATURE_VARIANTS } from "../world/map/colliders";
 import { toWorld } from "../world/map/types";
 import * as K from "../world/kit_build";
@@ -470,7 +470,8 @@ function sockets() {
   for (const g of gates) g.open = true;
   const reach = flood(START.x, START.z);
   // crates: a crate spawns at any yaw outdoors; its box reaches 0.85 u from its centre (crate_green 0.85 x 0.51 half)
-  for (const c of CRATES) {
+  // the demo slice (G1.5-13): sockets, spawns and marks past the route locks are parked, not stranded
+  for (const c of [...CRATES.filter((q) => inDemo(q.x, q.z)), ...CONTAINER_SOCKETS.map((q) => ({ ...q, tier: q.type === "weapon" ? "green" : "wood", fixed: undefined, y: q.y }))]) {
     const clear = idx.dist(c.x, c.z), need = c.in ? 0.55 : c.tier === "green" ? 0.99 : 0.85;
     if (clear < 0) add("socket", "bug", c.x, c.z, "crate", `crate socket ${c.tier}${c.fixed ? "/" + c.fixed : ""} inside a collider (${r2(clear)})`, -clear);
     else if (clear < need - 0.1) add("socket", clear < need - 0.35 ? "visible" : "minor", c.x, c.z, "crate", `crate socket ${c.tier}${c.fixed ? "/" + c.fixed : ""} has ${r2(clear)} u clear: a turned crate can poke into the next collider`, need - clear);
@@ -488,20 +489,20 @@ function sockets() {
   }
   // enemies: home on open ground, a patrol ring that is mostly walkable, a way to the player
   const seenHome = new Set<string>();
-  SPAWNS.flat().forEach((s) => {
+  SPAWNS.flat().filter((s) => inDemo(s.x, s.z)).forEach((s) => {
     const key = `${s.x},${s.z}`; if (seenHome.has(key)) return; seenHome.add(key);
     const rad = s.kind === "brute" ? 0.72 : 0.36, clear = idx.dist(s.x, s.z);
     if (!walkable(s.x, s.z) || clear < rad * 0.5) add("socket", "bug", s.x, s.z, s.kind, `${s.kind} spawn ${r2(s.x)},${r2(s.z)} inside a collider (${r2(clear)} u clear)`, clear);
     else if (!reach(s.x, s.z)) add("socket", "bug", s.x, s.z, s.kind, `${s.kind} spawn ${r2(s.x)},${r2(s.z)} stranded: no nav path to the start`, 0);
     if (s.kind !== "sleeper") { let ok = 0; for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2, x = s.x + Math.cos(a) * 3, z = s.z + Math.sin(a) * 3; if (walkable(x, z) && path(s.x, s.z, x, z, 4000).length) ok++; } if (ok < 8) add("socket", ok < 4 ? "visible" : "minor", s.x, s.z, s.kind, `${s.kind} at ${r2(s.x)},${r2(s.z)}: only ${ok}/16 patrol points walkable (it stands still or scrapes walls)`, 16 - ok); }
   });
-  const marks: [string, number, number][] = [["start", START.x, START.z], ["hatch", POI.hatch.x, POI.hatch.z], ["raft", POI.raft.x, POI.raft.z], ["tunnel", POI.tunnelExit.x, POI.tunnelExit.z], ...PORTALS.flatMap((p) => [[p.id + ":a", p.a.x, p.a.z], [p.id + ":b", p.b.x, p.b.z]] as [string, number, number][]), ...ZIPLINES.flatMap((z) => [[z.id + ":from", z.from.x, z.from.z + 3.2], [z.id + ":to", z.to.x, z.to.z]] as [string, number, number][]), ...SUPPLY_DROPS.map((q, i) => ["drop" + i, q.x, q.z] as [string, number, number])];
-  for (const [n, x, z] of marks) { if (!walkable(x, z)) add("socket", "bug", x, z, n, `${n} mark is not walkable`, 0); else if (!reach(x, z)) add("socket", "bug", x, z, n, `${n} mark unreachable from the start`, 0); }
+  const marks: [string, number, number][] = [["start", START.x, START.z], ["hatch", POI.hatch.x, POI.hatch.z], ["coveBoat", POI.coveBoat.x, POI.coveBoat.z], ["raft", POI.raft.x, POI.raft.z], ["tunnel", POI.tunnelExit.x, POI.tunnelExit.z], ...PORTALS.filter((p) => portalOpen(p.id)).flatMap((p) => [[p.id + ":a", p.a.x, p.a.z], [p.id + ":b", p.b.x, p.b.z]] as [string, number, number][]), ...ZIPLINES.flatMap((z) => [[z.id + ":from", z.from.x, z.from.z + 3.2], [z.id + ":to", z.to.x, z.to.z]] as [string, number, number][]), ...SUPPLY_DROPS.map((q, i) => ["drop" + i, q.x, q.z] as [string, number, number])];
+  for (const [n, x, z] of marks) { if (!inDemo(x, z)) continue; if (!walkable(x, z)) add("socket", "bug", x, z, n, `${n} mark is not walkable`, 0); else if (!reach(x, z)) add("socket", "bug", x, z, n, `${n} mark unreachable from the start`, 0); }
   // stranded nav pockets: open cells the start can't reach (everything open), 4+ cells big
   const dgr = debugGrid() as unknown as { cells: Uint8Array; navStatic: Uint8Array; minX: number; minZ: number }, GWd = 316, seen = new Uint8Array(dgr.cells.length);
   for (let i = 0; i < dgr.cells.length; i++) {
     if (seen[i] || dgr.cells[i] !== 1 || dgr.navStatic[i]) continue;
-    const x = dgr.minX + (i % GWd) + 0.5, z = dgr.minZ + Math.floor(i / GWd) + 0.5; if (reach(x, z)) continue;
+    const x = dgr.minX + (i % GWd) + 0.5, z = dgr.minZ + Math.floor(i / GWd) + 0.5; if (reach(x, z) || !inDemo(x, z)) continue;
     const q = [i]; seen[i] = 1; let n = 0;
     for (let h = 0; h < q.length; h++) { const cur = q[h]; n++; for (const d of [1, -1, GWd, -GWd]) { const k = cur + d; if (k >= 0 && k < seen.length && !seen[k] && dgr.cells[k] === 1 && !dgr.navStatic[k] && !reach(dgr.minX + (k % GWd) + 0.5, dgr.minZ + Math.floor(k / GWd) + 0.5)) { seen[k] = 1; q.push(k); } } }
     if (n >= 4) add("socket", "minor", x, z, "nav", `${n}-cell nav pocket the start can't reach (an enemy pushed in there is stuck)`, n);

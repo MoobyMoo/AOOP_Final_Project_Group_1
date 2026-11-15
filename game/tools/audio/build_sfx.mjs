@@ -1,19 +1,37 @@
 // Turn the raw ElevenLabs takes (research/audio/raw/sfx/<name>_<k>.mp3, gitignored) into the game's sample set:
 // trim leading/trailing silence, mono 44.1 kHz, peak-normalise to -1 dBFS, rename to the game's sfx kind
-// (snake_case -> camelCase), drop silent takes, and write public/audio/sfx/manifest.json for core/audio.ts.
-// Usage: node tools/audio/build_sfx.mjs [--max 4] [--skip name_k,name_k]
+// (snake_case -> camelCase), drop silent, clipped or overlong takes, and write public/audio/sfx/manifest.json for
+// core/audio.ts. Footstep takes (step_<surface>_<k>.mp3) hold a walk of several steps; each step is cut out on its own.
+// Every take is measured (length, peak, mean) and printed so the pick is made on numbers, not by ear alone.
+// Usage: node tools/audio/build_sfx.mjs [--max 4] [--steps 8] [--skip name_k,name_k]
 import { spawnSync } from "node:child_process";
-import { readdirSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { readdirSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 const RAW = "research/audio/raw/sfx", OUT = "public/audio/sfx";
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
-const MAX = Number(arg("--max", 4)), SKIP = new Set((arg("--skip", "") || "").split(",").filter(Boolean));
+const MAX = Number(arg("--max", 4)), STEPS = Number(arg("--steps", 8)), SKIP = new Set((arg("--skip", "") || "").split(",").filter(Boolean));
+/** longest a processed take may be before it is dropped as overlong (seconds); stings and roars may ring */
+const LONG = { roar: 2.6, extract: 2.6, rare: 2, heal: 1.6, door: 1.6, shotTail: 1.6, slam: 1.6, ko: 1.4 };
+const ff = (args) => spawnSync("ffmpeg", ["-hide_banner", ...args], { encoding: "utf8" });
 const dur = (f) => Number(spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f], { encoding: "utf8" }).stdout);
 const camel = (s) => s.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
-function maxVol(f) {
-  const r = spawnSync("ffmpeg", ["-hide_banner", "-i", f, "-af", "volumedetect", "-f", "null", "-"], { encoding: "utf8" }).stderr;
-  const m = /max_volume: (-?[\d.]+) dB/.exec(r); return m ? Number(m[1]) : -99;
+/** peak, RMS and flat factor (> 0: runs of samples stuck at the peak, i.e. clipping). astats works in float; volumedetect
+ *  would force 16-bit first and clip the inter-sample overs that decoded mp3s carry, so it under-reads hot takes */
+function levels(f) {
+  const r = ff(["-i", f, "-af", "aformat=sample_fmts=flt,astats=measure_overall=Peak_level+RMS_level+Flat_factor:measure_perchannel=none", "-f", "null", "-"]).stderr;
+  const num = (re, d = -99) => { const m = re.exec(r); return m && Number.isFinite(Number(m[1])) ? +Number(m[1]).toFixed(1) : d; };
+  return { max: num(/Peak level dB: (-?[\d.]+|-inf)/), mean: num(/RMS level dB: (-?[\d.]+|-inf)/), flat: num(/Flat factor: ([\d.]+)/, 0) };
 }
+/** [start, end] of each sound in a file, split on gaps of quiet */
+function sounds(f, noise = -42, gap = 0.08) {
+  const D = dur(f), r = ff(["-i", f, "-af", `silencedetect=noise=${noise}dB:d=${gap}`, "-f", "null", "-"]).stderr;
+  const starts = [...r.matchAll(/silence_start: ([\d.]+)/g)].map((m) => Number(m[1])), ends = [...r.matchAll(/silence_end: ([\d.]+)/g)].map((m) => Number(m[1]));
+  const out = []; let t = starts[0] === 0 || (starts.length && starts[0] < 0.01) ? null : 0;
+  for (let i = 0; i < starts.length; i++) { if (t !== null && starts[i] > t) out.push([t, starts[i]]); t = ends[i] ?? null; }
+  if (t !== null && D - t > 0.03) out.push([t, D]);
+  return out;
+}
+if (!existsSync(RAW) || !readdirSync(RAW).some((f) => f.endsWith(".mp3"))) { console.error(`no raw takes in ${RAW}; leaving ${OUT} as it is`); process.exit(1); }
 mkdirSync(OUT, { recursive: true });
 for (const f of readdirSync(OUT)) if (f.endsWith(".mp3") || f === "manifest.json") rmSync(join(OUT, f));
 const groups = {};
@@ -21,26 +39,41 @@ for (const f of readdirSync(RAW).filter((f) => f.endsWith(".mp3")).sort((a, b) =
   const m = /^(.*)_(\d+)\.mp3$/.exec(f); if (!m || SKIP.has(`${m[1]}_${m[2]}`)) continue;
   (groups[m[1]] ??= []).push(f);
 }
-const manifest = {}, tmp = join(OUT, ".tmp.wav");
-for (const [name, files] of Object.entries(groups)) {
-  const kind = camel(name), out = [];
-  for (const f of files) {
-    if (out.length >= MAX) break;
-    // trim: strip leading silence (3 ms fade-in so the cut doesn't click), then cut at the start of the final silence
-    // (ElevenLabs pads takes to whole seconds and ends them with a few ms of encoder noise, so a reverse strip stalls)
-    const src = join(RAW, f), D = dur(src);
-    const sil = [...spawnSync("ffmpeg", ["-hide_banner", "-i", src, "-af", "silencedetect=noise=-50dB:d=0.05", "-f", "null", "-"], { encoding: "utf8" }).stderr.matchAll(/silence_start: ([\d.]+)[\s\S]*?silence_end: ([\d.]+)/g)];
-    const lastSil = sil.at(-1), end = lastSil && Number(lastSil[2]) > D - 0.05 ? Number(lastSil[1]) + 0.04 : D;
-    spawnSync("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", "-i", src, "-ac", "1", "-ar", "44100", "-af",
-      `atrim=0:${end.toFixed(3)},silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.004,afade=t=in:d=0.003,areverse,afade=t=in:d=0.02,areverse`, tmp]);
-    const mv = maxVol(tmp);
-    if (mv < -30) { console.log(`skip ${f}: near-silent (${mv} dB)`); continue; }
-    const file = `${kind}_${out.length + 1}.mp3`;
-    spawnSync("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", "-i", tmp, "-af", `volume=${(-1 - mv).toFixed(2)}dB`, "-c:a", "libmp3lame", "-b:a", "112k", join(OUT, file)]);
-    out.push(file);
+const manifest = {}, tmp = join(OUT, ".tmp.wav"), report = [];
+/** cut [a, b] of src (b = null: to the start of the final silence), trim, normalise and keep it as the kind's next take */
+function take(kind, src, a, b, out, label) {
+  if (b === null) {
+    // ElevenLabs pads takes to whole seconds and ends them with a few ms of encoder noise, so a reverse strip stalls:
+    // cut at the start of the final silencedetect gap instead
+    const D = dur(src), sil = [...ff(["-i", src, "-af", "silencedetect=noise=-50dB:d=0.05", "-f", "null", "-"]).stderr.matchAll(/silence_start: ([\d.]+)[\s\S]*?silence_end: ([\d.]+)/g)];
+    const lastSil = sil.at(-1); b = lastSil && Number(lastSil[2]) > D - 0.05 ? Number(lastSil[1]) + 0.04 : D;
   }
+  ff(["-y", "-loglevel", "error", "-i", src, "-ac", "1", "-ar", "44100", "-af",
+    `atrim=${Math.max(0, a - 0.01).toFixed(3)}:${b.toFixed(3)},asetpts=PTS-STARTPTS,silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.004,afade=t=in:d=0.003,areverse,afade=t=in:d=0.02,areverse`, "-c:a", "pcm_f32le", tmp]); // float: decoded mp3 peaks run past 0 dBFS, 16-bit would clip them
+  const lv = levels(tmp), len = dur(tmp) || 0, cap = LONG[kind] ?? 1.2, clip = levels(src).flat;
+  // drop: silent or too quiet to normalise without lifting the noise floor, clipped, empty, or far past the kind's length
+  // (a take that rambles on is the wrong sound); trim: a little long, so cut it to the cap with a 60 ms fade
+  const why = lv.max < -30 ? "near-silent" : lv.max < -18 ? "weak" : clip > 0.5 ? "clipped" : len < 0.03 ? "empty" : len > cap * 2.5 ? "overlong" : "";
+  const trim = !why && len > cap;
+  report.push(`${why ? "DROP" : "keep"} ${label.padEnd(24)} ${len.toFixed(2)} s  peak ${lv.max} dB  rms ${lv.mean} dB${why ? `  (${why})` : trim ? `  (trimmed to ${cap} s)` : ""}`);
+  if (why) return;
+  const file = `${kind}_${out.length + 1}.mp3`;
+  const af = `${trim ? `atrim=0:${cap},afade=t=out:st=${cap - 0.06}:d=0.06,` : ""}volume=${(-1 - lv.max).toFixed(2)}dB`;
+  ff(["-y", "-loglevel", "error", "-i", tmp, "-af", af, "-c:a", "libmp3lame", "-b:a", "112k", join(OUT, file)]);
+  out.push(file);
+}
+for (const [name, files] of Object.entries(groups)) {
+  const kind = camel(name), out = [], isStep = name.startsWith("step_");
+  if (isStep) {
+    // a walk of several steps per take: keep each step that is a clean single hit (60-450 ms), alternating takes for variety
+    const cuts = files.map((f) => sounds(join(RAW, f)).filter(([a, b]) => b - a >= 0.06 && b - a <= 0.45).map((c) => [f, c]));
+    for (let i = 0; out.length < STEPS && cuts.some((c) => c.length); i++) {
+      const c = cuts[i % cuts.length].shift(); if (c) take(kind, join(RAW, c[0]), c[1][0], c[1][1] + 0.03, out, `${c[0]}@${c[1][0].toFixed(2)}`);
+    }
+  } else for (const f of files) { if (out.length >= MAX) break; take(kind, join(RAW, f), 0, null, out, f); }
   if (out.length) manifest[kind] = out;
 }
 rmSync(tmp, { force: true });
 writeFileSync(join(OUT, "manifest.json"), JSON.stringify(manifest, null, 1) + "\n");
+console.log(report.join("\n"));
 console.log(Object.entries(manifest).map(([k, v]) => `${k}:${v.length}`).join(" "));
