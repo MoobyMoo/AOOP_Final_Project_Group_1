@@ -1,0 +1,104 @@
+/* Map v3 (G1.5-07/23): the M map and the minimap in UI v3, direction A "Corner office" (ui/ui3.css tokens):
+   pinstripe plate, brass brackets, the tie-orange rule and selection, Barlow Condensed headings, IBM Plex Mono figures,
+   ui3's cream keycaps (.a-kbd). Text sizes are 1080p reference px times the HUD scale (--s, ui/scale.ts). Imported by
+   mapview.ts; every rule is scoped under .mv3 or .mm3. The fallbacks keep it styled if ui3.css is not loaded. */
+.mv3, .mm3 { --ink: var(--a-ink, #f3ead6); --dim: var(--a-dim, #b3a993); --wool: var(--a-wool, #26252a); --wool2: var(--a-wool2, #1d1c20);
+  --line: var(--a-line, #3b3940); --brass: var(--a-brass, #c29a5b); --tie: var(--a-tie, #f46a10); --tie-d: var(--a-tie-d, #c4500a);
+  --edge: var(--a-edge, #4a4650); --mfont: var(--a-font, "Barlow Condensed", system-ui, sans-serif); --mono: var(--a-mono, "IBM Plex Mono", ui-monospace, monospace); }
+
+/* ---------------------------------------------------------------- M map */
+.mv3 { position: fixed; inset: 0; z-index: 15; display: grid; place-items: center; pointer-events: auto; cursor: default;
+  background: radial-gradient(ellipse at center, rgba(14,13,16,.7), rgba(14,13,16,.92)); font-family: var(--mfont); color: var(--ink); text-shadow: none; }
+.mv3-panel { position: relative; width: min(94vw, 1640px); height: min(90vh, 980px); display: grid; grid-template-rows: auto 4px 1fr auto;
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 7px), linear-gradient(180deg, #2b2a30, var(--wool));
+  border: 1px solid var(--edge); box-shadow: 0 18px 50px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06); }
+.mv3 .brk { position: absolute; width: 18px; height: 18px; border: 0 solid var(--brass); z-index: 3; pointer-events: none; }
+.mv3 .brk.tl { left: -1px; top: -1px; border-width: 2px 0 0 2px; } .mv3 .brk.tr { right: -1px; top: -1px; border-width: 2px 2px 0 0; }
+.mv3 .brk.bl { left: -1px; bottom: -1px; border-width: 0 0 2px 2px; } .mv3 .brk.br { right: -1px; bottom: -1px; border-width: 0 2px 2px 0; }
+.mv3 .tie { background: repeating-linear-gradient(135deg, var(--tie) 0 6px, var(--tie-d) 6px 9px); }
+.mv3-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 18px; padding: 12px 18px 10px; }
+.mv3-title h2 { margin: 0; font: 700 calc(30px * var(--s, 1))/1 var(--mfont); letter-spacing: .3px; }
+.mv3-title small { display: block; margin-top: 4px; font: 500 calc(16px * var(--s, 1))/1 var(--mfont); color: var(--dim); }
+.mv3-tabs { display: flex; border: 1px solid var(--line); background: var(--wool2); }
+.mv3-tabs button { position: relative; min-width: 150px; height: 40px; padding: 0 30px 0 18px; border: 0; border-right: 1px solid var(--line); background: transparent;
+  color: var(--dim); font: 600 calc(20px * var(--s, 1))/1 var(--mfont); letter-spacing: .4px; text-transform: uppercase; cursor: pointer; }
+.mv3-tabs button:last-child { border-right: 0; }
+.mv3-tabs button:hover { color: var(--ink); background: rgba(255,255,255,.04); }
+.mv3-tabs button.on { color: #1c120b; background: var(--tie); }
+.mv3-tabs .here { position: absolute; right: 7px; top: 5px; font: 600 calc(11px * var(--s, 1))/1 var(--mfont); font-style: normal; letter-spacing: .6px; color: var(--tie); }
+.mv3-tabs button.on .here { color: #3a1a05; }
+.mv3-where { justify-self: end; text-align: right; }
+.mv3-where span { display: block; font: 500 calc(14px * var(--s, 1))/1 var(--mfont); color: var(--dim); text-transform: uppercase; letter-spacing: .6px; }
+.mv3-where b { display: block; margin-top: 4px; font: 600 calc(22px * var(--s, 1))/1 var(--mfont); }
+.mv3-body { display: grid; grid-template-columns: 1fr 230px; min-height: 0; }
+.mv3-view { position: relative; overflow: hidden; margin: 12px 0 12px 14px; background: #121115; border: 1px solid #000; box-shadow: inset 0 0 0 1px var(--line); cursor: crosshair; touch-action: none; }
+.mv3-view.drag { cursor: grabbing; }
+.mv3.under .mv3-view { background: #120f0d; }
+.mv3.under .mv3-plane img { box-shadow: none; }
+.mv3-plane { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.mv3-plane img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; box-shadow: 0 0 0 2px #0b0a0d, 0 10px 40px rgba(0,0,0,.6); }
+.mv3-vec, .mm3-vec { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.mv3-vec .danger, .mm3-vec .danger { fill: rgba(255,91,74,.1); stroke: #ff5b4a; stroke-width: 2; stroke-dasharray: 8 6; vector-effect: non-scaling-stroke; }
+.mv3-vec .trail polyline, .mm3-vec .trail polyline { fill: none; stroke: var(--tie); stroke-width: 4; stroke-dasharray: 1 7; stroke-linecap: round; vector-effect: non-scaling-stroke; opacity: 1; filter: drop-shadow(0 0 1px rgba(20,12,6,.9)); }
+.mm3-vec .trail polyline { stroke-width: 3; stroke-dasharray: 1 5; }
+.mv3-over { position: absolute; inset: 0; pointer-events: none; }
+.mv3-over > * { position: absolute; left: 0; top: 0; will-change: transform; }
+.mv3 .lab { white-space: nowrap; font: 700 calc(19px * var(--s, 1))/1 var(--mfont); letter-spacing: .8px; text-transform: uppercase; color: var(--ink);
+  -webkit-text-stroke: 4px rgba(18,16,20,.9); paint-order: stroke fill; }
+.mv3 .lab.cur { color: #ffb37a; }
+.mv3 .lab.closed { text-align: center; color: #ffb37a; font-size: 22px; letter-spacing: 1.4px; }
+.mv3 .lab.closed small { display: block; margin-top: 5px; font: 600 calc(14px * var(--s, 1))/1 var(--mfont); letter-spacing: .4px; text-transform: none; color: var(--ink); }
+.mv3 .mk { display: flex; flex-direction: column; align-items: center; font-style: normal; filter: drop-shadow(0 2px 2px rgba(0,0,0,.55)); }
+.mv3 .mk svg { display: block; }
+.mv3 .mk span { position: absolute; top: 100%; margin-top: 2px; white-space: nowrap; font: 600 calc(14px * var(--s, 1))/1 var(--mfont); color: var(--ink);
+  -webkit-text-stroke: 3px rgba(18,16,20,.9); paint-order: stroke fill; }
+.mv3 .mk.lock span { color: #ff8a7a; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+.mv3 .mk.lock span::before { content: "Route closed · "; }
+.mv3 .mk.boss span, .mv3 .mk.danger span { color: #ff8a7a; }
+.mv3 .mk.exit span { color: #9ef0a4; }
+.mv3 .mk.pin span, .mv3 .mk.link span, .mv3 .mk.zip span { display: none; }
+.mv3 .mk.boss { animation: mv3-pulse 1.2s ease-in-out infinite; }
+@keyframes mv3-pulse { 50% { filter: drop-shadow(0 0 7px rgba(255,95,95,.9)); } }
+.mv3 .me { z-index: 2; filter: drop-shadow(0 2px 3px rgba(0,0,0,.7)); }
+.mv3 .me svg { display: block; }
+.mv3-needle { position: absolute; right: 14px; top: 14px; width: 46px; height: 46px; border-radius: 50%; background: var(--wool2); border: 2px solid var(--brass);
+  box-shadow: 0 4px 12px rgba(0,0,0,.5); }
+.mv3-needle::before { content: ""; position: absolute; left: 50%; top: 5px; margin-left: -5px; border: 5px solid transparent; border-bottom: 13px solid var(--tie); border-top: 0; }
+.mv3-needle b { position: absolute; left: 0; right: 0; top: 18px; text-align: center; font: 700 calc(15px * var(--s, 1))/1 var(--mfont); color: var(--ink); }
+.mv3-scale { position: absolute; left: 14px; bottom: 12px; display: flex; align-items: center; gap: 8px; font: 500 calc(14px * var(--s, 1))/1 var(--mono); color: var(--ink);
+  -webkit-text-stroke: 3px rgba(18,16,20,.9); paint-order: stroke fill; }
+.mv3-scale i { display: block; height: 7px; border: 2px solid var(--ink); border-top: 0; box-shadow: 0 1px 0 rgba(0,0,0,.8); }
+.mv3-side { padding: 12px 16px; border-left: 1px solid var(--line); margin: 12px 0; overflow: auto; }
+.mv3-side h3 { margin: 0 0 8px; font: 600 calc(16px * var(--s, 1))/1 var(--mfont); color: var(--brass); text-transform: uppercase; letter-spacing: .8px; }
+.mv3-side ul { list-style: none; margin: 0 0 18px; padding: 0; border-top: 1px solid var(--line); }
+.mv3-side li { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); font: 500 calc(17px * var(--s, 1))/1.1 var(--mfont); }
+.mv3-side .ic { width: 30px; height: 30px; display: grid; place-items: center; flex: none; }
+.mv3-side .ic svg { max-width: 26px; max-height: 26px; }
+.mv3-side .trail-k::before { content: ""; width: 26px; height: 0; border-top: 3px dotted var(--tie); }
+.mv3-side .closed-k { background: repeating-linear-gradient(135deg, rgba(194,154,91,.45) 0 2px, #1d1b22 2px 6px); border: 1px dashed var(--tie); width: 26px; height: 20px; }
+.mv3-side dl { margin: 0; display: grid; grid-template-columns: 1fr auto; row-gap: 8px; font: 500 calc(17px * var(--s, 1))/1 var(--mfont); }
+.mv3-side dt { color: var(--dim); } .mv3-side dd { margin: 0; font: 500 calc(16px * var(--s, 1))/1 var(--mono); font-variant-numeric: tabular-nums; }
+.mv3-keys { display: flex; gap: 24px; justify-content: center; padding: 0 0 12px; font: 600 calc(17px * var(--s, 1))/1 var(--mfont); color: var(--dim); }
+.mv3-keys .a-kbd { margin-right: 7px; }
+
+/* ---------------------------------------------------------------- minimap */
+/* placed and scaled like ui3's minimap frame: the mockup's 190 px at the HUD scale */
+.mm3 { position: absolute; top: calc(20px * var(--s, 1)); right: calc(24px * var(--s, 1)); width: 180px; height: 180px; transform: scale(calc(var(--s, 1) * 190 / 180)); transform-origin: 100% 0; transition: opacity .2s; font-family: var(--mfont); }
+.mm3.faded { opacity: .3; }
+.mm3-clip { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; background: #1a1916; border: 2px solid var(--brass);
+  box-shadow: 0 6px 18px rgba(0,0,0,.5), inset 0 0 18px rgba(0,0,0,.55); }
+.mm3.under .mm3-clip { background: #0f0d0c; }
+.mm3-plane { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.mm3-plane img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.mm3-icons { position: absolute; inset: 0; }
+.mm3 .mk { position: absolute; left: 0; top: 0; font-style: normal; line-height: 0; filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.7)); }
+.mm3 .mk svg { width: 20px; height: 20px; }
+.mm3 .mk.pin svg, .mm3 .mk.link svg, .mm3 .mk.zip svg { width: 16px; height: 16px; }
+.mm3 .mk.rim { opacity: .9; }
+.mm3 .mk.rim svg { width: 16px; height: 16px; }
+.mm3-me { position: absolute; left: 50%; top: 50%; line-height: 0; filter: drop-shadow(0 1px 2px rgba(0,0,0,.8)); }
+.mm3-me svg { width: 20px; height: 20px; }
+.mm3-n { position: absolute; left: 0; top: 0; width: 18px; height: 18px; border-radius: 50%; background: var(--wool2); border: 1.5px solid var(--brass);
+  color: var(--tie); font: 700 12px/15px var(--mfont); text-align: center; font-style: normal; }
+/* a pin's tip, not its middle, marks the spot */
+.mv3 .mk.pin svg { transform: translateY(-12px); } .mm3 .mk.pin svg { transform: translateY(-7px); }
