@@ -1,0 +1,48 @@
+{
+ "group": "containers",
+ "assets": {
+  "cont_ammo": {
+   "pass": true,
+   "tris": 1286,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "cont_food": {
+   "pass": true,
+   "tris": 1632,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "cont_medical": {
+   "pass": true,
+   "tris": 1314,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: cont_medical__matte (16 pairs) - delete to save tris",
+    "hidden back-to-back faces: cont_medical__lid<->cont_medical__matte (4 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "cont_parts": {
+   "pass": true,
+   "tris": 1756,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: cont_parts__matte (16 pairs) - delete to save tris",
+    "hidden back-to-back faces: cont_parts__lid<->cont_parts__matte (8 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "cont_weapon": {
+   "pass": true,
+   "tris": 1616,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: cont_weapon__matte (8 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  }
+ }
+}

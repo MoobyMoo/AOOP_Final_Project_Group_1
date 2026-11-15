@@ -1,0 +1,76 @@
+{
+ "group": "containers",
+ "glb_bytes": 375324,
+ "assets": {
+  "cont_weapon": {
+   "tris": 1616,
+   "parts": [
+    "lid"
+   ],
+   "points": [
+    "mark"
+   ],
+   "footprint": 0.95,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": false,
+   "glow": 1.8
+  },
+  "cont_food": {
+   "tris": 1632,
+   "parts": [
+    "lid"
+   ],
+   "points": [
+    "mark"
+   ],
+   "footprint": 0.62,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "cont_ammo": {
+   "tris": 1286,
+   "parts": [
+    "lid"
+   ],
+   "points": [
+    "mark"
+   ],
+   "footprint": 0.55,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "cont_parts": {
+   "tris": 1756,
+   "parts": [
+    "lid"
+   ],
+   "points": [
+    "mark"
+   ],
+   "footprint": 0.8,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": false,
+   "glow": 1.8
+  },
+  "cont_medical": {
+   "tris": 1314,
+   "parts": [
+    "lid"
+   ],
+   "points": [
+    "mark"
+   ],
+   "footprint": 0.62,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  }
+ }
+}
