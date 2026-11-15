@@ -428,7 +428,7 @@ export function lintReport(o: { exact?: boolean } = {}): LintReport {
     if (!near && !walkable(x, z)) errors.push(`${name} not on open ground`); else if (!reach(x, z, near)) errors.push(`${name} unreachable`);
   }
   stats.parked = parked;
-  for (const c of [...CRATES, ...CONTAINER_SOCKETS]) { if (!live(c.x, c.z)) continue; const i = ci(c.x, c.z); if (i < 0 || cells[i] !== OPEN) errors.push(`crate (${c.x},${c.z}) is outside the map`); else if (blockedAt(i, c.x, c.z, MOVE)) warnings.push(`crate (${c.x},${c.z}) sits inside a collider`); }
+  for (const c of [...CRATES, ...CONTAINER_SOCKETS]) { if (!live(c.x, c.z)) continue; const i = ci(c.x, c.z); if (i < 0 || cells[i] !== OPEN) errors.push(`crate (${c.x},${c.z}) is outside the map`); else if (!(c as { wall?: boolean }).wall && blockedAt(i, c.x, c.z, MOVE)) warnings.push(`crate (${c.x},${c.z}) sits inside a collider`); } // a wall mount's socket is on the wall's face by design (glitch.ts sockets() skips them too)
   for (const g of gates) { if (!live(g.x, g.z)) continue; if (!reach(g.x + g.nx * 1.5, g.z + g.nz * 1.5, 1) || !reach(g.x - g.nx * 1.5, g.z - g.nz * 1.5, 1)) errors.push(`gate ${g.id}: one side is unreachable even when open`); }
   for (const g of gates) if (!passable(ci(g.x, g.z))) errors.push(`gate ${g.id}: its doorway cell is not passable when open (wall on a cell boundary?)`);
   // 2b) the route locks: the near side reachable, the far side not (the lead's map shows these as "route closed")

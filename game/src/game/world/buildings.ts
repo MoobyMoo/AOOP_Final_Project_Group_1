@@ -8,7 +8,7 @@
 //   - cracked wall sections are breakable gates too: intact -> flying debris + the remains.
 import * as THREE from "three";
 import { preloadHouse, building, type HouseDef } from "./kit_house";
-import type { Placed } from "../contracts";
+import type { Collider, Placed } from "../contracts";
 import { G } from "../core/state";
 import { PLACED } from "./map/grove";
 import { toWorld } from "./map/types";
@@ -35,7 +35,15 @@ export type House = {
 export const houses: House[] = [];
 const defs = new Map<string, HouseDef>();
 /** the HouseDef of a placed building (built once: the grid, the scatter and the scene all read the same one) */
-export function houseDef(p: Placed): HouseDef { let d = defs.get(p.id!); if (!d) { d = building(p.k.slice(9)); defs.set(p.id!, d); } return d; }
+export function houseDef(p: Placed): HouseDef { let d = defs.get(p.id!); if (!d) { const k = p.k.slice(9); d = building(k); d.colliders.push(...(FURNITURE[k] ?? []).map((c) => ({ ...c }))); defs.set(p.id!, d); } return d; }
+/** furniture the kit's BuildingDef leaves without a collider, in building space (three z = -blender y of
+ *  tools/blender/build/g_prefab.py): you walked into these chair backs and stools (G1.5 zero-glitch gate) */
+const low = (x: number, z: number, r: number): Collider => ({ t: "circle", x, z, r, move: true, shot: false, low: true });
+const FURNITURE: Record<string, Collider[]> = {
+  farmhouse: [low(-4.25, -0.2, 0.3), low(-3.6, -1.1, 0.3), low(-2.6, 0.55, 0.3), low(2.92, 2.2, 0.25), // three chairs round the table, the bedroom stool
+    { t: "box", x: -1.0, z: -3.62, w: 1.0, d: 0.3, yaw: 0, move: true, shot: false, low: true }], // the stove's flue box outside the back wall
+  guard_hut: [low(-0.9, 0.2, 0.3), low(0.7, -0.6, 0.28), low(-3.05, 1.4, 0.2)], // the stool, the desk chair, the plant's outer leaves
+};
 const placedHouses = () => PLACED.filter((p) => p.k.startsWith("building:"));
 /** world-space footprints (axis aligned after the quarter turn), for scatter, grass and the map to keep off the floors */
 export function houseFootprints(): Footprint[] {

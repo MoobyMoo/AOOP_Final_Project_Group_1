@@ -211,7 +211,7 @@ for (const [x, z] of [[-58, 104], [-22, 96], [10, 106], [46, 97], [78, 104], [-6
 // ---------------------------------------------------------------- The Prison Ferry (enterable hull; the stern boards break)
 put("ferry", 64, 101, 0, 1, undefined, "ferry");
 breakable("hull-boards", "hull", 60, 98.5, 60, 103.5, 4, false, "The ferry's hold");
-group(64, 101, 0, [["barrel_rust", 4.4, 1.4], ["sack_pile", -0.6, 1.4, 0.2], ["crate_wood_b", -1.6, -0.6, 0.3], ["barrel_teal", -6.6, -3.4], ["barrel_teal", -7.4, 2.6], ["driftwood", -8.5, 0.5, 1.4, 1.5], ["rockl", 9.5, 2, 0, 1.4], ["rockl", 8.5, -4.5, 2, 1.2], ["rockm", -6, 5.6], ["log", -9, -3, 0.4], ["signpost_a", -7.6, -0.8, 1.2]]);
+group(64, 101, 0, [["barrel_rust", 2.25, -0.9], ["sack_pile", 2.0, 5.2, 0.2], ["crate_wood_b", -1.6, -0.6, 0.3], /* off the bow deck and the drifts; the sacks sat under the hold's planks */ ["barrel_teal", -6.6, -3.4], ["barrel_teal", -7.4, 2.6], ["driftwood", -8.5, 0.5, 1.4, 1.5], ["rockl", 9.5, 2, 0, 1.4], ["rockl", 8.5, -4.5, 2, 1.2], ["rockm", -6, 5.6], ["log", -9, -3, 0.4], ["signpost_a", -7.6, -0.8, 1.2]]);
 
 // ---------------------------------------------------------------- Smuggler's Cove (cave portal into the grotto)
 put("portal_cave", -97, 91, H, 1, undefined, "cove-cave");
@@ -222,7 +222,7 @@ group(-82, 98, 0, [["tarp", -3, -4.5, 0.3], ["bedroll_a", -3.2, -4.6, 0.6], ["ba
 // ---------------------------------------------------------------- Palm Edge: the checkpoint (first building, first guard)
 ridge([[-103, 82], [-88, 80], [-70, 82], [-52, 80], [-36, 82], [-22, 80], [-11, 81]], 2.0);
 ridge([[12, 81], [22, 79], [30, 78]], 2.0);
-fence(-10.5, 81, -2.4, 81); put("gate", -0.8, 81, 0, 1, { open: true }); fence(0.8, 81, 3.5, 81);
+fence(-9.6, 81, -2.4, 81); /* starts at the boulders' edge, not inside them */ put("gate", -0.8, 81, 0, 1, { open: true }); fence(0.8, 81, 3.5, 81);
 put("building:guard_hut", 6.5, 78.5, -H, 1, { open: true }, "hut-south");
 group(0, 80, 0, [["signpost_a", -3.4, 2.2, 0.3], ["barrel_wood", 3.2, 3.4], ["sack", 3.8, 2.6], ["lantern_post", -2.6, -1.6, 2], ["log_bench", -4.6, -3.4, 1.3], ["crate_wood", -5.6, 1.9, 0.2], ["rockm", -7.5, -2], ["barrel_rust", 9.6, -3.6], ["tarp", -7, -7, 0.2], ["bedroll_b", -7, -7.2, 0.4]]);
 group(-14, 72, 0, [["palm", 0, 0], ["palm", 3.5, 2.5, 1], ["log", 1.8, -2.2, 0.8], ["bush", -2, 1.6], ["fern", 4.5, -1]]);
@@ -261,7 +261,7 @@ group(-57.0, 38.0, 0.2, [["sandbags", 0, 0], ["dummy_seated", 0.4, -1.3, -0.2], 
 put("sandbags", -63.9, 38.9, -0.12);
 put("washing_line", -57.2, 34.2, 0.25);
 put("lean_to", -67.6, 30.9, 0.35);
-group(-67.6, 30.9, 0.35, [["lantern", 2.3, 1.9], ["sack", -2.3, 1.6, 0.4], ["barrel_teal", 2.6, -0.6]]);
+group(-67.6, 30.9, 0.35, [["lantern", 2.2, 2.4], ["sack", 0.5, 2.3, 0.4], ["barrel_teal", 2.6, -0.6]]); // clear of the roof and its corner stakes
 put("crate_stack", -47.8, 32.6, 0.3); put("crate_stack", -74.2, 37.0, -0.25);
 put("dummy_seated", -62.7, 24.3, 0.1);
 group(-69.4, 20.4, 0, [["sack_pile", 0, 0, 0.8], ["bedroll_a", 1.9, 0.9, 0.3], ["lantern", -1.4, 1.0]]);
@@ -276,7 +276,7 @@ enclosure("fence", -18, 3, 26, 40, [
 put("building:farmhouse", -6.5, 11.5, 0, 1, undefined, "farmhouse");
 put("building:barn", 17.5, 24.5, -H, 1, { open: true }, "barn");
 put("tractor", 6, 31, 0.4, 1, undefined, "tractor");
-put("vat", -9, 31, 0, 1, undefined, "vat");
+put("vat", -9, 31, 0, 1, { lift: 0.4 }, "vat"); // the asset base sits 0.54 u under its origin: lifted so the staves stand on the ground
 put("zip_tower", 21, 8, 0, 1, undefined, "zip-tower");
 rows(-16, 22, -12, 27); rows(8, 34, 23, 38.5); rows(-16, 34.5, -4, 38.5, 2.4, 2.2);
 group(2, 22, 0, [["barrel_wood", 3.5, -2.5], ["barrel_wood", 4.4, -1.8], ["sack_pile", 4.2, 0.4, 1.4], ["log_bench", -3, 3.5, 0.2], ["lantern_post", -3.2, -2.6, 1], ["crate_wood_b", 5.6, 3.2, 0.3], ["banana_stash", -4.5, 0.4, 1.2]]);
@@ -310,7 +310,7 @@ group(1, -40, 0, [["signpost_a", -2.8, 0.6, 2.6], ["rockl", 3.4, 1.4, 0, 1.3], [
 // ---------------------------------------------------------------- Mangrove Boardwalk (causeway over the swamp; wade off it at your own risk)
 boardwalk([[30, 58], [48, 54]]); boardwalk([[48, 54], [56, 50]]); boardwalk([[56, 50], [66, 42]]); boardwalk([[66, 42], [68, 32]]); boardwalk([[48, 54], [44, 64]]); boardwalk([[44, 64], [46, 70]]);
 put("boardwalk_ramp", 27.4, 58.6, 0.22, 1, { deck: true }); put("boardwalk_ramp", 68, 29.4, H, 1, { deck: true });
-for (const [x, z, s] of [[38, 62, 1.1], [36, 50, 1], [44, 48, 1.2], [54, 58, 1.1], [60, 54, 1], [52, 44, 1.1], [62, 46, 0.9], [72, 46, 1.2], [62, 36, 1], [74, 36, 1.1], [40, 70, 1.2], [52, 68, 1], [50, 74, 1.1], [80, 56, 1.2], [70, 62, 1], [84, 44, 1.1], [34, 66, 1], [60, 68, 1.2], [88, 64, 1], [78, 70, 1.1], [66, 74, 1]]) put("mangrove", x + rr(-0.6, 0.6), z + rr(-0.6, 0.6), rr(0, 6.28), s);
+for (const [x, z, s] of [[38, 62, 1.1], [36, 50, 1], [44.6, 48.4, 1.2], [54, 58, 1.1], [60, 54, 1], [52, 44, 1.1], [62, 46, 0.9], [72, 46, 1.2], [62, 36, 1], [74, 36, 1.1], [40, 70, 1.2], [52, 68, 1], [50, 74, 1.1], [80, 56, 1.2], [70, 62, 1], [84, 44, 1.1], [34, 66, 1], [60, 68, 1.2], [88, 64, 1], [78, 70, 1.1], [66, 74, 1]]) put("mangrove", x + rr(-0.6, 0.6), z + rr(-0.6, 0.6), rr(0, 6.28), s); // (44.6, 48.4 was 44, 48: its stilt feet closed a 4-cell nav pocket with the two scatter trees west of it)
 group(48, 54, 0, [["barrel_teal", 1.5, -2.0], ["sack", -1.6, -1.9], ["lantern_post", 2.2, 1.9, 2]]);
 group(46, 70, 0, [["barrel_wood", 1.3, 1.2], ["crate_wood_b", -1.4, 1.5, 0.3], ["lantern_post", 1.6, -1.4, 1]]);
 group(66, 42, 0, [["barrel_rust", 1.9, 1.4], ["sack_pile", -2.2, -1.2, 0.5]]);
@@ -445,6 +445,9 @@ export const ROUTE_LOCKS: RouteLock[] = DEMO ? [
 export const SEAL_PROBES: Pt[] = [];
 /** the cove boat: the second way home inside the slice (a smuggler's rowboat at the cove's waterline) */
 export const COVE_BOAT = { x: -90, z: 104.5, boat: { x: -92.6, z: 108.8, yaw: 0.62 } };
+// its collider: props.ts draws the house kit's boat at 1.25 scale on the slope, this piece puts the hull in the grid
+// (dress.ts skips drawing it). It was a 1.6 u tall walk-through (G1.5 zero-glitch gate)
+put("cove_boat", COVE_BOAT.boat.x, COVE_BOAT.boat.z, COVE_BOAT.boat.yaw, 1.25, undefined, "cove-boat");
 if (DEMO) {
   // a separate stream so the slice never shifts the look of anything authored above
   let ls = 151103; const lr = () => (ls = (ls * 16807) % 2147483647) / 2147483647, lrr = (a: number, b: number) => a + lr() * (b - a);
@@ -469,10 +472,10 @@ if (DEMO) {
   { const g = P.find((p) => p.k === "gate" && Math.abs(p.x + 64) < 0.1 && Math.abs(p.z - 12) < 0.1); if (g) g.o = { ...(g.o ?? {}), open: false }; }
   put("sandbags", -64, 12.78, 0);
   group(-64, 10.6, 0, [["crate_stack", -1.4, -0.3, 0.12], ["barrel_rust", 1.6, -0.1], ["barrel_wood", 2.3, -0.9], ["log", 0.4, -1.9, 0.18], ["wall_palisade_post", -3.2, -0.6, 0.2], ["wall_palisade_post", 3.2, 0.2, 2.1], ["signpost_a", 3.4, -1.6, 0.5], ["sack_pile", -3.4, -2.2, 0.4], ["rocks", 0.6, -3.2, 0.3, 1.2]]);
-  group(-64, 15.2, 0, [["crate_wood_b", 2.4, 0.2, 0.3], ["lantern", -2.2, 0.3]]);
+  group(-64, 15.2, 0, [["crate_wood_b", 2.4, 0.2, 0.3], ["lantern", -2.6, -0.8]]); // the lantern stands outside tent_b's door, not in its canvas
   // ---- the rockslide in the central ridge's gap: the north road ends in a slope of fresh rock and a buried signpost
   seal([[-4.6, -2.6], [-1.6, -3.4], [1.4, -3.0], [4.4, -2.2]], 2.0, 1.05);
-  group(0, -2.4, 0, [["rockm", -1.9, 2.2, 0.4, 1.2], ["rockm", 1.7, 2.5, 2.2, 1.1], ["rocks", -2.4, 3.6, 0.2, 1.3], ["rocks", 2.2, 3.9, 1.6, 1.1], ["rocks", 0.4, 4.6, 3.1, 1.2], ["rockm", 3.6, 2.8, 0.6], ["log", -3.2, 2.9, 0.7], ["signpost_raft", -0.6, 4.0, 2.4]]);
+  group(0, -2.4, 0, [["rockm", -1.9, 2.2, 0.4, 1.2], ["rockm", 1.7, 2.5, 2.2, 1.1], ["rocks", -2.4, 3.6, 0.2, 1.3], ["rocks", 2.2, 3.9, 1.6, 1.1], ["rocks", 0.4, 4.6, 3.1, 1.2], ["rockm", 3.6, 2.8, 0.6], ["log", -3.2, 2.9, 0.7], ["signpost_raft", 3.0, 7.0, 3.14]]); // on the farm-yard side of the locked gate, board pointing east off the path (inside the strip behind the gate its board collider closed a 19-24 cell nav pocket)
   // ---- east: the central ridge's end to the colony's west wall; the rockfall in the colony's west gate
   seal([[44.8, -6.4], [46.0, -7.0], [46.8, -7.4]], 1.8); put("rockm", 48.7, -7.9, 1.1, 1.3); // the last metre to the colony wall
   seal([[53.2, 0.4], [53.2, 2.0], [53.2, 3.6]], 1.7, 1.0); // just inside the gateway, clear of its pillars and the wall
@@ -603,7 +606,7 @@ const cs = (id: string, type: ContainerSocket["type"], p: { x: number; z: number
 export const CONTAINER_SOCKETS: ContainerSocket[] = [
   // food: picnics, galleys, harvests, kitchens
   cs("beach-picnic", "food", { x: -44.2, z: 97.2 }, "beach picnic by the flotsam"),
-  cs("ferry-galley", "food", at("ferry", -2.4, -1.8), "the ferry's galley", { in: "ferry" }),
+  cs("ferry-galley", "food", at("ferry", -0.4, -0.6), /* was behind cell 01's bars */ "the ferry's galley", { in: "ferry" }),
   cs("palm-harvest", "food", { x: 10.6, z: 67.4 }, "a palm harvest under the trees"),
   cs("camp-kitchen", "food", { x: -58.6, z: 27.6 }, "the camp's kitchen fire"),
   cs("farm-kitchen", "food", at("farmhouse", 3.6, 1.7), "the farmhouse kitchen", { in: "farmhouse" }),
@@ -611,7 +614,7 @@ export const CONTAINER_SOCKETS: ContainerSocket[] = [
   cs("lookout-fire", "food", { x: -35.0, z: 61.8 }, "the lookout's cookfire"),
   cs("farm-porch", "food", { x: -1.6, z: 17.8 }, "the farmhouse porch"),
   // ammo: guard posts
-  cs("ferry-locker", "ammo", at("ferry", -2.6, 1.6), "the ferry's guard locker", { in: "ferry" }),
+  cs("ferry-locker", "ammo", at("ferry", -2.0, 2.0), /* off the sand drift, clear of the way in */ "the ferry's guard locker", { in: "ferry" }),
   cs("hut-post", "ammo", { x: 11.0, z: 74.6 }, "the checkpoint guard's post"),
   cs("camp-gatepost", "ammo", { x: -54.8, z: 39.0 }, "the camp's south gate post"),
   cs("barn-sentry", "ammo", at("barn", -1.0, -2.0), "the barn sentry", { in: "barn" }),
@@ -627,7 +630,7 @@ export const CONTAINER_SOCKETS: ContainerSocket[] = [
   cs("tractor", "parts", { x: 10.4, z: 29 }, "the rusted tractor"),
   cs("zip-tower", "parts", { x: 16.7, z: 7.5 }, "the zipline tower"),
   // medical: rest and treatment
-  cs("ferry-aid", "medical", at("ferry", 2.4, 1.2), "the ferry's first aid", { in: "ferry" }),
+  cs("ferry-aid", "medical", at("ferry", 1.3, -0.6), /* was on the steps up to the bow deck */ "the ferry's first aid", { in: "ferry" }),
   cs("checkpoint-bunk", "medical", { x: -4.8, z: 72.6 }, "the checkpoint's bunk"),
   cs("camp-tent", "medical", { x: -57.4, z: 22 }, "the camp's treatment tent"),
   cs("farm-bedside", "medical", at("farmhouse", -3.4, 1.4), "the farmhouse bedside", { in: "farmhouse" }),
@@ -641,7 +644,7 @@ export const CONTAINER_SOCKETS: ContainerSocket[] = [
   cs("cart-sack", "sack", { x: -16.2, z: 68.4 }, "the looted cart's load"), cs("cart-tools", "toolbox", { x: -20.8, z: 63.6 }, "the cart's toolbox"),
   cs("lookout-lunch", "lunchbox", { x: -39.2, z: 61.4 }, "the lookout's lunch"),
   cs("yard-tools", "toolbox", { x: 12.3, z: 55 }, "the foreman's bench"),
-  cs("camp-junk", "trash", { x: -48.5, z: 17 }, "the camp midden"), cs("camp-tools", "toolbox", { x: -69.5, z: 33 }, "the lean-to bench"),
+  cs("camp-junk", "trash", { x: -48.5, z: 17 }, "the camp midden"), cs("camp-tools", "toolbox", { x: -70, z: 32 }, "the lean-to bench"),
   cs("tower-sack", "sack", { x: -72.4, z: 22.6 }, "under the watchtower"),
   cs("boss-safe", "safe", { x: -73.9, z: 28.9 }, "the gang boss's corner"), cs("fire-lunch", "lunchbox", { x: -63.6, z: 22 }, "by the cookfire"),
   cs("office-safe", "safe", at("farmhouse", -0.6, 1.4), "the plantation office", { in: "farmhouse" }), cs("farm-lunch", "lunchbox", at("farmhouse", -0.4, -1.0), "the farmhouse table", { in: "farmhouse" }),

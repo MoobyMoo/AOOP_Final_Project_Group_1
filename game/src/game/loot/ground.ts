@@ -31,6 +31,11 @@ const GUN_GROUND_SCALE = 0.65;
 /** loot ids -> item GLB names (the icon set's short names; ui/itemicon.ts uses the same) */
 const ALIAS: Record<string, string> = { banana: "bunch", vine_rope: "rope", golden_banana: "golden", honey_pot: "honey", old_gear: "gear", sunset_mango: "mango", brass_compass: "compass", banana_idol: "idol", vine_key: "key", ammo45: "ammo", plantation_seal: "radio_key", oar: "plank", ...MODEL_LIKE };
 const GLBS = ["ammo", "aviators", "bandage", "banditmask", "beanie", "bigpack", "boomerang", "bowler", "bunch", "cap", "coconut", "compass", "cratepack", "crown", "extmag", "eyepatch", "fedora", "firstaid", "gear", "goggles", "golden", "hardhat", "heartglasses", "hide", "honey", "idol", "key", "mango", "meat", "monocle", "pith", "plank", "radio_key", "rope", "satchel", "shades", "smoothie", "spring", "suit", "tophat"];
+/** the kit guns (public/models/guns/<gunId>.glb, tools/blender/guns): a gun on the ground is its own model, lying on
+ *  its side at the size it has in the hand (core/raid.ts GUN_SCALE) */
+const GUN_GLBS = ["pocket_change", "golden_parachute", "peel_sprayer", "cash_flow", "insider_trader", "bootleg_rifle", "contraband_carbine", "board_meeting",
+  "pipe_dream", "coconut_cracker", "the_audit", "bean_counter", "long_ledger", "hostile_takeover"];
+const GUNS = new Set(GUN_GLBS), GUN_SCALE = 0.65;
 /** flat things stood upright in their GLB (a jacket, a magazine, a monocle): they lie on their back on the ground */
 const LIE = new Set(["suit", "extmag", "monocle", "satchel", "firstaid", "att_mag_ext"]);
 const MIN_SIDE = 0.42, MAX_SIDE = 0.78, MAX_SCALE = 3.2, MIN_SCALE = 1.25;
@@ -86,37 +91,48 @@ function shadeMaterial() {
 /** load the item GLBs once (raid start; the wearables come with the characters) */
 export function preloadGroundItems(base = `${import.meta.env.BASE_URL}models/items/`): Promise<void> {
   loading ??= Promise.all([...GLBS.map((n) => new GLTFLoader().loadAsync(`${base}${n}.glb`).then((g) => { RAW.set(n, g.scene); }, () => undefined)),
+    ...GUN_GLBS.map((n) => new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}models/guns/${n}.glb`).then((g) => { RAW.set(n, gunOnGround(g.scene)); }, () => undefined)),
     new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}models/attachments.glb`).then(addAttachments, () => undefined)]).then(() => undefined);
   return loading;
 }
-/** gun attachments (attachments.glb, one root node per id) on the ground. Their colour lives in the Kingpin palette
- *  texture and the item material is vertex colour only, so each vertex takes its palette texel (times its AO). */
-function addAttachments(g: { scene: THREE.Object3D }) {
-  const px = new Map<unknown, { d: Uint8ClampedArray; w: number; h: number } | null>();
-  const pixels = (img: unknown) => {
-    if (px.has(img)) return px.get(img)!;
-    let out: { d: Uint8ClampedArray; w: number; h: number } | null = null;
-    try { const im = img as { width: number; height: number }, c = document.createElement("canvas"); c.width = im.width; c.height = im.height; const x = c.getContext("2d")!; x.drawImage(img as CanvasImageSource, 0, 0); out = { d: x.getImageData(0, 0, c.width, c.height).data, w: c.width, h: c.height }; } catch { out = null; }
-    px.set(img, out); return out;
-  };
+/** Kingpin-palette models (the attachments, the kit guns) on the ground. Their colour lives in the palette texture and
+ *  the item material is vertex colour only, so each vertex takes its palette texel times its COLOR_0 (ambient
+ *  occlusion on the attachments, tint x occlusion on the kit guns: all three channels count). */
+const PX = new Map<unknown, { d: Uint8ClampedArray; w: number; h: number } | null>();
+function pixels(img: unknown) {
+  if (PX.has(img)) return PX.get(img)!;
+  let out: { d: Uint8ClampedArray; w: number; h: number } | null = null;
+  try { const im = img as { width: number; height: number }, c = document.createElement("canvas"); c.width = im.width; c.height = im.height; const x = c.getContext("2d")!; x.drawImage(img as CanvasImageSource, 0, 0); out = { d: x.getImageData(0, 0, c.width, c.height).data, w: c.width, h: c.height }; } catch { out = null; }
+  PX.set(img, out); return out;
+}
+function bakePalette(node: THREE.Object3D) {
   const col = new THREE.Color();
+  node.traverse((o) => {
+    const m = o as THREE.Mesh; if (!m.isMesh) return;
+    const src = m.material as THREE.MeshStandardMaterial, geo = m.geometry.clone(), n = geo.getAttribute("position").count;
+    const vc = geo.getAttribute("color"), uv = geo.getAttribute("uv"), tex = src.map ? pixels(src.map.image) : null, c3 = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      if (tex && uv) { const u = Math.min(tex.w - 1, Math.max(0, Math.floor((uv.getX(i) % 1 + 1) % 1 * tex.w))), v = Math.min(tex.h - 1, Math.max(0, Math.floor((uv.getY(i) % 1 + 1) % 1 * tex.h))), k = (v * tex.w + u) * 4; col.setRGB(tex.d[k] / 255, tex.d[k + 1] / 255, tex.d[k + 2] / 255, THREE.SRGBColorSpace); }
+      else col.copy(src.emissive && src.emissive.getHex() ? src.emissive : src.color);
+      c3.set(vc ? [col.r * vc.getX(i), col.g * vc.getY(i), col.b * vc.getZ(i)] : [col.r, col.g, col.b], i * 3);
+    }
+    geo.setAttribute("color", new THREE.BufferAttribute(c3, 3)); m.geometry = geo;
+    m.material = new THREE.MeshStandardMaterial({ roughness: src.map ? 0.45 : 0.3, metalness: src.map ? 0.25 : 0 });
+  });
+  return node;
+}
+/** gun attachments (attachments.glb, one root node per id) */
+function addAttachments(g: { scene: THREE.Object3D }) {
   for (const top of g.scene.children) {
     if (!/^att_[a-z0-9_]+$/.test(top.name)) continue;
     const node = top.clone(true); node.position.set(0, 0, 0); node.quaternion.identity();
-    node.traverse((o) => {
-      const m = o as THREE.Mesh; if (!m.isMesh) return;
-      const src = m.material as THREE.MeshStandardMaterial, geo = m.geometry.clone(), n = geo.getAttribute("position").count;
-      const ao = geo.getAttribute("color"), uv = geo.getAttribute("uv"), tex = src.map ? pixels(src.map.image) : null, c3 = new Float32Array(n * 3);
-      for (let i = 0; i < n; i++) {
-        if (tex && uv) { const u = Math.min(tex.w - 1, Math.max(0, Math.floor((uv.getX(i) % 1 + 1) % 1 * tex.w))), v = Math.min(tex.h - 1, Math.max(0, Math.floor((uv.getY(i) % 1 + 1) % 1 * tex.h))), k = (v * tex.w + u) * 4; col.setRGB(tex.d[k] / 255, tex.d[k + 1] / 255, tex.d[k + 2] / 255, THREE.SRGBColorSpace); }
-        else col.copy(src.emissive && src.emissive.getHex() ? src.emissive : src.color);
-        const a = ao ? ao.getX(i) : 1; c3.set([col.r * a, col.g * a, col.b * a], i * 3);
-      }
-      geo.setAttribute("color", new THREE.BufferAttribute(c3, 3)); m.geometry = geo;
-      m.material = new THREE.MeshStandardMaterial({ roughness: src.map ? 0.45 : 0.3, metalness: src.map ? 0.25 : 0 });
-    });
-    RAW.set(top.name, node);
+    RAW.set(top.name, bakePalette(node));
   }
+}
+/** a kit gun: rolled a quarter turn about its bore, so it lies on its ejection side with the show side up */
+function gunOnGround(scene: THREE.Object3D) {
+  const lay = new THREE.Group(); lay.add(bakePalette(scene)); scene.rotation.z = -Math.PI / 2;
+  return lay;
 }
 
 /** which model an item shows: an item GLB, a wearable mesh, or the fallback crate-pack */
@@ -170,7 +186,7 @@ function template(key: string): Tmpl {
       if (g.getAttribute("color").itemSize === 4) { const c4 = g.getAttribute("color"), c3 = new Float32Array(n * 3); for (let i = 0; i < n; i++) c3.set([c4.getX(i), c4.getY(i), c4.getZ(i)], i * 3); g.setAttribute("color", new THREE.BufferAttribute(c3, 3)); }
       geos.push(g.index ? g.toNonIndexed() : g);
     });
-    const f = ground(geos, LIE.has(name)), geo = mergeGeometries(geos, false)!;
+    const f = ground(geos, LIE.has(name), false, GUNS.has(name) ? GUN_SCALE : 0), geo = mergeGeometries(geos, false)!;
     t = { meshes: [{ geo, mat: itemMaterial() }], hull: hullOf([geo]), ...f };
   } else if (kind === "gun") {
     const src = groundHooks.gunModel!(name), meshes: { geo: THREE.BufferGeometry; mat: THREE.Material }[] = [];

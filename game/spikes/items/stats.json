@@ -852,5 +852,159 @@
    0.3,
    0.963
   ]
+ },
+ "contraband_carbine": {
+  "name": "Contraband Carbine",
+  "kind": "weapon",
+  "tris": 2312,
+  "materials": 1,
+  "dims_m": [
+   0.256,
+   2.377,
+   0.883
+  ]
+ },
+ "cash_flow": {
+  "name": "Cash Flow",
+  "kind": "weapon",
+  "tris": 1952,
+  "materials": 1,
+  "dims_m": [
+   0.263,
+   1.835,
+   0.965
+  ]
+ },
+ "coconut_cracker": {
+  "name": "Coconut Cracker",
+  "kind": "weapon",
+  "tris": 2072,
+  "materials": 1,
+  "dims_m": [
+   0.31,
+   2.525,
+   0.732
+  ]
+ },
+ "bean_counter": {
+  "name": "Bean Counter",
+  "kind": "weapon",
+  "tris": 2308,
+  "materials": 1,
+  "dims_m": [
+   0.34,
+   2.943,
+   0.855
+  ]
+ },
+ "hostile_takeover": {
+  "name": "Hostile Takeover",
+  "kind": "weapon",
+  "tris": 2972,
+  "materials": 1,
+  "dims_m": [
+   0.301,
+   2.83,
+   1.033
+  ]
+ },
+ "pocket_change": {
+  "name": "Pocket Change",
+  "kind": "weapon",
+  "tris": 988,
+  "materials": 1,
+  "dims_m": [
+   0.19,
+   0.801,
+   0.688
+  ]
+ },
+ "golden_parachute": {
+  "name": "Golden Parachute",
+  "kind": "weapon",
+  "tris": 2324,
+  "materials": 1,
+  "dims_m": [
+   0.237,
+   1.444,
+   0.876
+  ]
+ },
+ "peel_sprayer": {
+  "name": "Peel Sprayer",
+  "kind": "weapon",
+  "tris": 1236,
+  "materials": 1,
+  "dims_m": [
+   0.209,
+   1.846,
+   0.857
+  ]
+ },
+ "insider_trader": {
+  "name": "Insider Trader",
+  "kind": "weapon",
+  "tris": 1924,
+  "materials": 1,
+  "dims_m": [
+   0.235,
+   2.12,
+   1.03
+  ]
+ },
+ "bootleg_rifle": {
+  "name": "Bootleg Rifle",
+  "kind": "weapon",
+  "tris": 1636,
+  "materials": 1,
+  "dims_m": [
+   0.326,
+   2.325,
+   0.95
+  ]
+ },
+ "board_meeting": {
+  "name": "Board Meeting",
+  "kind": "weapon",
+  "tris": 2300,
+  "materials": 1,
+  "dims_m": [
+   0.305,
+   2.604,
+   0.823
+  ]
+ },
+ "pipe_dream": {
+  "name": "Pipe Dream",
+  "kind": "weapon",
+  "tris": 1384,
+  "materials": 1,
+  "dims_m": [
+   0.249,
+   2.437,
+   0.728
+  ]
+ },
+ "the_audit": {
+  "name": "The Audit",
+  "kind": "weapon",
+  "tris": 1732,
+  "materials": 1,
+  "dims_m": [
+   0.243,
+   2.583,
+   0.746
+  ]
+ },
+ "long_ledger": {
+  "name": "Long Ledger",
+  "kind": "weapon",
+  "tris": 2368,
+  "materials": 1,
+  "dims_m": [
+   0.303,
+   3.243,
+   0.871
+  ]
  }
 }

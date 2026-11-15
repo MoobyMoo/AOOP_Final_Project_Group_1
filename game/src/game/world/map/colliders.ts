@@ -27,6 +27,9 @@ const NATURE_V: Record<string, VShape[][]> = {
   boulders: [[[-0.01, -0.01, 0.82], [-0.11, -1.29, 0.48], [0.08, 1.2, 0.45]], [[-0.05, 0.03, 0.74], [-0.52, 1.07, 0.48], [1.0, -0.62, 0.47], [-0.95, -0.68, 0.42]], [[0.03, 0, 0.75], [0.47, 1.13, 0.45], [-0.87, -0.64, 0.33]]],
   caverock: [[[0.04, 0, 0.56], [0.73, -0.05, 0.24]], [[0.05, 0.02, 0.5]], [[0.06, -0.01, 0.22], [0.05, -0.49, 0.22], [-0.41, 0.18, 0.21]], [[0.04, 0.09, 0.61]]],
   stalagmite: [[[0, 0, 0.3], [0.27, -0.03, 0.22], [-0.6, 0.32, 0.21]], [[0, -0.01, 0.27], [0.53, 0.18, 0.18]], [[0, 0, 0.29], [0.67, 0.09, 0.21]]],
+  // mangrove: the stilt roots ring the trunk 1.3-1.95 u out with gaps between them. One circle at 1.35 (the old 1.5 left
+  // 1.6-2.4 u of outline with no root near it) plus a small one on each stilt foot that lands further out
+  mangrove: [[[0, 0, 1.35], [1.33, -1.28, 0.22], [1.82, -0.05, 0.22], [-0.84, -1.53, 0.22]], [[0, 0, 1.35], [1.79, -0.1, 0.22], [1.69, -0.82, 0.22], [0.37, 1.69, 0.22], [1.68, 0.87, 0.22]], [[0, 0, 1.35], [0.47, 1.65, 0.22], [-0.45, 1.76, 0.22], [1.24, 1.5, 0.22]]],
   palmlean: [[[0.06, -0.04, 1.27, -0.9, 0.5]], [[0.04, 0.05, 0.81, 0.9, 0.5]], [[0.06, -0.05, 1.35, -1.11, 0.52]]], // to where the trunk is at 1.6 u
 };
 /** how many variants each per-variant type has (the nature GLBs) */
@@ -46,14 +49,16 @@ const OPEN_NATURE = new Set(["bush", "fern", "bigleaf", "banana", "flowers", "re
 /** build kit: asset name -> colliders */
 const BUILD: Record<string, Collider[]> = {
   // camp
-  tent_a: [B(3.3, 3.2, true)] /* the canvas body (was 4.4 x 3.6: an invisible wall past its ends, G1.5-12) */, tent_b: [B(3.0, 2.6, true)], tarp: [C(0.18, true, false, -2.2, -2.0), C(0.18, true, false, 2.2, -2.0), C(0.18, true, false, -2.2, 1.8), C(0.18, true, false, 2.2, 1.8)],
+  tent_a: [B(3.3, 3.2, true), C(0.2, true, false, -2.48, 0), C(0.2, true, false, 2.48, 0), C(0.15, true, false, -1.32, -2.3), C(0.15, true, false, 1.32, -2.3), C(0.15, true, false, -1.32, 2.3), C(0.15, true, false, 1.32, 2.3)] /* the canvas body (was 4.4 x 3.6: an invisible wall past its ends, G1.5-12) and a peg on each guy rope */, tent_b: [B(3.0, 2.6, true)], tarp: [C(0.18, true, false, -2.2, -2.0), C(0.18, true, false, 2.2, -2.0), C(0.18, true, false, -2.2, 1.8), C(0.18, true, false, 2.2, 1.8)],
   campfire: [C(0.8)], lantern_post: [C(0.22)], fence_a: [B(2.6, 0.32)], fence_b: [B(2.6, 0.32)],
   gate: [C(0.32, true, true, -1.5, 0), C(0.32, true, true, 1.5, 0)],
   watchtower: [C(0.3, true, false, -1.35, -1.35), C(0.3, true, false, 1.35, -1.35), C(0.3, true, false, -1.35, 1.35), C(0.3, true, false, 1.35, 1.35)],
-  well: [C(1.25)], log_bench: [B(2.1, 0.6)], log_bench_b: [B(1.4, 0.6)], signpost_a: [C(0.22)], signpost_raft: [C(0.22)], signpost_key: [C(0.22)],
+  well: [C(1.25)], log_bench: [B(2.1, 0.6)], log_bench_b: [B(1.4, 0.6)], signpost_a: [C(0.22), S(-0.95, 0.13, -0.3, 0.13, 0.2, false)], signpost_raft: [C(0.22), S(-0.95, 0.13, -0.3, 0.13, 0.2, false)], /* the lower board is at head height (1.15-1.6 u) and juts 0.95 u off the post */ signpost_key: [C(0.22)],
   sandbags: [B(2.9, 0.8)], crate_stack: [B(2.4, 1.15, true), C(0.42, true, false, 1.42, -0.42)], dummy_seated: [C(0.45)],
   washing_line: [C(0.16, true, false, -2.25, 0), C(0.16, true, false, 2.25, 0)],
-  lean_to: [C(0.18, true, false, -1.52, 1.23), C(0.18, true, false, 1.52, 1.23), B(3.0, 0.7, false, 0, -1.05)],
+  // lean_to: the roof runs from the ground at the back (z -1.3) up to 1.7 u at the open front (z 1.5): under 2 u all the
+  // way, so the whole slope is solid (a 2 u monkey walked into it), with the two guy stakes at the front corners
+  lean_to: [B(3.3, 2.7, false, 0, -0.05), C(0.15, true, false, -2.06, 1.88), C(0.15, true, false, 2.06, 1.88)],
   dock_piles: [C(0.22, true, false, 0, 1.3), C(0.22, true, false, 0.2, -1.3)],
   // loot dressing
   barrel_wood: [C(0.46, true, true)], barrel_rust: [C(0.44, true, true)], barrel_teal: [C(0.44, true, true)], sack_pile: [B(2.2, 1.0, false, 0.45, 0.2)], banana_stash: [B(1.3, 0.85)],
@@ -68,14 +73,25 @@ const BUILD: Record<string, Collider[]> = {
   vault: [S(-4.5, -3.5, 4.5, -3.5, 0.6), S(4.5, -3.5, 4.5, 3.5, 0.6), S(-4.5, -3.5, -4.5, 3.5, 0.6)],
   vault_plinth: [B(2.0, 1.6)], fusebox: [C(0.5)], statue: [C(0.95, true, true)],
   // landmarks. ferry: the hull is the wall (stern open at local x -4 for the breakable boards); bow to the east
-  ferry: [S(-4.5, -3, 5.6, -3, 0.5), S(-4.5, 3, 5.6, 3, 0.5), S(5.6, -3, 7.0, 0, 0.5), S(5.6, 3, 7.0, 0, 0.5), C(0.8, true, true, 2.6, -1.4)],
+  // (from tools/blender/build/g_landmarks.py ferry(), three z = -blender y): the raised bow deck x 2.75-4.5 (1.07 u up,
+  // with the wheelhouse and the funnel on it) is solid to the bow, the steps up to it, the leaning mast, cell 01 behind
+  // its bars, cell 02's dividers and open door, the sand drifts against the hull outside and the one in the hold
+  ferry: [S(-4.5, -3, 5.6, -3, 0.5), S(-4.5, 3, 5.6, 3, 0.5), S(5.6, -3, 7.0, 0, 0.5), S(5.6, 3, 7.0, 0, 0.5),
+    B(1.75, 5.5, true, 3.62, 0), C(1.0, true, true, 4.9, 0), C(0.5, true, true, 6.1, 0), B(1.1, 1.1, false, 2.2, 1.5), C(0.2, true, true, 1.28, 1.28),
+    B(1.85, 1.4, true, -2.4, -2.08), S(-0.3, -1.42, 0.3, -1.42, 0.16, false), S(-1.5, -1.42, -1.5, -2.75, 0.16, false), S(0.3, -1.42, 0.3, -2.75, 0.16, false),
+    S(-0.25, -1.42, 0.15, -2.28, 0.14, false), C(0.22, true, false, -0.9, -2.2),
+    S(-4.9, 3.75, 0.4, 3.75, 1.5, false), S(1.4, 3.6, 5.0, 3.6, 1.2, false), S(-1.2, -3.75, 4.4, -3.75, 1.4, false), C(0.6, true, false, -3.2, 1.85), C(0.55, true, false, 0.4, 2.55)],
   bomber: [S(-5.4, 0, 6.6, 0, 1.7, true), S(0.6, -5.6, 0.6, 6.4, 1.5, false), S(6.2, -2.2, 6.2, 2.2, 0.9, false)],
-  vat: [C(1.95, true, true)], tractor: [B(3.0, 3.6, true)], lemon_stand: [B(1.5, 0.9, false, 0.35, 0.1)],
+  // vat: the tank, its west staves and spill (x -3.45..-2.25), the burst staves at the north-west (two), the ladder at the south
+  // and the valve on the east (asset space; the vat is lifted 0.4 u so its base is not buried, grove.ts)
+  vat: [C(1.95, true, true), B(1.2, 2.4, false, -2.85, 0.3), C(0.35, true, false, -1.85, 1.6), C(0.3, true, false, -0.9, -2.35), C(0.35, true, false, 2.2, 0.85), C(0.5, true, false, -3.3, 2.45)], tractor: [B(3.0, 3.6, true)], lemon_stand: [B(1.5, 0.9, false, 0.35, 0.1)],
   // traversal
-  zip_tower: [C(1.5)], hatch: [C(0.25, true, false, 1.1, -0.3)], supply_gondola: [C(1.2)],
+  zip_tower: [C(1.5)], cove_boat: [B(3.1, 1.3, false, 0.07, 0.08)] /* the house kit's rowboat hull x -1.5..1.65, z -0.62..0.78 (scaled 1.25 by its Placed) */, hatch: [C(0.25, true, false, 1.1, -0.3), B(1.3, 0.4, false, -1.42, 0.45)] /* the wheel post and the raised lid */, supply_gondola: [C(1.2)],
   portal_cave: [C(1.1, true, true, -2.3, -0.4), C(1.1, true, true, 2.3, -0.4), S(-2.6, -1.6, 2.6, -1.6, 0.9)],
   portal_cave_dark: [C(1.1, true, true, -2.3, -0.4), C(1.1, true, true, 2.3, -0.4), S(-2.6, -1.6, 2.6, -1.6, 0.9)],
-  portal_roots: [C(1.0, true, true, -2.2, -0.6), C(1.0, true, true, 2.2, -0.6), S(-2.4, -2.0, 2.4, -2.0, 0.9)],
+  // portal_roots: fitted to the root mass cut 0.12-1.6 u up (glitch.ts localProfile): the west leg (x -2.7..-1.5), the east
+  // leg (x 2..3.2, forward to z 1.16) and the mound behind the mouth (x -1.1..1.6, back to z -2.76)
+  portal_roots: [C(0.7, true, true, -2.1, -0.1), C(0.7, true, true, 2.55, 0.4), B(2.7, 1.6, true, 0.25, -1.95)],
 };
 /** build pieces that never block (floors, decals, walk-on decks, small dressing) */
 const OPEN_BUILD = new Set(["bedroll_a", "bedroll_b", "lantern", "sack", "ammo_box", "satchel", "ruin_floor_a", "ruin_floor_b", "ruin_floor_c", "ruin_steps", "audit", "bottle",
