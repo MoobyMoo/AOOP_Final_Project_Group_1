@@ -41,7 +41,7 @@ export const CLIP_INFO: Record<string, { dur: number; loop?: boolean }> = {
   windup: { dur: 0.9 }, slam: { dur: 0.6 }, charge: { dur: 0.5, loop: true }, stunned: { dur: 1.6, loop: true }, sleep: { dur: 3.2, loop: true },
 };
 /** metres one cycle of each gait covers with planted feet (from tools/blender/monkey_anim.py GAIT_LEN / build_gorilla.py) */
-export const GAIT_LEN = { walk: 0.8, run: 2.2, runBack: 1.636, strafe: 1.182, gorillaWalk: 1.7 };
+export const GAIT_LEN = { walk: 0.8, run: 2.2, runBack: 1.636, strafe: 1.0, gorillaWalk: 1.7 };
 
 const FPS = 30, ST = 7, MORPHS = ["blink", "eyeWide", "browTilt", "build"];
 type Clip = { frames: number; data: Float32Array };
@@ -191,6 +191,7 @@ function dull(pal: Float32Array, i: number) {
 
 // ---------------------------------------------------------------- pose maths (module scratch: pose() is synchronous)
 const PA = new Float32Array(64 * ST), PB = new Float32Array(64 * ST), PC = new Float32Array(64 * ST);
+const HQ = { par: new THREE.Quaternion(), root: new THREE.Quaternion(), rel: new THREE.Quaternion() };
 const Q = new THREE.Quaternion(), UP = new THREE.Vector3(0, 1, 0), XA = new THREE.Vector3(1, 0, 0), ZA = new THREE.Vector3(0, 0, 1);
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
@@ -327,7 +328,7 @@ const M_ATTACK: Record<string, string> = { fire: "fire", melee: "melee", throw: 
 const M_FULL: Record<string, string> = { roll: "roll", defeat: "defeat", cheer: "cheer" };
 /** look tuning the game may change: headUp = how far monkeys lift their chin toward the top-down camera (rad);
  *  aimRate = how fast the gun arm turns toward faceYaw (rad/s, 360 deg/s like Duckov's right-hand sync) */
-export const RIG_TUNE = { headUp: 0.24, aimRate: Math.PI * 2 };
+export const RIG_TUNE = { headUp: 0.24, aimRate: Math.PI * 2, headSteady: 14 }; // headSteady: head low-pass rate /s (0 = off)
 const TW_MAX = 1.3;   // the gun arm can lead or trail the body by up to ~75 deg
 
 /** how far a pack moves out when body armour is worn under it (fractions added to the back socket's x / z scale) */
@@ -343,6 +344,7 @@ class MonkeyRig extends CharRig {
   private tail: THREE.Bone[]; private curl = 0; private build = 0; private hipsI: number; private hipsY = 0; private armored = false;
   private tSway: Spring = { x: 0, v: 0 }; private tSway2: Spring = { x: 0, v: 0 }; private tLift: Spring = { x: 0, v: 0 }; private ear: Spring = { x: 0, v: 0 };
   private arms: THREE.Bone[]; private dashK = 0;   // upperarm L/R, forearm L/R; dash pose weight
+  private headSm = new THREE.Quaternion(); private headSmOn = false; // the stabilised head, in the character's frame
 
   constructor(model: Model, style: MonkeyLook | EnemyStyle) {
     super(model, /^(root|hips|thigh|shin|foot)/);
@@ -525,6 +527,7 @@ class MonkeyRig extends CharRig {
       this.arms[0].quaternion.multiply(Q.setFromAxisAngle(XA, -1.05 * k)); this.arms[1].quaternion.multiply(Q.setFromAxisAngle(XA, -0.95 * k));
       this.arms[2].quaternion.multiply(Q.setFromAxisAngle(XA, -0.3 * k)); this.arms[3].quaternion.multiply(Q.setFromAxisAngle(XA, -0.3 * k));
     }
+    this.stabiliseHead(dt, snap);
     // recoil: fast out, slower recover (Duckov: back 20/s, recover 8/s); moves the gun socket, a little of it reaches the chest
     const hr = this.sockets.handR, ft = act === "fire" ? s.actionT * CLIP_INFO.fire.dur : -1, kick = ft < 0 ? 0 : ft < 0.035 ? ft / 0.035 : Math.exp(-(ft - 0.035) * 9);
     hr.position.z = -0.1 * kick; hr.rotation.x = -0.3 * kick;
@@ -549,6 +552,20 @@ class MonkeyRig extends CharRig {
     if (w <= 0.001) return acc;
     if (acc === 0) sample(this.clip(name), ph, PC, this.nb); else { sample(this.clip(name), ph, PB, this.nb); blend(PC, PB, w / (acc + w), this.nb, null); }
     return acc + w;
+  }
+  /** Head stabilisation (Moo 2026-11-15: "even walking sideways the head shakes too much, the player would get dizzy").
+   *  The head's rotation, measured in the character's own frame, follows its animated target through a low-pass
+   *  (time constant ~70 ms): gait jiggle at 3-7 Hz is cut to about a third while looks and aim turns still arrive.
+   *  Full-body clips (dash, defeat) and big jumps bypass it so it never lags a deliberate pose. */
+  private stabiliseHead(dt: number, snap: boolean) {
+    const head = this.head, par = head.parent; if (!par) return;
+    par.updateWorldMatrix(true, false);
+    par.getWorldQuaternion(HQ.par); this.body.getWorldQuaternion(HQ.root);  // the facing frame (root turns with movement)
+    HQ.rel.copy(HQ.root).invert().multiply(HQ.par).multiply(head.quaternion);          // target, character frame
+    const bypass = snap || RIG_TUNE.headSteady <= 0 || !this.headSmOn || this.full.weight > 0.05 || dt <= 0 || HQ.rel.angleTo(this.headSm) > 0.6;
+    if (bypass) this.headSm.copy(HQ.rel); else this.headSm.slerp(HQ.rel, 1 - Math.exp(-dt * RIG_TUNE.headSteady));
+    this.headSmOn = true;
+    head.quaternion.copy(HQ.par).invert().multiply(HQ.root).multiply(this.headSm);    // back to the bone's parent space
   }
 }
 

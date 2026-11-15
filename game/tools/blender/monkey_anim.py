@@ -84,8 +84,11 @@ def _gait(t, d, A, h, duty, bob, lean, arm, twist):
 # bob (5th field) calmed for comfort (Moo: "shouldn't shake that aggressively... like Duckov so players don't get dizzy"):
 # walk 0.035 -> 0.018, run 0.11 -> 0.045, back/strafe ~ -60%. Stride, duty and timing unchanged so feet don't slide.
 GAITS = {"walk": ((0, 1), 0.16, 0.07, 0.40, 0.018, 4, 0.1, 5), "run": ((0, 1), 0.22, 0.17, 0.20, 0.045, 12, 0.2, 9),
-         "runBack": ((0, -1), 0.18, 0.13, 0.22, 0.035, 7, 0.12, 6), "strafeL": ((1, 0), 0.13, 0.12, 0.22, 0.03, 7, 0.0, 0),
-         "strafeR": ((-1, 0), 0.13, 0.12, 0.22, 0.03, 7, 0.0, 0)}
+         "runBack": ((0, -1), 0.18, 0.13, 0.22, 0.035, 7, 0.12, 6), "strafeL": ((1, 0), 0.17, 0.09, 0.34, 0.012, 4, 0.0, 0),
+         "strafeR": ((-1, 0), 0.17, 0.09, 0.34, 0.012, 4, 0.0, 0)}
+# strafe (Moo 2026-11-15, "walking sideways the head shakes too much"): duty 0.22 -> 0.34 so a foot is always down (no
+# hop), bob 0.03 -> 0.012, lean 7 -> 4, lift 0.12 -> 0.09; reach 0.13 -> 0.17 keeps ~1 m per cycle so the cadence
+# does not rise. The game also low-passes the head (actors/rig.ts stabiliseHead).
 GAIT_LEN = {n: round(2 * g[1] / g[3], 3) for n, g in GAITS.items()}
 
 

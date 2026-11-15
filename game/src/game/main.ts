@@ -25,7 +25,7 @@ import { buildMapShots, toggleMap, mapOpen, toggleMinimap } from "./ui/mapview";
 import { itemDef } from "./loot/raidloot";
 import { isEquip, visualGear } from "./loot/equipment";
 import { payoutSlip } from "./ui/payout";
-import { createRig, preloadCharacters } from "./actors/rig";
+import { createRig, preloadCharacters, RIG_TUNE } from "./actors/rig";
 import { createKingpin, createGunFx, preloadKingpin } from "./combat/kingpin";
 import { fadeTo } from "./world/interact";
 import { botTick, setBot } from "./core/botdrive";
@@ -38,7 +38,7 @@ G.input = new Input(G.stage.renderer.domElement);
 if (QS.has("fresh")) localStorage.removeItem("bv_g1");
 G.save = load(); G.bot = QS.has("bot"); G.intent = G.input.read(0);
 if (G.bot) { const bot = createBot({ greed: Number(QS.get("greed") ?? 0.5), reactionLag: Number(QS.get("lag") ?? 0.25), seed: Number(QS.get("botseed") ?? QS.get("seed") ?? 1) }); setBot(bot); (window as unknown as { __bot: unknown }).__bot = bot; }
-if (QS.has("dev")) (window as unknown as { __G: unknown }).__G = G; // captures and debugging only
+if (QS.has("dev")) Object.assign(window as unknown as object, { __G: G, __RIG_TUNE: RIG_TUNE }); // captures and debugging only
 addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlockAudio);
 
 // world + rig up front (the map snapshot needs the raid scene built); the gun model is a GLB, loaded before anything asks for it
