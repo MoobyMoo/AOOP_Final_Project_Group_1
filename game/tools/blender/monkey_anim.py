@@ -74,16 +74,18 @@ def _gait(t, d, A, h, duty, bob, lean, arm, twist):
     sw = S(p - duty * math.pi)                            # which side carries the weight
     sp.update({"hips": (0.014 * sw - 0.02 * dx, -0.01 * df, -0.055 + 0.5 * bob * hop), "hips_rot": (lean * df, twist * sw * df, 2.5 * sw + lean * 0.6 * dx),
                "spine": (lean * 0.6 * df, -twist * 0.6 * sw * df, -1.5 * sw + lean * 0.3 * dx), "chest": (lean * 0.3 * df, -twist * 1.1 * sw * df, 0),
-               "neck": (-lean * 0.5 * df - 2.5 * hop, twist * 0.5 * sw * df, 0), "head": (-lean * 0.8 * df - 4.5 * hop, twist * 0.6 * sw * df, -1.5 * sw - lean * 0.5 * dx),
-               "ear_L": (-4 - 9 * hop, -4 * df), "ear_R": (-4 - 9 * hop, -4 * df),
+               "neck": (-lean * 0.5 * df - 1.0 * hop, twist * 0.5 * sw * df, 0), "head": (-lean * 0.8 * df - 1.5 * hop, twist * 0.6 * sw * df, -0.8 * sw - lean * 0.5 * dx),
+               "ear_L": (-4 - 5 * hop, -4 * df), "ear_R": (-4 - 5 * hop, -4 * df),  # head nod 4.5 -> 1.5 deg, sway 1.5 -> 0.8, ears 9 -> 5 (calmer)
                "tail": tail(lambda i: (-5 * df + 5 * S(2 * p - i * 0.7), (5 + 2 * i) * S(p - 0.6 - i * 0.6) - 9 * dx))})
     return sp
 
 
 # metres travelled per cycle (2A / duty): the game sets the cycle rate to speed / GAIT_LEN so feet do not slide
-GAITS = {"walk": ((0, 1), 0.16, 0.07, 0.40, 0.035, 4, 0.1, 5), "run": ((0, 1), 0.22, 0.17, 0.20, 0.11, 12, 0.2, 9),
-         "runBack": ((0, -1), 0.18, 0.13, 0.22, 0.085, 7, 0.12, 6), "strafeL": ((1, 0), 0.13, 0.12, 0.22, 0.075, 7, 0.0, 0),
-         "strafeR": ((-1, 0), 0.13, 0.12, 0.22, 0.075, 7, 0.0, 0)}
+# bob (5th field) calmed for comfort (Moo: "shouldn't shake that aggressively... like Duckov so players don't get dizzy"):
+# walk 0.035 -> 0.018, run 0.11 -> 0.045, back/strafe ~ -60%. Stride, duty and timing unchanged so feet don't slide.
+GAITS = {"walk": ((0, 1), 0.16, 0.07, 0.40, 0.018, 4, 0.1, 5), "run": ((0, 1), 0.22, 0.17, 0.20, 0.045, 12, 0.2, 9),
+         "runBack": ((0, -1), 0.18, 0.13, 0.22, 0.035, 7, 0.12, 6), "strafeL": ((1, 0), 0.13, 0.12, 0.22, 0.03, 7, 0.0, 0),
+         "strafeR": ((-1, 0), 0.13, 0.12, 0.22, 0.03, 7, 0.0, 0)}
 GAIT_LEN = {n: round(2 * g[1] / g[3], 3) for n, g in GAITS.items()}
 
 
