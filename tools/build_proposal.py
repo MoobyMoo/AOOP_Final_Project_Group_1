@@ -86,7 +86,7 @@ def main():
     for item in list(body):
         body.remove(item)
 
-    body.append(heading(0, "專題名稱：AOOP_Final_Project_Group_1"))
+    body.append(heading(0, "專題名稱：AOOP_Final_Project_Group_1：Monkey Businessman"))
     body.append(heading(1, "小組成員：第 1 組"))
     body.append(paragraph("劉育麟 112511002　張倖嘉 112511004　譚羽良 112511017"))
     body.append(heading(2, "專題動機與目標"))

@@ -2,7 +2,7 @@
 
 ## 專題名稱與組員
 
-AOOP_Final_Project_Group_1（遊戲：Monkey Businessman）
+AOOP_Final_Project_Group_1：Monkey Businessman
 
 第 1 組：劉育麟 112511002、張倖嘉 112511004、譚羽良 112511017。
 

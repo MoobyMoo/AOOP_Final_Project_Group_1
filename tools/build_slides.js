@@ -52,9 +52,10 @@ function arrow(s, x, y, w) {
   s.background = { color: C.jungle };
   s.addImage({ path: A("game-raid.jpg"), x: 5.2, y: 0, w: 4.8, h: 5.625, sizing: { type: "cover", w: 4.8, h: 5.625 } });
   text(s, "AOOP 期末專題 · 第 1 組", { x: 0.5, y: 0.6, w: 4.4, h: 0.4, fontSize: 14, color: C.banana, bold: true });
-  text(s, "AOOP_Final_Project_Group_1", { x: 0.5, y: 1.2, w: 4.6, h: 1.0, fontSize: 22, bold: true, color: C.white });
-  text(s, "建置計畫：我們要做什麼、打算怎麼做", { x: 0.5, y: 2.2, w: 4.4, h: 0.5, fontSize: 16, color: C.white });
-  text(s, "遊戲：Monkey Businessman，一款俯視角的卡通撤離射擊遊戲", { x: 0.5, y: 2.75, w: 4.4, h: 0.7, fontSize: 13, color: "CFE0D3" });
+  text(s, "AOOP_Final_Project_Group_1", { x: 0.5, y: 1.15, w: 4.6, h: 0.5, fontSize: 18, bold: true, color: "CFE0D3" });
+  text(s, "Monkey Businessman", { x: 0.5, y: 1.65, w: 4.6, h: 0.75, fontSize: 28, bold: true, color: C.white });
+  text(s, "一款俯視角的卡通撤離射擊遊戲", { x: 0.5, y: 2.45, w: 4.4, h: 0.4, fontSize: 14, color: "CFE0D3" });
+  text(s, "建置計畫：我們要做什麼、打算怎麼做", { x: 0.5, y: 3.0, w: 4.4, h: 0.5, fontSize: 16, color: C.banana });
   text(s, "劉育麟 112511002　張倖嘉 112511004　譚羽良 112511017", { x: 0.5, y: 4.7, w: 4.6, h: 0.4, fontSize: 11, color: "CFE0D3" });
   s.addNotes("開場：介紹組員與專題，接著說明要做的遊戲和建置方式。");
 }
