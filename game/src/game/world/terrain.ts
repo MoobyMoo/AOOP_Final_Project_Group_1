@@ -206,7 +206,7 @@ function groundShader<T extends THREE.Material>(mat: T): T {
       // after the lighting (shading.ts leaves one opaque_fragment include behind its own block): the mottling swings wider
       // the brighter the pixel, so it lands near 8 percent of displayed value in sun and in shade alike. In sun only the
       // dark half grows: the light half would push lit dirt back into clipping
-      .replace("#include <opaque_fragment>", "  { float gndLum = max(outgoingLight.r, max(outgoingLight.g, outgoingLight.b)); float gndB = smoothstep(0.35, 1.3, gndLum); outgoingLight *= 1.0 + min(gndMot, 0.0) * mix(0.75, 2.1, gndB) + max(gndMot, 0.0) * mix(0.75, 0.15, gndB); }\n#include <opaque_fragment>");
+      .replace("#include <opaque_fragment>", "  { float gndLum = max(outgoingLight.r, max(outgoingLight.g, outgoingLight.b)); float gndB = smoothstep(0.35, 1.3, gndLum); outgoingLight *= 1.0 + min(gndMot, 0.0) * mix(0.75, 2.9, gndB) + max(gndMot, 0.0) * mix(0.75, 0.15, gndB); }\n#include <opaque_fragment>");
   };
   mat.customProgramCacheKey = () => "ground3";
   return mat;
