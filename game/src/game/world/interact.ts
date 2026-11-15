@@ -1,9 +1,10 @@
-// Raid interactions: extraction (stand still in the ring; moving or a hit resets it visibly, rule 15), portals into
+// Raid interactions: extraction (stay in the ring for five seconds; damage does not reset it), portals into
 // the grotto and back (E, fade), the zipline (E, ride, safe while riding), doors (E/F opens and closes; boarded ones
 // break, locked ones need their key), readable easter eggs, area discovery banners, the supply drop.
 import * as THREE from "three";
 import { G, V, flat } from "../core/state";
-import { exits, portalMarks, reads, zipAnchors } from "./props";
+import { exits, exitStatus, portalMarks, reads, zipAnchors } from "./props";
+import { advanceExit, EXIT_DEFS } from "./extraction";
 import { areaAt, doorNear, block } from "./grid";
 import { groundHeight } from "./terrain";
 import { CLEARINGS, SUPPLY_DROPS, ZIPLINES } from "./layout";
@@ -15,7 +16,7 @@ import { rollCrate } from "../loot/tables";
 import * as K from "./kit_build";
 import { mergePieces } from "./kitutil";
 
-export const EXTRACT_TIME = 3;
+export const EXTRACT_TIME = EXIT_DEFS.hatch.dwellSeconds;
 let lastPp = new THREE.Vector3(), lastHp = 100, fading = false;
 export let onExtract: (id: "hatch" | "raft" | "tunnel" | "boat", bonus: number) => void = () => {};
 export const setOnExtract = (f: typeof onExtract) => { onExtract = f; };
@@ -36,19 +37,25 @@ export function updateInteractions(dt: number) {
   const a = areaAt(G.pp.x, G.pp.z);
   if (a !== G.area) { G.area = a; if (a && !G.discovered.has(a)) { G.discovered.add(a); const c = CLEARINGS.find((q) => q.id === a)!; if (!G.enemies.some((e) => !e.down && e.active && !["patrol", "sleep", "return"].includes(e.state))) hud.banner(c.name, c.under ? "underground" : ""); sfx("ui"); } } // no sign over a fight (G1 council)
   // ---- extraction
-  const moved = flat(G.pp, lastPp) > 0.02 * Math.max(1, dt * 60); lastPp.copy(G.pp);
   const hit = G.hp < lastHp; lastHp = G.hp;
   let inEx: (typeof exits)[number] | null = null;
   // an exit arms once you've been more than 8 u away from it (no accidental extraction at the spawn)
-  for (const e of exits) { if (!e.open) continue; const d = flat(G.pp, e); if (d > 8) e.armed = true; if (d < 1.9 && e.armed) inEx = e; e.ring.rotation.z += dt * 0.6; }
+  for (const e of exits) {
+    const state = exitStatus(e), distance = flat(G.pp, e);
+    if (!state.open) { e.fill.scale.setScalar(0.01); if (e.open && distance < 4) hud.prompt(`${e.id === "boat" ? "Cove boat" : "Exit"} · ${state.reason}`); continue; }
+    if (distance > 8) e.armed = true;
+    if (distance < 1.9 && e.armed) inEx = e;
+    e.ring.rotation.z += dt * 0.6;
+  }
   if (inEx && !G.zipping) {
     if (G.extract.id !== inEx.id) G.extract = { id: inEx.id, t: 0 };
-    if (moved || hit) { if (G.extract.t > 0.15 && hit) hud.toast("Hit! The countdown starts over"); G.extract.t = 0; }
-    else { const before = G.extract.t; G.extract.t += dt; if (Math.floor(before) !== Math.floor(G.extract.t)) sfx("tick"); }
-    inEx.fill.scale.setScalar(Math.max(0.01, G.extract.t / EXTRACT_TIME));
-    const label = inEx.id === "raft" ? "🛶 Raft home, +30% sale" : inEx.id === "tunnel" ? "🕳️ Smuggler Tunnel home" : inEx.id === "boat" ? "🚣 Row the cove boat home" : "🏠 Hatch home";
-    hud.extract(label, Math.max(0.02, G.extract.t / EXTRACT_TIME), moved ? null : Math.max(0, EXTRACT_TIME - G.extract.t));
-    if (G.extract.t >= EXTRACT_TIME) { sfx("extract"); hud.extract("", 0); const b = inEx.bonus, id = inEx.id; G.alive = false; fadeTo(() => onExtract(id, b)); }
+    const definition = EXIT_DEFS[inEx.id], duration = definition.dwellSeconds, before = G.extract.t;
+    G.extract.t = advanceExit(definition, before, dt, { inside: true, alive: G.alive, open: exitStatus(inEx).open, damaged: hit });
+    if (Math.floor(before) !== Math.floor(G.extract.t)) sfx("tick");
+    inEx.fill.scale.setScalar(Math.max(0.01, G.extract.t / duration));
+    const label = inEx.id === "raft" ? "🛶 Raft home, +30% bonus" : inEx.id === "tunnel" ? "🕳️ Smuggler Tunnel home" : inEx.id === "boat" ? "🚣 Row the cove boat home" : "🏠 Hatch home";
+    hud.extract(label, Math.max(0.02, G.extract.t / duration), Math.max(0, duration - G.extract.t));
+    if (G.extract.t >= duration) { sfx("extract"); hud.extract("", 0); const b = inEx.bonus, id = inEx.id; G.alive = false; fadeTo(() => onExtract(id, b)); }
   } else { if (G.extract.id) { for (const e of exits) e.fill.scale.setScalar(0.01); hud.extract("", 0); } G.extract = { id: "", t: 0 }; }
   // ---- E/F, nearest thing wins: crates first, then portals and the zipline, doors, things to read
   const crate = nearestCrate();

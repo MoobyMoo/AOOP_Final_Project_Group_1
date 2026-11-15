@@ -1,6 +1,5 @@
 // Bananaville G1 entry. Scene flow: creator (first launch) → bunker → raid → bunker (summary). Fixed-step sim (1/60),
 // render per frame. ?bot=1 lets the pacing bot play; ?ts=N speeds time up; ?fresh=1 starts a new save; ?raid=1 skips home.
-import { isAttachment } from "./loot/attachments";
 import { preloadBuild } from "./world/kit_build";
 import "@fontsource/lilita-one";
 import "@fontsource/nunito/700.css";
@@ -9,13 +8,14 @@ import * as THREE from "three";
 import { Stage } from "./render/stage";
 import { Input } from "./core/input";
 import { G } from "./core/state";
-import { load, save, retainKeys } from "./core/save";
+import { commitSave, load } from "./core/save";
+import { itemType } from "./loot/instances";
 import { unlockAudio, sfx, stepOn } from "./core/audio";
 import { musicTick, setMusic, sting, musicState } from "./core/music";
 import { startRaid, stepRaid, renderRaid, buildRaidWorld, raidScene, quitRaid, lastSpawn, type RaidResult } from "./core/raid";
 import { settleDeploy, cancelDeploy, type DeployRequest } from "./core/deployment";
 import { hideCurtain } from "./home/dispatch";
-import { exits } from "./world/props";
+import { exits, exitStatus } from "./world/props";
 import { initSettings, settingsOpen } from "./ui/settings";
 import { lootOpen } from "./ui/lootview";
 import { path, walkable, los, lintReport, exactReach, clearance, gates, setGate, pathLength, collide } from "./world/grid";
@@ -30,7 +30,7 @@ import { enterBunker, stepBunker, renderBunker, leaveBunker, bunkerScene, homeAp
 import { openCreator, renderCreator } from "./ui/creator";
 import { buildMapShots, toggleMap, mapOpen, toggleMinimap } from "./ui/mapview";
 import { itemDef, dropItem, placeItem } from "./loot/raidloot";
-import { isEquip, visualGear } from "./loot/equipment";
+import { visualGear } from "./loot/equipment";
 import { payoutSlip } from "./ui/payout";
 import { createRig, preloadCharacters, RIG_TUNE } from "./actors/rig";
 import { createKingpin, createGunFx, preloadKingpin } from "./combat/kingpin";
@@ -66,28 +66,31 @@ function goMirror() { leaveBunker(); openCreator(() => goHome(), bunkerScene); }
 /** the pod fired (home/bunker.ts): the curtain is up; build the raid behind it at the destination's entry group.
  *  If the raid fails to start, the fare is refunded and you're back in the vault (SYSTEMS_PORT R01: roll back). */
 function goRaid(req: DeployRequest) {
+  const outbound = structuredClone(G.save);
   requestAnimationFrame(() => requestAnimationFrame(() => {
     try { leaveBunker(); startRaid(onRaidEnd, { entryGroup: req.entryGroup, title: req.name }); setMusic("raid"); settleDeploy(); }
-    catch (e) { console.error("deploy failed", e); cancelDeploy(G.save, save); goHome(`<header><h2>The pod jammed</h2></header><p>The fare is back in your pocket. Try again.</p>`); }
+    catch (e) {
+      console.error("deploy failed", e); G.save = outbound;
+      try {
+        cancelDeploy(structuredClone(outbound), next => { delete next.deployReceipt; G.save = commitSave(next); });
+        goHome(`<header><h2>The pod jammed</h2></header><p>The fare and loadout are back. Try again.</p>`);
+      } catch (error) { console.error("refund save failed", error); goHome(`<header><h2>Save unavailable</h2></header><p>Your fare refund is pending. Reload when storage is available.</p>`); }
+    }
     hideCurtain();
   }));
 }
 function onRaidEnd(r: RaidResult) {
-  const sv = G.save; sv.raids++; sting(r.how === "bonked" ? "stingBonk" : "stingExtract");
-  if (r.how === "bonked") sv.stats.bonkOuts++; else sv.stats.extracts++;
-  retainKeys(sv, r.kept);
-  const kept = r.kept.filter((i) => itemDef(i).kind !== "key");
-  const value = kept.reduce((a, i) => a + itemDef(i).value, 0), bonus = Math.round(value * r.bonus);
-  sv.reserved.push(...kept.filter(inst => !isEquip(inst) && !isAttachment(inst))); sv.locker.push(...kept.filter(inst => isEquip(inst) || isAttachment(inst))); // gear and gun attachments go to the locker sv.money += bonus; sv.stats.best = Math.max(sv.stats.best, value + bonus);
-  for (const i of kept) if (itemDef(i).rarity === "epic" && !sv.trophies.includes(i)) sv.trophies.push(i);
-  sv.gear = { ...G.gear };
-  save(sv);
+  const sv = G.save, record = sv.settlements?.find(entry => entry.id === r.raidId);
+  if (!record || shownSettlements.has(record.id)) return;
+  shownSettlements.add(record.id); sting(r.how === "bonked" ? "stingBonk" : "stingExtract");
+  const kept = record.kept, value = record.value, bonus = record.bonus;
   // the payout slip (ui/payout.ts): B's appraisal receipt in A's palette
   const kills = Object.values(r.log.kills).reduce((x, y) => x + y, 0);
-  const html = payoutSlip({ raid: sv.raids, how: r.how, raidT: r.raidT, kills, crates: r.log.crates, kept, lost: r.lost.length, value, bonus, vineKey: r.kept.includes("vine_key") });
+  const html = payoutSlip({ raid: sv.raids, how: r.how, raidT: r.raidT, kills, crates: r.log.crates, kept, lost: r.lost.length, value, bonus, vineKey: r.kept.some(inst => itemType(inst) === "vine_key"), delivery: sv.delivery?.length });
   (window as unknown as { __raids: object[] }).__raids ??= []; (window as unknown as { __raids: object[] }).__raids.push({ raid: sv.raids - 1, seed: G.seed, how: r.how, t: r.raidT, value, bonus, kept: r.kept.length, lost: r.lost.length, log: structuredClone(r.log), ammo: G.ammo + G.mag, hp: G.hp, maxHp: G.maxHp, usefulFound: G.lootCtx.usefulFound, upgrades: { ...sv.upgrades } });
   G.alive = true; goHome(html);
 }
+const shownSettlements = new Set<string>();
 
 const STEP = 1 / 60, TS = Number(QS.get("ts") ?? 1);
 let acc = 0; const clock = new THREE.Clock();
@@ -123,7 +126,7 @@ function neutral() { const i = G.intent; i.move = { x: 0, z: 0 }; i.fire = i.fir
   // map v3 checks: lint report, world build stats, objects in the current frame (G1-21), teleport, gates
   lint: lintReport, exactReach, clearance, loot: { dropItem, placeItem }, world: () => worldStats, density: () => countVisible(G.stage.camera, [...G.crates, ...G.enemies.filter((e) => !e.down).map((e) => ({ x: e.p.x, z: e.p.z }))]),
   tp: (x: number, z: number) => { G.pp.set(x, groundHeight(x, z), z); G.vel.set(0, 0, 0); }, gates, setGate, pathLength, houses, svg: () => blockoutSvg(scattered),
-  exits: () => exits.map((e) => ({ id: e.id, x: e.x, z: e.z, open: e.open })), spawn: () => lastSpawn };
+  exits: () => exits.map((e) => ({ id: e.id, x: e.x, z: e.z, ...exitStatus(e) })), spawn: () => lastSpawn };
 
 if (QS.has("raid")) { G.save.lookDone = true; startRaid(onRaidEnd); setMusic("raid"); }
 else if (!G.save.lookDone) openCreator(() => goHome(), bunkerScene);

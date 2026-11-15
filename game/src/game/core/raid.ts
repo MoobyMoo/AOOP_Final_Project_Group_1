@@ -26,7 +26,7 @@ import { updateFeedback } from "../combat/feedback";
 import { updateRangFx, clearRangFx } from "../combat/rangfx";
 import { updateDashFx, clearDashFx } from "../actors/dash";
 import type { KingpinFx } from "../combat/kingpin";
-import { hud } from "../ui/hud";
+import { hud, closeLoot } from "../ui/hud";
 import { initFx, updateFx } from "../../fx";
 import { U } from "../render/shading";
 import { updateCutout } from "../render/cutout";
@@ -34,8 +34,13 @@ import { updateCampfires } from "../render/campfire";
 import { buildMinimap, updateMinimap, resetTrail, recordTrail } from "../ui/mapview";
 import { botTelemetry } from "./bot";
 import { visualGear } from "../loot/equipment";
-import { loseWornEquipment, refreshEquipment, restoreBoundKit } from "../loot/equipment-actions";
+import { refreshEquipment, restoreBoundKit } from "../loot/equipment-actions";
 import { pickEntry, type SpawnPick } from "./deployment";
+import { commitSave } from "./save";
+import { beginRaid, settleRaid } from "./settlement";
+import { checkpointInventory } from "./raid-journal";
+import { itemType, own } from "../loot/instances";
+import { placeItem } from "../loot/raidloot";
 
 const QS = new URLSearchParams(location.search);
 /** ?seed= is the world seed: map scatter, crate sockets and patrol set all derive from it (the bot has ?botseed=) */
@@ -63,7 +68,7 @@ export function buildRaidWorld() {
   if (st.lint.errors.length) console.error("map lint:", st.lint.errors); if (st.lint.warnings.length) console.warn("map lint warnings:", st.lint.warnings);
   G.stage.setScene(scn);
 }
-export type RaidResult = { how: "hatch" | "raft" | "tunnel" | "boat" | "bonked"; kept: string[]; lost: string[]; bonus: number; raidT: number; log: typeof G.log };
+export type RaidResult = { raidId: string; how: "hatch" | "raft" | "tunnel" | "boat" | "bonked"; kept: string[]; lost: string[]; bonus: number; raidT: number; log: typeof G.log };
 let onEnd: (r: RaidResult) => void = () => {};
 /** how this raid was entered (core/deployment.ts): the entry group picks the spawn, the title is the arrival banner */
 export type RaidEntry = { entryGroup?: string; title?: string };
@@ -85,11 +90,16 @@ export function startRaid(end: (r: RaidResult) => void, entry: RaidEntry = {}) {
   G.vel.set(0, 0, 0); G.moveYaw = Math.PI; G.aimYaw = Math.PI;
   G.maxHp = PLAYER.hp + 25 * G.save.upgrades.heart; G.hp = G.maxHp; G.stamina = PLAYER.stamina.max; G.staminaDelay = 0; G.sprinting = false; G.painT = 0; G.useItem = null; G.iframes = 0;
   refreshGun(); // magazine size, the extended mag's look and the fitted attachments (combat/gunstats.ts)
-  G.ammo = Math.max(KINGPIN.startAmmo, G.save.ammo); G.mag = Math.min(G.magSize, G.ammo); G.ammo -= G.mag;
+  G.ammo = G.save.ammo; G.mag = Math.min(G.magSize, G.ammo); G.ammo -= G.mag;
   G.fireCd = 0; G.fireT = 1; G.reloadT = -1; G.meleeT = -1; G.rollT = -1; G.rollCd = 0; G.skidT = 0; G.zipping = null;
   G.pouchSlots = 2; G.pack = []; G.equipping = null; G.equipmentEvents = []; refreshEquipment();
   // heals bought at home come along (up to 3)
-  for (const h of ["firstaid", "smoothie", "bandage"]) while (G.pack.length < 3 && G.save.reserved.includes(h)) { G.save.reserved.splice(G.save.reserved.indexOf(h), 1); G.pack.push(h); }
+  const outbound = structuredClone(G.save);
+  for (const h of ["firstaid", "smoothie", "bandage"]) {
+    let index = -1;
+    while (G.pack.length < 3 && (index = outbound.reserved.findIndex(inst => itemType(inst) === h)) >= 0) G.pack.push(outbound.reserved.splice(index, 1)[0]);
+  }
+  G.save = beginRaid(outbound, crypto.randomUUID(), G.pack, G.gear);
   G.discovered = new Set(); G.area = ""; G.lockTarget = null;
   G.log = { crates: 0, kills: {}, killsBy: { pistol: 0, briefcase: 0 }, shots: 0, hits: 0, hurt: 0, rolls: 0, swaps: 0, missed: 0, firstShot: -1, firstCrate: -1, firstRoll: -1, breaks: [], value: 0 };
   G.lootCtx = { raid: G.save.raids, cratesOpened: 0, usefulFound: 0, emptyStreak: 0, ammoFound: 0, orderNeeds: G.save.order && !G.save.order.done ? Object.keys(G.save.order.progress) : [] };
@@ -101,6 +111,7 @@ export function startRaid(end: (r: RaidResult) => void, entry: RaidEntry = {}) {
   { const at = QS.get("at")?.split(",").map(Number); if (at && at.length === 2 && at.every(Number.isFinite) && walkable(at[0], at[1])) { G.pp.set(at[0], 0, at[1]); G.moveYaw = G.aimYaw = Math.PI; } }
   G.pp.y = standHeight(G.pp.x, G.pp.z);
   setupCrates();
+  placeItem(own("oar"), START.x + 3, START.z + 3);
   for (const c of raidScene.children) if (!before.has(c)) c.userData.perRaid = true;
   resetHandling(); hud.build(); buildMinimap(); resetTrail(); clearBullets(); clearRangFx(); clearDashFx(); startInteractions(); bonkT = 0;
   (G.fx as KingpinFx).groundY = groundHeight; // casings land on the terrain
@@ -110,26 +121,28 @@ export function startRaid(end: (r: RaidResult) => void, entry: RaidEntry = {}) {
   setOnExtract((id, bonus) => finish(id, bonus));
   G.stage.focus.copy(G.pp); focus.copy(G.pp);
   hud.banner(entry.title ?? (DEMO ? "Exile Beach" : "Banana Grove"), G.save.raids === 0 ? "find loot, bonk bandits, get home with it" : `raid ${G.save.raids + 1}`);
+  checkpointInventory(true);
 }
-function finish(how: RaidResult["how"], bonus: number) {
+function finish(how: RaidResult["how"], bonus: number, reason: string = how) {
+  if (!G.save.activeRaid) return;
   sortPack();
-  const kept = how === "bonked" ? G.pack.slice(0, G.pouchSlots) : [...G.pack], lost = how === "bonked" ? G.pack.slice(G.pouchSlots) : [];
-  // Duckov-style corpse: a bonk-out leaves the loose pack as a satchel you can recover once next raid; a second bonk-out first loses it
-  if (how === "bonked") {
-    lost.push(...loseWornEquipment());
-    G.save.satchel = lost.length ? { items: lost, x: G.pp.x, z: G.pp.z } : null;
-    restoreBoundKit();
-  }
-  G.equipping = null;
+  checkpointInventory(true);
+  const next = settleRaid(G.save, reason, G.pouchSlots, bonus);
+  const record = next.settlements!.at(-1)!;
+  G.save = commitSave(next);
+  G.alive = false; G.equipping = null; G.useItem = null;
+  closeLoot();
+  G.gear = { ...next.gear };
+  const { kept, lost } = record;
   G.log.value = packValue();
-  G.save.ammo = G.ammo + G.mag;
   if (G.bot) botTelemetry.outcome = how === "bonked" ? { type: "bonk-out", raidT: G.raidT } : { type: "extract", exit: how, value: kept.reduce((value, id) => value + itemDef(id).value, 0), raidT: G.raidT };
-  onEnd({ how, kept, lost, bonus, raidT: G.raidT, log: G.log });
+  G.pack = [];
+  onEnd({ raidId: record.id, how, kept, lost, bonus, raidT: G.raidT, log: G.log });
 }
 let bonkT = 0;
 /** the settings menu's "Quit to bunker": leaving mid-raid counts as a bonk-out (loose pack and worn gear stay behind,
  *  the pouch comes home), so quitting can never be a free extract */
-export function quitRaid() { if (G.scene === "raid") finish("bonked", 0); }
+export function quitRaid() { if (G.scene === "raid") finish("bonked", 0, "quit"); }
 /** last frame's camera lead and focus (capture tools measure the ADS push from these) */
 export const camLead = new THREE.Vector3(), camFocus = new THREE.Vector3();
 /** Moo 2026-11-15: guns were way too big; Duckov-like proportions put a pistol at ~1/4 of the character's height */
@@ -138,6 +151,7 @@ const focus = new THREE.Vector3(), chest = new THREE.Vector3(), sockQ = new THRE
 export function stepRaid(dt: number) {
   G.raidT += dt; G.time += dt;
   updatePlayer(dt); updateBullets(dt); updateEnemies(dt); updateLoot(dt); updateInteractions(dt); recordTrail();
+  checkpointInventory();
   if (!G.alive && G.hp <= 0) { bonkT += dt; if (bonkT > 1.8 && bonkT - dt <= 1.8) finish("bonked", 0); }
 }
 /** per render frame (not per sim step): pose, camera, FX */

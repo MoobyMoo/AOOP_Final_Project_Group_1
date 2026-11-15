@@ -147,6 +147,11 @@ export type GunAtts = Record<AttSlot, string | null>;
 
 // ---------------------------------------------------------------- core/save.ts (Codex Sol)
 export type SaveV1 = {
+  activeRaid?: import("./core/settlement").RaidCheckpoint;
+  settlements?: import("./core/settlement").Settlement[];
+  delivery?: string[];
+  deployReceipt?: { id: string; paid: number };
+  boundWeapons?: { kingpin: string; briefcase: string };
   v: 1; createdAt: string; raids: number; money: number; ammo: number;
   look: MonkeyLook; lookDone: boolean; gear: Gear; locker: string[]; // gear = worn instances; locker = equipment and gun attachments kept at home (instances / ids)
   satchel: { items: string[]; x: number; z: number } | null; // pack dropped on a bonk-out: recoverable once next raid (Duckov corpse rule)

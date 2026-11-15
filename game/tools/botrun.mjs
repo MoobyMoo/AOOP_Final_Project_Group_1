@@ -6,7 +6,28 @@ import { buildEntry, captureBuild } from './botbuild.mjs';
 const outputDir = process.env.BOT_OUT ?? "playlogs/bot";
 const buildDir = process.env.BOT_DIST ?? "/tmp/bv-systems-dist";
 
+function settlementLedger(record) {
+  const identity = inst => inst.split('@')[1];
+  const before = record.before.map(identity), after = record.after.map(identity);
+  const consumed = record.consumed.map(identity), abandoned = record.abandoned.map(identity);
+  const accounted = [...after, ...consumed, ...abandoned];
+  const missing = before.filter(id => !accounted.includes(id));
+  const unexpected = accounted.filter(id => !before.includes(id));
+  const duplicates = accounted.filter((id, index) => accounted.indexOf(id) !== index);
+  assert.ok([...before, ...accounted].every(Boolean), `identified items ${record.id}`);
+  assert.equal(new Set(before).size, before.length, `unique origin items ${record.id}`);
+  assert.equal(record.rounds.before, record.rounds.after + record.rounds.spent + record.rounds.abandoned, `ammunition ledger ${record.id}`);
+  assert.deepEqual({ missing, unexpected, duplicates }, { missing: [], unexpected: [], duplicates: [] }, `item-id ledger ${record.id}`);
+  return { raidId: record.id, reason: record.reason, before, after, consumed, abandoned, missing, unexpected, duplicates, rounds: record.rounds };
+}
+
 async function selfTest() {
+  const record = { id: 'test', reason: 'hatch', before: ['banana@one', 'bandage@two'], after: ['banana@one'], consumed: ['bandage@two'], abandoned: [], rounds: { before: 12, after: 7, spent: 5, abandoned: 0 } };
+  assert.deepEqual(settlementLedger(record).missing, []);
+  assert.throws(() => settlementLedger({ ...record, after: [] }));
+  assert.throws(() => settlementLedger({ ...record, after: ['banana@one', 'banana@one'] }));
+  assert.throws(() => settlementLedger({ ...record, rounds: { ...record.rounds, spent: 4 } }));
+  console.log('PASS reject missing, duplicated and unbalanced settlement ledgers');
   assert.equal(buildEntry('<script type="module" src="/assets/game-current.js"></script>'), 'game-current.js');
   assert.throws(() => buildEntry('<script src="/assets/game-stale.js"></script>'));
   assert.throws(() => buildEntry('<script type="module" src="/assets/../game.js"></script>'));
@@ -204,7 +225,7 @@ async function runCampaign(browser, { raids, ts, greed, seed, lag = 0.25 }) {
   const url = `${base}/game.html?fresh=1&bot=1&ts=${ts}&post=0&dpr=1&fixdpr=1&greed=${greed}&lag=${lag}&seed=${seed}`;
   const started = Date.now();
   const build = await captureBuild(buildDir, base);
-  const report = { config: { raids, ts, greed, seed, lag, url }, build, started: new Date().toISOString(), errors };
+  const report = { config: { raids, ts, greed, seed, lag, url }, build, started: new Date().toISOString(), errors, itemLedger: [] };
   const destination = `${outputDir}/g${greed}-s${seed}.json`;
   let logged = -1, lastProgress = 0;
   try {
@@ -213,9 +234,16 @@ async function runCampaign(browser, { raids, ts, greed, seed, lag = 0.25 }) {
       await page.waitForTimeout(2000);
       const state = await page.evaluate(() => ({
         raids: window.__raids ?? [], events: window.__bot?.events ?? [], monitor: window.__botMonitor,
+        settlements: window.__g?.G.save.settlements ?? [],
         current: window.__g ? { scene: window.__g.G.scene, t: window.__g.G.raidT, raid: window.__g.G.save.raids, x: window.__g.G.pp.x, z: window.__g.G.pp.z, hp: window.__g.G.hp, ammo: window.__g.G.ammo + window.__g.G.mag, crates: window.__g.G.log.crates } : null,
       }));
       Object.assign(report, state, { elapsedSeconds: (Date.now() - started) / 1000 });
+      if (state.settlements.length !== report.itemLedger.length) {
+        assert.deepEqual(await captureBuild(buildDir, base), build, 'build and runtime sources unchanged during campaign');
+        const previousCount = report.itemLedger.length;
+        report.itemLedger = state.settlements.map(settlementLedger);
+        for (const diff of report.itemLedger.slice(previousCount)) console.log(JSON.stringify({ ledger: diff.raidId, reason: diff.reason, before: diff.before.length, after: diff.after.length, consumed: diff.consumed.length, abandoned: diff.abandoned.length, missing: diff.missing, unexpected: diff.unexpected, duplicates: diff.duplicates, rounds: diff.rounds }));
+      }
       if (state.raids.length !== logged || Date.now() - lastProgress > 15000) {
         logged = state.raids.length; lastProgress = Date.now();
         console.log(JSON.stringify({ greed, seed, complete: logged, ...state.current }));

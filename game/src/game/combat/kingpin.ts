@@ -16,6 +16,7 @@ import type { GunView, GunFx, GunAtts, AttSlot } from "../contracts";
 import type { Surface } from "./surface";
 import { patch, surf, TOON } from "../render/shading";
 import { MODEL_LIKE } from "../loot/attachments";
+import { itemType } from "../loot/instances";
 
 const BRASS = "#f0b548";
 const KINGPIN_URL = `${import.meta.env.BASE_URL}models/kingpin45.glb`;
@@ -247,7 +248,7 @@ export function createKingpin(): GunView {
     (p >= 0 ? restOf(p).invert().multiply(k.m) : k.m).decompose(g.position, g.quaternion, g.scale); part.add(g); mounts[slot] = g;
   }
   const shown: Partial<Record<AttSlot, string | null>> = {};
-  const model = (id: string | null) => (id ? A.atts.get(id) ?? (MODEL_LIKE[id] ? A.atts.get(MODEL_LIKE[id]) : undefined) : undefined);
+  const model = (id: string | null) => (id ? A.atts.get(itemType(id)) ?? (MODEL_LIKE[itemType(id)] ? A.atts.get(MODEL_LIKE[itemType(id)]) : undefined) : undefined);
   const laser = new THREE.Object3D(); laser.name = "laserEmit";
   const view: GunView = {
     root, muzzle, eject, laser: null,

@@ -149,7 +149,7 @@ export function updateHouses(dt: number, under = false) {
   st.sun.intensity = base.sun * (1 - 0.5 * darkK); st.hemi.intensity = base.hemi * (1 - 0.3 * darkK); st.bounce.intensity = base.bounce * (1 - 0.5 * darkK);
 }
 const doorOf = (gateId: string) => { for (const h of houses) for (const d of h.doors) if (d.gateId === gateId) return d; return null; };
-const hasKey = (id: string) => G.pack.includes(id) || G.save.keys.includes(id);
+const hasKey = (id: string) => G.pack.some(inst => inst.split(/[#@]/)[0] === id) || G.save.keys.includes(id);
 export function openDoorForEnemy(gateId: string): boolean {
   const door = doorOf(gateId), current = gate(gateId);
   if (!door || !current || current.open || door.locked) return false;
