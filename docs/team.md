@@ -2,8 +2,8 @@
 
 | 姓名 | 學號 | GitHub | Repo 權限 |
 | --- | --- | --- | --- |
-| 劉育麟 Jasper | 112511002 | jasper209405 | Write |
-| 張倖嘉 Michelle | 112511004 | michelle-151027 | Write |
+| 劉育麟 | 112511002 | jasper209405 | Write |
+| 張倖嘉 | 112511004 | michelle-151027 | Write |
 | 譚羽良 | 112511017 | MoobyMoo | Owner |
 
 2026 年 11 月 8 日核對：兩位組員已接受原 AOOP-project 的協作權限，重新命名後仍有 Write 權限，不需重複邀請。Repo 擁有者不代表已指定課程組長，繳交人仍待組內確認。

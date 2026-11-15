@@ -150,9 +150,9 @@ def main():
         body.append(paragraph(text))
     body.append(heading(7, "成員分工"))
     for text in [
-        "張倖嘉 Michelle／112511004：介面模組（UIManager 與各 UI 面板）：主選單、暫停選單、HUD、"
+        "張倖嘉／112511004：介面模組（UIManager 與各 UI 面板）：主選單、暫停選單、HUD、"
         "背包與戰利品介面、地圖介面；透過 EventBus 取得資料，不直接修改遊戲狀態。",
-        "劉育麟 Jasper／112511002：音效模組（AudioManager、SoundBank）：SFX 素材整理與命名、"
+        "劉育麟／112511002：音效模組（AudioManager、SoundBank）：SFX 素材整理與命名、"
         "事件與音效的對應、背景音樂切換、音量設定。",
         "譚羽良／112511017：遊戲核心：Entity／Actor 類別階層、戰鬥與武器、敵人 AI、搜刮與存檔，"
         "負責系統整合、架構圖維護與程式審查。",
@@ -205,7 +205,7 @@ def main():
         final_text = "".join(etree.fromstring(final.read("word/document.xml")).xpath(".//w:t/text()", namespaces=NS))
         for forbidden in ["簡述為什麼", "請附上", "請簡述", "務必注意", "1112511004"]:
             assert forbidden not in final_text, forbidden
-        for required in ["112511002", "112511004", "112511017", "Michelle", "Jasper", "SFX", "介面與選單", "Monkey Businessman", "TypeScript", "EventBus"]:
+        for required in ["112511002", "112511004", "112511017", "SFX", "介面與選單", "Monkey Businessman", "TypeScript", "EventBus"]:
             assert required in final_text, required
     report = {"reference_sha256": sha256(REFERENCE.read_bytes()).hexdigest(),
               "output_sha256": sha256(OUTPUT.read_bytes()).hexdigest(),

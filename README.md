@@ -6,8 +6,8 @@ AOOP 2026 Fall 第 1 組期末專題：**Monkey Businessman**，一款俯視角�
 
 | 姓名 | 學號 | GitHub |
 | --- | --- | --- |
-| 劉育麟 Jasper | 112511002 | [jasper209405](https://github.com/jasper209405) |
-| 張倖嘉 Michelle | 112511004 | [michelle-151027](https://github.com/michelle-151027) |
+| 劉育麟 | 112511002 | [jasper209405](https://github.com/jasper209405) |
+| 張倖嘉 | 112511004 | [michelle-151027](https://github.com/michelle-151027) |
 | 譚羽良 | 112511017 | [MoobyMoo](https://github.com/MoobyMoo) |
 
 ## 提案與繳交
@@ -25,8 +25,8 @@ AOOP 2026 Fall 第 1 組期末專題：**Monkey Businessman**，一款俯視角�
 
 ## 分工
 
-- 張倖嘉 Michelle：介面模組（UIManager）：主選單、暫停選單、HUD、背包與地圖介面。
-- 劉育麟 Jasper：音效模組（AudioManager、SoundBank）：SFX 整理、事件對應、背景音樂與音量。
+- 張倖嘉：介面模組（UIManager）：主選單、暫停選單、HUD、背包與地圖介面。
+- 劉育麟：音效模組（AudioManager、SoundBank）：SFX 整理、事件對應、背景音樂與音量。
 - 譚羽良：遊戲核心：角色與敵人類別階層、戰鬥、AI、搜刮、存檔與系統整合。
 
 ## 專案狀態

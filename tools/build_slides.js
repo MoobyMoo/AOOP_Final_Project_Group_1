@@ -132,8 +132,8 @@ function arrow(s, x, y, w) {
 {
   const s = contentSlide("分工", 6);
   const people = [
-    ["張倖嘉 Michelle", "介面模組", "UIManager、UI 面板\n主選單、暫停選單、HUD、背包與戰利品介面、地圖"],
-    ["劉育麟 Jasper", "音效模組", "AudioManager、SoundBank\nSFX 整理與命名、事件對應、背景音樂、音量"],
+    ["張倖嘉", "介面模組", "UIManager、UI 面板\n主選單、暫停選單、HUD、背包與戰利品介面、地圖"],
+    ["劉育麟", "音效模組", "AudioManager、SoundBank\nSFX 整理與命名、事件對應、背景音樂、音量"],
     ["譚羽良", "遊戲核心與整合", "類別階層、戰鬥與武器、敵人 AI、搜刮、存檔\n系統整合、程式審查"],
   ];
   people.forEach(([name, role, body], i) => {

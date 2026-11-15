@@ -43,8 +43,8 @@ AOOP_Final_Project_Group_1：Monkey Businessman
 
 | 組員 | 負責工作 |
 | --- | --- |
-| 張倖嘉 Michelle／112511004 | 介面模組（UIManager 與 UI 面板）：主選單、暫停選單、HUD、背包與戰利品介面、地圖 |
-| 劉育麟 Jasper／112511002 | 音效模組（AudioManager、SoundBank）：SFX 整理與命名、事件對應、背景音樂、音量設定 |
+| 張倖嘉／112511004 | 介面模組（UIManager 與 UI 面板）：主選單、暫停選單、HUD、背包與戰利品介面、地圖 |
+| 劉育麟／112511002 | 音效模組（AudioManager、SoundBank）：SFX 整理與命名、事件對應、背景音樂、音量設定 |
 | 譚羽良／112511017 | 遊戲核心：類別階層、戰鬥與武器、敵人 AI、搜刮與存檔、系統整合與程式審查 |
 
 三人各自用自己的 GitHub 帳號在分支提交，以 Pull Request 合併。
