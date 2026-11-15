@@ -121,7 +121,7 @@ export function resetProps() {
     setGate(w.id, open);
   }
   const vine = G.save.keys.includes("vine_key"); setGate("vine", vine); vineK = vine ? 1 : 0; if (vineLeaf) vineLeaf.rotation.y = vine ? K.DOOR_OPEN : 0;
-  const tunnel = G.save.fixtures.includes("open:grotto-rubble");
+  const tunnel = !DEMO && G.save.fixtures.includes("open:grotto-rubble"); // the demo's tunnel is caved in whatever the save says
   for (const e of exits) { e.armed = false; e.fill.scale.setScalar(0.01); if (e.id === "tunnel") { e.open = tunnel; e.ring.visible = e.fill.visible = tunnel; } }
   if (hatchLid) hatchLid.rotation.x = 0; leverT = -1; if (lever) lever.rotation.x = 0;
 }
