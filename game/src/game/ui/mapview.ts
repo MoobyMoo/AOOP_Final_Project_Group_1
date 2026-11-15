@@ -54,6 +54,22 @@ export function buildMapShots(scene?: THREE.Scene) {
   if (new URLSearchParams(location.search).has("dev")) (window as unknown as { __map: unknown }).__map = { imgs, open: (l?: Level) => { if (!el) open(l); }, setLevel: (l: Level) => setLevel(l) };
 }
 
+/** a north-up square crop of the surface map around (x, z), radius r u, with a landing pin at the centre: the
+ *  destination cards in the vault (home/dispatch.ts). Cached per call site; null before the bake ran. */
+const crops = new Map<string, string>();
+export function mapCrop(x: number, z: number, r: number, px = 240): string | null {
+  const m = imgs.surface, k = `${x},${z},${r},${px}`;
+  if (!m) return null;
+  if (crops.has(k)) return crops.get(k)!;
+  const c = document.createElement("canvas"); c.width = c.height = px; const g = c.getContext("2d")!;
+  g.fillStyle = "#24302e"; g.fillRect(0, 0, px, px);
+  g.drawImage(m.canvas, (x - r - m.minX) * m.ppu, (z - r - m.minZ) * m.ppu, 2 * r * m.ppu, 2 * r * m.ppu, 0, 0, px, px);
+  const h = px / 2; g.fillStyle = "rgba(20,14,10,.45)"; g.beginPath(); g.ellipse(h, h + 3, 9, 4, 0, 0, 7); g.fill();
+  g.fillStyle = "#f46a10"; g.strokeStyle = "#1c120b"; g.lineWidth = 2.5; g.beginPath(); g.moveTo(h, h + 2); g.bezierCurveTo(h - 12, h - 12, h - 9, h - 26, h, h - 26); g.bezierCurveTo(h + 9, h - 26, h + 12, h - 12, h, h + 2); g.fill(); g.stroke();
+  g.fillStyle = "#f3ead6"; g.beginPath(); g.arc(h, h - 16, 4, 0, 7); g.fill();
+  const url = c.toDataURL("image/webp", 0.9); crops.set(k, url); return url;
+}
+
 // ---------------------------------------------------------------- explored trail (research/duckov-map rule 4)
 const trail: { x: number; z: number }[] = [];
 export function resetTrail() { trail.length = 0; trailKey = -1; }

@@ -31,7 +31,7 @@ export function view(): BotObservation {
     exits: exits.map(e => ({ id: e.id, x: e.x, z: e.z, open: e.open })),
     portals: portalMarks.filter(portal => !portal.id.startsWith("zip-")).map(portal => ({ id: portal.id, x: portal.x, z: portal.z, to: portal.to })),
     gates: gates.map(gate => ({ id: gate.id, x: gate.x, z: gate.z, nx: gate.nx, nz: gate.nz, open: gate.open, breakable: gate.hp !== undefined, usable: !gate.locked || G.pack.includes(gate.locked) || G.save.keys.includes(gate.locked) })),
-    stations: stations.map((s) => ({ id: s.id === "trophies" ? "orders" : s.id, x: s.x, z: s.z })),
+    stations: stations.flatMap((s) => { const id = s.id === "trophies" ? "orders" : s.id === "deploy" ? "ladder" : s.id === "locker" ? "mirror" : s.id; return id === "sell" || id === "bench" || id === "orders" || id === "ladder" || id === "mirror" || id === "sal" ? [{ id, x: s.x, z: s.z }] : []; }),
     upgrades: { ...G.save.upgrades },
     walkable, path, safePath: (fx, fz, tx, tz, allow) => path(fx, fz, tx, tz, 60000, allow), los, raidT: G.raidT, money: G.save.money, raids: G.save.raids, doorOpen: gridState.doorOpen, hasKey: G.pack.includes("vine_key"),
   };

@@ -35,6 +35,7 @@ import { buildMinimap, updateMinimap, resetTrail, recordTrail } from "../ui/mapv
 import { botTelemetry } from "./bot";
 import { visualGear } from "../loot/equipment";
 import { loseWornEquipment, refreshEquipment, restoreBoundKit } from "../loot/equipment-actions";
+import { pickEntry, type SpawnPick } from "./deployment";
 
 const QS = new URLSearchParams(location.search);
 /** ?seed= is the world seed: map scatter, crate sockets and patrol set all derive from it (the bot has ?botseed=) */
@@ -64,7 +65,11 @@ export function buildRaidWorld() {
 }
 export type RaidResult = { how: "hatch" | "raft" | "tunnel" | "boat" | "bonked"; kept: string[]; lost: string[]; bonus: number; raidT: number; log: typeof G.log };
 let onEnd: (r: RaidResult) => void = () => {};
-export function startRaid(end: (r: RaidResult) => void) {
+/** how this raid was entered (core/deployment.ts): the entry group picks the spawn, the title is the arrival banner */
+export type RaidEntry = { entryGroup?: string; title?: string };
+/** the last spawn choice (tests, captures): which candidate, its enemy clearance, and any fallback taken */
+export let lastSpawn: SpawnPick | null = null;
+export function startRaid(end: (r: RaidResult) => void, entry: RaidEntry = {}) {
   if (G.bot) { botTelemetry.raidId = G.save.raids; botTelemetry.outcome = undefined; botTelemetry.combatEvents = []; }
   onEnd = end; buildRaidWorld(); G.stage.setScene(raidScene); initFx(raidScene, G.stage.camera);
   G.scene = "raid"; G.raidT = 0; G.alive = true; G.seed = (Math.imul(WORLD_SEED, 2654435761) + G.save.raids * 7919 + 13) >>> 0; G.rng = mulberry32(G.seed);
@@ -75,8 +80,7 @@ export function startRaid(end: (r: RaidResult) => void) {
   if (!G.rig) { G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); }
   G.rig.setLook?.(G.save.look); G.gear = { ...G.save.gear }; restoreBoundKit(); G.rig.setGear?.(G.gear);
   raidScene.add(G.rig.root);
-  G.pp = G.rig.root.position; G.pp.set(START.x, 0, START.z); // just outside the hatch ring
-  { const at = QS.get("at")?.split(",").map(Number); if (at && at.length === 2 && at.every(Number.isFinite) && walkable(at[0], at[1])) G.pp.set(at[0], 0, at[1]); } // ?at=x,z: start somewhere else (captures, tests)
+  G.pp = G.rig.root.position; G.pp.set(START.x, 0, START.z); // just outside the hatch ring (placed for real below, once the enemies stand)
   G.pp.y = standHeight(G.pp.x, G.pp.z);
   G.vel.set(0, 0, 0); G.moveYaw = Math.PI; G.aimYaw = Math.PI;
   G.maxHp = PLAYER.hp + 25 * G.save.upgrades.heart; G.hp = G.maxHp; G.stamina = PLAYER.stamina.max; G.staminaDelay = 0; G.sprinting = false; G.painT = 0; G.useItem = null; G.iframes = 0;
@@ -90,6 +94,12 @@ export function startRaid(end: (r: RaidResult) => void) {
   G.log = { crates: 0, kills: {}, killsBy: { pistol: 0, briefcase: 0 }, shots: 0, hits: 0, hurt: 0, rolls: 0, swaps: 0, missed: 0, firstShot: -1, firstCrate: -1, firstRoll: -1, breaks: [], value: 0 };
   G.lootCtx = { raid: G.save.raids, cratesOpened: 0, usefulFound: 0, emptyStreak: 0, ammoFound: 0, orderNeeds: G.save.order && !G.save.order.done ? Object.keys(G.save.order.progress) : [] };
   if (QS.has("peace")) { for (const e of G.enemies) e.rig.dispose(); G.enemies = []; } else spawnEnemies((G.save.raids + WORLD_SEED) % 2);
+  // the spawn (SYSTEMS_PORT R02): an explicit ?at=x,z wins (captures, tests), else a safe candidate of the entry group
+  lastSpawn = pickEntry(entry.entryGroup ?? "beach", G.enemies.filter((e) => !e.down).map((e) => e.p), walkable, G.seed);
+  if (lastSpawn.fallback) console.warn(`spawn: no safe ${entry.entryGroup ?? "beach"} candidate, fallback "${lastSpawn.fallback}" at ${lastSpawn.entry.id} (nearest enemy ${lastSpawn.clearance.toFixed(1)} u)`);
+  G.pp.set(lastSpawn.entry.x, 0, lastSpawn.entry.z); G.moveYaw = G.aimYaw = lastSpawn.entry.facing;
+  { const at = QS.get("at")?.split(",").map(Number); if (at && at.length === 2 && at.every(Number.isFinite) && walkable(at[0], at[1])) { G.pp.set(at[0], 0, at[1]); G.moveYaw = G.aimYaw = Math.PI; } }
+  G.pp.y = standHeight(G.pp.x, G.pp.z);
   setupCrates();
   for (const c of raidScene.children) if (!before.has(c)) c.userData.perRaid = true;
   resetHandling(); hud.build(); buildMinimap(); resetTrail(); clearBullets(); clearRangFx(); clearDashFx(); startInteractions(); bonkT = 0;
@@ -99,7 +109,7 @@ export function startRaid(end: (r: RaidResult) => void) {
   G.stage.renderer.compile(raidScene, G.stage.camera); hidden.forEach((o) => (o.visible = false));
   setOnExtract((id, bonus) => finish(id, bonus));
   G.stage.focus.copy(G.pp); focus.copy(G.pp);
-  hud.banner(DEMO ? "Exile Beach" : "Banana Grove", G.save.raids === 0 ? "find loot, bonk bandits, get home with it" : `raid ${G.save.raids + 1}`);
+  hud.banner(entry.title ?? (DEMO ? "Exile Beach" : "Banana Grove"), G.save.raids === 0 ? "find loot, bonk bandits, get home with it" : `raid ${G.save.raids + 1}`);
 }
 function finish(how: RaidResult["how"], bonus: number) {
   sortPack();
