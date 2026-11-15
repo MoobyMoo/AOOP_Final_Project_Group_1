@@ -584,7 +584,7 @@ export const CONTAINER_SOCKETS: ContainerSocket[] = [
   cs("farm-porch", "food", { x: -1.6, z: 17.8 }, "the farmhouse porch"),
   // ammo: guard posts
   cs("ferry-locker", "ammo", at("ferry", -2.6, 1.6), "the ferry's guard locker", { in: "ferry" }),
-  cs("hut-post", "ammo", { x: 10.6, z: 75.6 }, "the checkpoint guard's post"),
+  cs("hut-post", "ammo", { x: 11.0, z: 74.6 }, "the checkpoint guard's post"),
   cs("camp-gatepost", "ammo", { x: -54.8, z: 39.0 }, "the camp's south gate post"),
   cs("barn-sentry", "ammo", at("barn", -1.0, -2.0), "the barn sentry", { in: "barn" }),
   cs("lookout-post", "ammo", { x: -40.9, z: 57.8 }, "the bandit lookout"),
@@ -592,7 +592,7 @@ export const CONTAINER_SOCKETS: ContainerSocket[] = [
   // parts: workshops, wrecks, boats, machines
   cs("beach-wreck", "parts", { x: 31.4, z: 101.2 }, "a wreck's worth of flotsam on the beach"),
   cs("ferry-engine", "parts", { x: 57.3, z: 104.6 }, "by the ferry's stern"),
-  cs("hut-bench", "parts", { x: 10.6, z: 78.6 }, "the checkpoint hut's workbench, round the back"),
+  cs("hut-bench", "parts", { x: 9.0, z: 74.2 }, "the checkpoint hut's workbench, round the back"),
   cs("camp-workshop", "parts", { x: -71.4, z: 36.8 }, "the camp's workshop by the crate stacks"),
   cs("barn-parts", "parts", at("barn", 1.0, 1.2), "the barn's parts bins", { in: "barn" }),
   cs("cove-repair", "parts", { x: -84.8, z: 102.6 }, "the cove boat's repair kit"),
@@ -604,7 +604,7 @@ export const CONTAINER_SOCKETS: ContainerSocket[] = [
   cs("camp-tent", "medical", { x: -57.4, z: 22 }, "the camp's treatment tent"),
   cs("farm-bedside", "medical", at("farmhouse", -3.4, 1.4), "the farmhouse bedside", { in: "farmhouse" }),
   // weapon: the secured places
-  cs("hut-rack", "weapon", at("hut-south", -0.7, 0), "the checkpoint hut's locked rack", { in: "hut-south" }),
+  cs("hut-rack", "weapon", { x: 10.6, z: 78.4 }, "the checkpoint's locked rack, behind the hut") /* inside, the hut is too small to stand beside it (bot softlock, G1.5 matrix) */,
   cs("barn-shelf", "weapon", at("barn", -0.6, 4.0), "the barn's secured shelf", { in: "barn" }),
 ];
 /** portals the demo shuts (the grotto's two ways in) */
