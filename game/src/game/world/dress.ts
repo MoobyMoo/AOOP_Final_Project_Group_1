@@ -7,8 +7,8 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { KitPiece, MatId, Placed } from "../contracts";
 import { bake, M, mergePieces, kitMaterial } from "./kitutil";
-import { edgeDist, inside, roadDist, isUnder } from "./grid";
-import { groundHeight, groundColor, isGrass, POOL_Y } from "./terrain";
+import { edgeDist, inside, isUnder } from "./grid";
+import { groundHeight, grassColor, turfAt, POOL_Y } from "./terrain";
 import { BOUNDS, UNDER_X } from "./map/grove";
 import type { EdgeKind } from "./map/types";
 import { withCutout } from "../render/cutout";
@@ -230,20 +230,26 @@ export function dressEdges(rng: () => number) {
 export function buildGrass(scene: THREE.Scene, rng: () => number, tuft: THREE.BufferGeometry, noGrass: (x: number, z: number) => boolean = () => false) {
   const per = new Map<string, number[][]>();
   const W = BOUNDS.maxX - BOUNDS.minX, H = BOUNDS.maxZ - BOUNDS.minZ, samples = Math.round(W * H * 3.4);
+  // Turf runs at full density right up to its edge and a fringe of smaller tufts spills 0.3 to 0.6 u onto the bare
+  // ground (Duckov ref_291: a crisp grass edge with tufts over the dirt). One unit of turf mask is 2.4 u of ground.
+  const SPILL = 0.24;
   for (let i = 0; i < samples; i++) {
     const x = BOUNDS.minX + rng() * W, z = BOUNDS.minZ + rng() * H; if (x > UNDER_X - 8) continue;
-    const d = edgeDist(x, z); if (d < 0.4 || !isGrass(x, z)) continue;
-    const rd = roadDist(x, z); if (rd < 0.5) continue;
-    const dens = fbm(x * 0.1 + 3, z * 0.1); if (dens < 0.44) continue;
-    const edgeK = THREE.MathUtils.smoothstep(Math.min(d, rd + 0.4), 0.4, 2.2); if (rng() > edgeK) continue; // thin out toward edges and roads, no hard lines
+    const d = edgeDist(x, z); if (d < 0.4) continue;
+    const t = turfAt(x, z); if (t < 0.5 - SPILL) continue;
+    const rim = t < 0.72, dens = fbm(x * 0.1 + 3, z * 0.1);
+    if (!rim && dens < 0.44) continue;
+    if (rim && rng() > (t < 0.5 ? 0.3 + (t - 0.5 + SPILL) / SPILL * 0.5 : 0.92)) continue; // the fringe thins out as it leaves the turf
+    const edgeK = THREE.MathUtils.smoothstep(d, 0.4, 2.2); if (rng() > edgeK) continue; // thin out toward the world edge
     if (noGrass(x, z) || groundHeight(x, z) < -0.06) continue; // not on floors, not under water
-    const key = `${Math.floor(x / CH)},${Math.floor(z / CH)}`; (per.get(key) ?? per.set(key, []).get(key)!).push([x, z, (0.7 + dens * 0.9) * (0.6 + edgeK * 0.4)]);
+    const size = t < 0.5 ? 0.5 + (t - 0.5 + SPILL) / SPILL * 0.35 : rim ? 0.85 + dens * 0.5 : 0.7 + dens * 0.9;
+    const key = `${Math.floor(x / CH)},${Math.floor(z / CH)}`; (per.get(key) ?? per.set(key, []).get(key)!).push([x, z, size * (0.6 + edgeK * 0.4)]);
   }
   const mat = patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }), { rim: 0.25, grass: true });
   const m = new THREE.Matrix4(), c = new THREE.Color(); let total = 0;
   for (const [, spots] of per) {
     const im = new THREE.InstancedMesh(tuft, mat, spots.length); im.name = "grass";
-    spots.forEach(([x, z, s], i) => { m.makeScale(s, s * (0.6 + rng() * 0.8), s).setPosition(x, groundHeight(x, z), z); im.setMatrixAt(i, m); groundColor(x, z, c); c.multiplyScalar(1.04); im.setColorAt(i, c); });
+    spots.forEach(([x, z, s], i) => { m.makeScale(s, s * (0.6 + rng() * 0.8), s).setPosition(x, groundHeight(x, z), z); im.setMatrixAt(i, m); grassColor(x, z, c); c.multiplyScalar(1.04); im.setColorAt(i, c); });
     im.computeBoundingSphere(); im.receiveShadow = true; scene.add(im); total += spots.length;
   }
   return total;

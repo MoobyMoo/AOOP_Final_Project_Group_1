@@ -4,8 +4,8 @@
 // a berm under the jungle edge and a rock rise under the cliffs, a causeway where a road crosses the swamp.
 // Colours follow the L3 council re-grade (olive/teal greens, bright dirt, cool shade).
 import * as THREE from "three";
-import { ZONES, ROADS, PLACED, BOUNDS, UNDER_X, SEA_Z, RIVER_Z } from "./map/grove";
-import { polySigned, type Ground, type EdgeKind } from "./map/types";
+import { ZONES, ROADS, PLACED, BOUNDS, UNDER_X, SEA_Z, RIVER_Z, SHAPES } from "./map/grove";
+import { polySigned, segDist, type Ground, type EdgeKind } from "./map/types";
 import { edgeDist, roadDist, zoneAt } from "./grid";
 import { fbm } from "./noise";
 import { patch } from "../render/shading";
@@ -14,7 +14,7 @@ export const GROUND_C: Record<Ground | "jungle" | "wet" | "rock", THREE.Color> =
   grass: new THREE.Color("#86a64e"), sand: new THREE.Color("#dcc08a"), dirt: new THREE.Color("#ceb47f"), stone: new THREE.Color("#c4ab84"),
   cave: new THREE.Color("#6f6458"), plank: new THREE.Color("#b08f62"), mud: new THREE.Color("#7c7f58"), jungle: new THREE.Color("#5e7d3e"), wet: new THREE.Color("#b89c6a"), rock: new THREE.Color("#9d8f7a"),
 };
-const G2 = { grassDry: new THREE.Color("#9aa85c"), grassMoist: new THREE.Color("#6f8a48"), worn: new THREE.Color("#a99262"), dirtD: new THREE.Color("#bba06c"), caveL: new THREE.Color("#7d7062"), rockD: new THREE.Color("#7f7466"), deep: new THREE.Color("#5f8f86") };
+const G2 = { yard: new THREE.Color("#63803f"), loam: new THREE.Color("#6f6748"), grassDry: new THREE.Color("#9aa85c"), grassMoist: new THREE.Color("#6f8a48"), worn: new THREE.Color("#a99262"), dirtD: new THREE.Color("#bba06c"), caveL: new THREE.Color("#7d7062"), rockD: new THREE.Color("#7f7466"), deep: new THREE.Color("#5f8f86") };
 const sstep = THREE.MathUtils.smoothstep;
 const FLAT = ZONES.filter((z) => z.flat).map((z) => ({ z, bb: bbox(z.pts, 4) }));
 const WET = ZONES.filter((z) => z.water !== undefined).map((z) => ({ z, bb: bbox(z.pts, 5) }));
@@ -53,38 +53,145 @@ export function groundHeight(x: number, z: number) {
   return (f[i] * (1 - u) + f[i + 1] * u) * (1 - v) + (f[i + FW] * (1 - u) + f[i + FW + 1] * u) * v;
 }
 const tmp = new THREE.Color();
-export function groundColor(x: number, z: number, out = new THREE.Color()) {
+// ---- ground paint (G1 council fix round 1, F2 item 2). The ground is two layers and a mask: the bare surface (dirt,
+// sand, stone, rock), the turf, and how much turf there is. The mask is a linear ramp across each edge (0.5 on the
+// edge itself), so the shader can cut a crisp, ragged turf line through it per pixel instead of the old half-metre
+// airbrushed blend between vertices. A second field carries the distance from the waterline for the shore bands.
+const OVER = (SHAPES.find((q) => q.t === "poly") as Extract<(typeof SHAPES)[number], { t: "poly" }>).pts;
+/** signed distance to the nearest sea or river edge of the outline (> 0 on land), 9 when none is near */
+function coastDist(x: number, z: number, d: number) {
+  if (Math.abs(d) > 9) return 9;
+  let q = 9;
+  for (let i = 0, j = OVER.length - 1; i < OVER.length; j = i++) { const k = OVER[j][2]; if (k !== "coast" && k !== "river") continue; q = Math.min(q, segDist(x, z, OVER[j][0], OVER[j][1], OVER[i][0], OVER[i][1])); }
+  return q >= 9 ? 9 : d > 0 ? q : -q;
+}
+/** 0..1 across an edge: 0.5 on it, linear over 2r so the shader's threshold moves evenly */
+const ramp = (sd: number, r = 1.2) => Math.max(0, Math.min(1, 0.5 + sd / (2 * r)));
+export type GroundMask = { /** turf: > 0.5 is grass */ g: number; /** u inland from the outline along a coast (9 = no coast near) */ shore: number; /** how much surface mottling the bare ground takes */ fine: number };
+const gm: GroundMask = { g: 1, shore: 9, fine: 1 };
+const FINE: Record<Ground, number> = { grass: 1, sand: 1, dirt: 1, stone: 0.55, cave: 0.5, plank: 0.3, mud: 0.6 };
+/** the authored ground at a point: the bare colour, the turf colour and the masks */
+export function sampleGround(x: number, z: number, bare: THREE.Color, grass: THREE.Color, o: GroundMask = gm): GroundMask {
   const n = fbm(x * 0.06, z * 0.06), m = fbm(x * 0.45 + 9, z * 0.45), wob = (fbm(x * 0.21 + 40, z * 0.21) - 0.5) * 2.4;
   const d = edgeDist(x, z, info), kind = info.kind;
-  if (x > UNDER_X) { out.copy(GROUND_C.cave).lerp(G2.caveL, m * 0.6); if (d < 0) out.lerp(G2.rockD, sstep(-d, 0, 1.5) * 0.7).multiplyScalar(1 - sstep(-d, 1.5, 4) * 0.45); else { const rd = roadDist(x, z); out.lerp(G2.caveL, (1 - sstep(rd, -0.6, 0.8)) * 0.5); } return out; }
-  out.copy(G2.grassMoist).lerp(G2.grassDry, sstep(n, 0.35, 0.7)).lerp(G2.worn, sstep(m, 0.62, 0.82) * 0.5);
+  o.shore = 9; o.fine = 1; o.g = 0;
+  if (x > UNDER_X) {
+    bare.copy(GROUND_C.cave).lerp(G2.caveL, m * 0.6);
+    if (d < 0) bare.lerp(G2.rockD, sstep(-d, 0, 1.5) * 0.7).multiplyScalar(1 - sstep(-d, 1.5, 4) * 0.45); else bare.lerp(G2.caveL, (1 - sstep(roadDist(x, z), -0.6, 0.8)) * 0.5);
+    grass.copy(bare); o.fine = FINE.cave; return o;
+  }
+  grass.copy(G2.grassMoist).lerp(G2.grassDry, sstep(n, 0.35, 0.7)).lerp(G2.worn, sstep(m, 0.62, 0.82) * 0.3);
+  bare.copy(GROUND_C.dirt).lerp(G2.dirtD, m);
+  let g = 1, fine = 1;
   for (const p of PAINT) {
     if (!inBB(p.bb, x, z)) continue;
-    let k = sstep(polySigned(p.z.pts, x, z) + wob, -1.6, 1.4); if (k <= 0) continue;
-    if (p.z.ground === "dirt" || p.z.ground === "stone") k *= 1 - grassPatch(x, z) * 0.85; // worn yards keep islands of grass (Duckov frames: dirt and turf interleave round buildings)
-    const g = p.z.ground; tmp.copy(GROUND_C[g]); if (g === "dirt") tmp.lerp(G2.dirtD, m); else if (g === "stone") tmp.lerp(G2.worn, m * 0.35); else if (g === "sand") tmp.lerp(G2.dirtD, sstep(m, 0.6, 0.9) * 0.25); else if (g === "mud") tmp.lerp(G2.deep, sstep(m, 0.3, 0.8) * 0.4);
-    out.lerp(tmp, k);
+    const sd = polySigned(p.z.pts, x, z) + wob; if (sd < -3.2) continue;
+    const gr = p.z.ground, kc = sstep(sd, -2.8, 0.2);
+    tmp.copy(GROUND_C[gr]); if (gr === "dirt") tmp.lerp(G2.dirtD, m); else if (gr === "stone") tmp.lerp(G2.worn, m * 0.35); else if (gr === "sand") tmp.lerp(G2.dirtD, sstep(m, 0.6, 0.9) * 0.25); else if (gr === "mud") tmp.lerp(G2.deep, sstep(m, 0.3, 0.8) * 0.4);
+    bare.lerp(tmp, kc); fine += (FINE[gr] - fine) * kc;
+    let k = ramp(sd);
+    // worn yards keep islands of turf (Duckov frames: dirt and turf interleave round buildings); it grows darker and
+    // moister there than the open meadow, so it parts from pale sandstone and lit dirt (Sol's "quieter grass-root colour")
+    if (gr === "dirt" || gr === "stone") { k *= 1 - grassPatch(x, z); grass.lerp(G2.yard, kc * 0.75); }
+    g = Math.min(g, 1 - k);
   }
   const rd = roadDist(x, z, rinfo), road = rinfo.road;
-  if (road && rd < 1.2) { const k = 1 - sstep(rd + wob * 0.22, -0.5, 0.7), g = road.ground; tmp.copy(GROUND_C[g]); if (g === "dirt") tmp.lerp(G2.dirtD, m); if (g === "plank") tmp.multiplyScalar(0.8); out.lerp(tmp, k * (g === "sand" ? 0.5 : 0.92)); }
-  if (d < 1.5) {
-    if (kind === "coast" || kind === "river") out.lerp(GROUND_C.wet, sstep(-d, -1.5, 1.2)).lerp(G2.deep, sstep(-d, 1.5, 6) * 0.6);
-    else if (kind === "cliff") out.lerp(GROUND_C.rock, sstep(-d, -0.8, 1.6)).lerp(G2.rockD, sstep(m, 0.4, 0.8) * sstep(-d, 0, 2) * 0.6);
-    else out.lerp(GROUND_C.jungle, sstep(-d, -1.5, 3));
+  if (road && rd < 2.4) {
+    const sd = -(rd + wob * 0.2), gr = road.ground, kc = sstep(sd, -1.5, 0.1) * (gr === "sand" ? 0.6 : 1);
+    tmp.copy(GROUND_C[gr]); if (gr === "dirt") tmp.lerp(G2.dirtD, m * 0.7).multiplyScalar(1.03); if (gr === "plank") tmp.multiplyScalar(0.8);
+    bare.lerp(tmp, kc); fine += (FINE[gr] - fine) * kc; g = Math.min(g, 1 - ramp(sd, 0.9));
   }
+  if (d < 4) {
+    if (kind === "coast" || kind === "river") { bare.lerp(GROUND_C.sand, sstep(-d, -3, -0.6) * 0.85).lerp(G2.deep, sstep(-d, 1.5, 6) * 0.6); g = Math.min(g, ramp(d - 2.0 + wob * 0.3)); }
+    else if (kind === "cliff") { bare.lerp(GROUND_C.rock, sstep(-d, -1.6, 1.0)).lerp(G2.rockD, sstep(m, 0.4, 0.8) * sstep(-d, 0, 2) * 0.6); g = Math.min(g, ramp(d + 0.3 + wob * 0.25)); fine += (0.6 - fine) * sstep(-d, -1.6, 1.0); }
+    else { const k = sstep(-d, -1.5, 3); grass.lerp(GROUND_C.jungle, k); bare.lerp(G2.loam, k); }
+  }
+  o.shore = coastDist(x, z, d); o.g = g; o.fine = fine; return o;
+}
+const cB = new THREE.Color(), cG = new THREE.Color();
+/** the blended ground colour at a point (map screen, anything that wants one colour) */
+export function groundColor(x: number, z: number, out = new THREE.Color()) { const o = sampleGround(x, z, cB, cG); return out.copy(cB).lerp(cG, sstep(o.g, 0.42, 0.58)); }
+/** 0..1 mask of the grass islands inside dirt and stone yards (off the roads) */
+export function grassPatch(x: number, z: number) { return sstep(fbm(x * 0.085 + 31, z * 0.085 + 17), 0.5, 0.74) * sstep(roadDist(x, z), 0.2, 2.4); }
+// ---- the 1 u turf field: what the grass planting and isGrass() read (bilinear, same grid as the height field)
+let turf: Float32Array | null = null;
+function ensureTurf() {
+  if (turf) return turf; turf = new Float32Array(FW * FH); const o: GroundMask = { g: 0, shore: 9, fine: 1 };
+  for (let r = 0; r < FH; r++) for (let c = 0; c < FW; c++) turf[r * FW + c] = sampleGround(FX0 + c, FZ0 + r, cB, cG, o).g;
+  return turf;
+}
+/** the turf mask at a point: > 0.5 is grass, 0.5 is the edge, one unit of mask is 2.4 u of ground */
+export function turfAt(x: number, z: number) {
+  const f = ensureTurf(), fx = Math.max(0, Math.min(FW - 1.001, x - FX0)), fz = Math.max(0, Math.min(FH - 1.001, z - FZ0)), c = Math.floor(fx), r = Math.floor(fz), u = fx - c, v = fz - r, i = r * FW + c;
+  return (f[i] * (1 - u) + f[i + 1] * u) * (1 - v) + (f[i + FW] * (1 - u) + f[i + FW + 1] * u) * v;
+}
+/** is the ground under a point grass (tufts grow there)? */
+export function isGrass(x: number, z: number) { return x < UNDER_X && turfAt(x, z) > 0.5; }
+/** the turf colour at a point, whatever the mask says (grass tufts that spill onto the dirt keep it) */
+export function grassColor(x: number, z: number, out = new THREE.Color()) {
+  const n = fbm(x * 0.06, z * 0.06), m = fbm(x * 0.45 + 9, z * 0.45), zn = zoneAt(x, z);
+  out.copy(G2.grassMoist).lerp(G2.grassDry, sstep(n, 0.35, 0.7)).lerp(G2.worn, sstep(m, 0.62, 0.82) * 0.3);
+  if (zn && (zn.ground === "dirt" || zn.ground === "stone")) out.lerp(G2.yard, 0.75);
+  const d = edgeDist(x, z, info); if (d < 1.5 && info.kind === "jungle") out.lerp(GROUND_C.jungle, sstep(-d, -1.5, 3));
   return out;
 }
-/** 0..1 mask of the grass islands inside dirt and stone yards (off the roads) */
-export function grassPatch(x: number, z: number) { return sstep(fbm(x * 0.085 + 31, z * 0.085 + 17), 0.56, 0.68) * sstep(roadDist(x, z), 0.6, 2.6); }
-/** is the ground under a point grass (tufts grow there)? */
-export function isGrass(x: number, z: number) { const zn = zoneAt(x, z); return !zn || zn.ground === "grass" || ((zn.ground === "dirt" || zn.ground === "stone") && !zn.under && grassPatch(x, z) > 0.6); }
+
+// The ground shader: runs after shading.ts's patch (it uses its world position, clock and noise).
+const GROUND_GLSL = /* glsl */ `
+  { vec2 wp = vWPos.xz;
+    float n1 = lt_noise(wp * 0.85 + 3.0), n2 = lt_noise(wp * 3.3 + 17.0);
+    // turf edge: a crisp line through the mask, pushed about by two scales of noise so it never runs ruled
+    float e = vMask.x + (n1 - 0.5) * 0.3 + (n2 - 0.5) * 0.12;
+    float gk = smoothstep(0.475, 0.525, e);
+    vec3 bare = vColor.rgb;
+    // bare ground: mid-scale mottling (plus or minus 8 percent at 3 to 5 m) and a fine grain, so no plate is one tone
+    float b1 = lt_noise(wp * 0.23 + 5.0), b2 = lt_noise(wp * 0.57 + 31.0), b3 = lt_noise(wp * 4.7);
+    float blot = smoothstep(0.32, 0.68, b1 * 0.62 + b2 * 0.38);
+    // Sunlit dirt sits on the tone mapper's shoulder, where 8 percent of light is 2 percent on screen: the swing is
+    // wider in light and biased down so it lands as about 8 percent of displayed value.
+    bare *= 1.0 + ((blot - 0.6) * 0.34 + (b3 - 0.5) * 0.07 + (n2 - 0.5) * 0.05) * vMask.z;
+    // the soil shoulder: darker, damper earth in a narrow band under the turf edge
+    float lip = smoothstep(0.31, 0.46, e) * (1.0 - gk);
+    bare = mix(bare, bare * vec3(0.55, 0.58, 0.52), lip * 0.75);
+    // the shore: wet sand under the lapping line, a damp margin, a wrack line of drift at the high-water mark
+    float sh = vMask.y;
+    if (sh < 6.0) {
+      float lap = sin(uTime * 0.8 + wp.x * 0.23 + wp.y * 0.19) * 0.13;
+      float sd = sh + (n1 - 0.5) * 0.8 + (n2 - 0.5) * 0.22;
+      float wet = 1.0 - smoothstep(-0.5, -0.28, sd - lap);
+      float damp = (1.0 - smoothstep(0.75, 1.25, sd)) * (1.0 - wet);
+      bare *= mix(vec3(1.0), vec3(0.8, 0.84, 0.84), damp);
+      bare = mix(bare, bare * vec3(0.5, 0.6, 0.62), wet);
+      float wr = smoothstep(0.26, 0.06, abs(sd - 1.5)) * smoothstep(0.3, 0.55, lt_noise(wp * 1.4 + 7.0));
+      wr = max(wr, 0.6 * smoothstep(0.16, 0.04, abs(sd - 3.3)) * smoothstep(0.45, 0.65, lt_noise(wp * 1.1 + 23.0)));
+      bare = mix(bare, bare * vec3(0.42, 0.44, 0.36), wr * 0.8);
+      float foam = smoothstep(0.13, 0.03, abs(sh + (n2 - 0.5) * 0.2 - lap * 1.6 + 1.22));
+      bare = mix(bare, vec3(0.9, 0.93, 0.9), foam * 0.75);
+    }
+    vec3 turf = vGrass * (0.95 + 0.1 * smoothstep(0.35, 0.65, lt_noise(wp * 0.31 + 11.0)));
+    diffuseColor.rgb *= mix(bare, turf, gk); }
+`;
+/** patch a ground material (after shading.ts patch()) to read the two colour layers and the masks */
+function groundShader<T extends THREE.Material>(mat: T): T {
+  const base = mat.onBeforeCompile;
+  mat.onBeforeCompile = (sh, r) => {
+    base.call(mat, sh, r);
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute vec3 aGrass;\nattribute vec3 aMask;\nvarying vec3 vGrass;\nvarying vec3 vMask;").replace("#include <color_vertex>", "#include <color_vertex>\n  vGrass = aGrass; vMask = aMask;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vGrass;\nvarying vec3 vMask;").replace("#include <color_fragment>", GROUND_GLSL);
+  };
+  mat.customProgramCacheKey = () => "ground2";
+  return mat;
+}
 
 const TILE = 32, STEP = 0.8;
 function tile(x0: number, z0: number, mat: THREE.Material) {
   const n = Math.round(TILE / STEP), g = new THREE.PlaneGeometry(TILE, TILE, n, n); g.rotateX(-Math.PI / 2); g.translate(x0 + TILE / 2, 0, z0 + TILE / 2);
-  const pos = g.attributes.position as THREE.BufferAttribute, col = new Float32Array(pos.count * 3), c = new THREE.Color();
-  for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), z = pos.getZ(i); pos.setY(i, groundHeight(x, z)); groundColor(x, z, c); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
-  g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  const pos = g.attributes.position as THREE.BufferAttribute, col = new Float32Array(pos.count * 3), gra = new Float32Array(pos.count * 3), msk = new Float32Array(pos.count * 3), c = new THREE.Color(), cg = new THREE.Color(), o: GroundMask = { g: 0, shore: 9, fine: 1 };
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), z = pos.getZ(i); pos.setY(i, groundHeight(x, z)); sampleGround(x, z, c, cg, o);
+    col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; gra[i * 3] = cg.r; gra[i * 3 + 1] = cg.g; gra[i * 3 + 2] = cg.b; msk[i * 3] = o.g; msk[i * 3 + 1] = o.shore; msk[i * 3 + 2] = o.fine;
+  }
+  g.setAttribute("color", new THREE.BufferAttribute(col, 3)); g.setAttribute("aGrass", new THREE.BufferAttribute(gra, 3)); g.setAttribute("aMask", new THREE.BufferAttribute(msk, 3));
   // normals from the height field itself, so tile seams are invisible
   const nor = g.attributes.normal as THREE.BufferAttribute, e = 0.6;
   for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), z = pos.getZ(i), nx = groundHeight(x - e, z) - groundHeight(x + e, z), nz = groundHeight(x, z - e) - groundHeight(x, z + e), l = Math.hypot(nx, 2 * e, nz); nor.setXYZ(i, nx / l, (2 * e) / l, nz / l); }
@@ -92,7 +199,7 @@ function tile(x0: number, z0: number, mat: THREE.Material) {
   const m = new THREE.Mesh(g, mat); m.receiveShadow = true; m.name = "terrain"; return m;
 }
 export function buildTerrain(scene: THREE.Scene) {
-  const mat = patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }), { rim: 0 });
+  const mat = groundShader(patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }), { rim: 0 }));
   const tiles: THREE.Mesh[] = [];
   for (let z = -144; z < 144; z += TILE) for (let x = -128; x < 128; x += TILE) tiles.push(tile(x, z, mat));
   for (let z = -48; z < 80; z += TILE) for (let x = 128; x < 224; x += TILE) tiles.push(tile(x, z, mat));
