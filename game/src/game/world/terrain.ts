@@ -85,10 +85,10 @@ const tmp = new THREE.Color();
 // airbrushed blend between vertices. A second field carries the distance from the waterline for the shore bands.
 /** signed distance to the nearest sea or river edge of the outline (> 0 on land), 9 when none is near */
 function coastDist(x: number, z: number, d: number) {
-  if (Math.abs(d) > 9) return 9;
+  if (Math.abs(d) > 9) return d > 0 ? 9 : -9; // signed even when far: +9 next to -9 under water made the shader's foam/wet/wrack contours draw staircase seams across the bay (G1 council r2)
   let q = 9;
   for (let i = 0, j = LAND.length - 1; i < LAND.length; j = i++) { const k = LAND[j][2]; if (k !== "coast" && k !== "river") continue; q = Math.min(q, segDist(x, z, LAND[j][0], LAND[j][1], LAND[i][0], LAND[i][1])); }
-  return q >= 9 ? 9 : d > 0 ? q : -q;
+  return d > 0 ? Math.min(q, 9) : -Math.min(q, 9);
 }
 /** 0..1 across an edge: 0.5 on it, linear over 2r so the shader's threshold moves evenly */
 const ramp = (sd: number, r = 1.2) => Math.max(0, Math.min(1, 0.5 + sd / (2 * r)));
