@@ -54,7 +54,7 @@ export function roadDist(x: number, z: number, out?: { road: (typeof ROADS)[numb
 
 // ---------------------------------------------------------------- colliders in world space
 const MOVE = 1, SHOT = 2, RAMF = 4;
-type WCol = { circle: boolean; x: number; z: number; r: number; hx: number; hz: number; c: number; s: number; flags: number; gate: number };
+type WCol = { circle: boolean; x: number; z: number; r: number; hx: number; hz: number; c: number; s: number; flags: number; gate: number; whenOpen?: boolean };
 const cols: WCol[] = [];
 let cellStart = new Int32Array(GW * GH + 1), cellItems = new Int32Array(0);
 /** per-raid openable things: doors, breakable walls, the vine door. A closed gate's colliders are solid */
@@ -72,17 +72,17 @@ export const state = { get doorOpen() { return !!gate("vine")?.open; } };
 export const setDoorOpen = (v: boolean) => setGate("vine", v);
 export const breakWall = (id: string) => setGate(id, true);
 
-function addCollider(c: Collider, tf: { x: number; z: number; yaw?: number; s?: number }, gateI = -1, ram = false) {
+function addCollider(c: Collider, tf: { x: number; z: number; yaw?: number; s?: number }, gateI = -1, ram = false, whenOpen = false) {
   const k = tf.s ?? 1, flags = (c.move ? MOVE : 0) | (c.shot && !c.low ? SHOT : 0) | (ram ? RAMF : 0);
   if (!flags) return;
-  if (c.t === "circle") { const [x, z] = toWorld(tf, c.x, c.z); cols.push({ circle: true, x, z, r: c.r * k, hx: 0, hz: 0, c: 1, s: 0, flags, gate: gateI }); return; }
+  if (c.t === "circle") { const [x, z] = toWorld(tf, c.x, c.z); cols.push({ circle: true, x, z, r: c.r * k, hx: 0, hz: 0, c: 1, s: 0, flags, gate: gateI, whenOpen }); return; }
   let lx: number, lz: number, hx: number, hz: number, yaw: number;
   if (c.t === "box") { lx = c.x; lz = c.z; hx = c.w / 2; hz = c.d / 2; yaw = c.yaw ?? 0; }
   else { lx = (c.ax + c.bx) / 2; lz = (c.az + c.bz) / 2; hx = c.thick / 2; hz = Math.hypot(c.bx - c.ax, c.bz - c.az) / 2; yaw = Math.atan2(c.bx - c.ax, c.bz - c.az); }
   const [x, z] = toWorld(tf, lx, lz), wy = (tf.yaw ?? 0) + yaw;
   // shots step 0.2 u: keep anything that stops them at least 0.3 thick so no bullet steps over it
   if (flags & SHOT) { hx = Math.max(hx, 0.15 / k); hz = Math.max(hz, 0.15 / k); }
-  cols.push({ circle: false, x, z, r: Math.hypot(hx, hz) * k, hx: hx * k, hz: hz * k, c: Math.cos(wy), s: Math.sin(wy), flags, gate: gateI });
+  cols.push({ circle: false, x, z, r: Math.hypot(hx, hz) * k, hx: hx * k, hz: hz * k, c: Math.cos(wy), s: Math.sin(wy), flags, gate: gateI, whenOpen });
 }
 /** distance from a point to a collider's surface (0 or less = inside) */
 function colDist(q: WCol, x: number, z: number) {
@@ -91,7 +91,7 @@ function colDist(q: WCol, x: number, z: number) {
   const lx = Math.abs(dx * q.c - dz * q.s) - q.hx, lz = Math.abs(dx * q.s + dz * q.c) - q.hz;
   return lx <= 0 && lz <= 0 ? Math.max(lx, lz) : Math.hypot(Math.max(lx, 0), Math.max(lz, 0));
 }
-const active = (q: WCol) => q.gate < 0 || !gates[q.gate].open;
+const active = (q: WCol) => q.gate < 0 || (q.whenOpen ? gates[q.gate].open : !gates[q.gate].open); // an open door leaf is solid only while open
 
 export type Blocker = { x: number; z: number; r: number; shots: boolean; ram?: boolean; id?: string };
 /** per-raid blockers (crates, the supply drop). Cleared by resetRaidColliders() */
@@ -122,7 +122,7 @@ export function resetRaidColliders() { blockers.length = 0; navDyn.fill(0); for 
 let ready = false;
 /** build collision and navigation from the map. houseDef gives each placed building's colliders and doors (kit_house /
  *  the stub); extra = rule-scattered pieces (map/scatter.ts) that are not in the authored list */
-export function initGrid(houseDef: (p: Placed) => Pick<BuildingDef, "colliders" | "doors" | "breakables">, extra: Placed[] = []) {
+export function initGrid(houseDef: (p: Placed) => Pick<BuildingDef, "colliders" | "doors" | "breakables" | "parts">, extra: Placed[] = []) {
   if (ready) return; ready = true;
   // colliders: placed pieces, buildings (their doors become gates), breakable walls, the vine door
   scattered = extra.length;
@@ -139,6 +139,16 @@ export function initGrid(houseDef: (p: Placed) => Pick<BuildingDef, "colliders" 
       for (const d of def.doors) { const g = geom(d.id); if (g) ids.set(d.id, addGate({ id: `${p.id}:${d.id}`, kind: "door", ...g, hp: d.breakable ? 5 : undefined, reveals: undefined, mat: "wood", locked: d.locked, building: p.id, open: false })); }
       for (const k of def.breakables ?? []) { const g = geom(k.id); if (g) ids.set(k.id, addGate({ id: `${p.id}:${k.id}`, kind: "break", ...g, hp: 8, persist: true, reveals: "A secret room!", mat: "stone", building: p.id, open: false })); }
       for (const c of def.colliders) addCollider(c, p, c.id !== undefined ? ids.get(c.id) ?? -1 : -1);
+      // the swung-open leaf: a thin slab from its hinge (leaves hinge at their -x jamb, kit_build/kit_house), solid while the
+      // door is open so you can't walk through the door itself (Moo: "door has no collision"). Movement only: no shots, no nav.
+      for (const d of def.doors) {
+        const leaf = def.parts?.[d.leaf], gi = ids.get(d.id), gd = gi !== undefined ? gates[gi] : undefined; if (!leaf?.position || gd === undefined) continue; // (the sim loads JSON defs without parts)
+        const len = Math.min(gd.w, 1.8) * 0.92, ax = leaf.position.x, az = leaf.position.z, dx = Math.cos(d.open) * len, dz = -Math.sin(d.open) * len;
+        // some leaves are authored mirrored (hinge on the +x jamb): the open leaf is the side whose middle sits farther from the doorway
+        const far = (sx: number) => { const [mx, mz] = toWorld(p, ax + sx * dx * 0.5, az + sx * dz * 0.5); return Math.hypot(mx - gd.x, mz - gd.z); };
+        const sg = far(1) >= far(-1) ? 1 : -1;
+        addCollider({ t: "seg", ax, az, bx: ax + sg * dx, bz: az + sg * dz, thick: 0.14, move: true, shot: false }, p, gi, false, true);
+      }
       continue;
     }
     const list = collidersFor(p.k, p.o); if (!list) { unknownKinds.add(p.k); continue; }
@@ -165,7 +175,7 @@ export function initGrid(houseDef: (p: Placed) => Pick<BuildingDef, "colliders" 
   cols.forEach((q, k) => span(q, 0.1, (i, c, r) => { if (touches(q, c, r)) { cellItems[fill[i]++] = k; if (q.flags & SHOT) shotAny[i] = 1; } }));
   const mark = (q: WCol, i: number) => { if (q.gate >= 0) { if (gateOf[i] < 0) gateOf[i] = q.gate; } else navStatic[i] = 1; };
   for (const q of cols) {
-    if (!(q.flags & MOVE)) continue;
+    if (!(q.flags & MOVE) || q.whenOpen) continue; // open leaves push actors out but leave the nav grid alone
     span(q, PAD, (i, c, r) => { if (colDist(q, cx(c), cz(r)) < PAD) mark(q, i); });
     if (!q.circle) { // a thin wall on a cell boundary still has to be a closed line of cells
       const long = Math.max(q.hx, q.hz), ax = q.hz >= q.hx ? q.s : q.c, az = q.hz >= q.hx ? q.c : -q.s;

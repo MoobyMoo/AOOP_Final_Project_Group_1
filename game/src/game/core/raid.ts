@@ -120,7 +120,7 @@ export function renderRaid(dt: number) {
   const lead = G.aimPoint.clone().sub(G.pp).setY(0); const L = Math.min(lead.length(), 10); lead.setLength(L * 0.22);
   focus.lerp(G.pp.clone().add(lead), Math.min(1, dt * (G.fireCd > -0.2 ? 3 : 6)));
   G.stage.place(focus, dt, G.time);
-  updateCutout(G.stage.camera, chest.copy(G.pp).setY(G.pp.y + 1.1), G.stage.renderer);
+  updateCutout(G.stage.camera, chest.copy(G.pp).setY(G.pp.y + 1.1), G.stage.renderer, G.aimPoint);
   updateCampfires(G.time, G.stage.scene, G.stage.renderer);
   void V; void itemDef;
 }

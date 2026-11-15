@@ -11,7 +11,7 @@ import { G } from "./core/state";
 import { load, save, retainKeys } from "./core/save";
 import { unlockAudio } from "./core/audio";
 import { startRaid, stepRaid, renderRaid, buildRaidWorld, raidScene, type RaidResult } from "./core/raid";
-import { path, walkable, los, lintReport, gates, setGate, pathLength } from "./world/grid";
+import { path, walkable, los, lintReport, gates, setGate, pathLength, collide } from "./world/grid";
 import { worldStats, countVisible, scattered } from "./world/world";
 import { blockoutSvg } from "./world/map/dump";
 import { preloadNature } from "./world/kit_nature";
@@ -104,7 +104,7 @@ function frame() {
   requestAnimationFrame(frame);
 }
 function neutral() { const i = G.intent; i.move = { x: 0, z: 0 }; i.fire = i.firePressed = i.melee = i.roll = i.interact = i.reload = i.heal = false; }
-(window as unknown as { __g: unknown }).__g = { G, path, walkable, los, home: homeApi, info: () => ({ calls: G.stage.renderer.info.render.calls, tris: G.stage.renderer.info.render.triangles }),
+(window as unknown as { __g: unknown }).__g = { G, path, walkable, los, collide, home: homeApi, info: () => ({ calls: G.stage.renderer.info.render.calls, tris: G.stage.renderer.info.render.triangles }),
   // map v3 checks: lint report, world build stats, objects in the current frame (G1-21), teleport, gates
   lint: lintReport, world: () => worldStats, density: () => countVisible(G.stage.camera, [...G.crates, ...G.enemies.filter((e) => !e.down).map((e) => ({ x: e.p.x, z: e.p.z }))]),
   tp: (x: number, z: number) => { G.pp.set(x, groundHeight(x, z), z); G.vel.set(0, 0, 0); }, gates, setGate, pathLength, houses, svg: () => blockoutSvg(scattered) };
