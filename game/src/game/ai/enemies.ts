@@ -275,7 +275,7 @@ function brute(e: Enemy, dt: number, d: number) {
       break;
     case "windup": {
       const k = 1 - e.t / s.wind; const fill = e.ring!.getObjectByName("fill") as THREE.Mesh; fill.scale.setScalar(Math.max(0.05, k)); (e.ring!.material as THREE.MeshBasicMaterial).opacity = 0.5 + Math.abs(Math.sin(G.time * 18)) * 0.4;
-      e.flash = Math.sin(G.time * 22) > 0.6 ? 0.03 : 0;
+      // (no body strobe: the ground ring + the red windup cue carry the telegraph; strobing kept the dark brute pale grey)
       if (e.t <= 0) {
         e.state = "slam"; e.t = 0.25; e.ring!.visible = false; sfx("slam"); G.stage.trauma = Math.min(1, G.stage.trauma + 0.45); burst(e.p.clone().setY(0.3), 22, "#c9a46a", 1.4, 2.2);
         if (flat(e.p, G.pp) < s.slam + 0.3 && los(e.p.x, e.p.z, G.pp.x, G.pp.z)) hurtPlayer(e.p, "slam", s.dmg);

@@ -53,8 +53,9 @@ export function charMaterial(pal: Float32Array, gloss = false): THREE.MeshStanda
     sh.vertexShader = sh.vertexShader
       .replace("#include <common>", `#include <common>\nattribute vec2 aRA;\nuniform vec3 uPal[${NREG}];`)
       .replace("#include <color_vertex>", "vColor = vec4(uPal[int(aRA.x + 0.5)] * mix(vec3(0.42, 0.34, 0.40), vec3(1.0), smoothstep(0.0, 1.0, aRA.y / 255.0)), 1.0);")
-    // self-fill: fronts stay readable when the low sun is behind the character (the look target is backlit)
-    sh.fragmentShader = sh.fragmentShader.replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n\ttotalEmissiveRadiance += vColor.rgb * 0.26;");
+    // self-fill: fronts stay readable when the low sun is behind the character (the look target is backlit). The hurt flash
+    // (emissiveIntensity) brightens the character's own colours plus a little white, so a dark brute pops instead of greying out
+    sh.fragmentShader = sh.fragmentShader.replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n\ttotalEmissiveRadiance = vColor.rgb * (0.26 + totalEmissiveRadiance.r * 2.4) + totalEmissiveRadiance * 0.35;");
   };
   m.customProgramCacheKey = () => key + "|pal";
   return m;
