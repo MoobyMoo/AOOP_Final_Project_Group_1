@@ -751,5 +751,71 @@
    0.275,
    0.166
   ]
+ },
+ "cont_lunchbox": {
+  "name": "Lunchbox",
+  "kind": "container",
+  "tris": 928,
+  "materials": 1,
+  "dims_m": [
+   0.84,
+   0.586,
+   0.74
+  ]
+ },
+ "cont_toolbox": {
+  "name": "Toolbox",
+  "kind": "container",
+  "tris": 1184,
+  "materials": 1,
+  "dims_m": [
+   1.28,
+   0.662,
+   0.751
+  ]
+ },
+ "cont_medcabinet": {
+  "name": "Medicine Cabinet",
+  "kind": "container",
+  "tris": 1160,
+  "materials": 1,
+  "dims_m": [
+   1.08,
+   0.46,
+   0.98
+  ]
+ },
+ "cont_safe": {
+  "name": "Safe",
+  "kind": "container",
+  "tris": 1158,
+  "materials": 1,
+  "dims_m": [
+   0.97,
+   0.94,
+   0.973
+  ]
+ },
+ "cont_trash": {
+  "name": "Junk Heap",
+  "kind": "container",
+  "tris": 1187,
+  "materials": 1,
+  "dims_m": [
+   1.749,
+   1.566,
+   0.863
+  ]
+ },
+ "cont_sack": {
+  "name": "Supply Sack",
+  "kind": "container",
+  "tris": 858,
+  "materials": 1,
+  "dims_m": [
+   1.012,
+   0.838,
+   1.429
+  ]
  }
 }

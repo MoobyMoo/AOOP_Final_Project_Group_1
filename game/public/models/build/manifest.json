@@ -446,8 +446,8 @@
    }
   },
   "containers": {
-   "glb_bytes": 375324,
-   "tris": 7604,
+   "glb_bytes": 693356,
+   "tris": 14079,
    "assets": {
     "cont_weapon": {
      "tris": 1616,
@@ -514,6 +514,92 @@
       "mark"
      ],
      "footprint": 0.62,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "cont_lunchbox": {
+     "tris": 928,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "mark"
+     ],
+     "footprint": 0.45,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "cont_toolbox": {
+     "tris": 1184,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "mark"
+     ],
+     "footprint": 0.62,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "cont_medcabinet": {
+     "tris": 1160,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "mark"
+     ],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8,
+     "wallMount": true,
+     "mountZ": 0.82
+    },
+    "cont_safe": {
+     "tris": 1158,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "mark"
+     ],
+     "footprint": 0.7,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "cont_trash": {
+     "tris": 1187,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "mark"
+     ],
+     "footprint": 0.85,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "cont_sack": {
+     "tris": 858,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "mark"
+     ],
+     "footprint": 0.55,
      "blocksMove": true,
      "blocksShot": false,
      "tall": false,
@@ -2580,6 +2666,6 @@
    }
   }
  },
- "total_tris": 208565,
- "total_bytes": 10528416
+ "total_tris": 215040,
+ "total_bytes": 10846448
 }

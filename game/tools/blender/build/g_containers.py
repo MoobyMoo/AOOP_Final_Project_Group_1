@@ -306,6 +306,293 @@ def cont_medical(name, seed, w=1.0, d=0.66, h=0.52):
     a.point("mark", (0, 0, h + 0.55))
     return a
 
+# ================================================================ G2 containers: lunchbox, toolbox, wall medicine cabinet, safe, junk heap, supply sack
+# Same contract as the five above: a `lid` part whose origin is its hinge (axis x, closed 0, open = CRATE_LID_OPEN), a
+# `mark` point, origin on the ground, front at -y. Under 1,200 tris each. Told apart from above by silhouette first:
+#   lunchbox = small yellow tin under a barrel-vault lid   toolbox = long orange box, gabled lid, tube handle
+#   medcabinet = cream box high on a wall, coral lift-up door with the leaf cross   safe = squat iron cube, brass dial on top
+#   trash = a rubbish mound with a tyre and a dented bin lid   sack = a fat tied canvas sack with rust stripes
+LUNCH, LUNCH_D = "#f0c33a", "#b98a26"
+TOOL, TOOL_D = "#e5782a", "#b0551d"
+SAFE, SAFE_D, SAFE_L = "#4b5560", "#333a43", "#6f7d89"
+RUBBER = "#3a3438"
+DIRT = ["#5d4c3e", "#66543f", "#514236"]
+
+
+def _vault(g, x0, x1, y, z, ry, rz, col, n=8):
+    """a barrel vault along x (closed solid): half-ellipse section ry deep, rz high, sitting on z"""
+    xs = [x0, x0 * 0.36, x1 * 0.36, x1]
+    rings = [[(x, y + ry * cos(pi * k / n), z + rz * sin(pi * k / n)) for k in range(n + 1)] for x in xs]
+    g.loft(rings, col=col, smooth=50, jit=0.02)
+
+
+def icon_wrench(g, M, s=1.0, col=CREAM, hole=TOOL_D):
+    """painted spanner lying along local x: an open jaw at +x, a ring at -x"""
+    g.paint_poly([(-0.3 * s, -0.055 * s), (0.3 * s, -0.055 * s), (0.3 * s, 0.055 * s), (-0.3 * s, 0.055 * s)], M, col)
+    g.paint_poly([(0.24 * s, -0.15 * s), (0.5 * s, -0.15 * s), (0.5 * s, -0.06 * s), (0.37 * s, -0.06 * s), (0.37 * s, 0.06 * s), (0.5 * s, 0.06 * s), (0.5 * s, 0.15 * s), (0.24 * s, 0.15 * s)], M, col)
+    g.paint_poly(circle(0.15 * s, 10, cx=-0.38 * s), M, col)
+    g.paint_poly(circle(0.07 * s, 8, cx=-0.38 * s), M, hole)
+
+
+# ---------------------------------------------------------------- lunchbox
+def cont_lunchbox(name, seed, w=0.8, d=0.48, hb=0.33):
+    a = Asset(name, G, footprint=0.45, blocksMove=True, seed=seed)
+    g = a.mesh()
+    z0, t = 0.05, 0.045
+    zt = z0 + hb                                          # top of the tin
+    for sx in (-1, 1):                                    # contact base: two rubber skids
+        g.box(0.12, d - 0.04, 0.07, (sx * (w / 2 - 0.15), 0, 0), col=RUBBER, b=0.02)
+    g.box(w - 0.08, d - 0.08, hb - 0.1, (0, 0, z0 + 0.02), col=INSIDE, b=0.0, jit=0)
+    zc = z0 + hb - 0.08                                   # lunch: a sandwich, a banana, an apple, a flask
+    g.prism([(-0.15, -0.12), (0.15, -0.12), (-0.15, 0.14)], 0.085, (-0.2, -0.02, zc), (0, 0, 8), col={0: "#b98a52", 2: "#ecdcae"})
+    g.box(0.2, 0.2, 0.02, (-0.22, -0.03, zc + 0.03), (0, 0, 30), col=LEAF[1], b=0.0)
+    banana(g, (0.02, 0.1, zc + 0.02), (0, 0, 20), 0.62)
+    g.ball(0.075, (0.08, -0.1, zc + 0.07), col=RED, n=6, m=4, jit=0.03)
+    g.cyl(0.062, 0.2, (0.17, 0.02, zc + 0.062), (90, 0, 12), col=TEAL, n=6, b=0.012)
+    g.cyl(0.05, 0.05, (0.212, -0.176, zc + 0.062), (90, 0, 12), col=STEEL_L, n=6, b=0.01)
+    _shell(g, w, d, hb, z0, t, LUNCH, grad=(0.86, 1.04))
+    g.box(w + 0.03, d + 0.03, 0.06, (0, 0, z0 - 0.012), col=LUNCH_D, b=0.02)
+    m = FRONT(0, -d / 2 - 0.001, z0 + hb * 0.5)           # cream label, banana sticker
+    g.paint_poly([(-0.2, -0.1), (0.2, -0.1), (0.2, 0.1), (-0.2, 0.1)], m, CREAM)
+    icon_banana(g, m @ T(0, -0.055, 0), 0.2, "#7a5a2a")
+    _hinges(g, (-w * 0.27, w * 0.27), d / 2 + 0.026, zt - 0.005, r=0.028, L=0.13, col=STEEL_L)
+    lid = a.part("lid", (0, d / 2, zt))
+    lid.box(w + 0.04, d + 0.04, 0.06, (0, 0, zt - 0.012), col=LUNCH_D, b=0.02, jit=0.02)   # rolled rim
+    _vault(lid, -w / 2 - 0.004, w / 2 + 0.004, 0, zt + 0.04, d / 2 + 0.004, 0.2, lambda c, tg: CREAM if abs(c.x) < w * 0.17 else LUNCH)
+    for sx in (-1, 1):                                    # carry handle on the crown
+        lid.box(0.05, 0.07, 0.085, (sx * 0.17, 0, zt + 0.225), col=STEEL_D, b=0.0)
+    lid.beam((-0.21, 0, zt + 0.335), (0.21, 0, zt + 0.335), 0.06, 0.05, RUBBER, b=0.018)
+    for sx in (-1, 1):                                    # front latches
+        lid.box(0.1, 0.04, 0.16, (sx * 0.24, -d / 2 - 0.036, zt - 0.11), col=STEEL_L, b=0.015)
+    a.point("mark", (0, 0, zt + 0.85))
+    return a
+
+
+# ---------------------------------------------------------------- toolbox
+def cont_toolbox(name, seed, w=1.2, d=0.54, hb=0.36):
+    a = Asset(name, G, footprint=0.62, blocksMove=True, seed=seed)
+    g = a.mesh()
+    z0, t = 0.05, 0.05
+    zt = z0 + hb
+    for sx in (-1, 1):                                    # contact base: two iron skids
+        g.box(0.14, d + 0.03, 0.07, (sx * (w / 2 - 0.22), 0, 0), col=IRON, b=0.02)
+    g.box(w - 0.09, d - 0.09, hb - 0.12, (0, 0, z0 + 0.02), col=INSIDE, b=0.0, jit=0)
+    zc = z0 + hb - 0.1                                    # the top tray and its tools
+    g.box(w - 0.11, d - 0.11, 0.025, (0, 0, zc - 0.02), col=STEEL_D, b=0.0, jit=0.02)
+    with g.at(T(-0.24, 0.08, zc + 0.004, 0, 0, -8)):      # spanner
+        g.box(0.44, 0.05, 0.03, (0, 0, 0), col=STEEL_L, b=0.0)
+        g.prism([(0.0, -0.075), (0.13, -0.075), (0.13, -0.03), (0.06, -0.03), (0.06, 0.03), (0.13, 0.03), (0.13, 0.075), (0.0, 0.075)], 0.036, (0.2, 0, -0.003), col=STEEL_L)
+        g.cyl(0.07, 0.04, (-0.24, 0, -0.005), col=STEEL_L, n=8, b=0.0)
+    with g.at(T(0.2, 0.07, zc + 0.004, 0, 0, 14)):        # hammer
+        g.pole((-0.2, 0, 0.03), (0.2, 0, 0.03), 0.028, pick(a.rng, WOOD), n=5, b=0.0)
+        g.box(0.085, 0.22, 0.085, (0.2, 0, -0.012), col=IRON, b=0.02)
+    with g.at(T(0.0, -0.12, zc + 0.004, 0, 0, 3)):        # screwdriver
+        g.pole((-0.3, 0, 0.03), (-0.1, 0, 0.03), 0.036, BANANA, n=6, b=0.01)
+        g.pole((-0.1, 0, 0.03), (0.22, 0, 0.03), 0.014, STEEL_L, n=4, b=0.0)
+    g.box(0.16, 0.12, 0.07, (0.4, -0.11, zc), (0, 0, -10), col=RUST[1], b=0.015)   # a tin of nails
+    _shell(g, w, d, hb, z0, t, TOOL, grad=(0.86, 1.04))
+    g.box(w + 0.03, d + 0.03, 0.07, (0, 0, z0 - 0.012), col=TOOL_D, b=0.02)
+    for sx in (-1, 1):                                    # iron corner straps and end handles
+        for sy in (-1, 1):
+            g.box(0.1, 0.1, hb - 0.05, (sx * (w / 2 - 0.022), sy * (d / 2 - 0.022), z0 + 0.03), col=IRON, b=0.025)
+        g.box(0.04, 0.22, 0.05, (sx * (w / 2 + 0.02), 0, z0 + hb * 0.55), col=STEEL_L, b=0.012)
+    m = FRONT(0, -d / 2 - 0.001, z0 + hb * 0.5)
+    icon_wrench(g, m, 0.46, CREAM, TOOL_D)
+    _hinges(g, (-w * 0.3, w * 0.3), d / 2 + 0.03, zt - 0.005, r=0.032, L=0.16)
+    lid = a.part("lid", (0, d / 2, zt))
+    hy, e, ridge, zr = d / 2 + 0.025, 0.07, 0.11, 0.21    # gabled lid: eave height, half ridge width, ridge height
+    lid.prism([(-hy, 0), (hy, 0), (hy, e), (ridge, zr), (-ridge, zr), (-hy, e)], w + 0.05, (-(w + 0.05) / 2, 0, zt - 0.006), (90, 0, 90), col=TOOL, b=0.022, jit=0.02, grad=(0.92, 1.06))
+    sl = degrees(atan2(zr - e, hy - ridge))               # the front slope carries the pictogram, facing the camera
+    icon_wrench(lid, T(0, -(hy + ridge) / 2, zt - 0.006 + (e + zr) / 2, sl, 0, 0), 0.6, CREAM, TOOL_D)
+    for sx in (-1, 1):                                    # tube handle on the ridge
+        lid.box(0.06, 0.09, 0.11, (sx * 0.34, 0, zt + zr - 0.02), col=STEEL_D, b=0.0)
+    lid.pole((-0.42, 0, zt + zr + 0.1), (0.42, 0, zt + zr + 0.1), 0.036, STEEL_L, n=6)
+    for sx in (-1, 1):                                    # latches
+        lid.box(0.11, 0.045, 0.17, (sx * 0.34, -d / 2 - 0.042, zt - 0.1), col=STEEL_L, b=0.018)
+    a.point("mark", (0, 0, zt + zr + 0.6))
+    return a
+
+
+# ---------------------------------------------------------------- wall medicine cabinet
+def cont_medcabinet(name, seed, w=0.86, d=0.3, h=0.74, zm=0.82):
+    """Wall-mounted: authored against the wall plane y = 0 (the origin is on that plane, at the foot of the wall), the
+    box hangs zm above the ground and stands d + 0.05 proud. The door is the `lid`: hinged along its top edge, so the
+    standard open (rotation.x 0 -> CRATE_LID_OPEN) lifts it up and out like a hatch."""
+    a = Asset(name, G, footprint=0.3, blocksMove=False, seed=seed, ground=False, wall=0.0, ao_dist=0.9)
+    a.meta["wallMount"], a.meta["mountZ"] = True, zm
+    g = a.mesh()
+    t, yb = 0.045, -0.05                                  # wall thickness; yb = front of the backing board
+    yf = yb - d                                           # front rim of the box
+    g.box(w + 0.22, 0.05, h + 0.24, (0, yb / 2, zm - 0.12), col=pick(a.rng, WOOD_D), b=0.02, jit=0.04)   # backing board
+    for sx in (-1, 1):                                    # two bolts hold the board to the wall
+        for sz in (0, 1):
+            g.cyl(0.03, 0.03, (sx * (w / 2 + 0.065), yb + 0.01, zm - 0.07 + sz * (h + 0.14)), (90, 0, 0), col=STEEL_L, n=6, b=0.008)
+    g.box(w - 2 * t + 0.02, t, h - 2 * t + 0.02, (0, yb - t / 2, zm + t - 0.01), col=CASE_D, b=0.0, jit=0)   # back panel
+    for sx in (-1, 1):
+        g.box(t, d, h, (sx * (w / 2 - t / 2), yb - d / 2, zm), col=CASE, b=0.02, grad=(0.9, 1.03))
+    for z in (zm, zm + h - t):
+        g.box(w - 2 * t + 0.02, d, t, (0, yb - d / 2, z), col=CASE, b=0.02)
+    g.box(w - 2 * t + 0.006, d - 0.06 - t + 0.01, 0.03, (0, yb - t + 0.01 - (d - 0.06 - t + 0.01) / 2, zm + h * 0.47), col=CASE_D, b=0.0)   # shelf
+    z1, z2 = zm + t, zm + h * 0.47 + 0.03                 # the two shelves' floors
+    yc = yb - d * 0.52
+    for x, c in ((-0.27, "#8a5a2a"), (-0.1, LEAFMARK)):   # bottom shelf: two bottles, two bandage rolls
+        g.cyl(0.065, 0.16, (x, yc, z1), col=c, n=6, b=0.02)
+        g.cyl(0.04, 0.05, (x, yc, z1 + 0.15), col=CASE, n=6, b=0.01)
+    for x in (0.1, 0.26):
+        g.cyl(0.07, 0.15, (x, yc + 0.075, z1 + 0.07), (90, 0, 0), col="#f4efe2", n=8, b=0.02, cap="#d9d2c0")
+    g.box(0.3, 0.16, 0.14, (-0.17, yc, z2), col=CORAL, b=0.02)                                 # top shelf: a first-aid pack, a jar
+    g.paint_poly([(-0.035, -0.012), (0.035, -0.012), (0.035, 0.012), (-0.035, 0.012)], FRONT(-0.17, yc - 0.081, z2 + 0.07), CASE)
+    g.paint_poly([(-0.012, -0.035), (0.012, -0.035), (0.012, 0.035), (-0.012, 0.035)], FRONT(-0.17, yc - 0.081, z2 + 0.07), CASE)
+    g.cyl(0.075, 0.17, (0.17, yc, z2), col="#f4efe2", n=6, b=0.02)
+    g.cyl(0.08, 0.04, (0.17, yc, z2 + 0.16), col=CORAL_D, n=6, b=0.012)
+    g.paint_poly([(-w / 2 + 0.06, -d / 2 + 0.05), (w / 2 - 0.06, -d / 2 + 0.05), (w / 2 - 0.06, d / 2 - 0.05), (-w / 2 + 0.06, d / 2 - 0.05)], TOP(0, yb - d / 2, zm + h), CORAL)   # the colour cue from above
+    _hinges(g, (-w * 0.3, w * 0.3), yf + 0.005, zm + h + 0.012, r=0.028, L=0.14, col=STEEL_L)
+    lid = a.part("lid", (0, yf, zm + h))
+    lid.box(w + 0.03, 0.05, h + 0.02, (0, yf - 0.025, zm - 0.01), col=CORAL, b=0.02, jit=0.02, grad=(0.92, 1.05))
+    mf = FRONT(0, yf - 0.051, zm + h * 0.5)
+    lid.paint_line([(-w / 2 + 0.07, -h / 2 + 0.06), (w / 2 - 0.07, -h / 2 + 0.06), (w / 2 - 0.07, h / 2 - 0.06), (-w / 2 + 0.07, h / 2 - 0.06)], 0.03, mf, CASE, closed=True)
+    icon_leafcross(lid, mf, 0.44)
+    lid.box(0.26, 0.05, 0.045, (0, yf - 0.085, zm + 0.035), col=STEEL_L, b=0.015)               # pull handle on the bottom edge
+    for sx in (-1, 1):
+        lid.box(0.035, 0.05, 0.03, (sx * 0.1, yf - 0.06, zm + 0.0425), col=STEEL_D, b=0.0)
+    a.point("mark", (0, yb - d / 2, zm + h + 0.55))
+    return a
+
+
+# ---------------------------------------------------------------- safe
+def cont_safe(name, seed, w=0.92, d=0.86, h=0.8):
+    """A squat floor safe. The small dial door is on top, where the camera sees it, and hinges at its back edge."""
+    a = Asset(name, G, footprint=0.7, blocksMove=True, blocksShot=True, seed=seed)
+    g = a.mesh()
+    z0, t = 0.08, 0.12
+    ow, od, tf = 0.5, 0.46, 0.09                          # door opening, top plate thickness
+    for sx in (-1, 1):                                    # contact base: four squat feet
+        for sy in (-1, 1):
+            g.cyl(0.11, 0.1, (sx * (w / 2 - 0.15), sy * (d / 2 - 0.15), 0), col=IRON, n=6, b=0.0)
+    g.box(w - 0.2, d - 0.2, h - z0 - 0.24, (0, 0, z0 + 0.04), col=INSIDE, b=0.0, jit=0)
+    zc = h - 0.2                                          # the takings: gold bars and a wad of notes
+    for x, y, rz, dz in ((-0.1, 0.07, 6, 0), (-0.08, -0.09, -4, 0), (-0.09, 0.0, 14, 0.07)):
+        g.box(0.27, 0.13, 0.075, (x, y, zc + dz), (0, 0, rz), col=GOLD, b=0.0, taper=(0.86, 0.72), jit=0.05, grad=(0.8, 1.12))
+    g.box(0.15, 0.26, 0.08, (0.15, 0.0, zc), (0, 0, -8), col="#6f9f58", b=0.0)
+    g.box(0.156, 0.07, 0.084, (0.15, 0.0, zc - 0.001), (0, 0, -8), col=CREAM, b=0.0)
+    _shell(g, w, d, h - z0 - tf + 0.02, z0, t, SAFE, grad=(0.8, 1.05))
+    g.box(w + 0.05, d + 0.05, 0.13, (0, 0, z0 - 0.02), col=SAFE_D, b=0.035)                     # plinth band
+    for sy in (-1, 1):                                    # top plate: four slabs round the opening
+        g.box(w + 0.03, (d - od) / 2 + 0.025, tf, (0, sy * (od / 2 + (d - od) / 4 + 0.0025), h - tf), col=SAFE, b=0.03, jit=0.02)
+    for sx in (-1, 1):
+        g.box((w - ow) / 2 + 0.015, od + 0.03, tf, (sx * (ow / 2 + (w - ow) / 4 + 0.0075), 0, h - tf), col=SAFE, b=0.03, jit=0.02)
+    for sx in (-1, 1):                                    # riveted corner straps, front and back
+        for sy in (-1, 1):
+            g.box(0.13, 0.03, h - z0 - 0.16, (sx * (w / 2 - 0.1), sy * (d / 2 + 0.006), z0 + 0.09), col=SAFE_D, b=0.0)
+        rivets(g, [(sx * (w / 2 - 0.1), -d / 2 - 0.036, z0 + 0.17), (sx * (w / 2 - 0.1), -d / 2 - 0.036, h - 0.17)], 0.034, STEEL_L)
+    m = FRONT(0, -d / 2 - 0.001, z0 + (h - z0) * 0.5)      # brass maker's plate
+    g.paint_poly([(-0.17, -0.1), (0.17, -0.1), (0.17, 0.1), (-0.17, 0.1)], m, BRASS)
+    icon_banana(g, m @ T(0, -0.06, 0), 0.2, SAFE_D)
+    yh = od / 2 + 0.065                                   # hinge line: the back edge of the door
+    _hinges(g, (-0.17, 0.17), yh + 0.02, h + 0.035, r=0.046, L=0.15, col=SAFE_D)
+    lid = a.part("lid", (0, yh, h))
+    lid.box(ow + 0.13, od + 0.13, 0.085, (0, 0, h - 0.004), col=SAFE_L, b=0.03, jit=0.02, grad=(0.9, 1.06))
+    lid.box(ow - 0.04, od - 0.04, 0.07, (0, 0, h - 0.07), col=STEEL_D, b=0.012)               # the plug: a thick door
+    zd = h + 0.08
+    lid.cyl(0.13, 0.05, (-0.1, -0.02, zd), col=BRASS, n=8, b=0.014, hl=1.25)                 # combination dial
+    lid.cyl(0.05, 0.045, (-0.1, -0.02, zd + 0.048), col=GOLD_L, n=6, b=0.012)
+    for k in range(8):
+        an = radians(k * 45 + 22.5)
+        lid.paint_line([(cos(an) * 0.068, sin(an) * 0.068), (cos(an) * 0.112, sin(an) * 0.112)], 0.02, TOP(-0.1, -0.02, zd + 0.05), SAFE_D, lift=0.004)
+    lid.cyl(0.05, 0.07, (0.17, -0.02, zd), col=STEEL_L, n=6, b=0.012)                         # three-spoke handle
+    for k in range(3):
+        an = radians(90 + k * 120)
+        px, py = 0.17 + cos(an) * 0.125, -0.02 + sin(an) * 0.125
+        lid.pole((0.17, -0.02, zd + 0.045), (px, py, zd + 0.045), 0.018, STEEL_L, n=4, b=0.0)
+        lid.ball(0.034, (px, py, zd + 0.045), col=BRASS, n=4, m=2, jit=0.02)
+    a.point("mark", (0, 0, h + 0.65))
+    return a
+
+
+# ---------------------------------------------------------------- junk heap
+def cont_trash(name, seed):
+    """A rubbish mound. It has no hinged lid: its `lid` part is the loose top layer (a dented bin lid) lying over the
+    pocket where the finds are, so the standard open tosses it back off the heap. That is the rummage."""
+    a = Asset(name, G, footprint=0.85, blocksMove=True, seed=seed)
+    g, r = a.mesh(), a.rng
+    g.rock(1.9, 1.7, 0.66, (0, 0.03, -0.012), col=DIRT[0], n=18, b=0.05, seed=31, grad=(0.82, 1.06))     # the mound
+    g.rock(1.0, 0.9, 0.5, (-0.3, 0.2, 0.12), (0, 0, 40), col=DIRT[1], n=12, b=0.04, seed=12)
+    g.rock(1.0, 0.9, 0.42, (0.4, -0.2, -0.01), (0, 0, 10), col=DIRT[2], n=12, b=0.04, seed=5)
+    with g.at(T(-0.56, -0.4, 0.31, 62, 8, -28)):                                             # a bald tyre leaning on it
+        g.lathe([(0.17, 0.0), (0.25, -0.085), (0.35, 0.0), (0.25, 0.085), (0.17, 0.0)], col="#2b2a2e", n=9, cap0=False, cap1=False, smooth=70, jit=0.03)
+    plank(g, (0.2, -0.7, 0.03), (0.66, -0.12, 0.44), 0.17, 0.045, pal=WOOD_GREY)             # broken crate boards
+    plank(g, (0.48, -0.66, 0.03), (0.8, 0.05, 0.3), 0.15, 0.045, pal=WOOD_GREY, roll=25)
+    plank(g, (-0.3, 0.72, 0.03), (0.35, 0.5, 0.42), 0.16, 0.045, pal=WOOD_D, roll=-20)
+    g.box(0.44, 0.34, 0.26, (0.5, 0.42, 0.12), (10, -14, 28), col="#b79b6b", b=0.02, jit=0.04)   # a crushed carton
+    g.pole((-0.86, 0.3, 0.05), (-0.2, 0.55, 0.5), 0.05, RUST[2], n=6, cap=IRON)                # a bent pipe
+    for x, y, z, rx, rz, c in ((-0.05, -0.6, 0.075, 80, 30, STEEL_L), (0.1, -0.5, 0.26, 20, 0, RUST[0])):   # tins
+        g.cyl(0.07, 0.17, (x, y, z), (rx, 0, rz), col=c, n=6, b=0.0, cap=STEEL_D)
+    g.lathe([(0.055, 0.0), (0.06, 0.15), (0.022, 0.21), (0.022, 0.27)], (-0.34, -0.6, 0.12), (60, 0, -50), col="#3f7f4a", n=6, hl=1.2)   # a bottle
+    with g.at(T(0.02, -0.4, 0.5, 0, 0, 20)):                                                  # a banana peel
+        for k in range(3):
+            an = radians(k * 120 + 30)
+            g.tube([(0, 0, 0.05), (cos(an) * 0.09, sin(an) * 0.09, 0.04), (cos(an) * 0.19, sin(an) * 0.19, -0.03), (cos(an) * 0.23, sin(an) * 0.23, -0.1)], [0.04, 0.05, 0.04, 0.012], BANANA, n=3, jit=0.05)
+        g.box(0.045, 0.045, 0.1, (0, 0, 0.02), (14, 10, 0), col=BANANA_D, b=0.0)
+    with g.at(T(-0.52, 0.34, 0.5, 6, -12, 150)):                                              # a fish bone
+        g.pole((-0.16, 0, 0), (0.16, 0, 0), 0.014, PAPER, n=4, b=0.0)
+        for k in range(3):
+            g.beam((-0.08 + k * 0.08, -0.06, 0), (-0.08 + k * 0.08, 0.06, 0), 0.02, 0.016, PAPER, b=0.0)
+        g.prism([(0.14, -0.065), (0.27, 0.0), (0.14, 0.065)], 0.02, (0, 0, -0.01), col=PAPER)
+        g.prism([(-0.25, -0.06), (-0.15, 0.0), (-0.25, 0.06)], 0.02, (0, 0, -0.01), col=PAPER)
+    zp = 0.56                                                                                 # the pocket under the lid
+    g.cyl(0.3, 0.05, (0.05, 0.02, zp - 0.04), col=INSIDE, n=10, b=0.0, jit=0)
+    g.cyl(0.075, 0.13, (-0.06, 0.06, zp), (8, 6, 0), col=BRASS, n=6, b=0.012, hl=1.2)
+    g.box(0.2, 0.14, 0.09, (0.14, -0.05, zp), (0, 0, 24), col=TEAL, b=0.015)
+    g.paint_poly([(-0.06, -0.035), (0.06, -0.035), (0.06, 0.035), (-0.06, 0.035)], T(0.14, -0.05, zp + 0.09, 0, 0, 24), CREAM)
+    tilt = T(0.05, 0.02, zp + 0.1, -9, 5, 0)
+    hinge = tilt @ Vector((0, 0.37, 0.0))
+    lid = a.part("lid", tuple(hinge))
+    with lid.at(tilt):                                                                        # the dented bin lid
+        lid.lathe([(0.37, 0.0), (0.4, 0.03), (0.31, 0.075), (0.12, 0.105), (0.0, 0.11)], col=STEEL, n=10, cap=STEEL_D, smooth=50, jit=0.04, grad=(0.9, 1.08))
+        lid.box(0.05, 0.05, 0.05, (-0.08, 0, 0.095), col=STEEL_D, b=0.0)
+        lid.box(0.05, 0.05, 0.05, (0.08, 0, 0.095), col=STEEL_D, b=0.0)
+        lid.beam((-0.12, 0, 0.16), (0.12, 0, 0.16), 0.055, 0.045, STEEL_D, b=0.015)
+        lid.paint_poly([(-0.11, -0.08), (-0.02, -0.11), (0.04, -0.03), (-0.04, 0.03), (-0.12, 0.0)], T(0.2, 0.12, 0.062, -14, 14, 0), RUST[1])
+    a.point("mark", (0.05, 0.02, zp + 0.75))
+    return a
+
+
+# ---------------------------------------------------------------- supply sack
+def cont_sack(name, seed, R=0.5, h=0.84):
+    """A fat tied supply sack. The `lid` is its gathered neck, hinged at the back of the mouth: it flops back."""
+    a = Asset(name, G, footprint=0.55, blocksMove=True, seed=seed)
+    g = a.mesh()
+    n, col = 12, CANVAS[1]
+
+    def warp(v):
+        k = 1 + 0.06 * sin(v.z * 8 + v.x * 5) + 0.04 * sin(v.y * 9)
+        return Vector((v.x * k, v.y * k * 0.84, v.z + 0.03 * sin(v.x * 6)))
+    prof = [(0.0, 0.0), (R * 0.62, 0.02), (R * 0.94, 0.16), (R * 1.0, 0.4), (R * 0.9, 0.62), (R * 0.7, 0.78), (R * 0.6, h)]
+    g.emit(p_lathe(prof, n, cap1=False), col, None, warp=warp, grad=(0.8, 1.06), smooth=70)
+    for z in (0.5, 0.6):                                  # two rust stripes woven round it
+        k = lambda zz: R * (1.0 - 0.1 * (zz - 0.4) / 0.22) + 0.011     # noqa: E731
+        g.emit(p_lathe([(k(z), z), (k(z + 0.045), z + 0.045)], n, cap0=False, cap1=False), RUST[0], None, warp=warp, jit=0.03)
+    for sx in (-1, 1):                                    # stencilled "this way up" arrows
+        icon_arrow(g, T(sx * 0.12, -R * 0.84 + 0.004, 0.3, 86, 0, 0) @ T(rz=90), 0.2, "#6b5335")
+    g.emit(p_tube([(cos(2 * pi * k / n) * R * 0.6, sin(2 * pi * k / n) * R * 0.6, h) for k in range(n)], 0.035, 5, closed=True), CANVAS_D, None, warp=warp, jit=0.03)   # rolled mouth
+    g.emit(p_cyl(R * 0.56, 0.04, n, b=0.0), INSIDE, T(0, 0, h - 0.11), warp=warp, jit=0)
+    g.cyl(0.085, 0.2, (-0.1, 0.06, h - 0.13), (6, 8, 0), col=STEEL_L, n=6, b=0.012, cap=STEEL_D)        # what is inside: tins, a coconut, bananas
+    g.paint_poly([(-0.06, -0.05), (0.06, -0.05), (0.06, 0.05), (-0.06, 0.05)], T(-0.1, -0.026, h - 0.03, 96, 8, 0), RED)
+    g.cyl(0.075, 0.16, (0.1, 0.1, h - 0.11), (-8, 0, 0), col=OLIVE, n=6, b=0.012, cap=STEEL_D)
+    coconut(g, (0.09, -0.09, h - 0.19), 0.12, 40, eyes=False)
+    banana(g, (-0.05, -0.12, h - 0.03), (0, 0, 160), 0.55)
+    lid = a.part("lid", (0, R * 0.47, h))
+    lid.emit(p_lathe([(R * 0.57, h - 0.012), (R * 0.63, h + 0.03), (R * 0.56, h + 0.1), (R * 0.36, h + 0.22), (R * 0.22, h + 0.31), (R * 0.18, h + 0.35)], n, cap1=False), col, None, warp=warp,
+             grad=(0.9, 1.06), smooth=70, cap=CANVAS_D)
+    lid.emit(p_lathe([(0.095, h + 0.325), (0.125, h + 0.352), (0.095, h + 0.38)], 8, cap0=False, cap1=False), ROPE, None, warp=warp)
+    lid.emit(p_lathe([(0.085, h + 0.365), (0.2, h + 0.47), (0.22, h + 0.55), (0.0, h + 0.52)], 8, cap0=False), shade(col, 1.06), None,
+             warp=lambda v: Vector((v.x, v.y * 0.7, v.z + 0.03 * sin(v.x * 20))), smooth=70)
+    rope(lid, [(0.1, -0.06, h + 0.35), (0.2, -0.16, h + 0.27), (0.22, -0.2, h + 0.14)], 0.022, seg=2, n=4)
+    rope(lid, [(-0.02, -0.11, h + 0.35), (-0.1, -0.2, h + 0.24), (-0.09, -0.24, h + 0.1)], 0.022, seg=2, n=4)
+    a.point("mark", (0, 0, h + 1.1))
+    return a
+
+
 
 def build():
     cont_weapon("cont_weapon", 21)
@@ -313,6 +600,12 @@ def build():
     cont_ammo("cont_ammo", 23)
     cont_parts("cont_parts", 24)
     cont_medical("cont_medical", 25)
+    cont_lunchbox("cont_lunchbox", 26)
+    cont_toolbox("cont_toolbox", 27)
+    cont_medcabinet("cont_medcabinet", 28)
+    cont_safe("cont_safe", 29)
+    cont_trash("cont_trash", 30)
+    cont_sack("cont_sack", 31)
 
 
-REVIEW = dict(cols=5, cell=3.0, dist=22)
+REVIEW = dict(cols=6, cell=3.0, dist=26)
