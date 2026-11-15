@@ -54,6 +54,7 @@ await p.keyboard.press("e"); await p.waitForSelector(".panel.npc");
 { const t = await p.locator(".panel.npc").innerText(); log(/Dial/.test(t) && /Gang Frequencies|Signal Fire/.test(t), "the Radio Operator offers his next jobs", t.split("\n").slice(0, 4).join(" | ")); }
 await shot("s06-radio-dialogue");
 await p.click('button[data-a="npc:chatter"]'); await p.waitForTimeout(300); await shot("s06b-radio-chatter");
+log(/BananaGPT raised another round/.test(await p.locator(".panel.npc").innerText()), "Dial's chatter reads the BananaGPT headline");
 await p.keyboard.press("Escape"); await p.waitForTimeout(300);
 await at("sal"); await p.keyboard.press("e"); await p.waitForSelector(".panel.npc");
 { const t = await p.locator(".panel.npc").innerText(); log(/Foreman's Payroll/.test(t) && /Sal's shop/.test(t) && /first-aid/i.test(t) && !/Hard hat/.test(t), "Sal: the boss job on, his shop with first-aid kits (job-unlocked), no hard hats yet"); }
@@ -100,6 +101,11 @@ await shot("s13-tab-joblog");
 log(await until(() => /Captain Saltbeard/.test(document.querySelector(".lv-tagwrap")?.textContent ?? ""), null, 2000), "clicking the note shows its text on the tag");
 log(await until(() => window.__G.save.quests.notes.includes("note_pirate_iou"), null, 2000), "reading it is remembered (counts for jobs)");
 await shot("s14-note-read");
+await G(() => { window.__G.pack.push("note_courier_slip@c1"); }); await p.waitForTimeout(300);
+{ const bb = await p.locator('.lv-me button[aria-label="Mainland Courier Slip"]').first().boundingBox(); await p.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2); }
+log(await until(() => /certain investor, V\.P\./.test(document.querySelector(".lv-tagwrap")?.textContent ?? ""), null, 2000), "the mainland courier slip reads on the tag (a hint, no job)");
+log(await G(() => !window.__story.quests.QUESTS.some((q) => q.tasks.some((t) => t.note === "note_courier_slip"))), "no job asks for the courier slip");
+await shot("s15-courier-slip");
 await p.keyboard.press("Tab"); await p.waitForTimeout(300);
 // the root cellar spawns next raid
 if (errs.length) { console.log("page errors:", errs.slice(0, 5)); failed++; }
