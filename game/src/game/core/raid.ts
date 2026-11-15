@@ -21,6 +21,7 @@ import { hud } from "../ui/hud";
 import { initFx, updateFx } from "../../fx";
 import { U } from "../render/shading";
 import { updateCutout } from "../render/cutout";
+import { updateCampfires } from "../render/campfire";
 import { buildMinimap, updateMinimap, resetTrail, recordTrail } from "../ui/mapview";
 import { botTelemetry } from "./bot";
 import { visualGear } from "../loot/equipment";
@@ -120,5 +121,6 @@ export function renderRaid(dt: number) {
   focus.lerp(G.pp.clone().add(lead), Math.min(1, dt * (G.fireCd > -0.2 ? 3 : 6)));
   G.stage.place(focus, dt, G.time);
   updateCutout(G.stage.camera, chest.copy(G.pp).setY(G.pp.y + 1.1), G.stage.renderer);
+  updateCampfires(G.time, G.stage.scene, G.stage.renderer);
   void V; void itemDef;
 }
