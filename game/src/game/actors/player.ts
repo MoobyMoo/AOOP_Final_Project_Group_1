@@ -3,6 +3,8 @@
 import * as THREE from "three";
 import { G, V, flat, angDiff, type Enemy } from "../core/state";
 import { PLAYER, KINGPIN, KINGPIN_HANDLING, BRIEFCASE, FEEL, HEALS } from "../combat/weapons";
+import { itemType } from "../loot/instances";
+import { consumeInstance } from "../core/raid-journal";
 import { updateHandling, kickedNdc } from "../combat/handling";
 import { tuneObject } from "../core/tune";
 import { ENEMY_CRIT, SLOTS, equipDef, gearStats } from "../loot/equipment";
@@ -52,7 +54,7 @@ export function nearestToRay(maxD: number, maxAng: number, from = G.pp, yaw = G.
   return best;
 }
 export function useStamina(n: number) { G.stamina = Math.max(0, G.stamina - n); G.staminaDelay = PLAYER.stamina.delay; }
-export function carriedWeight() { return G.pack.reduce((a, id) => a + (itemDef(id).weight ?? 1), 0) + SLOTS.reduce((total, slot) => total + (equipDef(G.gear[slot])?.weight ?? 0), 0) + (G.ammo + G.mag) * 0.02; }
+export function carriedWeight() { return G.pack.reduce((a, id) => a + (itemDef(id).weight ?? 1), 0) + SLOTS.reduce((total, slot) => total + (equipDef(G.gear[slot])?.weight ?? 0), 0) + Object.values(G.save.gun).reduce<number>((total, inst) => total + (inst ? itemDef(inst).weight ?? 0 : 0), 0) + (G.ammo + G.mag) * 0.02; }
 export function weightState() { const r = G.weight / (PLAYER.maxWeight + 4 * G.save.upgrades.pack + gearStats(G.gear).maxWeight), w = PLAYER.weight; return r > 1 ? "over" : r > w.heavy ? "heavy" : r <= w.light ? "light" : "normal"; }
 
 export function updatePlayer(dt: number) {
@@ -118,7 +120,7 @@ export function updatePlayer(dt: number) {
   if (G.equipping) speed *= EQUIP_MOVE;
   if (G.skidT > 0) speed *= PLAYER.roll.skidSpeed; G.skidT -= dt;
   if (G.painT > 0) speed *= 1 - PLAYER.pain.slow;
-  if (G.useItem) speed *= 1 - HEALS[G.useItem.id].slow;
+  if (G.useItem) speed *= 1 - HEALS[itemType(G.useItem.id)].slow;
   if (G.ads) speed *= KINGPIN_HANDLING.adsWalk; else if (G.fireCd > -0.25) speed *= 0.85; // Duckov: walk x AdsWalkSpeedMultiplier while aiming
   G.vel.lerp(mv.multiplyScalar(speed), Math.min(1, dt * 14));
   move(G.vel.clone().multiplyScalar(dt));
@@ -135,16 +137,16 @@ export function updatePlayer(dt: number) {
   if (G.useItem) {
     G.useItem.t += dt; hud.use(G.useItem);
     if (G.useItem.t >= G.useItem.time) {
-      const h = HEALS[G.useItem.id], amount = Math.round(h.heal * gearStats(G.gear).heal); G.hp = Math.min(G.maxHp, G.hp + amount); sfx("heal"); burst(G.pp.clone().setY(1.5), 12, "#ff9ec4", 0.6);
+      const h = HEALS[itemType(G.useItem.id)], amount = Math.round(h.heal * gearStats(G.gear).heal); G.hp = Math.min(G.maxHp, G.hp + amount); sfx("heal"); burst(G.pp.clone().setY(1.5), 12, "#ff9ec4", 0.6);
       floatText(`+${amount}`, G.pp.clone().setY(2.6), "#6ad16a", 24);
-      const k = G.pack.indexOf(G.useItem.id); if (k >= 0) G.pack.splice(k, 1);
+      const k = G.pack.indexOf(G.useItem.id); if (k >= 0) consumeInstance(G.pack.splice(k, 1)[0]);
       G.useItem = null; hud.use(null); hud.health(); hud.pack();
     }
   } else if (i.heal && !G.equipping) {
-    const id = ["firstaid", "smoothie", "bandage"].find((h) => G.pack.includes(h));
+    const id = G.pack.find(inst => ["firstaid", "smoothie", "bandage"].includes(itemType(inst)));
     if (!id) hud.toast("No bandage or smoothie in your pack");
     else if (G.hp >= G.maxHp) hud.toast("You're already at full health");
-    else { G.useItem = { id, t: 0, time: HEALS[id].time }; cancelReload(); sfx("ui"); }
+    else { G.useItem = { id, t: 0, time: HEALS[itemType(id)].time }; cancelReload(); sfx("ui"); }
   }
 
   // ---- reload (combat/reload.ts): R, or the trigger on an empty gun; walk and run freely meanwhile

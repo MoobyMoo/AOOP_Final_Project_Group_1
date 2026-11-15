@@ -5,17 +5,27 @@ import { createSearch } from "../loot/search";
 import { rollContainer, CONTAINERS, type ContainerType } from "../loot/containers";
 import { gearStats } from "../loot/equipment";
 import { openLoot, closeLoot, lootDebug, type LootTarget } from "./lootview";
+import { own, itemType } from "../loot/instances";
+/** settlement (G1.5 Wave 1): every item is an owned instance "type…@id"; tests seed through own() and compare by itemType() */
+export { own, itemType };
+import { consumeInstance, externalHolders } from "../core/raid-journal";
+/** the test containers opened here hold real items: the settlement journal must see them (they are not in G.crates) */
+const devTargets: LootTarget[] = [];
+externalHolders.push(() => devTargets.flatMap((t) => t.items));
+/** empty the pack the sanctioned way: each item is consumed in the raid ledger, not silently deleted */
+export function clearPack() { for (const inst of G.pack) consumeInstance(inst); G.pack.length = 0; }
 
 /** a typed container rolled from its real pool, searched at the real per-item timings */
 export function crate(type: ContainerType = "medical", extra: string[] = []) {
-  const items = [...rollContainer(type, G.rng), ...extra];
+  const items = [...rollContainer(type, G.rng), ...extra].map(own);
   const t: LootTarget = { name: CONTAINERS[type].label, items, search: createSearch(items, { openSeconds: CONTAINERS[type].openSeconds, searchFactor: gearStats(G.gear).search }), kind: "container" };
-  openLoot(t); return t;
+  devTargets.push(t); openLoot(t); return t;
 }
 /** a knocked-out bandit: worn gear plus carried loot, searched like a crate (row 18) */
 export function body(items = ["peel_jacket#64", "guard_helmet", "ammo45", "banana", "brass_compass"]) {
+  items = items.map(own);
   const t: LootTarget = { name: "Peel Gang bandit", sub: "Knocked out", items: [...items], search: createSearch(items, { searchFactor: gearStats(G.gear).search }), kind: "body" };
-  openLoot(t); return t;
+  devTargets.push(t); openLoot(t); return t;
 }
 export { openLoot, closeLoot, lootDebug };
 export { hud } from "./hud";
@@ -32,5 +42,5 @@ import { placeItem } from "../loot/raidloot";
 /** lay items on the ground in a row in front of the player (captures of ground models) */
 export function lay(items: string[], spacing = 1.1) {
   const fx = Math.sin(G.aimYaw), fz = Math.cos(G.aimYaw), sx = fz, sz = -fx;
-  items.forEach((id, i) => { const o = (i - (items.length - 1) / 2) * spacing; placeItem(id, G.pp.x + fx * 2.5 + sx * o, G.pp.z + fz * 2.5 + sz * o); });
+  items.map(own).forEach((id, i) => { const o = (i - (items.length - 1) / 2) * spacing; placeItem(id, G.pp.x + fx * 2.5 + sx * o, G.pp.z + fz * 2.5 + sz * o); });
 }

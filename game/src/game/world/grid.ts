@@ -7,7 +7,7 @@
 //     gates (doors, breakable walls, the vine door) and dynamic blockers (crates, the supply drop).
 // Low cover blocks walking but not shots or sight. Water outside the coast lets shots through; cliffs and jungle don't.
 import type { Collider, Placed, BuildingDef } from "../contracts";
-import { BOUNDS, SHAPES, ZONES, PLACED, WALLS, DOOR, PORTALS, CRATES, SPAWNS, POI, UNDER_X, ROADS, ZIPLINES, SUPPLY_DROPS, START, DEMO, inDemo, ROUTE_LOCKS, SEAL_PROBES, CONTAINER_SOCKETS, portalOpen } from "./map/grove";
+import { BOUNDS, SHAPES, ZONES, PLACED, WALLS, DOOR, PORTALS, CRATES, SPAWNS, POI, UNDER_X, ROADS, ZIPLINES, SUPPLY_DROPS, START, DEMO, inDemo, ROUTE_LOCKS, SEAL_PROBES, CONTAINER_SOCKETS, portalOpen, ENCOUNTERS } from "./map/grove";
 import { collidersFor, RAM } from "./map/colliders";
 import { inPoly, segDist, toWorld, type EdgeKind, type Zone } from "./map/types";
 
@@ -370,6 +370,17 @@ export function exactReach(x0: number, z0: number, rad = 0.45, step = 0.25, more
   test.route = (px: number, pz: number) => { const out: [number, number][] = []; let k = hit(px, pz, 0.6), i = 0; while (k >= 0) { if (i++ % 8 === 0) out.push([BOUNDS.minX + (k % W) * step, BOUNDS.minZ + ((k / W) | 0) * step]); k = from[k]; } return out.reverse(); };
   return test;
 }
+/** walkable area (1 u cells you can reach with every gate open) by kind: outdoor, interior (inside a building's
+ *  footprint) and cave (the grotto), demo-slice only. The population pass sizes containers and enemies against these */
+export function areaStats(feet: { x: number; z: number; hx: number; hz: number }[]) {
+  const saved = gates.map((g) => g.open); for (const g of gates) g.open = true;
+  const reach = flood(START.x, START.z), out = { outdoor: 0, interior: 0, cave: 0 };
+  for (let r = 0; r < GH; r++) for (let c = 0; c < GW; c++) {
+    const x = cx(c), z = cz(r); if (!passable(r * GW + c) || !inDemo(x, z) || !reach(x, z)) continue;
+    if (x > UNDER_X) out.cave++; else if (feet.some((f) => Math.abs(x - f.x) < f.hx && Math.abs(z - f.z) < f.hz)) out.interior++; else out.outdoor++;
+  }
+  gates.forEach((g, i) => (g.open = saved[i])); return out;
+}
 export type LintReport = { errors: string[]; warnings: string[]; stats: Record<string, number>; info?: string[] };
 /** reachability + gating + pacing lint. Call after initGrid() and before crates are placed. errors empty = pass.
  *  The demo slice (G1.5-13): what lies past the route locks is parked, not broken. The lint checks the opposite there:
@@ -407,6 +418,7 @@ export function lintReport(o: { exact?: boolean } = {}): LintReport {
     ...CRATES.map((c, i) => [`crate${i}(${c.x},${c.z})`, c.x, c.z, 2] as Pnt),
     ...CONTAINER_SOCKETS.map((c) => [`${c.type}:${c.id}(${c.x},${c.z})`, c.x, c.z, 2] as Pnt),
     ...SPAWNS.flatMap((set_, si) => set_.map((s, i) => [`${s.kind}${si}.${i}(${s.x},${s.z})`, s.x, s.z, 0] as Pnt)),
+    ...ENCOUNTERS.flatMap((e) => e.points.map(([x, z], i) => [`enc:${e.id}.${i}(${x},${z})`, x, z, 0] as Pnt)),
     ...PORTALS.filter((p) => portalOpen(p.id)).flatMap((p) => [[`${p.id}.a`, p.a.x, p.a.z, 0], [`${p.id}.b`, p.b.x, p.b.z, 0]] as Pnt[]),
     ...ZIPLINES.flatMap((zl) => [[`zip-${zl.id}.from`, zl.from.x, zl.from.z + 3.2, 0], [`zip-${zl.id}.to`, zl.to.x, zl.to.z + 1.6, 0]] as Pnt[]),
     ...SUPPLY_DROPS.map((d) => [`drop(${d.x},${d.z})`, d.x, d.z, 0] as Pnt)];

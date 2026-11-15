@@ -4,10 +4,12 @@ import { rollContainer, type ContainerType } from './containers';
 import { enemyGear } from './equipment';
 import { itemDef, mulberry32, PRICES, type LootContext } from './tables';
 
+/** G1.5 population pass: a route now passes the small containers too (junk heaps, sacks, pockets, lunchboxes,
+ *  toolboxes), so each route opens more, smaller containers: hatch 10, cove 13, boss/grotto 15 (with a safe) */
 export const DEMO_ROUTES: Record<'hatch' | 'cove' | 'boss', readonly ContainerType[]> = {
-  hatch: ['food', 'medical', 'ammo', 'parts', 'food', 'parts'],
-  cove: ['food', 'medical', 'ammo', 'parts', 'food', 'parts', 'ammo', 'weapon'],
-  boss: ['food', 'medical', 'ammo', 'parts', 'food', 'parts', 'ammo', 'weapon', 'medical'],
+  hatch: ['food', 'medical', 'ammo', 'parts', 'trash', 'trash', 'sack', 'jacket', 'lunchbox', 'toolbox'],
+  cove: ['food', 'medical', 'ammo', 'parts', 'food', 'ammo', 'weapon', 'trash', 'trash', 'sack', 'jacket', 'lunchbox', 'toolbox'],
+  boss: ['food', 'medical', 'ammo', 'parts', 'food', 'ammo', 'weapon', 'medical', 'trash', 'trash', 'sack', 'jacket', 'lunchbox', 'toolbox', 'safe'],
 };
 export function demoRaidLoot(seed: number, route: keyof typeof DEMO_ROUTES) {
   const rng = mulberry32(seed);

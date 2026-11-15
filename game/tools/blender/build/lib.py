@@ -432,8 +432,14 @@ GLYPHS = {
     "Z": [[(0, 6), (4, 6), (0, 0), (4, 0)]],
     "0": [[(1, 0), (0, 1), (0, 5), (1, 6), (3, 6), (4, 5), (4, 1), (3, 0), (1, 0)]],
     "1": [[(1, 5), (2, 6), (2, 0)]],
+    "2": [[(0, 5), (1, 6), (3, 6), (4, 5), (4, 4), (0, 0), (4, 0)]],
+    "3": [[(0, 5), (1, 6), (3, 6), (4, 5), (4, 4), (3, 3), (1.5, 3)], [(3, 3), (4, 2), (4, 1), (3, 0), (1, 0), (0, 1)]],
     "4": [[(3, 0), (3, 6), (0, 2)], [(0, 2), (4, 2)]],
     "5": [[(4, 6), (0, 6), (0, 3.4), (3, 3.4), (4, 2.4), (4, 1), (3, 0), (0, 0)]],
+    "6": [[(4, 5), (3, 6), (1, 6), (0, 5), (0, 1), (1, 0), (3, 0), (4, 1), (4, 2.4), (3, 3.4), (0.62, 3.4)]],
+    "7": [[(0, 6), (4, 6), (1.5, 0)]],
+    "8": [[(1, 3), (0, 4), (0, 5), (1, 6), (3, 6), (4, 5), (4, 4), (3, 3), (1, 3)], [(1, 3), (0, 2), (0, 1), (1, 0), (3, 0), (4, 1), (4, 2), (3, 3)]],
+    "9": [[(0, 1), (1, 0), (3, 0), (4, 1), (4, 5), (3, 6), (1, 6), (0, 5), (0, 3.6), (1, 2.6), (3.38, 2.6)]],
     "$": [[(4, 5), (3, 6), (1, 6), (0, 5), (0, 4), (1, 3), (3, 3), (4, 2), (4, 1), (3, 0), (1, 0), (0, 1)], [(2, -0.8), (2, 6.8)]],
     "!": [[(2, 6), (2, 2)], [(2, 0.7), (2, 0)]],
     "-": [[(0.6, 3), (3.4, 3)]],
@@ -526,6 +532,11 @@ class Geo:
             fr = next((x for x in reversed(traceback.extract_stack()) if os.path.basename(x.filename) not in ("lib.py", "kit.py")), None)
             if bad and fr:
                 print(f"[check] {bad} doubly-wound edges from {os.path.basename(fr.filename)}:{fr.lineno}")
+        if TRIS_BY is not None:                 # BUILD_TRIS=1: where the triangles come from (file:line of the caller)
+            import traceback
+            fr = next((x for x in reversed(traceback.extract_stack()) if os.path.basename(x.filename) not in ("lib.py", "kit.py")), None)
+            key = f"{getattr(self, 'owner', '?'):18s} {os.path.basename(fr.filename)}:{fr.lineno}" if fr else "?"
+            TRIS_BY[key] = TRIS_BY.get(key, 0) + sum(len(f) - 2 for f in F)
         fn, fa = [], []
         for f in F:
             n = Vector()
@@ -694,9 +705,18 @@ def material(name):
     att.layer_name = "Col"
     nt.links.new(att.outputs["Color"], bsdf.inputs["Base Color"])
     bsdf.inputs["Roughness"].default_value = 0.85
-    if name == "emissive":
+    if name == "emissive" or name.endswith("_emit"):
         nt.links.new(att.outputs["Color"], bsdf.inputs["Emission Color"])
         bsdf.inputs["Emission Strength"].default_value = 3.0
+    if name == "gloss":          # polished brass and lacquer: the game gives it a low-roughness material
+        bsdf.inputs["Roughness"].default_value = 0.38
+    if name == "glass":          # the game draws it transparent; here it is only for the review renders
+        bsdf.inputs["Roughness"].default_value = 0.08
+        bsdf.inputs["Alpha"].default_value = 0.28
+        try:
+            m.surface_render_method = "BLENDED"
+        except Exception:
+            pass
     if name == "foliage":
         m.use_backface_culling = False
     MATS[name] = m
@@ -721,6 +741,7 @@ class Asset:
     def mesh(self, mat="matte"):
         if mat not in self.static:
             self.static[mat] = Geo(self.rng, mat)
+            self.static[mat].owner = self.name
         return self.static[mat]
 
     def part(self, name, pivot=(0, 0, 0), mat="matte", parent=None):
@@ -728,6 +749,7 @@ class Asset:
         key = name if mat == "matte" or name not in self.parts else f"{name}_{mat}"
         if key not in self.parts:
             g = Geo(self.rng, mat)
+            g.owner = self.name
             g.pivot, g.part, g.parent = Vector(pivot), name, (parent if key == name else name)
             self.parts[key] = g
         return self.parts[key]
@@ -751,10 +773,14 @@ class Asset:
     def tris(self):
         return sum(g.tris for g in self.geos())
 
-    def triangles(self):
+    def triangles(self, ghosts=False):
+        """occluder triangles. Glass never occludes; a ghost Geo (g.ghost = True: a fixture that is hidden until it is
+        bought) only occludes when ghosts=True, so the piece it sits on carries no shadow of it while it is hidden."""
         V, Tr = [], []
         for g in self.geos():
             if g.mat == "emissive" and not getattr(g, "occlude", False):
+                continue
+            if g.mat == "glass" or (getattr(g, "ghost", False) and not ghosts):
                 continue
             b = len(V)
             V += g.P
@@ -773,6 +799,7 @@ def hash_str(s):
 
 _AO_DIRS = None
 CHECK = os.environ.get("BUILD_CHECK") == "1"
+TRIS_BY = {} if os.environ.get("BUILD_TRIS") == "1" else None
 SIDE_BOOST = 0.8
 CONTACT, CONTACT_H = 0.5, 0.6     # side faces at the ground keep this share of their light; back to full by this height
 
@@ -793,30 +820,35 @@ def _ao_dirs(n=20):
 
 def bake_ao(asset, extra=None):
     """ray-cast ambient occlusion per face corner, multiplied into the colours (stored linear)"""
-    V, Tr = ([], []) if not asset.ao_self else asset.triangles()
-    V, Tr = list(V), list(Tr)
-    if extra:
-        b = len(V); V += extra[0]; Tr += [(b + a, b + c, b + d) for a, c, d in extra[1]]
-    if asset.ground:
-        b = len(V); s = 60.0
-        V += [(-s, -s, 0.0), (s, -s, 0.0), (s, s, 0.0), (-s, s, 0.0)]; Tr += [(b, b + 1, b + 2), (b, b + 2, b + 3)]
-    if asset.wall is not None:   # a wall plane at y = wall, facing -y (for wall-mounted pieces)
-        b = len(V); s, y = 60.0, asset.wall
-        V += [(-s, y, -s), (s, y, -s), (s, y, s), (-s, y, s)]; Tr += [(b, b + 1, b + 2), (b, b + 2, b + 3)]
-    bvh = BVHTree.FromPolygons([Vector(v) for v in V], Tr, epsilon=0.0) if Tr else None
+    def occluders(ghosts):
+        V, Tr = ([], []) if not asset.ao_self else asset.triangles(ghosts)
+        V, Tr = list(V), list(Tr)
+        if extra:
+            b = len(V); V += extra[0]; Tr += [(b + a, b + c, b + d) for a, c, d in extra[1]]
+        if asset.ground:
+            b = len(V); s = 60.0
+            V += [(-s, -s, 0.0), (s, -s, 0.0), (s, s, 0.0), (-s, s, 0.0)]; Tr += [(b, b + 1, b + 2), (b, b + 2, b + 3)]
+        if asset.wall is not None:   # a wall plane at y = wall, facing -y (for wall-mounted pieces)
+            b = len(V); s, y = 60.0, asset.wall
+            V += [(-s, y, -s), (s, y, -s), (s, y, s), (-s, y, s)]; Tr += [(b, b + 1, b + 2), (b, b + 2, b + 3)]
+        return BVHTree.FromPolygons([Vector(v) for v in V], Tr, epsilon=0.0) if Tr else None
+    bvh_base = occluders(False)
+    # ghost Geos (fixtures hidden until bought) are lit against everything, themselves included; the rest never sees them
+    bvh_ghost = occluders(True) if any(getattr(g, "ghost", False) for g in asset.geos()) else bvh_base
     dirs = _ao_dirs()
     D = asset.ao_dist
     tint = (0.42, 0.35, 0.37)
     for g in asset.geos():
         cache = {}
         newc = []
+        bvh = bvh_ghost if getattr(g, "ghost", False) else bvh_base
         for fi, f in enumerate(g.F):
             cen = sum((Vector(g.P[i]) for i in f), Vector()) / len(f)
             row = []
             for ci, vi in enumerate(f):
                 c = g.Col[fi][ci]
                 lin = (s2l(c[0]), s2l(c[1]), s2l(c[2]))
-                if g.mat == "emissive" or bvh is None:
+                if g.mat in ("emissive", "glass") or bvh is None:
                     row.append(lin); continue
                 n = g.N[fi][ci]
                 key = (vi, round(n[0], 1), round(n[1], 1), round(n[2], 1))
@@ -876,7 +908,7 @@ def to_blender(asset, coll):
         me.color_attributes.active_color = ca
         me.color_attributes.render_color_index = 0
         me.normals_split_custom_set([n for row in g.N for n in row])
-        me.materials.append(material(g.mat))
+        me.materials.append(material(getattr(g, "matname", None) or g.mat))
         me.validate(clean_customdata=False)
         ob = bpy.data.objects.new(name, me)
         coll.objects.link(ob)
@@ -894,7 +926,7 @@ def to_blender(asset, coll):
     for key, g in asset.parts.items():
         if not g.F:
             continue
-        ob = make(g, f"{asset.name}__{key}", "part", g.part if key == g.part else key)
+        ob = make(g, key if getattr(asset, "bare", False) else f"{asset.name}__{key}", "part", g.part if key == g.part else key)
         made[key] = ob
     for key, g in asset.parts.items():      # same-part extra materials ride along as children of the main node
         if g.parent and g.parent in made and key in made:

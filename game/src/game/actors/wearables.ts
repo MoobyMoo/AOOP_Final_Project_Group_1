@@ -53,9 +53,9 @@ export const WEAR_ZONES: Record<string, { main: Region; accent?: Region }> = {
   sack: { main: "prop", accent: "prop2" }, walkman: { main: "band", accent: "metal" }, radio_headset: { main: "green", accent: "hat" },
 };
 /** equipment instances are "id" or "id#durability" (contracts.ts Gear); these read both forms */
-export const baseId = (inst: string | null | undefined): string | null => (inst ? (inst.indexOf("#") < 0 ? inst : inst.slice(0, inst.indexOf("#"))) : null);
+export const baseId = (inst: string | null | undefined): string | null => inst ? inst.split(/[#@~]/)[0] : null;
 /** durability 0..100 of an instance (100 when it carries none) */
-export const instDur = (inst: string | null | undefined): number => { const i = inst ? inst.indexOf("#") : -1, d = i < 0 ? 100 : Number(inst!.slice(i + 1)); return Number.isFinite(d) ? d : 100; };
+export const instDur = (inst: string | null | undefined): number => { const i = inst ? inst.indexOf("#") : -1, d = i < 0 ? 100 : Number(inst!.slice(i + 1).split("@")[0]); return Number.isFinite(d) ? d : 100; };
 export const wearable = (inst: string | null | undefined) => { const id = baseId(inst); return id ? WEARABLES.find((w) => w.id === id) : undefined; };
 
 type Tmpl = { geo: THREE.BufferGeometry; gloss: boolean }[];

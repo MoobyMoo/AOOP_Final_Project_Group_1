@@ -22,6 +22,7 @@ import { iconHtml } from "./itemicon";
 import { iconUrl } from "./icons";
 import { carriedWeight } from "../actors/player";
 import { HEALS } from "../combat/weapons";
+import { itemType } from "../loot/instances";
 import { toRef } from "./scale";
 import { HS, currentScatter, restScatter } from "../combat/handling";
 import { tuneObject } from "../core/tune";
@@ -51,7 +52,7 @@ const QUICK_KEYS = ["3", "4", "5", "6", "7", "8"];
 /** quick slots 3-8: each heal type you pick up takes the first free slot and keeps it for the raid (Duckov binds
  *  items to quick slots; ours bind themselves so a first-time player never has to) */
 let quick: (string | null)[] = [null, null, null, null, null, null];
-function bindQuick() { for (const id of Object.keys(HEALS)) if (G.pack.includes(id) && !quick.includes(id)) { const k = quick.indexOf(null); if (k >= 0) quick[k] = id; } }
+function bindQuick() { for (const id of Object.keys(HEALS)) if (G.pack.some(inst => itemType(inst) === id) && !quick.includes(id)) { const k = quick.indexOf(null); if (k >= 0) quick[k] = id; } }
 let keysWired = false;
 function wireKeys() {
   if (keysWired) return; keysWired = true;
@@ -59,7 +60,7 @@ function wireKeys() {
     if (G.scene !== "raid" || e.repeat) return;
     const k = QUICK_KEYS.indexOf(e.key); if (k < 0) return;
     const id = quick[k]; if (!id) return;
-    if (!useHeal(id) && !lootOpen()) { if (!G.pack.includes(id)) hud.toast(`No ${itemDef(id).name} left`); else if (G.hp >= G.maxHp) hud.toast("You're already at full health"); }
+    if (!useHeal(id) && !lootOpen()) { if (!G.pack.some(inst => itemType(inst) === id)) hud.toast(`No ${itemDef(id).name} left`); else if (G.hp >= G.maxHp) hud.toast("You're already at full health"); }
   });
 }
 const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, "0")}:${(t % 60).toFixed(3).padStart(6, "0")}`;
@@ -121,12 +122,12 @@ export const hud = {
   /** quick slots 3-8 and the load badge */
   bar() {
     if (!E.quick) return; bindQuick();
-    const qk = quick.map((id) => (id ? `${id}:${G.pack.filter((p) => p === id).length}` : "")).join(",") + "|" + (G.useItem?.id ?? "");
+    const qk = quick.map((id) => (id ? `${id}:${G.pack.filter((p) => itemType(p) === id).length}` : "")).join(",") + "|" + (G.useItem?.id ?? "");
     if (qk !== lastQuick) {
       lastQuick = qk;
       E.quick.innerHTML = quick.map((id, i) => {
-        const n = id ? G.pack.filter((p) => p === id).length : 0;
-        return `<div class="plate h3-q ${id && !n ? "none" : ""} ${id && G.useItem?.id === id ? "using" : ""}" ${id ? `title="${itemDef(id).name}"` : ""}><span class="key">${QUICK_KEYS[i]}</span>${id ? iconHtml(id, 56) + `<span class="n">${n}</span>` : ""}</div>`;
+        const n = id ? G.pack.filter((p) => itemType(p) === id).length : 0;
+        return `<div class="plate h3-q ${id && !n ? "none" : ""} ${id && G.useItem && itemType(G.useItem.id) === id ? "using" : ""}" ${id ? `title="${itemDef(id).name}"` : ""}><span class="key">${QUICK_KEYS[i]}</span>${id ? iconHtml(id, 56) + `<span class="n">${n}</span>` : ""}</div>`;
       }).join("");
     }
     hud.load();

@@ -15,14 +15,20 @@ import { mergePieces } from "./kitutil";
 import { breakDoorVisual } from "./buildings";
 import * as K from "./kit_build";
 import { burst } from "../../fx";
+import { EXIT_DEFS, exitCondition, type ExitDef } from "./extraction";
 
 type Chunk = { o: THREE.Object3D; p0: THREE.Vector3; q0: THREE.Quaternion; v: THREE.Vector3; w: THREE.Vector3; rest: boolean };
 type BreakWall = { id: string; parts: Record<string, THREE.Object3D>; chunks: Chunk[]; t: number; mid: THREE.Vector3 };
 const walls = new Map<string, BreakWall>();
 const yawOf = (a: number[], b: number[]) => Math.atan2(b[0] - a[0], b[1] - a[1]);
 
-export type Exit = { id: "hatch" | "raft" | "tunnel" | "boat"; x: number; z: number; ring: THREE.Mesh; fill: THREE.Mesh; bonus: number; open: boolean; armed?: boolean };
+export type Exit = { id: "hatch" | "raft" | "tunnel" | "boat"; x: number; z: number; ring: THREE.Mesh; fill: THREE.Mesh; bonus: number; open: boolean; armed?: boolean; definition?: ExitDef; condition?: { open: boolean; reason: string } };
 export const exits: Exit[] = [];
+export function exitStatus(exit: Exit) {
+  exit.definition = EXIT_DEFS[exit.id];
+  exit.condition = exitCondition(exit.definition, G.pack, G.raidT, G.save.fixtures);
+  return { open: exit.open && exit.condition.open, reason: exit.open ? exit.condition.reason : "route closed" };
+}
 export const portalMarks: { id: string; x: number; z: number; to: { x: number; z: number }; label: string; oneWay?: boolean }[] = [];
 /** things you can read with E: the notes and gags from the Shorts (LORE.md) */
 export const reads: { x: number; z: number; label: string; text: () => string }[] = [];

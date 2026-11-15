@@ -16,6 +16,7 @@
 // The bot never uses the screen: with G.bot set the world runs the session and tosses revealed items out for it.
 import { G, type Crate } from "../core/state";
 import type { SearchSession, SearchSlot } from "./search";
+import { checkpointInventory } from "../core/raid-journal";
 
 export type Lootable = Crate;
 export type LootState = { label: string; kind: "crate" | "container" | "body"; type?: string; elapsed: number; duration: number; revealed: number; total: number; taken: number; done: boolean };
@@ -38,11 +39,15 @@ export const lootHook = {
     return { label: t.label ?? "crate", kind: t.kind ?? "crate", type: t.type, elapsed: s?.elapsed ?? 0, duration: s?.duration ?? 0, revealed: slots.filter((q) => q.revealed).length, total: slots.length, taken: slots.filter((q) => q.taken).length, done: !!s && slots.every((q) => q.taken) };
   },
   take(t: Lootable, index: number): string | null {
+    if (G.scene === "raid" && !G.alive) return null;
     const s = api?.session(t); if (!s || !api) return null;
     const slot = s.slots[index]; if (!slot?.revealed || slot.taken || !api.fits(slot.item)) return null;
     const item = api.take(s, index); if (!item) return null;
     if (!api.give(item)) { slot.taken = false; return null; }
+    const itemIndex = t.items?.indexOf(item) ?? -1;
+    if (itemIndex >= 0) t.items!.splice(itemIndex, 1);
     if (s.slots.every((q) => q.taken)) t.opened = true;
+    checkpointInventory();
     return item;
   },
   takeAll(t: Lootable): string[] { const out: string[] = []; const s = api?.session(t); if (!s) return out; s.slots.forEach((_, i) => { const it = lootHook.take(t, i); if (it) out.push(it); }); return out; },

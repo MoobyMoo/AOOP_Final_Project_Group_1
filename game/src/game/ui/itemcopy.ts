@@ -35,7 +35,7 @@ const BLURB: Record<string, string> = {
 /** lines = the stat changes of a gun attachment, each marked better or worse for you (the tag colours them) */
 export type ItemCopy = { name: string; rarity: string; rarityLine: string; blurb: string; does: string[]; use: string; lines?: StatLine[] };
 export function itemCopy(inst: string): ItemCopy {
-  const d = itemDef(inst), e = equipDef(inst), id = inst.split("#")[0];
+  const d = itemDef(inst), e = equipDef(inst), id = inst.split(/[#@]/)[0];
   const rarity = d.rarity, r = RARITY[rarity] ?? "Common";
   let does: string[] = [], use = "", lines: StatLine[] | undefined, blurb = BLURB[id] ?? "";
   let rarityLine = `${r}, sells at the Fence`;

@@ -12,7 +12,7 @@ import { pieceRec, type PieceOwner } from "../world/dress";
 import { groundHeight, meshHeight, meshHeightMax } from "../world/terrain";
 import { houses } from "../world/buildings";
 import { debugGrid, walkable, path, gates, edgeDist, roadDist, flood } from "../world/grid";
-import { PLACED, CRATES, SPAWNS, START, POI, PORTALS, ZIPLINES, SUPPLY_DROPS, UNDER_X, PIERS, PIER_Y, inDemo, portalOpen, CONTAINER_SOCKETS } from "../world/map/grove";
+import { PLACED, CRATES, SPAWNS, START, POI, PORTALS, ZIPLINES, SUPPLY_DROPS, UNDER_X, PIERS, PIER_Y, inDemo, portalOpen, CONTAINER_SOCKETS, ENCOUNTERS } from "../world/map/grove";
 import { collidersFor, NATURE_VARIANTS } from "../world/map/colliders";
 import { toWorld } from "../world/map/types";
 import * as K from "../world/kit_build";
@@ -472,6 +472,7 @@ function sockets() {
   // crates: a crate spawns at any yaw outdoors; its box reaches 0.85 u from its centre (crate_green 0.85 x 0.51 half)
   // the demo slice (G1.5-13): sockets, spawns and marks past the route locks are parked, not stranded
   for (const c of [...CRATES.filter((q) => inDemo(q.x, q.z)), ...CONTAINER_SOCKETS.map((q) => ({ ...q, tier: q.type === "weapon" ? "green" : "wood", fixed: undefined, y: q.y }))]) {
+    if ((c as { wall?: boolean }).wall) continue; // hung on a wall: its socket is the wall's face by design
     const clear = idx.dist(c.x, c.z), need = c.in ? 0.55 : c.tier === "green" ? 0.99 : 0.85;
     if (clear < 0) add("socket", "bug", c.x, c.z, "crate", `crate socket ${c.tier}${c.fixed ? "/" + c.fixed : ""} inside a collider (${r2(clear)})`, -clear);
     else if (clear < need - 0.1) add("socket", clear < need - 0.35 ? "visible" : "minor", c.x, c.z, "crate", `crate socket ${c.tier}${c.fixed ? "/" + c.fixed : ""} has ${r2(clear)} u clear: a turned crate can poke into the next collider`, need - clear);
@@ -479,7 +480,8 @@ function sockets() {
     const gap = groundHeight(c.x, c.z) + (c.y ?? 0) - surf(c.x, c.z);
     if (Math.abs(gap) > 0.06 && !c.y) add("socket", "minor", c.x, c.z, "crate", `crate socket sits ${r2(gap)} u off the surface under it`, Math.abs(gap));
   }
-  for (const c of G.crates) { // this raid's crates at their real yaw (sockets with a y stand on a platform: the tower, the vault plinth)
+  for (const c of G.crates) { // this raid's crates at their real yaw
+    if (c.kind === "body" || CONTAINER_SOCKETS.some((q) => q.id === c.socket && q.wall)) continue; // bodies lie where they fell; a wall cabinet hangs 0.82 up against its wall on purpose (sockets with a y stand on a platform: the tower, the vault plinth)
     const b = new THREE.Box3().setFromObject(c.obj); let depth = 0;
     const cx = (b.min.x + b.max.x) / 2, cz = (b.min.z + b.max.z) / 2;
     for (const [px, pz] of [[b.min.x, b.min.z], [b.max.x, b.min.z], [b.min.x, b.max.z], [b.max.x, b.max.z], [cx, b.min.z], [cx, b.max.z], [b.min.x, cz], [b.max.x, cz]]) for (const q of idx.near(px, pz)) depth = Math.max(depth, -colDist(q, (px + cx * 2) / 3, (pz + cz * 2) / 3));
@@ -489,7 +491,7 @@ function sockets() {
   }
   // enemies: home on open ground, a patrol ring that is mostly walkable, a way to the player
   const seenHome = new Set<string>();
-  SPAWNS.flat().filter((s) => inDemo(s.x, s.z)).forEach((s) => {
+  [...SPAWNS.flat(), ...ENCOUNTERS.flatMap((e) => e.points.map(([x, z]) => ({ kind: e.weightedRoles.some(([k]) => k === "brute") ? "brute" as const : "bandit" as const, x, z })))].filter((s) => inDemo(s.x, s.z)).forEach((s) => {
     const key = `${s.x},${s.z}`; if (seenHome.has(key)) return; seenHome.add(key);
     const rad = s.kind === "brute" ? 0.72 : 0.36, clear = idx.dist(s.x, s.z);
     if (!walkable(s.x, s.z) || clear < rad * 0.5) add("socket", "bug", s.x, s.z, s.kind, `${s.kind} spawn ${r2(s.x)},${r2(s.z)} inside a collider (${r2(clear)} u clear)`, clear);

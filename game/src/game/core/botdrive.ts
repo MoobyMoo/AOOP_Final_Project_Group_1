@@ -9,7 +9,8 @@ import { path, walkable, collide, los, gates, areaAt, state as gridState } from 
 import { DEMO } from '../world/map/grove';
 import { HEALS, PLAYER } from '../combat/weapons';
 import { GUN } from '../combat/gunstats';
-import { exits, portalMarks } from "../world/props";
+import { exits, exitStatus, portalMarks } from "../world/props";
+import { itemType } from "../loot/instances";
 import { homeApi, stations } from "../home/bunker";
 import { containerType, packValue, currentSearch, worth } from "../loot/raidloot";
 import { SLOTS, equipDef } from "../loot/equipment";
@@ -34,17 +35,17 @@ export function view(): BotObservation {
     homePanelOpen: homeApi.panelOpen(), searching: !!currentSearch(), extracting: !!G.extract.id,
     packMinValue: Math.min(...G.pack.map(worth)),
     exitArmed: Object.fromEntries(exits.map(exit => [exit.id, exit.armed])),
-    player: { x: G.pp.x, z: G.pp.z, hearts: Math.ceil(G.hp / 34), maxHearts: Math.ceil(G.maxHp / 34), hp: G.hp, maxHp: G.maxHp, stamina: G.stamina, usingItem: !!G.useItem, ammo: G.ammo, mag: G.mag, reloading: G.reloadT >= 0, rolling: G.rollT >= 0, packFree: G.packSlots - G.pack.length, packValue: packValue(), healing: G.pack.reduce((sum, item) => sum + (HEALS[item]?.heal ?? 0), 0), smoothies: G.pack.filter((i) => i === "smoothie" || i === "bandage" || i === "firstaid").length, shotNoise: GUN.noise },
-    enemies: G.enemies.filter((e) => !e.down).map((e) => ({ id: e.id, kind: e.kind, x: e.p.x, z: e.p.z, state: e.state, hp: e.hp, boss: isBoss(e), escort: e.group === 'plantation-boss' && !isBoss(e), windup: e.state === "windup" || e.state === "aim" || e.state === "charge", awake: e.state !== "sleep" && e.state !== "patrol" })),
+    player: { x: G.pp.x, z: G.pp.z, hearts: Math.ceil(G.hp / 34), maxHearts: Math.ceil(G.maxHp / 34), hp: G.hp, maxHp: G.maxHp, stamina: G.stamina, usingItem: !!G.useItem, ammo: G.ammo, mag: G.mag, reloading: G.reloadT >= 0, rolling: G.rollT >= 0, packFree: G.packSlots - G.pack.length, packValue: packValue(), healing: G.pack.reduce((sum, item) => sum + (HEALS[itemType(item)]?.heal ?? 0), 0), smoothies: G.pack.filter(inst => ["smoothie", "bandage", "firstaid"].includes(itemType(inst))).length, shotNoise: GUN.noise },
+    enemies: G.enemies.filter((e) => !e.down && (!e.fauna || ["windup", "charge", "bite"].includes(e.state))).map((e) => ({ id: e.id, kind: e.kind, x: e.p.x, z: e.p.z, state: e.state, hp: e.hp, boss: isBoss(e), escort: e.group === 'plantation-boss' && !isBoss(e), windup: e.state === "windup" || e.state === "aim" || e.state === "charge", awake: e.state !== "sleep" && e.state !== "patrol" })),
     crates: G.crates.filter(crate => crate.kind !== 'body').map((c) => { const area = areaAt(c.x, c.z); return { id: c.id, x: c.x, z: c.z, tier: c.tier, opened: c.opened, type: containerType(c), area: area === 'wreck' ? 'beach' : ['palms', 'westbend'].includes(area) ? 'checkpoint' : area }; }),
     bodies: G.crates.filter(crate => crate.kind === 'body' && !crate.opened).map(crate => ({ id: crate.id, x: crate.x, z: crate.z })),
     pickups: G.pickups.map((p) => ({ id: p.id, x: p.p.x, z: p.p.z, item: p.item })),
-    exits: exits.map(e => ({ id: e.id, x: e.x, z: e.z, open: e.open })),
+    exits: exits.map(e => ({ id: e.id, x: e.x, z: e.z, ...exitStatus(e) })),
     portals: portalMarks.filter(portal => !portal.id.startsWith("zip-")).map(portal => ({ id: portal.id, x: portal.x, z: portal.z, to: portal.to })),
-    gates: gates.map(gate => ({ id: gate.id, x: gate.x, z: gate.z, nx: gate.nx, nz: gate.nz, open: gate.open, breakable: gate.hp !== undefined, usable: !gate.locked || G.pack.includes(gate.locked) || G.save.keys.includes(gate.locked) })),
+    gates: gates.map(gate => ({ id: gate.id, x: gate.x, z: gate.z, nx: gate.nx, nz: gate.nz, open: gate.open, breakable: gate.hp !== undefined, usable: !gate.locked || G.pack.some(inst => itemType(inst) === gate.locked) || G.save.keys.includes(gate.locked) })),
     stations: stations.flatMap((s) => { const id = s.id === "trophies" ? "orders" : s.id === "deploy" ? "ladder" : s.id === "locker" ? "mirror" : s.id; return id === "sell" || id === "bench" || id === "orders" || id === "ladder" || id === "mirror" || id === "sal" ? [{ id, x: s.x, z: s.z }] : []; }),
     upgrades: { ...G.save.upgrades },
-    walkable: botWalkable, path, safePath: (fx, fz, tx, tz, allow) => path(fx, fz, tx, tz, 60000, allow), los, raidT: G.raidT, money: G.save.money, raids: G.save.raids, doorOpen: gridState.doorOpen, hasKey: G.pack.includes("vine_key"),
+    walkable: botWalkable, path, safePath: (fx, fz, tx, tz, allow) => path(fx, fz, tx, tz, 60000, allow), los, raidT: G.raidT, money: G.save.money, raids: G.save.raids, doorOpen: gridState.doorOpen, hasKey: G.pack.some(inst => itemType(inst) === "vine_key"),
   };
 }
 export function botTick(dt: number): Intent {

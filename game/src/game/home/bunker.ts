@@ -8,11 +8,12 @@ import { attachmentDef } from "../loot/attachments";
 import { refreshGun } from "../combat/gunstats";
 import * as THREE from "three";
 import { G, V } from "../core/state";
+import { own } from "../loot/instances";
 import { sfx } from "../core/audio";
 import { itemDef } from "../loot/raidloot";
 import { createRig } from "../actors/rig";
 import { createKingpin, createGunFx } from "../combat/kingpin";
-import { save } from "../core/save";
+import { commitSave, save } from "../core/save";
 import { floatText, burst, initFx, updateFx, popIn, squash, tween, easeInOut } from "../../fx";
 import { U } from "../render/shading";
 import { PLAYER } from "../combat/weapons";
@@ -23,8 +24,8 @@ import { sellEquip, repairAll } from "../loot/equipment-actions";
 import { repairBill } from "../ui/equipui";
 import { openLoot, closeLoot, lootOpen, lootSwallowsInteract } from "../ui/lootview";
 import { AREA, STARTERS, SPAWN, RECIPES, canCraft, cellsOf, centreOf, craft, defOf, has, occupancy, powered, rotFoot, stashCapacity, stashUsed, type StationId } from "./facilities";
-import { buildVault, facilityModel, LAMPS, openBuild, closeBuild, buildOpen, stepBuild, placeBuildCamera, choose, confirmAt, startMove, packSelected, buildState } from "./basebuild";
-import { makePod, makeBoard, destinationsHtml, confirmHtml, showCurtain, type Pod, type Board } from "./dispatch";
+import { buildVault, facilityModel, animateFacilities, LAMPS, openBuild, closeBuild, buildOpen, stepBuild, placeBuildCamera, choose, confirmAt, startMove, packSelected, buildState } from "./basebuild";
+import { makePod, makeBoard, destinationsHtml, confirmHtml, showCurtain, POD_DOOR_OPEN, POD_GAUGE_REST, type Pod, type Board } from "./dispatch";
 import { deploy, destOf, type DeployRequest } from "../core/deployment";
 
 export const bunkerScene = new THREE.Scene();
@@ -105,7 +106,7 @@ export function enterBunker(deploy: (req: DeployRequest) => void, mirror: () => 
   G.rig.setLook?.(G.save.look); G.gear = { ...G.save.gear }; G.rig.setGear?.(G.save.gear); G.pack = []; bunkerScene.add(G.rig.root); G.gun.root.visible = false; // holstered at home (the raid shows it each frame)
   G.rig.root.scale.setScalar(1);
   pp.set(SPAWN.x, 0, SPAWN.z); vel.set(0, 0, 0); face = 0; G.rig.root.position.copy(pp);
-  if (pod) { pod.door.rotation.y = -1.9; pod.gauge.rotation.z = 1.9; }
+  if (pod) { pod.door.rotation.y = POD_DOOR_OPEN; pod.gauge.rotation.z = POD_GAUGE_REST; }
   sync(); drawHud();
   if (summary) showPanel(summary, "result");
 }
@@ -163,7 +164,7 @@ export function renderBunker(dt: number) {
   G.rig.root.scale.set(1 / Math.sqrt(squish), squish, 1 / Math.sqrt(squish));
   G.rig.pose({ time: G.time, speed: launching ? 0 : vel.length(), moveYaw: face, faceYaw: face, action: !launching && vel.lengthSq() > 0.1 ? "run" : "idle", actionT: 0, armed: "none", flash: 0 });
   if (salRig?.root.parent) salRig.pose({ time: G.time + 3, speed: 0, moveYaw: salRig.root.rotation.y, faceYaw: Math.atan2(pp.x - salRig.root.position.x, pp.z - salRig.root.position.z), action: "idle", actionT: 0, armed: "none", flash: 0 });
-  updateFx(dt);
+  updateFx(dt); animateFacilities(objects.values(), dt, G.time, powered(G.save));
   if (buildOpen()) { placeBuildCamera(dt); return; }
   const f = (launching ? new THREE.Vector3(0, 0, -9.5) : pp.clone()).setY(0.5).add(V(0, -1.2)); const d = G.stage.cam.dist; G.stage.cam.dist = 32; G.stage.setFov(); G.stage.place(f, dt, G.time); G.stage.cam.dist = d;
 }
@@ -183,20 +184,20 @@ function open(s: Station) {
   if (s.id === "med" || s.id === "press") return showPanel(craftHtml(s.id));
   if (s.id === "stash") return showPanel(`${head("Safe-deposit wall", `${stashUsed(sv)} of ${stashCapacity(sv)} slots used`)}<p class="quote">"Every box has a key. Most of them are yours."</p>
     <div class="stats"><div class="stat"><b>${sv.reserved.length}</b><span>loot waiting</span></div><div class="stat"><b>${sv.locker.length}</b><span>gear in the locker</span></div><div class="stat"><b>${stashCapacity(sv)}</b><span>slots</span></div></div>
-    <p class="dim">Crafting and Sal's shop stop when the stash is full. Each safe-deposit wall adds 12 slots.</p>`);
+    <p class="dim">Crafting and Sal's shop stop when the stash is full. Each safe-deposit wall adds 12 slots. ${sv.delivery?.length ?? 0} owned items wait safely in delivery and arrive automatically when space opens.</p>`);
   if (s.id === "generator") return showPanel(`${head("Vault generator", "running")}<p class="quote">"Don't touch the red one."</p><p>It powers the ammo press and the second bank of ceiling lamps.${has(sv, "press") ? " The press is running." : " Build the Coin-Op Ammo Press to use the power."}</p>`);
 }
 function salShopHtml() {
   const sv = G.save;
   return `${head("Smuggler Sal", "cash only")}<p class="quote">"Ammo, bandages, smoothies."</p><div class="rows">
-    <div class="row"><b>8 rounds of .45</b><small>You carry ${sv.ammo} rounds into the next raid (16 minimum).</small><button class="act" data-a="buyAmmo">🍌 ${PRICES.ammo8}</button></div>
+    <div class="row"><b>8 rounds of .45</b><small>You carry ${sv.ammo} rounds into the next raid.</small><button class="act" data-a="buyAmmo">🍌 ${PRICES.ammo8}</button></div>
     <div class="row"><b>Banana-leaf bandage</b><small>Heals 15, quick to use</small><button class="act" data-a="buyBandage">🍌 ${PRICES.bandage}</button></div>
     <div class="row"><b>Banana smoothie</b><small>Heals 40, slow to drink</small><button class="act" data-a="buySmoothie">🍌 ${PRICES.smoothie}</button></div></div>`;
 }
 function craftHtml(at: "med" | "press") {
   const sv = G.save, list = RECIPES.filter((r) => r.at === at);
   const rows = list.map((r) => {
-    const can = canCraft(sv, r), need = Object.entries(r.inputs).map(([id, n]) => `${n} ${itemDef(id).name} (${sv.reserved.filter((x) => x === id).length} in stash)`).join(", ");
+    const can = canCraft(sv, r), need = Object.entries(r.inputs).map(([id, n]) => `${n} ${itemDef(id).name} (${sv.reserved.filter((inst) => itemDef(inst).id === id).length} in stash)`).join(", ");
     const wanted = !sv.salMovedIn && Object.keys(r.inputs).some((id) => ORDER.need[id]) ? ". Sal's job needs this too" : "";
     return `<div class="row"><b>${r.out === "ammo" ? "🔸" : iconHtml(r.out, 26)} ${r.name}</b><small>From ${need}${wanted}${can.ok ? "" : `. ${can.reason}`}</small><button class="act" data-a="craft:${r.id}" ${can.ok ? "" : "disabled"}>Make</button></div>`;
   }).join("");
@@ -224,8 +225,9 @@ function benchHtml() {
   return `${head("Workbench", `🍌 ${G.save.money} to spend`)}<div class="rows">${row("mag", "Extended Mag", "A magazine attachment: the Kingpin holds 12 rounds instead of 8" + (G.save.gun.mag === "att_mag_ext" || G.save.locker.includes("att_mag_ext") ? ". You already have one" : ""))}${row("pack", "Bigger Pack", "2 more pack slots")}${row("heart", "Banana Breakfast", "25 more max HP")}${repairRow()}</div><p class="dim" style="margin-top:10px">🔒 Contraband Carbine arrives with the Smuggler Caves.</p>`;
 }
 function orderHtml() {
-  const rows = Object.entries(ORDER.need).map(([k, n]) => { const have = Math.min(n, G.save.reserved.filter((i) => i === k).length); return `<div class="row"><b>${itemDef(k).icon} ${itemDef(k).name}</b><small>${have} of ${n} in your stash</small><em class="act" style="color:${have >= n ? "var(--leaf)" : "var(--dim)"}">${have >= n ? "Ready" : `${n - have} to go`}</em></div>`; }).join("");
-  const ready = Object.entries(ORDER.need).every(([k, n]) => G.save.reserved.filter((i) => i === k).length >= n);
+  if (G.save.salMovedIn) return `${head("Order board")}<p>Sal's job is done. New jobs arrive with new regions.</p>`;
+  const rows = Object.entries(ORDER.need).map(([k, n]) => { const have = Math.min(n, G.save.reserved.filter((i) => itemDef(i).id === k).length); return `<div class="row"><b>${itemDef(k).icon} ${itemDef(k).name}</b><small>${have} of ${n} in your stash</small><em class="act" style="color:${have >= n ? "var(--leaf)" : "var(--dim)"}">${have >= n ? "Ready" : `${n - have} to go`}</em></div>`; }).join("");
+  const ready = Object.entries(ORDER.need).every(([k, n]) => G.save.reserved.filter((i) => itemDef(i).id === k).length >= n);
   return `${head(`${ORDER.from}'s job`)}<p class="quote">"${ORDER.text}"</p><div class="rows">${rows}</div><p class="dim" style="margin-top:10px">Reward: ${ORDER.reward}</p>${ready ? `<div class="actions"><button data-a="deliver">Deliver</button></div>` : ""}`;
 }
 /** where floating text rises for a facility (its object, or the spawn if it isn't built) */
@@ -237,7 +239,15 @@ const atFac = (id: string, up = 2.4) => { const o = facObj(id); return o ? o.pos
  *  and the curtain. onDeploy (main.ts) builds the raid behind the curtain. */
 function launch(id: string, instant = false) {
   if (launching) return;
-  const r = deploy(id, G.save, save);
+  if (G.save.deployReceipt) { sfx("nope"); floatText("Reload to finish the pending fare refund.", V(0, -9, 2.6), "#ffb648", 22); return; }
+  const outbound = structuredClone(G.save);
+  let r: ReturnType<typeof deploy>;
+  try {
+    r = deploy(id, outbound, next => {
+      next.deployReceipt = { id: crypto.randomUUID(), paid: destOf(id)!.cost };
+      G.save = commitSave(next);
+    });
+  } catch { sfx("nope"); floatText("Could not save. Fare not paid.", V(0, -9, 2.6), "#ffb648", 22); return; }
   if (!r.ok) { sfx("nope"); floatText(r.reason, V(0, -9, 2.6), "#ffb648", 22); return; }
   launching = true; panel?.querySelectorAll("button").forEach((b) => (b.disabled = true)); closePanel(); money(); board?.refresh(G.save);
   if (r.req.paid) floatText(`Fare −🍌 ${r.req.paid}`, V(0, -9, 3), "#fff3c4", 24);
@@ -249,7 +259,7 @@ function podSequence(req: DeployRequest) {
   sfx("step");
   tween(0.45, (k) => { pp.lerpVectors(from, into, easeInOut(k)); lift = Math.sin(k * Math.PI) * 0.25 + k * 0.4; face = 0; }, () => {
     sfx("door");
-    tween(0.25, (k) => { p.door.rotation.y = -1.9 * (1 - k); p.gauge.rotation.z = 1.9 - k * 1.2; });
+    tween(0.25, (k) => { p.door.rotation.y = POD_DOOR_OPEN * (1 - k); p.gauge.rotation.z = POD_GAUGE_REST - k * 1.2; });
     tween(0.35, (k) => { squish = 1 - 0.28 * Math.sin(k * Math.PI * 0.5); p.gauge.rotation.z = 0.7 - k * 2.2; }, () => {
       sfx("thunk"); sfx("dash"); squash(p.root, 0.08, 0.3); G.stage.trauma = 0.3; burst(new THREE.Vector3(0, 0.6, -11), 26, "#f3ead6", 1.2);
       tween(0.4, (k) => { squish = 0.72 + k * 0.8; lift = 0.4 + k * k * 11; }, () => {
@@ -280,7 +290,7 @@ function act(a: string) {
   if (a.startsWith("up:")) {
     const k = a.slice(3) as "mag" | "pack" | "heart", c = PRICES[k][sv.upgrades[k]]; if (c === undefined || sv.money < c) { sfx("nope"); return; }
     sv.money -= c; sv.upgrades[k]++;
-    if (k === "mag") { if (!sv.gun.mag) sv.gun.mag = "att_mag_ext"; else sv.locker.push("att_mag_ext"); refreshGun(); } // the bench builds the magazine attachment: fitted, or into the locker if a mag is on
+    if (k === "mag") { if (!sv.gun.mag) sv.gun.mag = own("att_mag_ext"); else sv.locker.push(own("att_mag_ext")); refreshGun(); } // the bench builds the magazine attachment: fitted, or into the locker if a mag is on
     save(sv); sfx("buy"); money(); refreshFixtures(); closePanel();
     const f = facObj("bench")?.getObjectByName(`fx_${k}`);
     if (f) { popIn(f, 0, 0.42, f.scale.x || 1); burst(f.getWorldPosition(new THREE.Vector3()), 24, "#ffd84a", 1); }
@@ -288,7 +298,7 @@ function act(a: string) {
     floatText({ mag: "Extended Mag!", pack: "Bigger Pack!", heart: "Banana Breakfast!" }[k], atFac("bench", 3), "#fff3c4", 30); return;
   }
   if (a === "deliver") {
-    for (const [k, n] of Object.entries(ORDER.need)) for (let j = 0; j < n; j++) sv.reserved.splice(sv.reserved.indexOf(k), 1);
+    for (const [k, n] of Object.entries(ORDER.need)) for (let j = 0; j < n; j++) { const index = sv.reserved.findIndex(inst => itemDef(inst).id === k); if (index < 0) return; sv.reserved.splice(index, 1); }
     sv.salMovedIn = true; sv.money += 40; save(sv); sfx("rare"); refreshFixtures(); closePanel(); money();
     const f = facObj("sal")?.getObjectByName("neon"); if (f) popIn(f, 0, 0.42, f.scale.x || 1); G.stage.trauma = 0.3; floatText("Sal moved in! +🍌 40", atFac("sal", 3), "#ffd84a", 30); return;
   }

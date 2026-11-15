@@ -5,9 +5,11 @@ import { KINGPIN } from "../combat/weapons";
 import { ITEMS, PRICES, itemDef } from "../loot/tables";
 import { EMPTY_GUN, isAttachment, sanitizeGun } from "../loot/attachments";
 import { emptyBase, legacyBase, sanitizeBase } from "../home/facilities";
+import { itemType } from "../loot/instances";
+import { claimDelivery, identifySave, settleRaid, validateOwnership } from "./settlement";
 
 export function retainKeys(save: SaveV1, kept: readonly string[]) {
-  for (const id of kept) if (itemDef(id).kind === "key" && !save.keys.includes(id)) save.keys.push(id);
+  for (const id of kept) if (itemDef(id).kind === "key" && !save.keys.includes(itemType(id))) save.keys.push(itemType(id));
 }
 
 const KEY = "bv_g1";
@@ -56,7 +58,7 @@ function gear(value: unknown, legacy: boolean): Gear {
   for (const slot of SLOTS) {
     const inst = raw[slot], parsed = typeof inst === "string" ? parseInst(inst) : null;
     if (inst === null) out[slot] = slot === "body" && legacy ? "suit" : null;
-    else if (parsed && equipDef(inst as string)?.slot === slot) out[slot] = fmtInst(parsed.id, parsed.dur);
+    else if (parsed && equipDef(inst as string)?.slot === slot) out[slot] = fmtInst(inst as string, parsed.dur);
   }
   return out;
 }
@@ -65,12 +67,12 @@ const renamed = (inst: string) => (inst === "extended_mag" ? "att_mag_ext" : ins
 /** the locker: equipment instances and gun attachment ids */
 const instances = (value: unknown): string[] => Array.isArray(value) ? value.flatMap(raw => {
   const inst = typeof raw === "string" ? renamed(raw) : null, parsed = inst ? parseInst(inst) : null;
-  return parsed ? [fmtInst(parsed.id, parsed.dur)] : inst && isAttachment(inst) ? [inst] : [];
+  return parsed ? [fmtInst(inst!, parsed.dur)] : inst && isAttachment(inst) ? [inst] : [];
 }) : [];
 const loot = (value: unknown): string[] => Array.isArray(value) ? value.flatMap(raw => {
   if (typeof raw !== "string" || !raw) return [];
   const inst = renamed(raw), parsed = parseInst(inst);
-  return parsed ? [fmtInst(parsed.id, parsed.dur)] : Object.hasOwn(ITEMS, inst) ? [inst] : [];
+  return parsed ? [fmtInst(inst, parsed.dur)] : Object.hasOwn(ITEMS, itemType(inst)) && ITEMS[itemType(inst)].kind !== "wear" ? [inst] : [];
 }) : [];
 function satchel(value: unknown): SaveV1["satchel"] {
   const raw = object(value), items = loot(raw.items).filter(inst => !equipDef(inst)?.bound);
@@ -85,7 +87,7 @@ export function migrate(value: unknown): SaveV1 {
     const rawGear = object(raw.gear);
     const legacy = Array.isArray(raw.wardrobe) || (!Object.hasOwn(rawGear, "body") && !Object.hasOwn(rawGear, "ears")) || (rawGear.body === null && strings(raw.locker).some(inst => equipDef(inst)?.bound && Object.values(rawGear).includes(inst)));
     const worn = gear(raw.gear, legacy);
-    const locker = legacy ? [...new Set(instances(raw.locker ?? raw.wardrobe))] : instances(raw.locker);
+    const locker = instances(raw.locker ?? raw.wardrobe);
     if (legacy) for (const inst of Object.values(worn)) { const index = inst ? locker.indexOf(inst) : -1; if (index >= 0) locker.splice(index, 1); }
     locker.push(...instances(raw.reserved));
     // the Kingpin's attachments. A save from before attachments has no "gun": its extended mag (found in the vault =
@@ -98,6 +100,10 @@ export function migrate(value: unknown): SaveV1 {
       if (starter && equipDef(worn[slot])?.id !== starter && !locker.some(inst => equipDef(inst)?.id === starter)) locker.push(starter);
     }
     return {
+      ...(raw.activeRaid && typeof raw.activeRaid === "object" ? { activeRaid: structuredClone(raw.activeRaid) as SaveV1["activeRaid"] } : {}),
+      ...(Array.isArray(raw.settlements) ? { settlements: structuredClone(raw.settlements) as SaveV1["settlements"] } : {}),
+      ...(Array.isArray(raw.delivery) ? { delivery: loot(raw.delivery) } : {}),
+      ...(typeof object(raw.deployReceipt).id === "string" && integer(object(raw.deployReceipt).paid, -1) >= 0 ? { deployReceipt: { id: object(raw.deployReceipt).id as string, paid: object(raw.deployReceipt).paid as number } } : {}),
       v: 1,
       createdAt: typeof raw.createdAt === "string" && Number.isFinite(Date.parse(raw.createdAt)) ? raw.createdAt : defaults.createdAt,
       raids: integer(raw.raids, defaults.raids), money: integer(raw.money, defaults.money), ammo: integer(raw.ammo, defaults.ammo),
@@ -117,6 +123,7 @@ export function migrate(value: unknown): SaveV1 {
       stats: { bonkOuts: integer(stats.bonkOuts, 0), extracts: integer(stats.extracts, 0), best: integer(stats.best, 0) },
       // a save from before the buildable vault had the fixed room's stations: they come along, already placed
       base: Object.hasOwn(raw, "base") ? sanitizeBase(raw.base) : Object.keys(raw).length ? legacyBase() : emptyBase(),
+      ...(typeof object(raw.boundWeapons).kingpin === "string" && typeof object(raw.boundWeapons).briefcase === "string" ? { boundWeapons: { kingpin: object(raw.boundWeapons).kingpin as string, briefcase: object(raw.boundWeapons).briefcase as string } } : {}),
     };
   } catch {
     return defaults;
@@ -124,22 +131,40 @@ export function migrate(value: unknown): SaveV1 {
 }
 
 export function load(): SaveV1 {
+  let next: SaveV1, raw: string | null;
   try {
-    const raw = globalThis.localStorage.getItem(KEY);
-    return migrate(raw === null ? null : JSON.parse(raw));
+    raw = globalThis.localStorage.getItem(KEY);
+    next = identifySave(migrate(raw === null ? null : JSON.parse(raw)));
+    validateOwnership(next);
   } catch {
-    return fresh();
+    return identifySave(fresh());
   }
+  try {
+    if (next.activeRaid) return commitSave(settleRaid(next, "reload", 2));
+    if (next.deployReceipt) {
+      const refunded = structuredClone(next);
+      refunded.money += refunded.deployReceipt!.paid; delete refunded.deployReceipt;
+      return commitSave(refunded);
+    }
+    if (JSON.stringify(next) !== raw) return commitSave(next);
+  } catch {}
+  return next;
 }
 
-export function save(value: SaveV1): void {
-  try {
-    globalThis.localStorage.setItem(KEY, JSON.stringify(migrate(value)));
-  } catch {}
+export function commitSave(value: SaveV1): SaveV1 {
+  const next = identifySave(value);
+  claimDelivery(next);
+  validateOwnership(next);
+  globalThis.localStorage.setItem(KEY, JSON.stringify(next));
+  return next;
+}
+
+export function save(value: SaveV1): boolean {
+  try { Object.assign(value, commitSave(value)); return true; } catch { return false; }
 }
 
 export function reset(): SaveV1 {
-  const value = fresh();
+  const value = identifySave(fresh());
   try {
     globalThis.localStorage.removeItem(KEY);
   } catch {}

@@ -30,6 +30,8 @@ import { itemCopy } from "./itemcopy";
 import type { AttSlot, WearSlot } from "../contracts";
 import { ATT_SLOTS, SLOT_LABEL, attachmentDef, isAttachment, statLines } from "../loot/attachments";
 import { GUN, fit, unfit } from "../combat/gunstats";
+import { itemType, withCount } from "../loot/instances";
+import { checkpointInventory, consumeInstance } from "../core/raid-journal";
 
 export type LootTarget = {
   /** header title: "Ammo tin", "Peel Gang bandit" */
@@ -57,7 +59,6 @@ const EQ_ORDER: (WearSlot | "gun" | "case")[] = ["gun", "case", "head", "body", 
 const ATT_TIP: Record<AttSlot, string> = { sight: "Sights and scopes: aim zoom when you aim (right mouse).", muzzle: "Compensators cut recoil; a suppressor keeps your shots quiet.", mag: "Magazines: more rounds before you reload.", laser: "Lasers tighten your shots from the hip." };
 const EQ_TIP: Record<WearSlot, string> = { head: "Hats and helmets. Head armor stops critical hits.", face: "Glasses and masks.", body: "Vests and jackets. Body armor cuts damage.", back: "Bags. More pack slots and carry weight.", ears: "Headphones. Hear footsteps through walls." };
 const BRK = `<i class="brk tl"></i><i class="brk tr"></i><i class="brk bl"></i><i class="brk br"></i>`;
-const counts = new WeakMap<SearchSlot, number>();
 const popped = new Set<SearchSlot>();
 
 let root: HTMLDivElement | null = null, target: LootTarget | null = null, sel: Src | null = null, hover: Src | null = null;
@@ -74,10 +75,11 @@ export const lootSwallowsInteract = () => (!!root && !!target) || performance.no
 // ---------------------------------------------------------------- contents
 function entries(): Entry[] {
   if (!target) return [];
+  if (home() && target.kind === "locker") target.items = G.save.locker;
   if (target.search) return target.search.slots.map((slot, idx) => ({ item: slot.item, revealed: slot.revealed, idx, slot, taken: slot.taken })).filter((e) => !e.taken);
   return target.items.map((item, idx) => ({ item, revealed: true, idx }));
 }
-const stackOf = (e: Entry) => { const d = itemDef(e.item); return d.kind === "ammo" ? (e.slot ? counts.get(e.slot) ?? d.stack ?? 8 : d.stack ?? 8) : 0; };
+const stackOf = (e: Entry) => { const d = itemDef(e.item); return d.kind === "ammo" ? d.stack ?? 8 : 0; };
 function itemAt(src: Src | null): string | null {
   if (!src) return null;
   if (src.z === "pack") return (home() ? undefined : G.pack[src.i]) ?? null;
@@ -96,7 +98,7 @@ function say(t: string, bad = false) {
   const m = root?.querySelector(".lv-msg") as HTMLElement | null; if (!m) return;
   m.textContent = t; m.classList.toggle("bad", bad); m.style.opacity = "1"; msgT = 2.6;
 }
-function changed() { lootHooks.changed(); render(); }
+function changed() { checkpointInventory(); lootHooks.changed(); render(); }
 function removeEntry(e: Entry) {
   if (!target) return;
   if (e.slot && target.search) take(target.search, e.idx);
@@ -105,6 +107,7 @@ function removeEntry(e: Entry) {
 const packFull = () => G.pack.length >= G.packSlots;
 /** take a revealed item from the target into the pack (or straight into the ammo pouch / onto the gun) */
 function takeFrom(i: number, opts: { half?: boolean; wear?: boolean; quiet?: boolean } = {}): boolean {
+  if (!home() && !G.alive) return false;
   const e = entries()[i]; if (!e || !target) return false;
   if (!e.revealed) { if (!opts.quiet) say("Still searching that one", true); return false; }
   if (home()) { // the locker: taking a piece means wearing it (or fitting it)
@@ -115,7 +118,12 @@ function takeFrom(i: number, opts: { half?: boolean; wear?: boolean; quiet?: boo
   const d = itemDef(e.item);
   if (d.kind === "ammo") {
     const n = stackOf(e), k = opts.half && n > 1 ? Math.floor(n / 2) : n;
-    G.ammo += k; if (e.slot && k < n) counts.set(e.slot, n - k); else removeEntry(e);
+    G.ammo += k;
+    if (e.slot && k < n) {
+      const remaining = withCount(e.item, n - k), index = target.items.indexOf(e.item);
+      e.slot.item = remaining;
+      if (index >= 0) target.items[index] = remaining;
+    } else { removeEntry(e); consumeInstance(e.item); }
     sfx("pick"); say(`+${k} rounds for the Kingpin`); changed(); return true;
   }
   if (d.kind === "attachment" && opts.wear) return fitFrom({ z: "them", i }); // "Take and fit"; a plain take packs it (Duckov never fits from a container)
@@ -138,7 +146,7 @@ function takeAllSearched() {
   say(n ? (left ? `Took ${n}. Your pack is full.` : `Took ${n} item${n > 1 ? "s" : ""}`) : left ? "Your pack is full" : "Nothing searched yet", !n);
 }
 function putInto(i: number): boolean {
-  if (!target || home()) return false;
+  if (!target || home() || !G.alive) return false;
   const inst = G.pack[i]; if (!inst) return false;
   if (G.equipping?.inst === inst) { say("You're putting that on", true); return false; }
   G.pack.splice(i, 1); target.items.push(inst);
@@ -147,11 +155,12 @@ function putInto(i: number): boolean {
 }
 export function useHeal(id: string): boolean {
   if (G.scene !== "raid" || !G.alive) return false;
-  if (!HEALS[id] || !G.pack.includes(id)) { say("You don't have one", true); return false; }
+  const inst = G.pack.find(item => item === id) ?? G.pack.find(item => itemType(item) === id);
+  if (!inst || !HEALS[itemType(inst)]) { say("You don't have one", true); return false; }
   if (G.useItem) { say("You're already using something", true); return false; }
   if (G.equipping) { say("Finish changing gear first", true); return false; }
   if (G.hp >= G.maxHp) { say("You're already at full health", true); return false; }
-  G.useItem = { id, t: 0, time: HEALS[id].time }; cancelReload(); sfx("ui"); say(`Using the ${itemDef(id).name}…`); changed(); return true;
+  G.useItem = { id: inst, t: 0, time: HEALS[itemType(inst)].time }; cancelReload(); sfx("ui"); say(`Using the ${itemDef(inst).name}…`); changed(); return true;
 }
 function wearFromPack(i: number): boolean {
   const inst = G.pack[i]; if (!inst || !isEquip(inst)) return false;
@@ -169,6 +178,7 @@ function takeOff(slot: WearSlot): boolean {
 // ---- gun attachments: fit from the pack, a container or the locker; take off into the pack, a container or the locker
 const attName = (id: string) => attachmentDef(id)?.name ?? itemDef(id).name;
 function fitFrom(src: Src): boolean {
+  if (!home() && !G.alive) return false;
   const id = itemAt(src), a = attachmentDef(id); if (!id || !a) { say("That doesn't go on the Kingpin", true); return false; }
   if (src.z === "them") {
     const e = entries()[src.i]; if (!e || !e.revealed) { say("Still searching that one", true); return false; }
@@ -185,6 +195,7 @@ function fitFrom(src: Src): boolean {
 /** put an item into the open container (raid) */
 function putBack(inst: string) { if (!target) return; target.items.push(inst); if (target.search) target.search.slots.push({ item: inst, revealAt: 0, revealed: true, taken: false }); }
 function unfitTo(slot: AttSlot, where: "pack" | "them"): boolean {
+  if (!home() && !G.alive) return false;
   const id = G.save.gun[slot]; if (!id) return false;
   if (home()) { unfit(slot); G.save.locker.push(id); save(G.save); say(`Put the ${attName(id)} in the locker`); }
   else if (where === "them" && target) { unfit(slot); putBack(id); say(`Left the ${attName(id)} in the ${target.name.toLowerCase()}`); }
@@ -192,7 +203,7 @@ function unfitTo(slot: AttSlot, where: "pack" | "them"): boolean {
   sfx("ui"); sel = null; changed(); return true;
 }
 function dropFromPack(i: number) {
-  const inst = G.pack[i]; if (!inst || home()) return;
+  const inst = G.pack[i]; if (!inst || home() || !G.alive) return;
   if (G.equipping?.inst === inst) { say("You're putting that on", true); return; }
   G.pack.splice(i, 1); spawnPickup(inst, G.pp.clone().setY(1), 0, 1); sfx("pick"); say(`Dropped the ${itemDef(inst).name}`); sel = null; changed();
 }
@@ -216,7 +227,7 @@ function primary(src: Src) {
   if (isAttachment(inst)) return void fitFrom(src);
   if (target) return void putInto(src.i);
   if (isEquip(inst)) return void wearFromPack(src.i);
-  if (HEALS[inst]) return void useHeal(inst);
+  if (HEALS[itemType(inst)]) return void useHeal(inst);
   const cp = itemCopy(inst); say(`${cp.name}: ${cp.does[0] ?? cp.use}`);
 }
 function drop(src: Src, dst: Src | { z: "themGrid" } | { z: "packGrid" }, ctrl: boolean) {
@@ -352,7 +363,7 @@ function tagHtml() {
   if (c !== null) facts.push(`<li><span data-tip="Armor wears down as it takes hits. Repair it at the workbench.">Condition</span><span class="num"><span class="cond"><i style="width:${Math.max(3, c * 100)}%;${c < 0.35 ? "background:var(--a-warn)" : ""}"></i></span>${Math.round(c * 100)}%</span></li>`);
   if (worn && worn !== inst) facts.push(`<li><span>You're wearing</span><span>${esc(itemDef(worn).name)}</span></li>`);
   if (src.z === "pack" && src.i < G.pouchSlots) facts.push(`<li><span data-tip="The first slots of your pack. Kept even if you get bonked.">Cheek pouch</span><span>Safe if bonked</span></li>`);
-  if (G.lootCtx?.orderNeeds?.includes(inst.split("#")[0])) facts.push(`<li><span>Order</span><span>Smuggler Sal wants this</span></li>`);
+  if (G.lootCtx?.orderNeeds?.includes(itemType(inst))) facts.push(`<li><span>Order</span><span>Smuggler Sal wants this</span></li>`);
   const acts: string[] = [];
   const btn = (act: string, label: string, pri = false, tip = "") => `<button class="b3${pri ? " pri" : ""}" data-act="${act}"${tip ? ` data-tip="${esc(tip)}"` : ""}>${label}</button>`;
   if (src.z === "them") {
@@ -368,7 +379,7 @@ function tagHtml() {
   } else if (src.z === "pack") {
     if (e) acts.push(btn("wear", "Wear it", !target, "Takes a second; a hit interrupts it"));
     if (att) acts.push(btn("wear", "Fit it", !target, "Double-click does the same, or drag it onto the gun"));
-    if (HEALS[inst]) acts.push(btn("use", "Use it", !target, "Or press its quick key, or Q"));
+    if (HEALS[itemType(inst)]) acts.push(btn("use", "Use it", !target, "Or press its quick key, or Q"));
     if (target) acts.push(btn("primary", "Leave it here", true, `Puts it in the ${esc(target.name.toLowerCase())}. Double-click does the same.`));
     acts.push(btn("drop", "Drop"));
   } else if (src.z === "slot") {
@@ -388,7 +399,7 @@ const keysHtml = () => home()
 function sigs() {
   const g = gear(), q = G.equipping;
   const left = [home() ? G.save.money : G.pack.join(","), Object.values(g ?? {}).join(","), Object.values(G.save.gun).join(","), q ? q.slot : "", G.mag, G.ammo, G.packSlots, home() ? G.save.reserved.length : carriedWeight().toFixed(1), sel ? key(sel) : ""].join("|");
-  const them = target ? entries().map((e) => e.item + (e.revealed ? "+" : "?") + (e.slot ? counts.get(e.slot) ?? "" : "")).join(",") + "|" + (sel ? key(sel) : "") : "";
+  const them = target ? entries().map((e) => e.item + (e.revealed ? "+" : "?")).join(",") + "|" + (sel ? key(sel) : "") : "";
   return { left, them };
 }
 function render() {
@@ -549,5 +560,6 @@ function onKey(e: KeyboardEvent) {
   if (k === "control") root.classList.add("ctrl");
 }
 /** debug / test hooks: what the screen shows, by panel */
-export const lootDebug = () => ({ open: !!root, target: target?.name ?? null, them: entries().map((e) => (e.revealed ? e.item : "?")), sel: sel ? key(sel) : null, gun: { ...G.save.gun } });
+/** for tests: `them` lists item types (instances carry "@id") */
+export const lootDebug = () => ({ open: !!root, target: target?.name ?? null, them: entries().map((e) => (e.revealed ? itemType(e.item) : "?")), sel: sel ? key(sel) : null, gun: { ...G.save.gun } });
 void parseInst;

@@ -1,6 +1,7 @@
 import type { EnemyStyle, Gear } from '../contracts';
 import { createSearch, type SearchSession } from './search';
 import { isUseful } from './tables';
+import { own } from './instances';
 
 export type LootEnemy = { kind: EnemyStyle['kind']; down: boolean; gear?: Gear; carry: string[]; stolen: string[] };
 const bodies = new WeakMap<LootEnemy, SearchSession>();
@@ -18,13 +19,15 @@ export function seedEnemyInventory(enemy: LootEnemy, rng: () => number, options:
   }
   if (enemy.kind === 'sleeper') enemy.carry.push('banana_idol');
   if (!options.pockets && ![...Object.values(enemy.gear ?? {}), ...enemy.carry, ...enemy.stolen].some(item => item && isUseful(item, { orderNeeds: [] }))) enemy.carry.push('bandage');
+  enemy.carry = enemy.carry.map(own); enemy.stolen = enemy.stolen.map(own);
+  if (enemy.gear) for (const slot of Object.keys(enemy.gear) as (keyof Gear)[]) if (enemy.gear[slot]) enemy.gear[slot] = own(enemy.gear[slot]!);
 }
 export function bodySearch(enemy: LootEnemy): SearchSession | null {
   if (!enemy.down) return null;
   let session = bodies.get(enemy);
   if (!session) {
     const gear = enemy.gear ? Object.values(enemy.gear).filter((inst): inst is string => inst !== null) : [];
-    session = createSearch([...gear, ...enemy.carry, ...enemy.stolen]);
+    session = createSearch([...gear, ...enemy.carry, ...enemy.stolen].map(own)); // own() is idempotent: a spawner that forgot still settles
     bodies.set(enemy, session);
     enemy.carry.length = 0;
     enemy.stolen.length = 0;

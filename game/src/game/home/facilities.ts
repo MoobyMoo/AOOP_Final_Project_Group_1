@@ -14,6 +14,7 @@
 // Ours on top (POLISH_FINDINGS 11 rules): a walkway check. Every station's front row must stay reachable from the
 // pod on foot, so you can never wall yourself off from the Fence or the exit.
 import type { BaseLayout, SaveV1 } from "../contracts";
+import { itemType, own } from "../loot/instances";
 
 export const AREA = { minX: -16, maxX: 16, minZ: -12, maxZ: 12 } as const;
 export const AREA_W = AREA.maxX - AREA.minX + 1, AREA_D = AREA.maxZ - AREA.minZ + 1; // 33 x 25
@@ -208,7 +209,7 @@ export const RECIPES: Recipe[] = [
 export function canCraft(save: SaveV1, r: Recipe): { ok: boolean; reason: string } {
   if (!has(save, r.at)) return { ok: false, reason: `Build the ${defOf(r.at)!.name}` };
   if (r.power && !powered(save)) return { ok: false, reason: "No power: build the Vault Generator" };
-  for (const [id, n] of Object.entries(r.inputs)) if (save.reserved.filter((i) => i === id).length < n) return { ok: false, reason: "Not enough in your stash" };
+  for (const [id, n] of Object.entries(r.inputs)) if (save.reserved.filter((inst) => itemType(inst) === id).length < n) return { ok: false, reason: "Not enough in your stash" };
   const grow = r.out === "ammo" ? 0 : r.n - Object.values(r.inputs).reduce((a, b) => a + b, 0);
   if (grow > 0 && stashUsed(save) + grow > stashCapacity(save)) return { ok: false, reason: "Stash full: sell something or build a Safe-Deposit Wall" };
   return { ok: true, reason: "" };
@@ -217,8 +218,8 @@ export function canCraft(save: SaveV1, r: Recipe): { ok: boolean; reason: string
 export function craft(save: SaveV1, id: string): boolean {
   const r = RECIPES.find((q) => q.id === id);
   if (!r || !canCraft(save, r).ok) return false;
-  for (const [item, n] of Object.entries(r.inputs)) for (let k = 0; k < n; k++) save.reserved.splice(save.reserved.indexOf(item), 1);
-  if (r.out === "ammo") save.ammo += r.n; else for (let k = 0; k < r.n; k++) save.reserved.push(r.out);
+  for (const [item, n] of Object.entries(r.inputs)) for (let k = 0; k < n; k++) save.reserved.splice(save.reserved.findIndex(inst => itemType(inst) === item), 1);
+  if (r.out === "ammo") save.ammo += r.n; else for (let k = 0; k < r.n; k++) save.reserved.push(own(r.out));
   return true;
 }
 

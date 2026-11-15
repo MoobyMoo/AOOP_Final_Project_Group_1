@@ -3,6 +3,7 @@ import { KINGPIN } from "../combat/weapons";
 import { load, migrate, reset, save, retainKeys } from "./save";
 import { CATALOG, STARTERS, build, canBuild, checkPlace, craft, defOf, legacyBase, move, packUp, stashCapacity } from "../home/facilities";
 import { canDeploy, cancelDeploy, deploy, pickEntry, settleDeploy, ENTRY_POINTS } from "./deployment";
+import { itemType } from "../loot/instances";
 import "../loot/equipment.test";
 import "../loot/equipment-actions.test";
 import "../loot/search.test";
@@ -35,8 +36,8 @@ assert(Number.isFinite(Date.parse(fresh.createdAt)), "creation date is valid");
 equal(fresh.look, DEFAULT_LOOK, "brand default look");
 fresh.look.tie.color = "#000000";
 assert(load().look.tie.color === DEFAULT_LOOK.tie.color, "fresh nested defaults are not shared");
-assert(fresh.gear.head === "bowler" && fresh.gear.face === "shades" && fresh.satchel === null, "default gear and no satchel");
-assert(fresh.gear.body === "suit" && fresh.gear.ears === null && fresh.locker.length === 0, "bound starter worn, not duplicated in locker");
+assert(itemType(fresh.gear.head!) === "bowler" && itemType(fresh.gear.face!) === "shades" && fresh.satchel === null, "default gear and no satchel");
+assert(itemType(fresh.gear.body!) === "suit" && fresh.gear.ears === null && fresh.locker.length === 0, "bound starter worn, not duplicated in locker");
 data.set("bv_g1", "{bad json");
 assert(load().money === 0, "corrupt JSON recovers");
 for (const raw of [null, undefined, 2, false, "bad", [], { v: 999, money: 100 }]) {
@@ -170,7 +171,7 @@ const cash = (save: { money: number }) => save.money; // read through a call: TS
   // stash capacity and crafting: atomic, inputs from the stash
   const c = migrate(null); c.money = 999; c.reserved = ["vine_rope", "banana", "banana", "spring"];
   assert(!craft(c, "bandage"), "no kiosk, no craft");
-  build(c, "med", 4, 4, 0); assert(craft(c, "bandage") && c.reserved.filter((i) => i === "bandage").length === 2 && !c.reserved.includes("vine_rope"), "a vine rope makes two bandages");
+  build(c, "med", 4, 4, 0); assert(craft(c, "bandage") && c.reserved.filter((inst) => itemType(inst) === "bandage").length === 2 && !c.reserved.includes("vine_rope"), "a vine rope makes two bandages");
   build(c, "press", 8, 4, 0);
   assert(!c.base.items.some((item) => item.def === "press"), "the press can't be built without power");
   build(c, "generator", 12, 4, 0); build(c, "press", 8, 4, 0); const ammo = c.ammo;

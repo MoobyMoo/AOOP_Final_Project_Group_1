@@ -73,7 +73,7 @@ export type Built = { pieces: KitPiece[]; parts: Record<string, THREE.Object3D> 
 type Meta = { footprint: number; blocksMove: boolean; blocksShot: boolean; tall: boolean; glow: number; tris: number };
 type Src = { name: string; meta: Meta; statics: { geo: THREE.BufferGeometry; mat: MatId }[]; nodes: THREE.Object3D[] };
 
-export const BUILD_GROUPS = ["loot", "camp", "walls", "ruins", "landmarks", "traversal", "bunker", "containers", "projectiles"] as const;
+export const BUILD_GROUPS = ["loot", "camp", "walls", "ruins", "landmarks", "traversal", "bunker", "containers", "projectiles", "vault"] as const;
 const LIB = new Map<string, Src>();
 let loading: Promise<void> | null = null;
 
@@ -100,7 +100,7 @@ function ingest(scene: THREE.Object3D) {
       ch.traverse((o) => {
         const mesh = o as THREE.Mesh; if (!mesh.isMesh) return;
         const mm = (o.userData.mat ?? "matte") as MatId;
-        mesh.geometry = normalise(mesh.geometry, mm, meta.glow, undefined, true); mesh.material = kitMaterial(mm);
+        mesh.geometry = normalise(mesh.geometry, mm, meta.glow, undefined, true); mesh.material = kitMaterial(mm) ?? kitMaterial("matte"); // the vault group's own mats (gloss, glass) are dressed by home/vaultkit.ts
         mesh.castShadow = mm !== "emissive"; mesh.receiveShadow = mm !== "emissive";
       });
       ch.name = (ch.userData.part as string) ?? ch.name;
@@ -175,10 +175,17 @@ export const satchel = () => asset("satchel");
  *  chevrons, food = round straw basket under a husk dome with bananas on top, ammo = olive tin on a pallet, parts =
  *  teal steel bin with a rusty cog leaning on it, medical = flat cream case with a coral lid and a leaf cross.
  *  parts.lid hinges like crate()'s (rotation.x 0 → CRATE_LID_OPEN); parts.mark is a point above the lid. */
-export type ContainerType = "weapon" | "food" | "ammo" | "parts" | "medical";
-export const CONTAINER_TYPES: readonly ContainerType[] = ["weapon", "food", "ammo", "parts", "medical"];
+export type ContainerType = "weapon" | "food" | "ammo" | "parts" | "medical" | "lunchbox" | "toolbox" | "medcabinet" | "safe" | "trash" | "sack";
+export const CONTAINER_TYPES: readonly ContainerType[] = ["weapon", "food", "ammo", "parts", "medical", "lunchbox", "toolbox", "medcabinet", "safe", "trash", "sack"];
+/** stand-ins for the population pass's small containers until Fable's cont_<id> nodes are in containers.glb: the nearest
+ *  existing model at a smaller scale (a lunchbox is a small food basket, a toolbox a small parts bin, a safe the gold
+ *  strongbox, a junk heap a rusty drum, a supply sack the sack). container() uses the real node the moment it exists */
+const CONTAINER_STANDIN: Partial<Record<ContainerType, [string, number]>> = { lunchbox: ["cont_food", 0.55], toolbox: ["cont_parts", 0.6], medcabinet: ["cont_medical", 0.8], safe: ["crate_gold", 0.85], trash: ["barrel_rust", 0.9], sack: ["sack", 1.15] };
+export const containerStandIn = (type: ContainerType) => (LIB.has(`cont_${type}`) ? null : CONTAINER_STANDIN[type] ?? null);
 export function container(type: ContainerType, o: { open?: boolean } = {}): Built {
-  const b = asset(`cont_${type}`);
+  const sub = containerStandIn(type);
+  const b = sub ? asset(sub[0], new THREE.Matrix4().makeScale(sub[1], sub[1], sub[1])) : asset(`cont_${type}`);
+  if (!b.parts.lid) b.parts.lid = new THREE.Object3D(); // a drum or a sack has no lid
   if (o.open) b.parts.lid.rotation.x = CRATE_LID_OPEN;
   return b;
 }
