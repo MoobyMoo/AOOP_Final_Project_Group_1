@@ -81,12 +81,11 @@ function arrow(s, x, y, w) {
 
 // 3. Tools and starting point
 {
-  const s = contentSlide("用什麼做、從哪裡開始", 3);
+  const s = contentSlide("用什麼做、做哪些部分", 3);
   card(s, 0.5, 1.2, 2.8, 2.9, "技術", "TypeScript\nThree.js（3D 繪圖）\nVite（建置）\n瀏覽器直接遊玩");
-  card(s, 3.55, 1.2, 2.85, 2.9, "已經有的", "譚羽良的個人原型：地圖、美術、部分玩法\n\n程式多為函式模組，還不是類別架構");
-  card(s, 6.65, 1.2, 2.85, 2.9, "這學期要做的", "核心系統重構成類別架構\n介面模組（新）\n音效模組（新）\n整合、測試、展示",
+  card(s, 3.55, 1.2, 2.85, 2.9, "遊戲系統", "角色與戰鬥\n敵人 AI\n搜刮與背包\n基地與存檔");
+  card(s, 6.65, 1.2, 2.85, 2.9, "這學期要完成", "類別架構與核心系統\n介面模組\n音效模組\n整合、測試、展示",
     { fill: C.jungle, headColor: C.banana, color: C.white });
-  text(s, "既有程式和課程新增的工作分開記錄，只算組員自己新增的部分。", { x: 0.5, y: 4.4, w: 8.5, h: 0.3, fontSize: 12, color: C.muted });
 }
 
 // 4. Class architecture

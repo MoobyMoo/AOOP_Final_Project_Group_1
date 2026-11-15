@@ -102,10 +102,7 @@ def main():
         "也容易分工給三位組員各自負責一個模組。"
     ))
     body.append(paragraph(
-        "技術採用 TypeScript 與 Three.js，以 Vite 建置。專題以譚羽良既有的個人原型為基礎，"
-        "原型已有地圖、美術與部分玩法，但程式多為函式模組。本課程新增的工作是把核心系統重構成"
-        "下方的類別架構，並完成介面與音效模組；既有程式與課程期間新增的工作分開記錄，"
-        "本專題僅用於 AOOP 課程繳交。"
+        "技術採用 TypeScript 與 Three.js，以 Vite 建置，在瀏覽器執行。本專題僅用於 AOOP 課程繳交。"
     ))
     body.append(heading(3, "核心功能與範圍"))
     for text in [
@@ -162,8 +159,7 @@ def main():
     ]:
         body.append(paragraph(text))
     body.append(paragraph(
-        "三人各自用自己的 GitHub 帳號在分支提交，以 Pull Request 合併；"
-        "既有原型保留原作者紀錄，課程貢獻以各自新增的工作計算。"
+        "三人各自用自己的 GitHub 帳號在分支提交，以 Pull Request 合併。"
     ))
     body.append(heading(8, "Repo 連結"))
     link_para = paragraph("")

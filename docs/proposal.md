@@ -16,7 +16,7 @@ AOOP_Final_Project_Group_1：Monkey Businessman
 
 目標是完成一個可在瀏覽器遊玩的完整循環：出發、搜刮、戰鬥、撤離、回家升級。這類遊戲有許多種敵人、武器、物品與場景，適合用類別階層、介面與多型組織，也容易分給三位組員各自負責一個模組。
 
-技術採用 TypeScript 與 Three.js，以 Vite 建置。專題以譚羽良既有的個人原型為基礎，原型已有地圖、美術與部分玩法，但程式多為函式模組。本課程新增的工作是把核心系統重構成下方的類別架構，並完成介面與音效模組。
+技術採用 TypeScript 與 Three.js，以 Vite 建置，在瀏覽器執行。
 
 ## 核心功能與範圍
 
@@ -47,7 +47,7 @@ AOOP_Final_Project_Group_1：Monkey Businessman
 | 劉育麟 Jasper／112511002 | 音效模組（AudioManager、SoundBank）：SFX 整理與命名、事件對應、背景音樂、音量設定 |
 | 譚羽良／112511017 | 遊戲核心：類別階層、戰鬥與武器、敵人 AI、搜刮與存檔、系統整合與程式審查 |
 
-三人各自用自己的 GitHub 帳號在分支提交，以 Pull Request 合併；既有原型保留原作者紀錄，課程貢獻以各自新增的工作計算。
+三人各自用自己的 GitHub 帳號在分支提交，以 Pull Request 合併。
 
 ## 繳交
 
