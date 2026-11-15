@@ -9,18 +9,25 @@ Authoring frame = the game's GunView frame: x right (ejection port side), y up, 
 at the origin. Everything below is written in that frame and rotated into Blender's (x, -z, y) when the parts are
 joined, so the glTF exporter's +Y-up conversion lands it back exactly where the game expects it.
 
-Nodes: kingpin45 > body > { frame, slide, hammer, trigger, mag, mag_ext, muzzle, eject }.
+Nodes: kingpin45 > body > { frame, slide, hammer, trigger, mag, mag_ext, muzzle, eject, socket_sight, socket_muzzle,
+socket_mag, socket_rail }.
+Sockets: unrotated empties (same axes as the gun: +z along the bore, +y up) where tools/blender/kingpin/
+build_attachments.py's pieces mount. Each carries a `rides` property naming the part it should follow in motion.
 Clips: "fire" (0.22 s) and "reload" (1.2 s), baked at 100 fps from the motion functions at the bottom; the game
 samples them by normalised time (fireT, reloadT), so gameplay still owns the clock.
 Shading: one material. Base colour and metal/roughness come from a 32 px palette texture (one cell per surface kind),
-COLOR_0 carries ray-cast ambient occlusion per vertex.
+COLOR_0 carries ray-cast ambient occlusion per vertex. The modelling kit, palette and material live in kp_common.py.
 """
 import bpy, bmesh, json, math, os, sys
 from math import radians, sin, cos, tan, acos, atan2, pi
 from mathutils import Vector, Matrix
-from mathutils.bvhtree import BVHTree
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import kp_common as K
+from kp_common import (M, MR, RAKE, BORE_Y, SOCKETS, g2b, mk, outline, prism, loft, lathe, add_box, box, bevel, bevel_all, cut, mirror_x, move, join,
+                       bake_ao, empty)
+
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 OUT_GLB = os.path.join(ROOT, "public", "models", "kingpin45.glb")
 OUT_BLEND = os.path.join(HERE, "kingpin45.blend")
@@ -30,233 +37,14 @@ FPS = 100
 FIRE_S, RELOAD_S = 0.22, 1.2             # src/game/combat/weapons.ts: interval, reload
 SLIDE_TRAVEL = 0.13
 HAMMER_COCK = radians(44)                # the hammer rests cocked; this is how far back from "down"
-RAKE = 0.1529                            # magazine rake: z per unit y
-BORE_Y = 0.315
 MUZZLE = (0.0, BORE_Y, 0.74)
 EJECT = (0.115, 0.40, 0.17)
 HAMMER_PIVOT = (0.0, 0.196, -0.312)
 TRIGGER_PIVOT = (0.0, 0.135, 0.252)
-SHARP = radians(40)                      # edges steeper than this stay hard; everything else is bevelled or smooth
 MAG_FADE = [0.27, 0.42, 0.45, 0.50]      # reloadT: old magazine fades out over [0], [1]; the new one fades in over [2], [3]
 
-# palette: name, sRGB hex, metallic, roughness. Tuned in the game's stage, not in Blender: its sun is 7x with no tone
-# mapping, so a sunlit dielectric shows about 2.5x its albedo (ivory is authored as a mid beige and lands on ivory),
-# and metals show whatever the studio sky in kingpin.ts gives them to reflect.
-PAL = [
-    ("gunmetal", "#242735", 0.60, 0.42),   # slide: polished, reflects the sky
-    ("graphite", "#2d303d", 0.30, 0.60),   # frame: duller, half way to a coating
-    ("dark",     "#101116", 0.20, 0.75),   # port, sights, wells
-    ("groove",   "#23252f", 0.80, 0.50),   # serration floors
-    ("steel",    "#7b818b", 0.90, 0.46),   # barrel, chamber, magazine body
-    ("gold",     "#e6a52e", 0.80, 0.40),   # accents
-    ("ivory",    "#b5ac98", 0.00, 0.45),   # grip panels
-    ("ivorycut", "#6f6552", 0.00, 0.70),   # grooves cut into the panels
-    ("enamel",   "#141d42", 0.00, 0.20),   # medallion field
-    ("banana",   "#cfa92e", 0.00, 0.40),   # extended magazine baseplate
-    ("brass",    "#d9a441", 1.00, 0.30),   # the top round's case
-    ("white",    "#b8b5aa", 0.00, 0.50),   # sight dots
-    ("copper",   "#c8703c", 1.00, 0.34),   # the top round's bullet
-]
-GRID = 4
-class M: pass
-for _i, (_n, *_r) in enumerate(PAL): setattr(M, _n, _i)
-
-MMAT = Matrix(((1, 0, 0, 0), (0, 0, -1, 0), (0, 1, 0, 0), (0, 0, 0, 1)))   # game (x, y, z) -> Blender (x, -z, y)
-MR = MMAT.to_3x3()
-def g2b(p): return Vector((p[0], -p[2], p[1]))
-def b2g(v): return Vector((v.x, v.z, -v.y))
-
-# ------------------------------------------------------------------------------------------------ scene
-bpy.ops.wm.read_factory_settings(use_empty=True)
-scene = bpy.context.scene
-scene.render.fps = FPS
-scene.unit_settings.system = "METRIC"
+scene = K.reset(FPS)
 COLL = scene.collection
-MATS = []
-for name, hexc, _, _ in PAL:
-    m = bpy.data.materials.new("tmp_" + name)
-    c = [int(hexc[i:i + 2], 16) / 255 for i in (1, 3, 5)]
-    m.diffuse_color = (*c, 1)
-    MATS.append(m)
-
-# ------------------------------------------------------------------------------------------------ mesh helpers
-def mk(name, bm):
-    """bmesh -> object, outward normals, palette slots"""
-    bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-6)
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
-    me = bpy.data.meshes.new(name)
-    bm.to_mesh(me); bm.free()
-    for m in MATS: me.materials.append(m)
-    ob = bpy.data.objects.new(name, me)
-    COLL.objects.link(ob)
-    return ob
-
-def apply_mods(ob):
-    dg = bpy.context.evaluated_depsgraph_get(); dg.update()
-    me = bpy.data.meshes.new_from_object(ob.evaluated_get(dg), preserve_all_data_layers=True, depsgraph=dg)
-    old = ob.data
-    ob.modifiers.clear()
-    ob.data = me
-    bpy.data.meshes.remove(old)
-    me.name = ob.name
-
-def outline(pts, per90=3):
-    """closed polygon [(u, v, radius?)] -> [(u, v)] with circular fillets"""
-    n, out = len(pts), []
-    for i in range(n):
-        p0, p1, p2 = Vector(pts[i - 1][:2]), Vector(pts[i][:2]), Vector(pts[(i + 1) % n][:2])
-        r = pts[i][2] if len(pts[i]) > 2 else 0
-        u0, u2 = p0 - p1, p2 - p1
-        l0, l2 = u0.length, u2.length
-        u0, u2 = u0 / l0, u2 / l2
-        phi = acos(max(-1, min(1, u0.dot(u2))))
-        if r <= 0 or phi > pi - 1e-3:
-            out.append((p1.x, p1.y)); continue
-        t = min(r / tan(phi / 2), 0.48 * min(l0, l2))
-        r = t * tan(phi / 2)
-        a, b = p1 + u0 * t, p1 + u2 * t
-        c = p1 + (u0 + u2).normalized() * (r / sin(phi / 2))
-        a0, a1 = atan2(a.y - c.y, a.x - c.x), atan2(b.y - c.y, b.x - c.x)
-        da = (a1 - a0 + pi) % (2 * pi) - pi
-        k = pts[i][3] if len(pts[i]) > 3 else max(1, round((pi - phi) / (pi / 2) * per90))
-        for j in range(k + 1):
-            ang = a0 + da * j / k
-            out.append((c.x + r * cos(ang), c.y + r * sin(ang)))
-    return out
-
-def _pt(axis, a, u, v):
-    # axis x: profile is (z, y), extruded across x. axis z: profile (x, y) along z. axis y: profile (x, z) along y.
-    return {"x": (a, v, u), "z": (u, v, a), "y": (u, a, v)}[axis]
-
-def prism(name, prof, a0, a1, axis, mat, cap0=None, cap1=None):
-    bm = bmesh.new()
-    r0 = [bm.verts.new(_pt(axis, a0, u, v)) for u, v in prof]
-    r1 = [bm.verts.new(_pt(axis, a1, u, v)) for u, v in prof]
-    n = len(prof)
-    for i in range(n):
-        bm.faces.new((r0[i], r0[(i + 1) % n], r1[(i + 1) % n], r1[i])).material_index = mat
-    bm.faces.new(r0).material_index = mat if cap0 is None else cap0
-    bm.faces.new(r1[::-1]).material_index = mat if cap1 is None else cap1
-    return mk(name, bm)
-
-def loft(name, rings, matfun, caps=True):
-    """rings: lists of (x, y, z), same length; matfun(segment, strip) -> palette index"""
-    bm = bmesh.new()
-    vs = [[bm.verts.new(p) for p in ring] for ring in rings]
-    n = len(rings[0])
-    for i in range(len(rings) - 1):
-        for j in range(n):
-            bm.faces.new((vs[i][j], vs[i][(j + 1) % n], vs[i + 1][(j + 1) % n], vs[i + 1][j])).material_index = matfun(i, j)
-    if caps:
-        bm.faces.new(vs[0]).material_index = matfun(0, -1)
-        bm.faces.new(vs[-1][::-1]).material_index = matfun(len(rings) - 2, -1)
-    return mk(name, bm)
-
-def lathe(name, prof, c0, c1, axis, seg, mats, phase=0.5):
-    """prof: [(a, r)] along the axis; r == 0 is a pole. axis z: centre (x=c0, y=c1). axis x: centre (z=c0, y=c1).
-    mats: one palette index per profile segment."""
-    bm = bmesh.new()
-    rows = []
-    for a, r in prof:
-        if r <= 0:
-            rows.append([bm.verts.new((c0, c1, a) if axis == "z" else (a, c1, c0))])
-        else:
-            row = []
-            for k in range(seg):
-                t = 2 * pi * (k + phase) / seg
-                row.append(bm.verts.new((c0 + r * cos(t), c1 + r * sin(t), a) if axis == "z" else (a, c1 + r * sin(t), c0 + r * cos(t))))
-            rows.append(row)
-    for i in range(len(rows) - 1):
-        A, B = rows[i], rows[i + 1]
-        for k in range(seg):
-            k2 = (k + 1) % seg
-            if len(A) == 1 and len(B) == 1: continue
-            if len(A) == 1: f = bm.faces.new((A[0], B[k], B[k2]))
-            elif len(B) == 1: f = bm.faces.new((A[k], A[k2], B[0]))
-            else: f = bm.faces.new((A[k], A[k2], B[k2], B[k]))
-            f.material_index = mats[i]
-    return mk(name, bm)
-
-def add_box(bm, o, e1, e2, e3, mat):
-    """box centred on o with half-extent vectors e1, e2, e3"""
-    o, e1, e2, e3 = Vector(o), Vector(e1), Vector(e2), Vector(e3)
-    v = [bm.verts.new(o + e1 * a + e2 * b + e3 * c) for a in (-1, 1) for b in (-1, 1) for c in (-1, 1)]
-    for q in ((0, 1, 3, 2), (4, 6, 7, 5), (0, 4, 5, 1), (2, 3, 7, 6), (0, 2, 6, 4), (1, 5, 7, 3)):
-        bm.faces.new([v[i] for i in q]).material_index = mat
-
-def box(name, lo, hi, mat):
-    bm = bmesh.new()
-    lo, hi = Vector(lo), Vector(hi)
-    h = (hi - lo) / 2
-    add_box(bm, (lo + hi) / 2, (h.x, 0, 0), (0, h.y, 0), (0, 0, h.z), mat)
-    return mk(name, bm)
-
-def bevel(ob, wfun, segments=1, profile=0.5):
-    """bevel with a width per edge: wfun(a, b, dihedral) -> width (0 = leave)"""
-    bm = bmesh.new(); bm.from_mesh(ob.data)
-    ws = [max(0.0, wfun(e.verts[0].co, e.verts[1].co, e.calc_face_angle(0.0))) for e in bm.edges]
-    bm.free()
-    mx = max(ws)
-    if mx <= 0: return ob
-    me = ob.data
-    at = me.attributes.get("bevel_weight_edge") or me.attributes.new("bevel_weight_edge", "FLOAT", "EDGE")
-    at.data.foreach_set("value", [w / mx for w in ws])
-    md = ob.modifiers.new("bevel", "BEVEL")
-    md.width, md.segments, md.limit_method, md.offset_type, md.profile = mx, segments, "WEIGHT", "OFFSET", profile
-    md.use_clamp_overlap = True
-    apply_mods(ob)
-    return ob
-
-def bevel_all(ob, w, segments=1, min_angle=radians(30)):
-    return bevel(ob, lambda a, b, ang: w if ang > min_angle else 0, segments)
-
-def tri_ngons(ob):
-    """ear-clip the n-gons now: the boolean's own triangulation gets concave caps wrong"""
-    bm = bmesh.new(); bm.from_mesh(ob.data)
-    bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 4], ngon_method="EAR_CLIP")
-    bm.to_mesh(ob.data); bm.free()
-    return ob
-
-def cut(ob, cutter):
-    tri_ngons(ob)
-    md = ob.modifiers.new("cut", "BOOLEAN")
-    md.operation, md.object, md.solver, md.material_mode = "DIFFERENCE", cutter, "EXACT", "INDEX"
-    apply_mods(ob)
-    me = cutter.data
-    bpy.data.objects.remove(cutter); bpy.data.meshes.remove(me)
-    return ob
-
-def mirror_x(ob, name):
-    bm = bmesh.new(); bm.from_mesh(ob.data)
-    for v in bm.verts: v.co.x = -v.co.x
-    return mk(name, bm)
-
-def move(ob, fn):
-    for v in ob.data.vertices: v.co = fn(v.co)
-    return ob
-
-def join(name, parts):
-    """merge parts into one node mesh and rotate it into Blender's frame"""
-    bm = bmesh.new()
-    for ob in parts: bm.from_mesh(ob.data)
-    for ob in parts:
-        me = ob.data
-        bpy.data.objects.remove(ob); bpy.data.meshes.remove(me)
-    bmesh.ops.dissolve_degenerate(bm, dist=1e-5, edges=bm.edges[:])
-    bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 4], ngon_method="EAR_CLIP")
-    bmesh.ops.dissolve_degenerate(bm, dist=1e-5, edges=bm.edges[:])   # ear clipping leaves slivers on collinear points
-    bmesh.ops.transform(bm, matrix=MMAT, verts=bm.verts[:])
-    for f in bm.faces: f.smooth = True
-    for e in bm.edges: e.smooth = len(e.link_faces) == 2 and e.calc_face_angle(0.0) < SHARP
-    me = bpy.data.meshes.new(name)
-    bm.to_mesh(me); bm.free()
-    for m in MATS: me.materials.append(m)
-    ob = bpy.data.objects.new(name, me)
-    COLL.objects.link(ob)
-    md = ob.modifiers.new("wn", "WEIGHTED_NORMAL")       # face-area weighted normals: flats stay flat, bevels roll
-    md.keep_sharp, md.mode, md.weight, md.thresh = True, "FACE_AREA", 50, 0.01
-    apply_mods(ob)
-    return ob
 
 # ================================================================================================ the model
 SLIDE_HW, FRAME_HW = 0.095, 0.095      # flush flanks: the seam is two small bevels, no ledge to shadow the frame
@@ -472,109 +260,14 @@ frame, slide, mag, mag_ext, hammer, trigger = build_frame(), build_slide(), buil
 NODES = [frame, slide, hammer, trigger, mag, mag_ext]
 
 # ================================================================================================ ambient occlusion
-def bvh_of(obs):
-    verts, polys = [], []
-    for ob in obs:
-        base = len(verts)
-        verts += [v.co.copy() for v in ob.data.vertices]
-        polys += [[base + i for i in p.vertices] for p in ob.data.polygons]
-    return BVHTree.FromPolygons(verts, polys, epsilon=0.0)
-
-def fib_dirs(n):
-    out, g = [], pi * (3 - 5 ** 0.5)
-    for i in range(n):
-        z = 1 - 2 * (i + 0.5) / n
-        r = (1 - z * z) ** 0.5
-        out.append(Vector((cos(g * i) * r, sin(g * i) * r, z)))
-    return out
-DIRS, AO_R = fib_dirs(160), 0.11
-
-def bake_ao(ob, occluders):
-    me, tree = ob.data, bvh_of(occluders)
-    col = me.color_attributes.new("Col", "FLOAT_COLOR", "CORNER")
-    cache, vals = {}, []
-    for loop, cn in zip(me.loops, me.corner_normals):
-        n = cn.vector.normalized()
-        key = (loop.vertex_index, round(n.x, 2), round(n.y, 2), round(n.z, 2))
-        c = cache.get(key)
-        if c is None:
-            o = me.vertices[loop.vertex_index].co + n * 0.0025
-            occ = wsum = 0.0
-            for d in DIRS:
-                w = d.dot(n)
-                if w <= 0.08: continue
-                wsum += w
-                hit = tree.ray_cast(o, d, AO_R)
-                if hit[0] is not None: occ += w * (1 - (hit[3] / AO_R) ** 2)
-            c = cache[key] = 0.30 + 0.70 * (1 - occ / wsum) ** 1.5     # floor: crevices go dark, not black
-        vals += [c, c, c, 1.0]
-    col.data.foreach_set("color", vals)
-    me.color_attributes.active_color = col
-    me.color_attributes.render_color_index = 0
-
 RIGID = [frame, slide, hammer, trigger]
 bake_ao(frame, RIGID + [mag]); bake_ao(slide, RIGID); bake_ao(hammer, RIGID); bake_ao(trigger, RIGID)
 bake_ao(mag, [mag]); bake_ao(mag_ext, [mag_ext])                   # the magazines are seen out of the gun: self-occlusion only
 
 # ================================================================================================ material + palette UVs
-def palette_image(name, fn, colorspace):
-    """write the palette as a PNG by hand (no image library needed), then load and pack it"""
-    import struct, zlib
-    px, n = 8, GRID * 8
-    rows = b""
-    for y in range(n - 1, -1, -1):                                  # PNG rows run top-down, UV v runs bottom-up
-        rows += b"\x00"
-        for x in range(n):
-            i = (y // px) * GRID + x // px
-            rows += bytes(round(max(0.0, min(1.0, c)) * 255) for c in fn(PAL[i] if i < len(PAL) else PAL[0]))
-    chunk = lambda tag, data: struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xffffffff)
-    path = os.path.join(HERE, name + ".png")
-    with open(path, "wb") as f:
-        f.write(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", n, n, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(rows, 9)) + chunk(b"IEND", b""))
-    img = bpy.data.images.load(path)
-    img.name = name
-    img.colorspace_settings.name = colorspace
-    img.pack()
-    return img
-base_img = palette_image("kingpin_palette", lambda p: [int(p[1][i:i + 2], 16) / 255 for i in (1, 3, 5)], "sRGB")
-orm_img = palette_image("kingpin_palette_orm", lambda p: (1.0, p[3], p[2]), "Non-Color")   # glTF: G roughness, B metallic
-
-mat = bpy.data.materials.new("MAT_Kingpin")
-mat.use_backface_culling = True
-nt = mat.node_tree
-bsdf = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
-tb = nt.nodes.new("ShaderNodeTexImage"); tb.image = base_img; tb.interpolation = "Closest"
-to = nt.nodes.new("ShaderNodeTexImage"); to.image = orm_img; to.interpolation = "Closest"
-vc = nt.nodes.new("ShaderNodeVertexColor"); vc.layer_name = "Col"
-mix = nt.nodes.new("ShaderNodeMix"); mix.data_type = "RGBA"; mix.blend_type = "MULTIPLY"
-sock = lambda node, ident, out=False: next(s for s in (node.outputs if out else node.inputs) if s.identifier == ident)
-sock(mix, "Factor_Float").default_value = 1.0
-nt.links.new(tb.outputs["Color"], sock(mix, "A_Color")); nt.links.new(vc.outputs["Color"], sock(mix, "B_Color"))
-nt.links.new(sock(mix, "Result_Color", True), bsdf.inputs["Base Color"])
-sep = nt.nodes.new("ShaderNodeSeparateColor")
-nt.links.new(to.outputs["Color"], sep.inputs[0])
-nt.links.new(sep.outputs["Green"], bsdf.inputs["Roughness"]); nt.links.new(sep.outputs["Blue"], bsdf.inputs["Metallic"])
-
-UA, UB = Vector((0.37, 0.61, 0.70)).normalized(), Vector((-0.72, 0.69, -0.05)).normalized()
-for ob in NODES:
-    me = ob.data
-    uv = me.uv_layers.new(name="UVMap")
-    for poly in me.polygons:
-        i = poly.material_index
-        cu, cv = (i % GRID + 0.5) / GRID, (i // GRID + 0.5) / GRID
-        for li in poly.loop_indices:
-            # a small skewed footprint inside the cell (not one point): shared per vertex, never zero-area
-            p = me.vertices[me.loops[li].vertex_index].co
-            uv.data[li].uv = (cu + 0.07 * p.dot(UA), cv + 0.07 * p.dot(UB))
-    me.materials.clear(); me.materials.append(mat)
-    for poly in me.polygons: poly.material_index = 0
-for m in MATS: bpy.data.materials.remove(m)
+K.finish(NODES)
 
 # ================================================================================================ hierarchy
-def empty(name, parent, loc=(0, 0, 0)):
-    o = bpy.data.objects.new(name, None); COLL.objects.link(o)
-    o.empty_display_size = 0.05; o.parent = parent; o.location = g2b(loc)
-    return o
 root = empty("kingpin45", None)
 body = empty("body", root)
 for ob in NODES: ob.parent = body
@@ -583,6 +276,8 @@ for ob, piv in ((hammer, HAMMER_PIVOT), (trigger, TRIGGER_PIVOT)):   # origin at
 muzzle, eject = empty("muzzle", body, MUZZLE), empty("eject", body, EJECT)
 root["magFade"] = MAG_FADE
 root["slideTravel"] = SLIDE_TRAVEL
+for name, (at, rides) in SOCKETS.items():
+    empty(name, body, at)["rides"] = rides                           # slide and mag rest at the identity, so the point holds under either parent
 
 # ================================================================================================ motion
 def sstep(x): x = min(1.0, max(0.0, x)); return x * x * (3 - 2 * x)

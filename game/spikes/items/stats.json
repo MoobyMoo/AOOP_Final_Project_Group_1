@@ -685,5 +685,71 @@
    0.855,
    0.535
   ]
+ },
+ "att_sight_holo": {
+  "name": "Reflex Sight",
+  "kind": "attachment",
+  "tris": 488,
+  "materials": 2,
+  "dims_m": [
+   0.178,
+   0.23,
+   0.206
+  ]
+ },
+ "att_sight_2x": {
+  "name": "2x Scope",
+  "kind": "attachment",
+  "tris": 860,
+  "materials": 1,
+  "dims_m": [
+   0.178,
+   0.436,
+   0.23
+  ]
+ },
+ "att_muzzle_comp": {
+  "name": "Compensator",
+  "kind": "attachment",
+  "tris": 338,
+  "materials": 1,
+  "dims_m": [
+   0.176,
+   0.234,
+   0.162
+  ]
+ },
+ "att_muzzle_supp": {
+  "name": "Suppressor",
+  "kind": "attachment",
+  "tris": 808,
+  "materials": 1,
+  "dims_m": [
+   0.21,
+   0.499,
+   0.21
+  ]
+ },
+ "att_mag_ext": {
+  "name": "Extended Magazine",
+  "kind": "attachment",
+  "tris": 604,
+  "materials": 2,
+  "dims_m": [
+   0.2,
+   0.368,
+   0.718
+  ]
+ },
+ "att_laser": {
+  "name": "Laser Module",
+  "kind": "attachment",
+  "tris": 408,
+  "materials": 2,
+  "dims_m": [
+   0.202,
+   0.275,
+   0.166
+  ]
  }
 }
