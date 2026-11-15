@@ -1,15 +1,71 @@
-digraph architecture {
-  graph [rankdir=TB, bgcolor="white", pad="0.15", nodesep="0.25", ranksep="0.35"];
-  node [shape=box, fontname="Noto Sans CJK TC", fontsize=12, margin="0.13,0.08", color="#333333"];
-  edge [color="#555555", arrowsize=0.7];
-  main [label="遊戲系統"];
-  logic [label="遊戲邏輯"];
-  ui [label="介面與選單"];
-  audio [label="音效系統"];
-  data [label="資料管理"];
-  main -> logic;
-  main -> ui;
-  main -> audio;
-  main -> data;
-  {rank=same; logic; ui; audio; data;}
+digraph bananaville {
+  graph [rankdir=BT, bgcolor="white", pad="0.2", nodesep="0.22", ranksep="0.45", fontname="Noto Sans CJK TC", fontsize=13, newrank=true, compound=true];
+  node [shape=plain, fontname="Noto Sans CJK TC", fontsize=11];
+  edge [color="#444444", arrowsize=0.75, fontname="Noto Sans CJK TC", fontsize=9];
+
+  // UML class box helper style: name / fields / methods
+  Game [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#FFF6D6"><tr><td><b>Game</b></td></tr><tr><td align="left" balign="left">- scene: GameScene<br/>- events: EventBus</td></tr><tr><td align="left" balign="left">+ loop(dt)<br/>+ changeScene(s)</td></tr></table>>];
+  EventBus [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#FFF6D6"><tr><td><b>EventBus</b></td></tr><tr><td align="left" balign="left">+ on(type, fn)<br/>+ emit(event)</td></tr></table>>];
+  GameScene [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#EEF3FF"><tr><td><i>«interface»</i><br/><b>GameScene</b></td></tr><tr><td align="left" balign="left">+ enter() / exit()<br/>+ update(dt)</td></tr></table>>];
+  HomeScene [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td><b>HomeScene</b></td></tr><tr><td align="left">出售、升級、委託</td></tr></table>>];
+  RaidScene [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td><b>RaidScene</b></td></tr><tr><td align="left">搜刮、戰鬥、撤離</td></tr></table>>];
+
+  subgraph cluster_actors {
+    label="角色與 AI"; style="rounded,dashed"; color="#888888";
+    Entity [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#EEF3FF"><tr><td><i>«abstract»</i><br/><b>Entity</b></td></tr><tr><td align="left" balign="left"># position</td></tr><tr><td align="left" balign="left">+ update(dt)</td></tr></table>>];
+    Actor [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#EEF3FF"><tr><td><i>«abstract»</i><br/><b>Actor</b></td></tr><tr><td align="left" balign="left">- health, stamina</td></tr><tr><td align="left" balign="left">+ takeDamage(hit)</td></tr></table>>];
+    Player [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td><b>Player</b></td></tr><tr><td align="left" balign="left">- inventory<br/>- weapons</td></tr></table>>];
+    Enemy [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#EEF3FF"><tr><td><i>«abstract»</i><br/><b>Enemy</b></td></tr><tr><td align="left" balign="left">- state: AIState</td></tr></table>>];
+    Bandit [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td>Bandit</td></tr></table>>];
+    Gorilla [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td>Gorilla</td></tr></table>>];
+    Boss [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td>Boss</td></tr></table>>];
+    AIState [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#EEF3FF"><tr><td><i>«interface»</i><br/><b>AIState</b></td></tr><tr><td align="left">Patrol / Chase / Attack / Flee</td></tr></table>>];
+  }
+
+  subgraph cluster_items {
+    label="物品與戰鬥"; style="rounded,dashed"; color="#888888";
+    Item [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#EEF3FF"><tr><td><i>«abstract»</i><br/><b>Item</b></td></tr><tr><td align="left" balign="left">- rarity, weight, value</td></tr></table>>];
+    Weapon [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#EEF3FF"><tr><td><i>«abstract»</i><br/><b>Weapon</b></td></tr><tr><td align="left" balign="left">+ attack(owner)</td></tr></table>>];
+    Melee [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td>MeleeWeapon</td></tr></table>>];
+    Gun [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td><b>Gun</b></td></tr><tr><td align="left">GunData 設定</td></tr></table>>];
+    Consumable [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td>Consumable</td></tr></table>>];
+    Wearable [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td>Wearable</td></tr></table>>];
+    Inventory [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td><b>Inventory</b></td></tr><tr><td align="left" balign="left">+ add / remove<br/>+ totalWeight()</td></tr></table>>];
+    Container [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td><b>LootContainer</b></td></tr><tr><td align="left">LootTable</td></tr></table>>];
+  }
+
+  subgraph cluster_services {
+    label="介面、音效與資料"; style="rounded,dashed"; color="#888888";
+    UIManager [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#E9F7EC"><tr><td><b>UIManager</b></td></tr><tr><td align="left">HUD / 背包 / 地圖 / 選單</td></tr></table>>];
+    AudioManager [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#E9F7EC"><tr><td><b>AudioManager</b></td></tr><tr><td align="left">SoundBank / 音樂</td></tr></table>>];
+    SaveManager [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#E9F7EC"><tr><td><b>SaveManager</b></td></tr><tr><td align="left">Serializable</td></tr></table>>];
+  }
+
+  // inheritance / implementation (hollow arrow)
+  edge [arrowhead=empty];
+  Actor -> Entity; Player -> Actor; Enemy -> Actor;
+  Bandit -> Enemy; Gorilla -> Enemy; Boss -> Enemy;
+  Weapon -> Item; Consumable -> Item; Wearable -> Item;
+  Melee -> Weapon; Gun -> Weapon;
+  HomeScene -> GameScene [style=dashed]; RaidScene -> GameScene [style=dashed];
+
+  // composition / association
+  edge [arrowhead=diamond, style=solid];
+  Game -> GameScene [dir=back, arrowtail=diamond, arrowhead=none];
+  edge [arrowhead=vee];
+  Game -> EventBus;
+  RaidScene -> Entity [label="管理多個"];
+  RaidScene -> Container;
+  Player -> Inventory;
+  Inventory -> Item [label="0..*"];
+  Enemy -> AIState [style=dashed];
+  Player -> Weapon [style=dashed];
+
+  // events (dotted)
+  edge [style=dotted, color="#2E7D32", arrowhead=vee];
+  EventBus -> UIManager [label="事件"]; EventBus -> AudioManager;
+  Game -> SaveManager;
+  // stack the groups vertically so the diagram fits a portrait page
+  edge [style=invis, arrowhead=none, constraint=true];
+  Item -> Bandit; Item -> Boss; Entity -> RaidScene; Entity -> HomeScene;
 }

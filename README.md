@@ -1,6 +1,6 @@
 # AOOP_Final_Project_Group_1
 
-AOOP 2026 Fall 第 1 組期末專題。以 Godot 與 GDScript 製作動作遊戲，透過遊戲邏輯、介面、音效與資料管理練習物件導向設計。
+AOOP 2026 Fall 第 1 組期末專題：**Monkey Businessman**，一款俯視角的卡通撤離射擊遊戲。玩家是一隻穿西裝的猴子商人，進叢林搜刮、對付搶匪、決定何時撤離，再把戰利品帶回家升級。使用 TypeScript 與 Three.js，在瀏覽器執行，並以類別階層、介面與事件系統練習物件導向設計。
 
 ## 組員
 
@@ -15,6 +15,7 @@ AOOP 2026 Fall 第 1 組期末專題。以 Godot 與 GDScript 製作動作遊戲
 - [期末專題提案 PDF](docs/AOOP_Final_Project_Proposal_第1組.pdf)
 - [可編輯 Word 提案](docs/AOOP_Final_Project_Proposal_第1組.docx)
 - [提案補充說明](docs/proposal.md)
+- [建置計畫簡報](docs/AOOP_Group1_Build_Plan.pptx)
 - [組員資料來源](docs/team.md)
 - 截止時間：2026 年 11 月 16 日星期一 23:59，由組長繳交。
 - 繳交檔名：`AOOP_Final_Project_Proposal_第1組.pdf`，內容須附公開 Repo 連結。
@@ -24,15 +25,15 @@ AOOP 2026 Fall 第 1 組期末專題。以 Godot 與 GDScript 製作動作遊戲
 
 ## 分工
 
-- 張倖嘉 Michelle：UI 與選單的設計、實作與整合。
-- 劉育麟 Jasper：SFX 音效的整理、播放功能與整合。
-- 譚羽良：遊戲操作、戰鬥邏輯與系統整合。
+- 張倖嘉 Michelle：介面模組（UIManager）：主選單、暫停選單、HUD、背包與地圖介面。
+- 劉育麟 Jasper：音效模組（AudioManager、SoundBank）：SFX 整理、事件對應、背景音樂與音量。
+- 譚羽良：遊戲核心：角色與敵人類別階層、戰鬥、AI、搜刮、存檔與系統整合。
 
 ## 專案狀態
 
-此 Repo 保留原 AOOP-project 的歷史及組員權限，目前包含提案與組員資料，尚未匯入遊戲程式，也沒有可在此直接執行的版本。既有遊戲的開發暫停決定不因本次文件整理而改變。
+目前收錄提案、類別圖、簡報與組員資料，遊戲程式尚未匯入。專題以譚羽良既有的個人原型（TypeScript + Three.js）為基礎；原型已有地圖、美術與部分玩法，本課程新增的工作是把核心系統重構成提案中的類別架構，並完成介面與音效模組。匯入時會註明哪些是既有程式，不把舊有工作列為組員的新貢獻。
 
-本專題只用於 AOOP 課程繳交。提案如使用先前已存在的個人遊戲原型，須註明既有範圍及本課程新增的工作，不將舊有工作列為組員的新貢獻。
+本專題只用於 AOOP 課程繳交。
 
 ## 協作方式
 

@@ -91,20 +91,30 @@ def main():
     body.append(paragraph("劉育麟 112511002　張倖嘉 112511004　譚羽良 112511017"))
     body.append(heading(2, "專題動機與目標"))
     body.append(paragraph(
-        "我們希望製作一款動作遊戲，結合角色操作、遊戲互動與視聽回饋，提供完整的遊玩體驗。"
-        "透過遊戲開發，練習物件導向的設計與團隊協作。"
+        "我們要做一款俯視角的卡通撤離射擊遊戲《Monkey Businessman》。玩家是一隻破產、穿西裝的猴子商人，"
+        "從海灘碉堡出發，進入叢林搜刮香蕉、零件和寶物，一路對付搶匪與野生動物，"
+        "並自己決定什麼時候撤離：走得越深收穫越多，但被打倒就會失去背包裡沒保住的東西。"
+        "帶回家的戰利品可以出售、升級裝備、完成委託，讓下一趟出發更強。"
     ))
     body.append(paragraph(
-        "本專題採用 Godot 與 GDScript，以既有個人原型為基礎，將遊戲功能劃分為不同模組，"
-        "使程式便於維護與後續擴充。"
-        "既有程式與課程期間新增的工作分別記錄，本專題僅用於 AOOP 課程繳交。"
+        "目標是完成一個可在瀏覽器遊玩的完整循環：出發、搜刮、戰鬥、撤離、回家升級。"
+        "這類遊戲同時有許多種敵人、武器、物品與場景，很適合用類別階層、介面與多型來組織，"
+        "也容易分工給三位組員各自負責一個模組。"
+    ))
+    body.append(paragraph(
+        "技術採用 TypeScript 與 Three.js，以 Vite 建置。專題以譚羽良既有的個人原型為基礎，"
+        "原型已有地圖、美術與部分玩法，但程式多為函式模組。本課程新增的工作是把核心系統重構成"
+        "下方的類別架構，並完成介面與音效模組；既有程式與課程期間新增的工作分開記錄，"
+        "本專題僅用於 AOOP 課程繳交。"
     ))
     body.append(heading(3, "核心功能與範圍"))
     for text in [
-        "遊戲邏輯：處理角色操作、遊戲互動與流程控制。",
-        "介面與選單：提供遊戲資訊顯示與操作介面。",
-        "音效系統：配合遊戲事件提供聲音回饋。",
-        "資料管理：管理遊戲設定與進度資料。",
+        "角色與戰鬥：移動、滑鼠瞄準、閃避翻滾、體力；公事包近戰與多種槍械；命中、爆頭與護甲計算。",
+        "敵人 AI：搶匪、猩猩、Boss 等敵人各有不同行為，以狀態（巡邏、追擊、攻擊、逃跑）切換。",
+        "搜刮與背包：搜索容器、物品稀有度、背包與安全口袋、負重狀態、撤離點與倒地懲罰。",
+        "基地與進度：出售戰利品、工作台升級、委託任務、存檔與讀檔。",
+        "介面與選單：主選單、暫停選單、HUD（血量、彈藥、體力）、背包與戰利品介面、地圖。",
+        "音效系統：槍聲、腳步、受擊、介面音效與背景音樂，依遊戲事件播放，可調整音量。",
     ]:
         body.append(paragraph(text))
     body.append(heading(4, "系統架構與程式骨幹"))
@@ -116,33 +126,44 @@ def main():
     from docx.shared import Inches
     temporary = Document()
     image_run = temporary.add_paragraph().add_run()
-    image_run.add_picture(str(ASSETS / "proposal-architecture.png"), width=Inches(5.7))
+    image_run.add_picture(str(ASSETS / "proposal-architecture.png"), width=Inches(5.6))
     drawing = deepcopy(image_run._r.find(tag("drawing")))
     drawing.xpath(".//*[local-name()='blip']")[0].set(f"{{{R}}}embed", "rIdAOOPArchitecture")
     docpr = drawing.xpath(".//*[local-name()='docPr']")[0]
-    docpr.set("descr", "遊戲系統分為遊戲邏輯、介面與選單、音效系統及資料管理四個主要模組。")
+    docpr.set("descr", "Monkey Businessman 類別圖：場景、角色與 AI、物品與戰鬥、介面音效與存檔。")
     diagram = paragraph("", keep=True)
     etree.SubElement(diagram, tag("r")).append(drawing)
     body.append(diagram)
-    body.append(paragraph("圖 1　遊戲系統與主要模組。"))
+    body.append(paragraph("圖 1　Monkey Businessman 類別圖（空心箭頭為繼承或實作，實心菱形為組合，綠色點線為事件與存檔）。"))
     body.append(heading(6, "物件導向設計說明："))
     for text in [
-        "封裝：各類別管理自己的資料與行為，透過明確的介面與其他物件互動。",
-        "繼承與多型：將相近物件的共用行為抽出，讓不同物件可在相同的使用方式下呈現各自的行為。",
-        "模組合作：遊戲邏輯、介面、音效與資料管理各自負責不同功能，透過事件或方法交換資訊，"
-        "降低彼此依賴，方便分工與擴充。",
+        "封裝：Actor 自己管理血量、體力與受傷規則，外部只呼叫 takeDamage(hit)；"
+        "Inventory 管理格子與重量，介面只透過它的方法讀取，不直接改資料。",
+        "繼承與多型：Entity → Actor → Player／Enemy → Bandit、Gorilla、Boss；Item → Weapon、Consumable、Wearable。"
+        "RaidScene 每一幀對所有實體呼叫 update(dt)，不需要知道是哪一種；"
+        "Weapon.attack() 由近戰武器與槍各自實作。",
+        "介面：GameScene（HomeScene、RaidScene）、AIState、Serializable 定義共同的契約，"
+        "新增場景、敵人行為或可存檔的物件時，只要實作介面即可接上。",
+        "設計模式：敵人 AI 用狀態模式；EventBus 用觀察者模式，戰鬥發出「命中」「撿取」等事件，"
+        "UIManager 與 AudioManager 訂閱後各自反應，三個模組彼此不直接相依，方便三人平行開發。",
+        "資料驅動與維護：槍械數值、物品與掉落表寫成設定資料（GunData、LootTable），"
+        "新增一把槍或一種物品不需修改類別；存檔與結算邏輯附有單元測試，"
+        "另有自動試玩機器人檢查每次修改後遊戲仍能完整跑完。",
     ]:
         body.append(paragraph(text))
     body.append(heading(7, "成員分工"))
     for text in [
-        "張倖嘉 Michelle／112511004：UI 與選單的設計、實作與整合。",
-        "劉育麟 Jasper／112511002：SFX 音效的整理、播放功能與整合。",
-        "譚羽良／112511017：遊戲操作、戰鬥邏輯與系統整合。",
+        "張倖嘉 Michelle／112511004：介面模組（UIManager 與各 UI 面板）：主選單、暫停選單、HUD、"
+        "背包與戰利品介面、地圖介面；透過 EventBus 取得資料，不直接修改遊戲狀態。",
+        "劉育麟 Jasper／112511002：音效模組（AudioManager、SoundBank）：SFX 素材整理與命名、"
+        "事件與音效的對應、背景音樂切換、音量設定。",
+        "譚羽良／112511017：遊戲核心：Entity／Actor 類別階層、戰鬥與武器、敵人 AI、搜刮與存檔，"
+        "負責系統整合、架構圖維護與程式審查。",
     ]:
         body.append(paragraph(text))
     body.append(paragraph(
-        "三人各自提交實質程式與驗證紀錄，共同完成架構說明與展示。既有原型保留原作者紀錄，"
-        "課程貢獻以各自新增或修改的工作說明。"
+        "三人各自用自己的 GitHub 帳號在分支提交，以 Pull Request 合併；"
+        "既有原型保留原作者紀錄，課程貢獻以各自新增的工作計算。"
     ))
     body.append(heading(8, "Repo 連結"))
     link_para = paragraph("")
@@ -151,7 +172,7 @@ def main():
     link.append(run("https://github.com/MoobyMoo/AOOP_Final_Project_Group_1/"))
     body.append(link_para)
     body.append(paragraph(
-        "Repo 已公開。目前收錄提案與組員資料，後續加入可公開的課程程式與操作說明。"
+        "Repo 已公開。目前收錄提案、架構圖與組員資料，接下來依上述分工匯入遊戲程式與操作說明。"
         "組員持續以自己的帳號記錄工作，提交內容與分工對應。"
     ))
     body.append(section)
@@ -188,7 +209,7 @@ def main():
         final_text = "".join(etree.fromstring(final.read("word/document.xml")).xpath(".//w:t/text()", namespaces=NS))
         for forbidden in ["簡述為什麼", "請附上", "請簡述", "務必注意", "1112511004"]:
             assert forbidden not in final_text, forbidden
-        for required in ["112511002", "112511004", "112511017", "Michelle", "Jasper", "SFX", "介面與選單", "Godot", "GDScript"]:
+        for required in ["112511002", "112511004", "112511017", "Michelle", "Jasper", "SFX", "介面與選單", "Monkey Businessman", "TypeScript", "EventBus"]:
             assert required in final_text, required
     report = {"reference_sha256": sha256(REFERENCE.read_bytes()).hexdigest(),
               "output_sha256": sha256(OUTPUT.read_bytes()).hexdigest(),
