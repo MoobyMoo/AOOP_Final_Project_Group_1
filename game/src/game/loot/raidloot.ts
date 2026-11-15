@@ -124,7 +124,7 @@ const BODY_NAME: Record<Enemy["kind"], string> = { wild: "Wild monkey", bandit: 
 function lootTargetOf(c: Crate, s: SearchSession): LootTarget {
   if (c.kind === "body") c.items = s.slots.filter((q) => !q.taken).map((q) => q.item);
   c.items ??= s.slots.filter((q) => !q.taken).map((q) => q.item);
-  const name = c.kind === "body" ? (c.enemy?.tag === "plantation-foreman" ? "Foreman Knucklebark" : BODY_NAME[c.enemy?.kind ?? "bandit"]) : c.kind === "container" && c.type ? CONTAINER_NAME[c.type] : c.fixed === "satchel" ? "Your satchel" : c.fixed === "key" ? "Gang strongbox" : `${c.tier[0].toUpperCase()}${c.tier.slice(1)} crate`;
+  const name = c.kind === "body" ? (c.enemy?.tag === "plantation-foreman" ? "Foreman Knucklebark" : BODY_NAME[c.enemy?.kind ?? "bandit"]) : c.kind === "container" && c.type ? CONTAINER_NAME[c.type] : c.fixed === "satchel" ? "Your satchel" : c.fixed === "supply" ? "Supply gondola" : c.fixed === "key" ? "Gang strongbox" : `${c.tier[0].toUpperCase()}${c.tier.slice(1)} crate`;
   const sub = c.kind === "body" ? "Knocked out" : c.note;
   return { name, sub, kind: c.kind === "body" ? "body" : "container", items: c.items, search: s,
     near: () => G.alive && G.rollT < 0 && flat(c, G.pp) < 2.2,
@@ -144,6 +144,12 @@ export function beginSearch(c: Crate) {
   return s;
 }
 export function endSearch() { if (searching && lootOpen() && lootTarget()) closeLoot(); searching = null; hud.search(null, 0); }
+
+/** the supply balloon's gondola is a container too (gold-tier contents, searched in the looting screen like any other) */
+export function addSupplyCrate(x: number, z: number, obj: THREE.Object3D) {
+  const c: Crate = { id: nid++, x, z, tier: "gold", fixed: "supply", obj, opened: false, search: 0, items: null, kind: "crate", label: "supply gondola", note: "Crashed bandit supply balloon", r: 1.1 };
+  G.crates.push(c); addMark(c, new THREE.Vector3(x, groundHeight(x, z) + 1.9, z), "#ff7a5a"); return c;
+}
 
 // ---------------------------------------------------------------- bodies (row 18)
 /** a knocked-out enemy becomes a searchable body where it fell (it stays down with its stars, ai/enemies.ts) */
@@ -177,31 +183,34 @@ export function updateLoot(dt: number) {
       if (G.intent.interact) beginSearch(near);
     }
   }
-  // the search itself: the looting screen runs it (ui/lootview.ts); for the bot the world does, and tosses each find out
+  // the search itself. Items live in the container (Duckov's InteractableLootbox + LootView; Moo: "we see the item menu
+  // with them in there"): nothing ever spills out. The looting screen runs the search and the taking (ui/lootview.ts).
+  // The bot can't use a screen, so for it the world runs the same session and does what "Take searched" does: each
+  // revealed item goes straight into the pack, a better find swaps with the cheapest loose item (which goes back into
+  // the container), and what doesn't fit stays inside.
   if (searching && !G.bot) { if (!lootOpen()) searching = null; else if (emptied(searching)) searching.opened = true; }
   else if (searching) {
     const c = searching, s = c.session;
     if (flat(c, G.pp) > 2.2 || G.rollT >= 0 || !G.alive || !s) endSearch();
     else {
-      const before = s.slots.filter((q) => q.revealed).length;
       const shown = advanceSearch(s, dt);
       c.search = s.duration > 0 ? s.elapsed / s.duration : 1;
       hud.search(c, c.search);
       if (shown.length) sfx("crateTick");
-      {
-        for (let i = before; i < s.slots.length; i++) {
-          const slot = s.slots[i]; if (!slot.revealed || slot.taken) continue;
-          const item = take(s, i); if (!item) continue;
-          const d = itemDef(item); if (d.rarity === "rare" || d.rarity === "epic") sfx("rare");
-          if (isUseful(item, G.lootCtx)) { /* counted when rolled (Sol's accounting) */ }
-          const from = V(c.x, c.kind === "body" ? 0.7 : 0.9, c.z), aim = Math.atan2(G.pp.x - c.x, G.pp.z - c.z);
-          // start at the container's rim on your side so it never begins inside its own blocker
-          const rr = (c.r ?? 0.5) + 0.2; from.x += Math.sin(aim) * rr; from.z += Math.cos(aim) * rr;
-          if (!walkable(from.x, from.z)) { from.x = G.pp.x; from.z = G.pp.z; }
-          dropItem(item, from, aim, d.kind === "ammo" ? d.stack : undefined);
+      for (let i = 0; i < s.slots.length; i++) {
+        const slot = s.slots[i]; if (!slot.revealed || slot.taken) continue;
+        const item = slot.item, d = itemDef(item);
+        if (!fits(item)) { // a full pack: swap the cheapest loose item into the container if this one is worth more
+          if (equipDef(item)?.bound || G.pack.length < G.packSlots) continue;
+          sortPack(); const cheapest = G.pack[G.pack.length - 1]; if (!(worth(cheapest) < worth(item))) continue;
+          G.pack.pop(); s.slots.push({ item: cheapest, revealAt: 0, revealed: true, taken: false }); c.items?.push(cheapest); G.log.swaps++;
         }
+        take(s, i); const k = c.items?.indexOf(item) ?? -1; if (k >= 0) c.items!.splice(k, 1);
+        if (!giveItem(item, d.kind === "ammo" ? d.stack : undefined)) { slot.taken = false; c.items?.push(item); continue; }
+        if (d.rarity === "rare" || d.rarity === "epic") sfx("rare");
       }
-      if (emptied(c)) { c.opened = true; endSearch(); }
+      // searched out, or fully revealed with only what it can't carry left: done with this one
+      if (emptied(c) || s.elapsed >= s.duration && s.slots.every((q) => q.taken || !fits(q.item))) { c.opened = true; endSearch(); }
     }
   }
   for (const k of marks) {

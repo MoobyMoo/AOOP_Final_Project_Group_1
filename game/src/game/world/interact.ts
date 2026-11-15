@@ -10,7 +10,7 @@ import { CLEARINGS, SUPPLY_DROPS, ZIPLINES } from "./layout";
 import { doorPrompt, useDoor } from "./buildings";
 import { sfx } from "../core/audio";
 import { hud } from "../ui/hud";
-import { nearestCrate, spawnPickup } from "../loot/raidloot";
+import { nearestCrate, addSupplyCrate } from "../loot/raidloot";
 import { rollCrate } from "../loot/tables";
 import * as K from "./kit_build";
 import { mergePieces } from "./kitutil";
@@ -71,7 +71,7 @@ export function updateInteractions(dt: number) {
     const g = K.asset("supply_gondola"), gy = groundHeight(p.x, p.z);
     const obj = mergePieces(g.pieces); obj.add(g.parts.root);
     obj.position.set(p.x - 1.6, gy, p.z - 0.6); obj.rotation.y = 0.5; G.stage.scene.add(obj); drop.gondola = obj; block(p.x - 1.6, p.z - 0.6, 1.1, false, false, "drop");
-    const items = rollCrate("gold", G.lootCtx, G.rng); items.forEach((id, k) => spawnPickup(id, V(p.x, p.z), k, items.length)); // procedural loot: placed at rest, random yaw (POLISH_FINDINGS 1)
+    addSupplyCrate(p.x - 1.6, p.z - 0.6, obj); // its loot stays inside: searched and taken in the looting screen
     const n = 60, pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) pos.set([p.x + (G.rng() - 0.5), gy + G.rng() * 8, p.z + (G.rng() - 0.5)], i * 3);
     const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     drop.smoke = new THREE.Points(geo, new THREE.PointsMaterial({ color: "#ff5a3a", size: 1.4, transparent: true, opacity: 0.55, depthWrite: false })); G.stage.scene.add(drop.smoke);
