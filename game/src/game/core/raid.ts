@@ -121,7 +121,7 @@ export function renderRaid(dt: number) {
   { const y = focus.y; focus.lerp(G.pp.clone().add(lead), Math.min(1, dt * (G.fireCd > -0.2 ? 3 : 6)));
     focus.y = y + (G.pp.y - y) * Math.min(1, dt * 2.2); } // ground bumps reach the camera slowly: no step-by-step bob (Moo: dizzy)
   G.stage.place(focus, dt, G.time);
-  updateCutout(G.stage.camera, chest.copy(G.pp).setY(G.pp.y + 1.1), G.stage.renderer, G.aimPoint);
+  updateCutout(G.stage.camera, chest.copy(G.pp).setY(G.pp.y + 1.1), G.stage.renderer, G.aimPoint, G.pp.y);
   updateCampfires(G.time, G.stage.scene, G.stage.renderer);
   void V; void itemDef;
 }
