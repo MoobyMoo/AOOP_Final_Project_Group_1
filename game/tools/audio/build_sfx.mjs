@@ -11,7 +11,9 @@ const RAW = "research/audio/raw/sfx", OUT = "public/audio/sfx";
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
 const MAX = Number(arg("--max", 4)), STEPS = Number(arg("--steps", 8)), SKIP = new Set((arg("--skip", "") || "").split(",").filter(Boolean));
 /** longest a processed take may be before it is dropped as overlong (seconds); stings and roars may ring */
-const LONG = { roar: 2.6, extract: 2.6, rare: 2, heal: 1.6, door: 1.6, shotTail: 1.6, slam: 1.6, ko: 1.4 };
+/** quietest peak (dBFS) a take may have before it is dropped as too weak to normalise; a distant echo tail is quiet by nature */
+const WEAK = { shotTail: -32 };
+const LONG = { stepSand: 0.6, stepMud: 0.6, stepGrass: 0.6, stepDirt: 0.6, stepPlank: 0.6, stepStone: 0.6, stepCave: 0.7, roar: 2.6, extract: 2.6, rare: 2, heal: 1.6, door: 1.6, shotTail: 1.6, slam: 1.6, ko: 1.4 };
 const ff = (args) => spawnSync("ffmpeg", ["-hide_banner", ...args], { encoding: "utf8" });
 const dur = (f) => Number(spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f], { encoding: "utf8" }).stdout);
 const camel = (s) => s.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
@@ -32,6 +34,23 @@ function sounds(f, noise = -42, gap = 0.08) {
   return out;
 }
 if (!existsSync(RAW) || !readdirSync(RAW).some((f) => f.endsWith(".mp3"))) { console.error(`no raw takes in ${RAW}; leaving ${OUT} as it is`); process.exit(1); }
+/** steps in a take: { a, b } seconds, `sharp` = dB rise into the onset, `lvl` = its peak frame relative to the take's */
+function onsets(f) {
+  const buf = spawnSync("ffmpeg", ["-v", "error", "-i", f, "-f", "f32le", "-ac", "1", "-ar", "44100", "-"], { maxBuffer: 1 << 27 }).stdout;
+  const x = new Float32Array(buf.buffer, buf.byteOffset, buf.length / 4), F = 441, db = []; // 10 ms frames
+  for (let i = 0; i + F <= x.length; i += F) { let e = 0; for (let j = 0; j < F; j++) e += x[i + j] ** 2; db.push(10 * Math.log10(e / F + 1e-12)); }
+  const pk = Math.max(...db), r = db.map((d) => d - pk), out = [];
+  for (let i = 3; i < r.length; i++) {
+    const before = Math.min(...r.slice(Math.max(0, i - 8), i));
+    if (r[i] > -22 && r[i] - before > 10 && (!out.length || i - out.at(-1).i > 22)) {
+      let top = i; while (top + 1 < r.length && r[top + 1] >= r[top] && top < i + 6) top++;
+      let j = top + 4; while (j < r.length && j < i + 45 && r[j] > r[top] - 24) j++;
+      out.push({ i, a: Math.max(0, i - 1) / 100, b: j / 100, sharp: r[i] - before, lvl: r[top] });
+    }
+  }
+  for (let k = 0; k + 1 < out.length; k++) out[k].b = Math.min(out[k].b, out[k + 1].a - 0.01);
+  return out;
+}
 mkdirSync(OUT, { recursive: true });
 for (const f of readdirSync(OUT)) if (f.endsWith(".mp3") || f === "manifest.json") rmSync(join(OUT, f));
 const groups = {};
@@ -53,7 +72,7 @@ function take(kind, src, a, b, out, label) {
   const lv = levels(tmp), len = dur(tmp) || 0, cap = LONG[kind] ?? 1.2, clip = levels(src).flat;
   // drop: silent or too quiet to normalise without lifting the noise floor, clipped, empty, or far past the kind's length
   // (a take that rambles on is the wrong sound); trim: a little long, so cut it to the cap with a 60 ms fade
-  const why = lv.max < -30 ? "near-silent" : lv.max < -18 ? "weak" : clip > 0.5 ? "clipped" : len < 0.03 ? "empty" : len > cap * 2.5 ? "overlong" : "";
+  const why = lv.max < -30 ? "near-silent" : lv.max < (WEAK[kind] ?? -18) ? "weak" : clip > 0.5 ? "clipped" : len < 0.03 ? "empty" : len > cap * 2.5 ? "overlong" : "";
   const trim = !why && len > cap;
   report.push(`${why ? "DROP" : "keep"} ${label.padEnd(24)} ${len.toFixed(2)} s  peak ${lv.max} dB  rms ${lv.mean} dB${why ? `  (${why})` : trim ? `  (trimmed to ${cap} s)` : ""}`);
   if (why) return;
@@ -66,10 +85,20 @@ for (const [name, files] of Object.entries(groups)) {
   const kind = camel(name), out = [], isStep = name.startsWith("step_");
   if (isStep) {
     // a walk of several steps per take: keep each step that is a clean single hit (60-450 ms), alternating takes for variety
-    const cuts = files.map((f) => sounds(join(RAW, f)).filter(([a, b]) => b - a >= 0.06 && b - a <= 0.45).map((c) => [f, c]));
+    // a footstep take is a walk of several steps (or one step): normalise it, find each step by its onset on the energy
+    // envelope, and keep the clean ones: a sharp rise (>= 22 dB in 80 ms, a heel strike rather than shuffling) that
+    // lands within 14 dB of the walk's loudest step. Silence-splitting fails here: gritty walks never go quiet
+    const walks = files.map((f, k) => {
+      const w = join(OUT, `.walk${k}.wav`), pk = levels(join(RAW, f)).max;
+      ff(["-y", "-loglevel", "error", "-i", join(RAW, f), "-ac", "1", "-ar", "44100", "-af", `volume=${(-1 - pk).toFixed(2)}dB`, "-c:a", "pcm_f32le", w]);
+      return [f, w];
+    });
+    // a take under a second is one step already: use it whole (its onset is at 0, so there is no rise to measure)
+    const cuts = walks.map(([f, w]) => (dur(w) < 1 ? [{ a: 0, b: null }] : onsets(w).filter((o) => o.sharp >= 22 && o.lvl >= -14)).map((o) => [f, w, o]));
     for (let i = 0; out.length < STEPS && cuts.some((c) => c.length); i++) {
-      const c = cuts[i % cuts.length].shift(); if (c) take(kind, join(RAW, c[0]), c[1][0], c[1][1] + 0.03, out, `${c[0]}@${c[1][0].toFixed(2)}`);
+      const c = cuts[i % cuts.length].shift(); if (c) take(kind, c[1], c[2].a, c[2].b === null ? null : c[2].b + 0.03, out, `${c[0]}@${c[2].a.toFixed(2)}`);
     }
+    for (const [, w] of walks) rmSync(w, { force: true });
   } else for (const f of files) { if (out.length >= MAX) break; take(kind, join(RAW, f), 0, null, out, f); }
   if (out.length) manifest[kind] = out;
 }

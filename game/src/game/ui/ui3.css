@@ -326,6 +326,82 @@ html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .hud-prompt.on{opacity:1}.hud-prompt:empty{display:none}
 #ui:has(> .panel) .hud-prompt,#ui:has(> .panel) .home-hint,#ui:has(.lv) .hud-prompt,#ui:has(.lv) .home-hint{opacity:0}
 
+.home-chips{display:flex;gap:10px;align-items:flex-start}
+.home-stash{position:relative;font:600 20px/1 var(--a-font);padding:13px 14px 12px;color:var(--a-dim);background:repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 7px),linear-gradient(180deg,#2b2a30,var(--a-wool));border:1px solid var(--a-edge);box-shadow:0 8px 24px rgba(0,0,0,.45)}
+.home-stash b{color:var(--a-ink);font-weight:700}
+.home-tip{position:absolute;top:96px;left:50%;transform:translateX(-50%);max-width:min(640px,90vw);padding:10px 16px;font:600 19px/1.35 var(--a-font);color:var(--a-ink);text-align:center;text-wrap:balance;
+  background:linear-gradient(180deg,#2b2a30,var(--a-wool));border:1px solid var(--a-brass);box-shadow:0 8px 24px rgba(0,0,0,.45);pointer-events:none}
+#ui:has(> .panel) .home-tip,#ui:has(.lv) .home-tip{opacity:0}
+
+/* ---------------------------------------------------------------- the Banana Express: destination cards, confirm, curtain */
+.panel.dest{width:min(640px,94vw)}
+.dest3{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.panel .dcard{display:grid;grid-template-columns:132px 1fr;gap:14px;align-items:stretch;text-align:left;padding:0;background:var(--a-wool2);color:var(--a-ink);border:1px solid var(--a-line);white-space:normal;font:inherit}
+.panel .dcard:hover:not(:disabled){background:#2e2d33;border-color:var(--a-brass)}
+.panel .dcard:hover:not(:disabled) .dgo{color:var(--a-tie)}
+.panel .dcard:disabled{background:var(--a-wool3);color:var(--a-ink);opacity:.62;cursor:default}
+.dcard .dimg{display:block;width:132px;height:132px;background:#24302e;border-right:1px solid var(--a-line);overflow:hidden}
+.dcard .dimg img{display:block;width:100%;height:100%;object-fit:cover}
+.dcard.locked .dimg img{filter:grayscale(.85) brightness(.7)}
+.dcard .dbody{display:flex;flex-direction:column;gap:6px;padding:12px 14px 12px 0}
+.dcard .dbody b{font:700 26px/1 var(--a-font)}
+.dcard .dbody small{font:500 17px/1.3 var(--a-font);color:var(--a-dim);text-wrap:pretty}
+.dcard .dfoot{display:flex;justify-content:space-between;align-items:baseline;margin-top:auto;padding-top:6px;border-top:1px solid var(--a-line)}
+.dcard .dfare{font:700 22px/1 var(--a-font);color:var(--a-brass-hi)}
+.dcard em{font:600 17px/1 var(--a-font);font-style:normal}
+.dcard .dgo{color:var(--a-stam)}.dcard .dlock{color:var(--a-warn)}
+.dconf{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:center;margin-top:6px}
+.dconf img{width:120px;height:120px;object-fit:cover;border:1px solid var(--a-line);display:block}
+.dconf b{font:700 28px/1 var(--a-font)}.dconf p{margin:6px 0 0}
+.panel .launch{min-width:160px}
+.curtain3{position:fixed;inset:0;z-index:25;display:grid;place-items:center;opacity:0;transition:opacity .3s;pointer-events:none;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.03) 0 1px,transparent 1px 9px),radial-gradient(ellipse at 50% 45%,#2b2a30,#141317 75%)}
+.curtain3.on{opacity:1;pointer-events:auto}
+.curtain3 .cbox{text-align:center;color:var(--a-ink);font-family:var(--a-font);min-width:min(420px,80vw)}
+.curtain3 .ctag{display:inline-block;padding:6px 12px;border:1px solid var(--a-brass);color:var(--a-brass-hi);font:600 17px/1 var(--a-font);letter-spacing:.06em;text-transform:uppercase}
+.curtain3 h1{margin:18px 0 6px;font:700 64px/1 var(--a-font);letter-spacing:-.01em}
+.curtain3 small{display:block;font:500 22px/1.2 var(--a-font);color:var(--a-dim)}
+.curtain3 .tie{margin:18px auto 0;width:220px}
+.curtain3 .cdots{display:flex;gap:10px;justify-content:center;margin-top:18px}
+.curtain3 .cdots b{width:10px;height:10px;background:var(--a-brass);animation:a-dot 0.9s infinite ease-in-out}
+.curtain3 .cdots b:nth-child(2){animation-delay:.15s}.curtain3 .cdots b:nth-child(3){animation-delay:.3s}
+@keyframes a-dot{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-6px)}}
+
+/* ---------------------------------------------------------------- build mode: blueprint cards, the placement plate, keys */
+.bld3{position:absolute;inset:0;pointer-events:none;font-family:var(--a-font);color:var(--a-ink)}
+.bld3-cat{position:absolute;left:22px;top:92px;bottom:96px;width:380px;display:flex;flex-direction:column;pointer-events:auto;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 7px),linear-gradient(180deg,#2b2a30,var(--a-wool));border:1px solid var(--a-edge);box-shadow:0 24px 60px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06)}
+.bld3-cat header{display:flex;align-items:baseline;justify-content:space-between;padding:14px 16px 10px}
+.bld3-cat h2{margin:0;font:700 30px/1 var(--a-font)}.bld3-cat header small{font:600 20px/1 var(--a-font);color:var(--a-brass-hi)}
+.bld3-cat>.tie{margin:0 16px 6px}
+.bcards{overflow-y:auto;flex:1;padding:0 10px 10px;scrollbar-width:thin;scrollbar-color:var(--a-line) transparent}
+.bcard{display:flex;flex-direction:column;gap:4px;width:100%;text-align:left;margin:0 0 6px;padding:10px 12px 9px;background:var(--a-wool2);color:var(--a-ink);border:1px solid var(--a-line);border-left:4px solid var(--a-line);cursor:pointer;font:inherit}
+.bcard:hover{background:#2e2d33;border-color:var(--a-brass);border-left-color:var(--a-brass)}
+.bcard:focus-visible{outline:2px solid var(--a-brass-hi);outline-offset:1px}
+.bcard.on{border-left-color:var(--a-tie);background:#34282a}
+.bcard .bt{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.bcard .bt b{font:700 20px/1.1 var(--a-font)}.bcard .bp{font:700 19px/1 var(--a-font);color:var(--a-brass-hi);white-space:nowrap}
+.bcard .bfree{color:var(--a-stam)}
+.bcard small{font:500 16px/1.3 var(--a-font);color:var(--a-dim)}
+.bcard .bf{display:flex;gap:8px;align-items:center;font:600 15px/1 var(--a-font);color:var(--a-faint);margin-top:2px}
+.bcard .bf>span:first-child{padding:3px 6px;border:1px solid var(--a-line);color:var(--a-dim)}
+.bcard .bs{margin-left:auto;color:var(--a-stam)}
+.bcard.locked,.bcard.built{opacity:.55}.bcard.locked .bs{color:var(--a-warn)}.bcard.built .bs{color:var(--a-dim)}
+.bcard.poor .bp,.bcard.poor .bs{color:var(--a-hp)}
+.bld3-hud{position:absolute;left:50%;bottom:72px;transform:translateX(-50%);display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;gap:6px 16px;max-width:min(760px,60vw);padding:12px 18px;pointer-events:auto;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 7px),linear-gradient(180deg,#2b2a30,var(--a-wool));border:1px solid var(--a-edge);box-shadow:0 8px 24px rgba(0,0,0,.45);font:500 18px/1.3 var(--a-font)}
+.bld3-hud.idle{color:var(--a-dim)}
+.bld3-hud b{font:700 22px/1 var(--a-font)}.bld3-hud em{font-style:normal;font-weight:700}
+.bld3-hud .ok{color:var(--a-stam)}.bld3-hud .bad{color:var(--a-hp)}.bld3-hud .dim{flex-basis:100%;text-align:center;font:500 16px/1.3 var(--a-font);color:var(--a-dim)}
+.bld3-hud .flash{flex-basis:100%;text-align:center}
+.bld3-hud .bact{display:flex;gap:8px}
+.bld3-hud button{font:700 18px/1 var(--a-font);background:var(--a-tie);color:#1c120b;border:1px solid #ffb37a;border-radius:0;padding:9px 16px;cursor:pointer}
+.bld3-hud button.ghost{background:#2a2125;color:var(--a-ink);border-color:var(--a-brass)}
+.bld3-hud button:hover{filter:brightness(1.1)}.bld3-hud button:focus-visible{outline:2px solid var(--a-brass-hi);outline-offset:2px}
+.bld3-keys{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);display:flex;gap:18px;white-space:nowrap;font:600 18px/1 var(--a-font);text-shadow:0 1px 3px rgba(0,0,0,.85)}
+#ui:has(.bld3) .home-hint,#ui:has(.bld3) .hud-prompt,#ui:has(.bld3) .home-tip{opacity:0}
+@media (prefers-reduced-motion:reduce){.curtain3,.curtain3 .cdots b{transition:none;animation:none}}
+
 /* ---------------------------------------------------------------- the payout slip (end of raid): B's receipt idea in A's palette */
 .panel.result{width:min(500px,92vw);padding:0;background:none;border:0;box-shadow:none;overflow:visible;animation:a-slip .45s cubic-bezier(.2,.8,.2,1)}
 @keyframes a-slip{from{opacity:0;transform:translate(-50%,-38%)}}

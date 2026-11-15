@@ -16,7 +16,8 @@ export const PLAYER = {
   roll: { time: 0.34, dist: 3.2, skid: 0.2, skidSpeed: 0.6, cooldown: 0.6, noise: 4, buffer: 0.12 },
   /** weight states (ratio = carried / maxWeight): light <= 0.25 +15%, normal, heavy > 0.75 -40% + louder steps,
    *  overweight > 1 -70% (a crawl, never a freeze: rule 17). Pack slots still cap the count. */
-  maxWeight: 30, weight: { light: 0.25, heavy: 0.75, lightBonus: 0.15, heavySlow: 0.4, overSlow: 0.7 },
+  // maxWeight 45 = Duckov; Kingpin interval 0.2 = slowest Duckov pistol (heavy .45); noise 20 = Duckov pistol band (BALANCE_RANGES top 10, lead 11-15)
+  maxWeight: 45, weight: { light: 0.25, heavy: 0.75, lightBonus: 0.15, heavySlow: 0.4, overSlow: 0.7 },
 };
 /** CANCEL RULE (G1.5 row 20, POLISH_FINDINGS 12 on Duckov's CA_Reload priorities): a dash cancels a reload, and so do
  *  the briefcase swing (a weapon swap) and using a heal; you can walk and run while reloading, and ordinary hits never
@@ -37,8 +38,8 @@ export const PLAYER = {
  *  eyepatch's +0.15 makes the Kingpin crit 1.3 x 1.15 = 1.5). Duckov's form is (gun + ammo) x (1 + holder). */
 export const KINGPIN = {
   // extMag: what the extended mag attachment (att_mag_ext, +4 rounds) makes it
-  id: "kingpin45", name: "Kingpin .45", mag: 8, extMag: 12, interval: 0.22, damage: 12, reload: 1.2, range: 16, pen: 1,
-  magnet: 7 * Math.PI / 180, magnetAds: 10 * Math.PI / 180, noise: 14, bulletSpeed: 48, kick: 0.09, startAmmo: 24,
+  id: "kingpin45", name: "Kingpin .45", mag: 8, extMag: 12, interval: 0.2, damage: 12, reload: 1.2, range: 16, pen: 1,
+  magnet: 7 * Math.PI / 180, magnetAds: 10 * Math.PI / 180, noise: 20, bulletSpeed: 48, kick: 0.09, startAmmo: 24,
   critMult: 1.3, reloadMode: "mag" as ReloadMode, perRound: 0.4, autoReload: false,
 };
 /** GUN HANDLING (combat/handling.ts; POLISH_FINDINGS 16 "Gun handling: scatter, recoil, ADS"). Duckov's mechanism with

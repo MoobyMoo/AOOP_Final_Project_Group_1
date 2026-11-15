@@ -10,9 +10,12 @@ import { Stage } from "./render/stage";
 import { Input } from "./core/input";
 import { G } from "./core/state";
 import { load, save, retainKeys } from "./core/save";
-import { unlockAudio } from "./core/audio";
+import { unlockAudio, sfx, stepOn } from "./core/audio";
 import { musicTick, setMusic, sting, musicState } from "./core/music";
-import { startRaid, stepRaid, renderRaid, buildRaidWorld, raidScene, quitRaid, type RaidResult } from "./core/raid";
+import { startRaid, stepRaid, renderRaid, buildRaidWorld, raidScene, quitRaid, lastSpawn, type RaidResult } from "./core/raid";
+import { settleDeploy, cancelDeploy, type DeployRequest } from "./core/deployment";
+import { hideCurtain } from "./home/dispatch";
+import { exits } from "./world/props";
 import { initSettings, settingsOpen } from "./ui/settings";
 import { lootOpen } from "./ui/lootview";
 import { path, walkable, los, lintReport, exactReach, clearance, areaStats, gates, setGate, pathLength, collide } from "./world/grid";
@@ -33,7 +36,6 @@ import { isEquip, visualGear } from "./loot/equipment";
 import { payoutSlip } from "./ui/payout";
 import { createRig, preloadCharacters, RIG_TUNE } from "./actors/rig";
 import { createKingpin, createGunFx, preloadKingpin } from "./combat/kingpin";
-import { fadeTo } from "./world/interact";
 import { botTick, setBot } from "./core/botdrive";
 import { createBot } from "./core/bot";
 import { hud } from "./ui/hud";
@@ -44,7 +46,7 @@ G.input = new Input(G.stage.renderer.domElement);
 if (QS.has("fresh")) localStorage.removeItem("bv_g1");
 G.save = load(); G.bot = QS.has("bot"); G.intent = G.input.read(0);
 if (G.bot) { const bot = createBot({ greed: Number(QS.get("greed") ?? 0.5), reactionLag: Number(QS.get("lag") ?? 0.25), seed: Number(QS.get("botseed") ?? QS.get("seed") ?? 1) }); setBot(bot); (window as unknown as { __bot: unknown }).__bot = bot; }
-if (QS.has("dev")) Object.assign(window as unknown as object, { __G: G, __RIG_TUNE: RIG_TUNE, __music: musicState }); // captures and debugging only
+if (QS.has("dev")) Object.assign(window as unknown as object, { __G: G, __RIG_TUNE: RIG_TUNE, __music: musicState, __sfx: { sfx, stepOn } }); // captures and debugging only
 addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlockAudio);
 // Esc settings (ui/settings.ts): the loot screen, the map and the bunker panels own Esc while open and close first;
 // quitting a raid from it is a bonk-out (core/raid.ts quitRaid)
@@ -63,7 +65,15 @@ G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = create
 
 function goHome(summary?: string) { setMusic("bunker"); enterBunker(goRaid, goMirror, summary); }
 function goMirror() { leaveBunker(); openCreator(() => goHome(), bunkerScene); }
-function goRaid() { fadeTo(() => { leaveBunker(); startRaid(onRaidEnd); setMusic("raid"); }); }
+/** the pod fired (home/bunker.ts): the curtain is up; build the raid behind it at the destination's entry group.
+ *  If the raid fails to start, the fare is refunded and you're back in the vault (SYSTEMS_PORT R01: roll back). */
+function goRaid(req: DeployRequest) {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    try { leaveBunker(); startRaid(onRaidEnd, { entryGroup: req.entryGroup, title: req.name }); setMusic("raid"); settleDeploy(); }
+    catch (e) { console.error("deploy failed", e); cancelDeploy(G.save, save); goHome(`<header><h2>The pod jammed</h2></header><p>The fare is back in your pocket. Try again.</p>`); }
+    hideCurtain();
+  }));
+}
 function onRaidEnd(r: RaidResult) {
   const sv = G.save; sv.raids++; sting(r.how === "bonked" ? "stingBonk" : "stingExtract");
   if (r.how === "bonked") sv.stats.bonkOuts++; else sv.stats.extracts++;
@@ -114,7 +124,8 @@ function neutral() { const i = G.intent; i.move = { x: 0, z: 0 }; i.fire = i.fir
 (window as unknown as { __g: unknown }).__g = { G, path, walkable, los, collide, home: homeApi, info: () => ({ calls: G.stage.renderer.info.render.calls, tris: G.stage.renderer.info.render.triangles }),
   // map v3 checks: lint report, world build stats, objects in the current frame (G1-21), teleport, gates
   lint: lintReport, exactReach, clearance, sockets: CONTAINER_SOCKETS, fauna: faunaStats, faunaList, areas: () => areaStats(houseFootprints()), feet: () => houseFootprints(), loot: { dropItem, placeItem }, world: () => worldStats, density: () => countVisible(G.stage.camera, [...G.crates, ...G.enemies.filter((e) => !e.down).map((e) => ({ x: e.p.x, z: e.p.z }))]),
-  tp: (x: number, z: number) => { G.pp.set(x, groundHeight(x, z), z); G.vel.set(0, 0, 0); }, gates, setGate, pathLength, houses, svg: () => blockoutSvg(scattered) };
+  tp: (x: number, z: number) => { G.pp.set(x, groundHeight(x, z), z); G.vel.set(0, 0, 0); }, gates, setGate, pathLength, houses, svg: () => blockoutSvg(scattered),
+  exits: () => exits.map((e) => ({ id: e.id, x: e.x, z: e.z, open: e.open })), spawn: () => lastSpawn };
 
 if (QS.has("raid")) { G.save.lookDone = true; startRaid(onRaidEnd); setMusic("raid"); }
 else if (!G.save.lookDone) openCreator(() => goHome(), bunkerScene);

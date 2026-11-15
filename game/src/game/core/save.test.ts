@@ -1,6 +1,8 @@
 import { DEFAULT_LOOK } from "../actors/look";
 import { KINGPIN } from "../combat/weapons";
 import { load, migrate, reset, save, retainKeys } from "./save";
+import { CATALOG, STARTERS, build, canBuild, checkPlace, craft, defOf, legacyBase, move, packUp, stashCapacity } from "../home/facilities";
+import { canDeploy, cancelDeploy, deploy, pickEntry, settleDeploy, ENTRY_POINTS } from "./deployment";
 import "../loot/equipment.test";
 import "../loot/equipment-actions.test";
 import "../loot/search.test";
@@ -128,5 +130,71 @@ assert(reset().v === 1, "Node without storage resets");
   equal(oldItems.satchel?.items, ["att_mag_ext", "att_sight_holo"], "a dropped satchel keeps its attachments");
   equal(migrate(vaultMag), vaultMag, "attachment migration is idempotent");
   equal(migrate(takenOff), takenOff, "a current save round-trips unchanged");
+}
+const cash = (save: { money: number }) => save.money; // read through a call: TS would narrow save.money to the last asserted literal
+{ // the buildable vault (G1.5 row 17): new saves start empty; a save from before the vault keeps the old room's stations
+  const blank = migrate(null);
+  equal(blank.base, { v: 1, next: 1, items: [], tokens: {} }, "a new vault starts empty");
+  const old = migrate({ v: 1, raids: 4, money: 120, salMovedIn: true, upgrades: { mag: 1, pack: 0, heart: 0 }, trophies: ["golden_banana"] });
+  equal(old.base.items.map((item) => item.def), ["fence", "bench", "sal", "trophy"], "an old save keeps the Fence, the bench, Sal's board and the trophies");
+  assert(old.salMovedIn && old.upgrades.mag === 1 && old.money === 120, "the old save's progress is untouched");
+  assert(old.base.items.every((item) => checkPlace({ ...old.base, items: old.base.items.filter((other) => other.uid !== item.uid) }, defOf(item.def)!, item.x, item.z, item.r).ok), "the migrated stations stand in valid, reachable spots");
+  equal(migrate(JSON.parse(JSON.stringify(old))).base, old.base, "a migrated layout round-trips");
+  assert(migrate({ v: 1, base: { v: 1, next: 1, items: [], tokens: {} } }).base.items.length === 0, "an empty saved vault stays empty (not re-seeded)");
+  const legacy = legacyBase();
+  // bad layouts: unknown ids dropped, overlaps and out-of-bounds go back into storage as tokens (never lost)
+  const messy = migrate({ v: 1, base: { v: 1, next: 9, tokens: { press: 1, nope: 3, med: -2 }, items: [
+    { uid: 1, def: "fence", x: -13, z: -12, r: 0 }, { uid: 2, def: "bench", x: -12, z: -12, r: 0 }, { uid: 3, def: "sal", x: 99, z: 0, r: 0 },
+    { uid: 4, def: "unicorn", x: 0, z: 0, r: 0 }, { uid: 1, def: "plant", x: 10, z: 10, r: 7 }, { uid: 5, def: "plant", x: 12, z: 10, r: 1 }] } });
+  equal(messy.base.items.map((item) => item.def), ["fence", "plant"], "only valid placements stay built");
+  equal(messy.base.tokens, { press: 1, bench: 1, sal: 1, plant: 1 }, "overlapping and out-of-bounds facilities go into storage");
+  assert(messy.base.next > Math.max(...messy.base.items.map((item) => item.uid)), "the uid counter stays ahead");
+  void legacy;
+  // the build transaction: a token pays first, otherwise money, exactly once; moving is free; packing up returns a token
+  const s = migrate(null); s.money = 100;
+  assert(!build(s, "fence", -1, -9, 0).ok && cash(s) === 100 && s.base.items.length === 0, "blocked placement charges nothing (the pod's landing spot)");
+  assert(build(s, "sal", 4, -4, 0).ok && cash(s) === 70, "Sal's desk costs 30");
+  assert(!canBuild(s, "sal").ok, "max count 1");
+  assert(!canBuild(s, "press").ok && canBuild(s, "press").reason.includes("Generator"), "the press needs the generator");
+  const uid = s.base.items[0].uid;
+  assert(move(s, uid, 4, 2, 1).ok && cash(s) === 70 && s.base.items[0].r === 1, "moving is free");
+  assert(packUp(s, uid).ok && s.base.tokens.sal === 1 && cash(s) === 70 && !s.base.items.length, "packing up returns one token, no money");
+  assert(canBuild(s, "sal").free && build(s, "sal", 4, 2, 0).ok && cash(s) === 70 && !s.base.tokens.sal, "placing from storage is free and uses the token");
+  s.money = 0; assert(!canBuild(s, "trophy").ok && !build(s, "trophy", 8, 2, 0).ok && cash(s) === 0, "can't build what you can't afford");
+  assert(CATALOG.filter((def) => def.station === "sell" || def.station === "bench").every((def) => def.cost === 0), "the stations a new vault needs are free");
+  // walkway rule: walling in a station is refused
+  const w = migrate(null); w.money = 999;
+  assert(build(w, "fence", -6, 0, 0).ok, "fence placed");
+  assert(checkPlace(w.base, defOf("stash")!, -6, 2, 0).ok, "a station needs only part of its front row free");
+  assert(!checkPlace(w.base, defOf("desk")!, -6, 2, 0).ok && checkPlace(w.base, defOf("desk")!, -6, 2, 0).reason.includes("Fence"), "covering a station's whole front row is refused");
+  // stash capacity and crafting: atomic, inputs from the stash
+  const c = migrate(null); c.money = 999; c.reserved = ["vine_rope", "banana", "banana", "spring"];
+  assert(!craft(c, "bandage"), "no kiosk, no craft");
+  build(c, "med", 4, 4, 0); assert(craft(c, "bandage") && c.reserved.filter((i) => i === "bandage").length === 2 && !c.reserved.includes("vine_rope"), "a vine rope makes two bandages");
+  build(c, "press", 8, 4, 0);
+  assert(!c.base.items.some((item) => item.def === "press"), "the press can't be built without power");
+  build(c, "generator", 12, 4, 0); build(c, "press", 8, 4, 0); const ammo = c.ammo;
+  assert(craft(c, "rounds8") && c.ammo === ammo + 8 && !c.reserved.includes("spring"), "a spring presses 8 rounds");
+  assert(stashCapacity(c) === 24 && (build(c, "stash", -6, 6, 0), stashCapacity(c)) === 36, "a safe-deposit wall adds 12 slots");
+  c.reserved = Array(36).fill("banana"); c.locker = []; assert(!craft(c, "smoothie") || c.reserved.length <= 36, "crafting respects the stash");
+  assert(STARTERS.every((starter) => !CATALOG.some((def) => def.id === (starter.id as string))), "starters are not buildable");
+}
+{ // deploying (G1.5 row 33): the plantation road opens after one return; the fare is paid once
+  const d = migrate(null); d.money = 50; let writes = 0; const write = () => { writes++; }, count = () => writes;
+  assert(canDeploy("beach", d).ok && !canDeploy("plantation", d).ok, "only the beach is open at first");
+  d.stats.extracts = 1; assert(canDeploy("plantation", d).ok, "one return opens the plantation road");
+  const first = deploy("plantation", d, write), second = deploy("plantation", d, write);
+  assert(first.ok && !second.ok && cash(d) === 30 && count() === 1, "a second confirm while one is on its way pays nothing");
+  cancelDeploy(d, write); assert(cash(d) === 50 && count() === 2 && canDeploy("plantation", d).ok, "a failed load refunds the fare");
+  assert(deploy("plantation", d, write).ok && cash(d) === 30, "paid again on a fresh confirm"); settleDeploy();
+  d.money = 10; assert(!canDeploy("plantation", d).ok && canDeploy("beach", d).ok, "can't afford the fare; the beach is free");
+  // spawns: walkable, 12 u clear of enemies, explicit fallbacks
+  const open = () => true, beach = ENTRY_POINTS.filter((e) => e.group === "beach");
+  assert(beach.length === 3 && ENTRY_POINTS.filter((e) => e.group === "plantation-road").length >= 2, "3 beach candidates, inland ones from the roads");
+  const crowd = beach.slice(0, 2).map((e) => ({ x: e.x + 3, z: e.z }));
+  for (let seed = 0; seed < 20; seed++) { const pick = pickEntry("beach", crowd, open, seed); assert(pick.entry.id === beach[2].id && !pick.fallback && pick.clearance >= 12, "enemies within 12 u rule a candidate out"); }
+  const all = pickEntry("beach", beach.map((e) => ({ x: e.x + 1, z: e.z })), open, 1); assert(all.fallback === "crowded", "every candidate crowded: explicit fallback");
+  const none = pickEntry("plantation-road", [], () => false, 1); assert(none.fallback === "start", "nothing walkable: explicit fallback to the hatch START");
+  equal(pickEntry("beach", [], open, 7).entry.id, pickEntry("beach", [], open, 7).entry.id, "the pick is seeded per raid");
 }
 console.log(`Save self-test: PASS (${checks} checks; migration, corrupt data, nested types, storage failures, reset)`);

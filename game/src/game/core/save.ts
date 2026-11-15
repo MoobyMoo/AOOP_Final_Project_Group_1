@@ -4,6 +4,7 @@ import { DEFAULT_LOOK, sanitizeLook, type MonkeyLookX } from "../actors/look";
 import { KINGPIN } from "../combat/weapons";
 import { ITEMS, PRICES, itemDef } from "../loot/tables";
 import { EMPTY_GUN, isAttachment, sanitizeGun } from "../loot/attachments";
+import { emptyBase, legacyBase, sanitizeBase } from "../home/facilities";
 
 export function retainKeys(save: SaveV1, kept: readonly string[]) {
   for (const id of kept) if (itemDef(id).kind === "key" && !save.keys.includes(id)) save.keys.push(id);
@@ -25,6 +26,7 @@ function fresh(): SaveV1 {
     look: structuredClone(DEFAULT_LOOK), lookDone: false, gear: { ...BOUND_KIT }, locker: [], satchel: null,
     upgrades: { mag: 0, pack: 0, heart: 0 }, keys: [], trophies: [], reserved: [], order: null,
     fixtures: [], salMovedIn: false, gun: { ...EMPTY_GUN }, stats: { bonkOuts: 0, extracts: 0, best: 0 },
+    base: emptyBase(), // a new vault starts empty (G1.5 row 17)
   };
 }
 
@@ -113,6 +115,8 @@ export function migrate(value: unknown): SaveV1 {
       } : null,
       fixtures: fixturesOut, salMovedIn: boolean(raw.salMovedIn, defaults.salMovedIn), gun,
       stats: { bonkOuts: integer(stats.bonkOuts, 0), extracts: integer(stats.extracts, 0), best: integer(stats.best, 0) },
+      // a save from before the buildable vault had the fixed room's stations: they come along, already placed
+      base: Object.hasOwn(raw, "base") ? sanitizeBase(raw.base) : Object.keys(raw).length ? legacyBase() : emptyBase(),
     };
   } catch {
     return defaults;

@@ -92,7 +92,7 @@ export function musicTick(dt: number) {
     // boss: on when he is in the fight, off ~0 s after he falls (the down sting covers it) or 4 s after he loses you
     const b = bossFight();
     if (b === "fight" && boss !== "fight") { if (!bossOn) sting("stingBossIntro"); bossOn = true; }
-    if (b === "down" && boss === "fight") { sting("stingBossDown"); bossOn = false; }
+    if (b === "down" && boss !== "down" && bossOn) { sting("stingBossDown"); bossOn = false; } // also when he falls during the lost-you hold
     if (b === "fight") bossHold = 4; else if (bossOn && (bossHold -= dt) <= 0) bossOn = false;
     boss = b;
   }
