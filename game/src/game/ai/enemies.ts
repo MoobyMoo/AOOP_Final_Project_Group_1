@@ -25,6 +25,14 @@ import { seedEnemyInventory } from '../loot/bodies';
 const bossBrains = new Map<Enemy, BossBrain>();
 export { bossDamage, enemyHearingRange } from './boss';
 export function bossMarkers() { return [...bossBrains].map(([enemy, brain]) => bossMarker(brain, enemy.p)); }
+/** boss fight state for the music (core/music.ts): 'fight' while an awake boss is alerted or on the attack, 'down' once beaten */
+export function bossFight(): 'none' | 'fight' | 'down' {
+  for (const [e, brain] of bossBrains) {
+    if (e.down || brain.state === 'down') return 'down';
+    if (e.active && (brain.alerted || ['notice', 'chase', 'windup', 'recover'].includes(brain.state))) return 'fight';
+  }
+  return 'none';
+}
 
 let nextId = 1;
 const sharedAlerts = new Map<Enemy, { delay: number; at: THREE.Vector3 }>();

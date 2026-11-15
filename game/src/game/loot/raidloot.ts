@@ -19,6 +19,7 @@ import { block, walkable, los } from "../world/grid";
 import { crate as crateKit, satchel as satchelKit, CRATE_LID_OPEN } from "../world/kit_build";
 import { mergePieces } from "../world/kitutil";
 import { sfx } from "../core/audio";
+import { sting } from "../core/music";
 import { burst, floatText, popIn } from "../../fx";
 import { hud } from "../ui/hud";
 import { KINGPIN } from "../combat/weapons";
@@ -94,7 +95,7 @@ function openCrate(c: Crate) {
   if (!items.length) { floatText("empty... 🕸️", V(c.x, c.z, 1.6), "#8a7d6a", 22); return; }
   const best = items.reduce((a, b) => (rank(itemDef(b).rarity) > rank(itemDef(a).rarity) ? b : a));
   const br = itemDef(best).rarity;
-  if (br === "rare" || br === "epic") { sfx("rare"); beam(V(c.x, c.z), RAR_COLOR[br]); G.stage.trauma = Math.min(1, G.stage.trauma + 0.15); }
+  if (br === "rare" || br === "epic") { sfx("rare"); sting("stingRare"); beam(V(c.x, c.z), RAR_COLOR[br]); G.stage.trauma = Math.min(1, G.stage.trauma + 0.15); }
   items.forEach((id, k) => spawnPickup(id, V(c.x, c.z, 0.8), k, items.length));
 }
 const rank = (r: string) => ["common", "uncommon", "rare", "epic"].indexOf(r);

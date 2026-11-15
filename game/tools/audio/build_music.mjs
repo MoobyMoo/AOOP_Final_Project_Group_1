@@ -4,12 +4,23 @@
 // and encoded Ogg Vorbis. Writes public/audio/music/manifest.json { name: file } for core/music.ts.
 // Usage: node tools/audio/build_music.mjs
 import { spawnSync } from "node:child_process";
-import { readdirSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { readdirSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 const RAW = "research/audio/raw/music", OUT = "public/audio/music";
 /** name -> [target LUFS, crossfade seconds (0 = one-shot, no loop)] */
-const SPEC = { bunkerTheme: [-18, 4], bunkerBed: [-26, 3], raidTheme: [-19, 4], raidBed: [-22, 3], combat: [-17, 2], stingExtract: [-15, 0], stingBonk: [-16, 0] };
+const SPEC = {
+  // home
+  bunkerTheme: [-18, 4], bunkerBed: [-26, 3],
+  // raid area themes (sparse, under play) and their ambience beds; raidTheme/raidBed are the old single pair, still read as a fallback
+  beachTheme: [-20, 4], plantationTheme: [-20, 4], grottoTheme: [-21, 4], mangroveTheme: [-20, 4], raidTheme: [-19, 4],
+  beachBed: [-23, 3], plantationBed: [-24, 3], grottoBed: [-24, 3], mangroveBed: [-24, 3], raidBed: [-22, 3],
+  // fights: combat sits on top of an area theme; the boss loop replaces both
+  combat: [-18, 2], bossTheme: [-16, 2],
+  // one-shots
+  stingExtract: [-15, 0], stingBonk: [-16, 0], stingRare: [-17, 0], stingBossIntro: [-15, 0], stingBossDown: [-15, 0],
+};
 const dur = (f) => Number(spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f], { encoding: "utf8" }).stdout);
+if (!existsSync(RAW) || !readdirSync(RAW).some((f) => /\.(mp3|wav)$/.test(f))) { console.error(`no raw renders in ${RAW}; leaving ${OUT} as it is`); process.exit(1); }
 mkdirSync(OUT, { recursive: true });
 for (const f of readdirSync(OUT)) if (f.endsWith(".ogg") || f === "manifest.json") rmSync(join(OUT, f));
 const manifest = {};

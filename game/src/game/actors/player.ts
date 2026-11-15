@@ -5,9 +5,9 @@ import { G, V, flat, angDiff, type Enemy } from "../core/state";
 import { PLAYER, KINGPIN, BRIEFCASE, FEEL, HEALS } from "../combat/weapons";
 import { ENEMY_CRIT, SLOTS, equipDef, gearStats } from "../loot/equipment";
 import { EQUIP_MOVE, interruptEquip, protectPlayerHit, updateEquipment } from "../loot/equipment-actions";
-import { collide, walkable } from "../world/grid";
+import { collide, walkable, zoneAt, roadDist } from "../world/grid";
 import { groundHeight, standHeight } from "../world/terrain";
-import { sfx } from "../core/audio";
+import { sfx, stepOn } from "../core/audio";
 import { shoot, swingBriefcase, makeNoise } from "../combat/combat";
 import { hud } from "../ui/hud";
 import { itemDef } from "../loot/raidloot";
@@ -22,6 +22,9 @@ const tmp = new THREE.Vector3();
 let stepT = 0, dryLatch = false;
 
 /** enemy nearest the aim ray (advisor 14), used by keyboard lock and the bullet magnet */
+/** the ground under a point for footsteps: a painted road (boardwalk planks, dirt tracks) wins over its zone's ground */
+const roadHit: NonNullable<Parameters<typeof roadDist>[2]> = { road: null };
+function groundUnder(x: number, z: number) { return roadDist(x, z, roadHit) <= 0 && roadHit.road ? roadHit.road.ground : zoneAt(x, z)?.ground; }
 export function nearestToRay(maxD: number, maxAng: number, from = G.pp, yaw = G.aimYaw): Enemy | null {
   let best: Enemy | null = null, bs = 1e9;
   for (const e of G.enemies) {
@@ -103,7 +106,7 @@ export function updatePlayer(dt: number) {
   if (G.vel.lengthSq() > 0.3) {
     G.moveYaw = Math.atan2(G.vel.x, G.vel.z); stepT -= dt * G.vel.length();
     if (stepT < 0) {
-      stepT = 1.7; sfx("step", ws === "heavy" || ws === "over" ? 1 : 0.6); if (G.sprinting || ws === "heavy" || ws === "over") makeNoise(G.pp, G.sprinting ? 7 : 5, "step");
+      stepT = 1.7; stepOn(groundUnder(G.pp.x, G.pp.z), ws === "heavy" || ws === "over" ? 1 : 0.6); if (G.sprinting || ws === "heavy" || ws === "over") makeNoise(G.pp, G.sprinting ? 7 : 5, "step");
       const dc = G.sprinting ? dustColor(G.pp.x, G.pp.z) : null; // footstep dust: one puff per sprinting step on loose ground (POLISH_FINDINGS 4)
       if (dc) (G.fx as KingpinFx).dust(G.pp, -G.vel.x * 0.08, -G.vel.z * 0.08, 1, dc, 0.8);
     }

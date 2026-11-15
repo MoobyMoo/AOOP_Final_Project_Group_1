@@ -10,7 +10,7 @@ import { Input } from "./core/input";
 import { G } from "./core/state";
 import { load, save, retainKeys } from "./core/save";
 import { unlockAudio } from "./core/audio";
-import { musicTick, setMusic, sting } from "./core/music";
+import { musicTick, setMusic, sting, musicState } from "./core/music";
 import { startRaid, stepRaid, renderRaid, buildRaidWorld, raidScene, type RaidResult } from "./core/raid";
 import { path, walkable, los, lintReport, gates, setGate, pathLength, collide } from "./world/grid";
 import { worldStats, countVisible, scattered } from "./world/world";
@@ -38,7 +38,7 @@ G.input = new Input(G.stage.renderer.domElement);
 if (QS.has("fresh")) localStorage.removeItem("bv_g1");
 G.save = load(); G.bot = QS.has("bot"); G.intent = G.input.read(0);
 if (G.bot) { const bot = createBot({ greed: Number(QS.get("greed") ?? 0.5), reactionLag: Number(QS.get("lag") ?? 0.25), seed: Number(QS.get("botseed") ?? QS.get("seed") ?? 1) }); setBot(bot); (window as unknown as { __bot: unknown }).__bot = bot; }
-if (QS.has("dev")) Object.assign(window as unknown as object, { __G: G, __RIG_TUNE: RIG_TUNE }); // captures and debugging only
+if (QS.has("dev")) Object.assign(window as unknown as object, { __G: G, __RIG_TUNE: RIG_TUNE, __music: musicState }); // captures and debugging only
 addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlockAudio);
 
 // world + rig up front (the map snapshot needs the raid scene built); the gun model is a GLB, loaded before anything asks for it

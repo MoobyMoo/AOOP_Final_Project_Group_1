@@ -117,7 +117,7 @@ export function sfx(kind: Sfx, vol = 1) {
 // ---- samples ----
 /** per-kind mix: gain (after the offline loudness normalise), pitch jitter, voice cap, optional hard length cap */
 type Mix = { g: number; jit?: number; cap?: number; max?: number; climb?: boolean };
-const MIX: Partial<Record<Sfx | "shotCore" | "shotMech" | "shotTail", Mix>> = {
+const MIX: Partial<Record<Sfx | "shotCore" | "shotMech" | "shotTail" | StepKind, Mix>> = {
   shotCore: { g: 0.42, jit: 0.05, cap: 6, max: 0.9 }, shotMech: { g: 0.22, jit: 0.06, cap: 4, max: 0.35 }, shotTail: { g: 0.25, jit: 0.04, cap: 3, max: 1.4 },
   shell: { g: 0.25, jit: 0.1, cap: 3, max: 0.6 }, dry: { g: 0.5, cap: 1 }, reloadOut: { g: 0.6, cap: 1 }, reloadIn: { g: 0.65, cap: 1 },
   slide: { g: 0.65, cap: 1 }, reloadRound: { g: 0.5, jit: 0.06, cap: 2 },
@@ -132,7 +132,18 @@ const MIX: Partial<Record<Sfx | "shotCore" | "shotMech" | "shotTail", Mix>> = {
   extract: { g: 0.7, cap: 1, max: 3 }, tick: { g: 0.35, cap: 1, max: 0.3 }, whirr: { g: 0.35, cap: 1, max: 1.0 },
   pick: { g: 0.45, cap: 3, max: 0.4, climb: true }, rare: { g: 0.6, cap: 1, max: 2 }, cash: { g: 0.45, cap: 3, max: 0.8, climb: true }, buy: { g: 0.55, cap: 1, max: 1.2 },
   ui: { g: 0.35, cap: 2, max: 0.25 }, pop: { g: 0.4, cap: 3, max: 0.4, climb: true }, nope: { g: 0.4, cap: 1, max: 0.5 },
+  // footsteps per ground (stepOn): low under everything, wide jitter so a walk never repeats exactly
+  stepDirt: { g: 0.16, jit: 0.12, cap: 2, max: 0.35 }, stepSand: { g: 0.16, jit: 0.12, cap: 2, max: 0.35 }, stepGrass: { g: 0.15, jit: 0.12, cap: 2, max: 0.35 },
+  stepPlank: { g: 0.17, jit: 0.1, cap: 2, max: 0.35 }, stepStone: { g: 0.16, jit: 0.1, cap: 2, max: 0.35 }, stepMud: { g: 0.17, jit: 0.1, cap: 2, max: 0.4 },
+  stepCave: { g: 0.16, jit: 0.1, cap: 2, max: 0.45 },
 };
+type StepKind = "stepDirt" | "stepSand" | "stepGrass" | "stepPlank" | "stepStone" | "stepMud" | "stepCave";
+/** a footstep on the given ground (world/map/types Ground); falls back to the generic step while that surface has no takes */
+export function stepOn(ground: string | undefined, vol = 1) {
+  const kind = ("step" + (ground ?? "dirt")[0].toUpperCase() + (ground ?? "dirt").slice(1)) as StepKind;
+  if (!ctx || vol <= 0.01 || !BUFS[kind]?.length) { sfx("step", vol); return; }
+  const m = MIX[kind]!; voice(kind, pickBuf(kind)!, vol, 1 + (Math.random() - 0.5) * 2 * (m.jit ?? 0), 0, sfxBus!);
+}
 const UI_KINDS = new Set<string>(["ui", "pick", "rare", "cash", "buy", "pop", "nope", "tick"]);
 const BUFS: Record<string, AudioBuffer[]> = {};
 const last: Record<string, number> = {};
@@ -175,6 +186,6 @@ function playSample(kind: Sfx, vol: number, combo: number): boolean {
     const tail = pickBuf("shotTail"); if (tail) voice("shotTail", tail, vol * (0.6 + 0.4 * vol), rate("shotTail"), 0.01, bus);
     return true;
   }
-  const buf = pickBuf(kind); if (!buf) return false;
+  const buf = pickBuf(kind) ?? (kind === "step" ? pickBuf("stepDirt") : null); if (!buf) return false;
   voice(kind, buf, vol, rate(kind), 0, bus); return true;
 }
