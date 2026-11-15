@@ -24,6 +24,10 @@ const JACKET_NAMES: [string, string][] = [["two", "Two-button"], ["double", "Dou
 const ACCENT = ["#ff8a2a", "#c9302c", "#ffd84a", "#2f6ad1", "#2a9a5a", "#e84a9a", "#f3ead6", "#1e1b24"];
 type Tab = "presets" | "head" | "face" | "outfit" | "code";
 let tab: Tab = "presets", el: HTMLDivElement | null = null, onDone: () => void = () => {}, spin = 0.35, drag: number | null = null;
+// drag to turn (UI v4): the drag moves a target angle and the monkey eases onto it (no stepping on a coarse mouse),
+// a flick keeps turning and slows to a stop, "Front view" eases him back to face you
+const FRONT = 0.35;
+let goal = FRONT, vel = 0, lastX = 0, lastT = 0, ctl: HTMLDivElement | null = null;
 let look: MonkeyLook, gear: Gear;
 const P = new URLSearchParams(location.search);
 
@@ -36,8 +40,19 @@ export function openCreator(done: () => void, scene: THREE.Scene) {
   el = document.createElement("div"); el.className = "creator"; document.getElementById("ui")!.innerHTML = ""; document.getElementById("ui")!.appendChild(el);
   el.style.pointerEvents = "auto"; render();
   const c = G.stage.renderer.domElement;
-  c.onpointerdown = (e) => { if (G.scene === "creator") drag = e.clientX; }; addEventListener("pointerup", () => (drag = null));
-  c.onpointermove = (e) => { if (G.scene === "creator" && drag !== null) { spin += (e.clientX - drag) * 0.012; drag = e.clientX; } };
+  spin = goal = FRONT; vel = 0;
+  c.onpointerdown = (e) => { if (G.scene !== "creator") return; drag = e.clientX; lastX = e.clientX; lastT = performance.now(); vel = 0; c.setPointerCapture(e.pointerId); c.classList.add("c-turning"); };
+  c.onpointerup = c.onpointercancel = () => { drag = null; c.classList.remove("c-turning"); if (performance.now() - lastT > 90) vel = 0; };
+  c.onpointermove = (e) => {
+    if (G.scene !== "creator" || drag === null) return;
+    const now = performance.now(), d = (e.clientX - lastX) * 0.011, dt = Math.max(1, now - lastT) / 1000;
+    goal += d; vel = vel * 0.6 + (d / dt) * 0.4; lastX = e.clientX; lastT = now;
+  };
+  c.classList.add("c-canvas");
+  ctl?.remove(); ctl = document.createElement("div"); ctl.className = "c-stage";
+  ctl.innerHTML = `<span class="hint">Drag to turn him</span><button data-view="1" title="Turn him back to face you">${VIEW_ICON}Front view</button>`;
+  document.getElementById("ui")!.appendChild(ctl); ctl.style.pointerEvents = "auto";
+  ctl.querySelector<HTMLElement>("[data-view]")!.onclick = () => { vel = 0; goal = FRONT + Math.round((spin - FRONT) / (Math.PI * 2)) * Math.PI * 2; sfx("ui"); };
   if (P.has("bot")) setTimeout(finish, 300);
 }
 function apply() { G.rig.setLook?.(look); G.rig.setGear?.(gear) /* raw instances: the rig strips "#dur" and dulls broken pieces */; }
@@ -79,9 +94,12 @@ function set(path: string, v: string | number | boolean) {
   for (let i = 0; i < parts.length - 1; i++) o = (o[parts[i]] ??= {}) as Record<string, unknown>; // look.x and its groups are optional
   o[parts[parts.length - 1]] = v; apply();
 }
-function finish() { G.save.look = look; G.save.lookDone = true; save(G.save); sfx("extract"); el?.remove(); el = null; const c = G.stage.renderer.domElement; c.onpointerdown = c.onpointermove = null; onDone(); }
+function finish() { G.save.look = look; G.save.lookDone = true; save(G.save); sfx("extract"); el?.remove(); el = null; ctl?.remove(); ctl = null; const c = G.stage.renderer.domElement; c.onpointerdown = c.onpointermove = c.onpointerup = c.onpointercancel = null; c.classList.remove("c-canvas", "c-turning"); onDone(); }
+const VIEW_ICON = `<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M4 3.5v5h5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 export function renderCreator(dt: number) {
   G.time += dt; U.uTime.value = G.time; // no auto-spin (Moo 2026-11-15): the monkey turns only when dragged
+  if (drag === null && Math.abs(vel) > 0.05) { goal += vel * dt; vel *= Math.exp(-5 * dt); } else if (drag === null) vel = 0; // a flick coasts to a stop
+  spin += (goal - spin) * (1 - Math.exp(-16 * dt)); // ease onto the dragged angle
   const r = G.rig; r.root.rotation.y = G.stage.cam.yaw + spin;
   r.pose({ time: G.time, speed: 0, moveYaw: G.stage.cam.yaw + spin, faceYaw: G.stage.cam.yaw + spin, action: "idle", actionT: 0, armed: "none", flash: 0 });
   // close-up: the monkey on the right third of the screen, the panel on the left

@@ -12,6 +12,7 @@
 // and search is loot/search.ts createSearch(items) (or bodySearch(enemy)), or null when everything is already known.
 // The view keeps items and the session in step when you take or put things. Optional: near() closes the screen when
 // it returns false (walked away), onClose() runs on close, kind picks the header stripe.
+import { menuOpened, menuClosed, registerMenu } from "./menubar";
 import { G } from "../core/state";
 import { itemDef, sortPack, spawnPickup } from "../loot/raidloot";
 import { advanceSearch, take, type SearchSession, type SearchSlot } from "../loot/search";
@@ -401,7 +402,7 @@ function leftHtml() {
   } else {
     let cells = ""; for (let i = 0; i < G.packSlots; i++) cells += cellHtml(G.pack[i], "pack:" + i, { pouch: i < G.pouchSlots });
     body += `<div class="lv-sect">Pack <button class="b3 small" data-act="sort" data-tip="Most valuable first, so the cheek pouch keeps the best (R)">Sort <kbd>R</kbd></button></div><div class="lv-grid" data-drop="packGrid">${cells}</div>
-      <p class="lv-empty" style="font-size:16px;margin-top:8px">The first ${G.pouchSlots} slots are your cheek pouch: kept even if you get bonked.</p>`;
+      <p class="lv-empty lv-pouch">The first ${G.pouchSlots} slots are your cheek pouch: kept even if you get bonked.</p>`;
   }
   return `${BRK}<header class="lv-head"><h2>The Businessman</h2><small class="num">${home() ? `🍌 ${G.save.money}` : `${G.pack.length} of ${G.packSlots} slots`}</small></header><div class="tie"></div>
     <div class="lv-body">${body}</div>${home() ? "" : weightHtml()}`;
@@ -556,6 +557,7 @@ export function openLoot(t: LootTarget | null) {
   const fresh = !root;
   if (root && target && target !== t) target.onClose?.();
   target = t; sel = null; hover = null; sigLeft = sigThem = tagKey = "";
+  if (G.scene === "raid") menuOpened("pack"); // the bar across the top; closes the map or a Jobs or Notes page
   if (!root) {
     root = document.createElement("div"); root.className = "lv opening"; root.setAttribute("role", "dialog"); root.setAttribute("aria-label", t ? t.name : "Your pack");
     root.innerHTML = `<div class="dim"></div><div class="ui-ref"><section class="plate lv-panel lv-me" aria-label="You"></section><div class="ui-ref-tag lv-tagwrap" style="position:absolute"></div>
@@ -572,8 +574,10 @@ export function closeLoot() {
   if (!root) return;
   const t = target; root.remove(); root = null; target = null; sel = hover = null; closedAt = performance.now(); popped.clear();
   removeEventListener("keydown", onKey, true); tipEl?.classList.remove("on"); ghostEnd();
-  t?.onClose?.(); sfx("ui");
+  t?.onClose?.(); sfx("ui"); menuClosed("pack");
 }
+// the menu bar's Pack tab (ui/menubar.ts): in a raid the Tab screen and the loot screen are its first page
+registerMenu("pack", { open: () => { if (!root) openLoot(null); }, close: closeLoot, isOpen: () => !!root });
 /** Tab: toggle the screen without a target (or close whatever is open) */
 export function toggleInventory(open = !root) { if (open && !root) openLoot(null); else if (!open || root) closeLoot(); }
 

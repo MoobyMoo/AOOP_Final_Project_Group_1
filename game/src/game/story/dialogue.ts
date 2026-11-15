@@ -42,7 +42,7 @@ export function dialogueHtml(id: NpcId, save: SaveV1, o: { lines?: string[]; ext
 }
 
 /** the quest log: jobs (tracked first, then on, then done) and the notes read */
-export function questLogHtml(save: SaveV1, o: { items?: readonly string[]; pack?: readonly string[]; compact?: boolean } = {}) {
+export function questLogHtml(save: SaveV1, o: { items?: readonly string[]; pack?: readonly string[]; compact?: boolean; part?: "jobs" | "notes" } = {}) {
   const s = qs(save), tracked = trackedQuest(save);
   const on = s.active.map((id) => questOf(id)!).sort((a, b) => Number(b.id === tracked?.id) - Number(a.id === tracked?.id));
   const done = s.done.map((id) => questOf(id)!).filter(Boolean);
@@ -51,9 +51,11 @@ export function questLogHtml(save: SaveV1, o: { items?: readonly string[]; pack?
     <p class="q3-brief">${esc(q.brief)} <span class="q3-dim">From ${GIVER[q.giver]}.</span></p>${tasksHtml(save, q, o.items, o.pack)}${rewardsHtml(q)}
     ${q.id === tracked?.id ? "" : `<div class="actions"><button class="ghost" data-a="q:track:${q.id}">Track it</button></div>`}</div>`; };
   const notes = NOTES.filter((n) => s.notes.includes(n.id));
-  return `<div class="q3-log">${on.length ? on.map(job).join("") : `<p class="q3-dim">No jobs on the go. ${offered.length ? `${offered.map((q) => GIVER[q.giver]).filter((g, i, a) => a.indexOf(g) === i).join(" and ")} ${offered.length > 1 ? "have" : "has"} work for you.` : "Talk to Sal in the vault."}</p>`}
-    ${done.length ? `<h4>Done</h4><ul class="q3-done">${done.map((q) => `<li>✔ ${esc(q.title)}</li>`).join("")}</ul>` : ""}
-    <h4>Notes <span class="q3-dim num">${notes.length} of ${NOTES.length}</span></h4>${notes.length ? notes.map((n) => `<details class="q3-note"><summary>📜 ${esc(n.title)}</summary><p>${esc(n.text)}</p></details>`).join("") : `<p class="q3-dim">Notes you read in a raid are kept here.</p>`}</div>`;
+  const jobsHtml = `${on.length ? on.map(job).join("") : `<p class="q3-dim">No jobs on the go. ${offered.length ? `${offered.map((q) => GIVER[q.giver]).filter((g, i, a) => a.indexOf(g) === i).join(" and ")} ${offered.length > 1 ? "have" : "has"} work for you.` : "Talk to Sal in the vault."}</p>`}
+    ${done.length ? `<h4>Done</h4><ul class="q3-done">${done.map((q) => `<li>✔ ${esc(q.title)}</li>`).join("")}</ul>` : ""}`;
+  const notesHtml = `<h4>Notes <span class="q3-dim num">${notes.length} of ${NOTES.length}</span></h4>${notes.length ? notes.map((n) => `<details class="q3-note"><summary>📜 ${esc(n.title)}</summary><p>${esc(n.text)}</p></details>`).join("") : `<p class="q3-dim">Notes you read in a raid are kept here.</p>`}`;
+  // the menu bar's Jobs and Notes tabs show one part each; the Tab screen's side panel shows both
+  return `<div class="q3-log">${o.part === "notes" ? "" : jobsHtml}${o.part === "jobs" ? "" : notesHtml}</div>`;
 }
 
 /** the tracker line: the tracked job and its next unfinished task (or "hand it in") */

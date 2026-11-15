@@ -27,6 +27,11 @@ import { carriedWeight } from "../actors/player";
 import { HEALS } from "../combat/weapons";
 import { CALIBERS, gunOf } from "../combat/guns";
 import { DRAW_TIME } from "../combat/arsenal";
+import { cancelReload } from "../combat/reload";
+import { interruptEquip } from "../loot/equipment-actions";
+import { sfx } from "../core/audio";
+import { menuTick } from "./menubar";
+import { waypoint } from "./mapview";
 import { itemType } from "../loot/instances";
 import { toRef } from "./scale";
 import { HS, currentScatter, restScatter } from "../combat/handling";
@@ -40,8 +45,24 @@ const BRK = `<i class="brk tl"></i><i class="brk tr"></i><i class="brk bl"></i><
 let E: Record<string, HTMLElement> = {};
 const proj = new THREE.Vector3();
 function toScreen(p: THREE.Vector3) { proj.copy(p).project(G.stage.camera); return { x: (proj.x * 0.5 + 0.5) * innerWidth, y: (-proj.y * 0.5 + 0.5) * innerHeight, on: Math.abs(proj.x) < 1 && Math.abs(proj.y) < 1 && proj.z < 1 }; }
-let lastHeard = "", lastEhp = "", lastEquipT = -1, lastArrows = "", lastClock = "", lastHp = -1, lastPrompt = "", lastStam = "", lastLoad = "", lastAmmo = "", lastQuick = "", lastUse = "", lastRl = "", lastSearch = "", lastWeapons = "";
+let lastHeard = "", lastEhp = "", lastArrows = "", lastClock = "", lastHp = -1, lastPrompt = "", lastStam = "", lastLoad = "", lastAmmo = "", lastQuick = "", lastRl = "", lastSearch = "", lastWeapons = "";
 let toastT = 0, bannerT = 0, promptT = 0, helpT = 0, shownScatter = 0, shownRest = 0, lastCross = "";
+let actA = 0, actK = 0, actLabel = "", wpT = 0, lastWp = "";
+/** the timed action in progress, for the ring and the bar: a reload, a heal, putting gear on, the 0.15 s draw */
+function currentAction(): { k: number; label: string; cancel: boolean; ringOnly?: boolean } | null {
+  if (G.reloadT >= 0) { const d = gunOf(G.save.guns[G.slot]?.inst); return { k: G.reloadT, label: `Reloading${d ? ` · ${d.name}` : ""}`, cancel: true }; }
+  if (G.useItem) return { k: G.useItem.t / G.useItem.time, label: itemDef(G.useItem.id).name, cancel: true };
+  if (G.equipping) return { k: G.equipping.t / G.equipping.time, label: `Putting on the ${itemDef(G.equipping.inst).name}`, cancel: true };
+  if (G.drawT < DRAW_TIME) return { k: G.drawT / DRAW_TIME, label: "", cancel: false, ringOnly: true };
+  return null;
+}
+/** X: cancel the timed action (Duckov's "[X] Cancel" under the action bar). X is free in a raid (input.ts) */
+function cancelAction() {
+  if (G.reloadT >= 0) { cancelReload(); return true; }
+  if (G.useItem) { G.useItem = null; return true; }
+  if (G.equipping) { interruptEquip(); return true; }
+  return false;
+}
 /** the crosshair reads the gun (POLISH_FINDINGS 16, Duckov AimMarker): each tick sits base + perDeg x scatter px from
  *  the centre (1440-tall reference, scaled to the window), the shown scatter chasing the live cone at `chase` deg/s.
  *  ADS fades in a brass ring at the same radius and a second, inner ring at the resting cone, so you see the bloom
@@ -63,6 +84,7 @@ function wireKeys() {
   if (keysWired) return; keysWired = true;
   addEventListener("keydown", (e) => {
     if (G.scene !== "raid" || e.repeat) return;
+    if (e.code === "KeyX" && !lootOpen()) { if (cancelAction()) sfx("ui"); return; }
     const k = QUICK_KEYS.indexOf(e.key); if (k < 0) return;
     const id = quick[k]; if (!id) return;
     if (!useHeal(id) && !lootOpen()) { if (!G.pack.some(inst => itemType(inst) === id)) hud.toast(`No ${itemDef(id).name} left`); else if (G.hp >= G.maxHp) hud.toast("You're already at full health"); }
@@ -73,14 +95,15 @@ const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, "0")}:${(t
 export const hud = {
   build() {
     closeLoot();
-    root().innerHTML = ""; E = {}; lastArrows = lastClock = lastPrompt = lastHeard = lastEhp = lastStam = lastLoad = lastAmmo = lastQuick = lastUse = lastRl = lastSearch = lastWeapons = ""; lastHp = -1; lastEquipT = -1;
+    root().innerHTML = ""; E = {}; lastArrows = lastClock = lastPrompt = lastHeard = lastEhp = lastStam = lastLoad = lastAmmo = lastQuick = lastRl = lastSearch = lastWeapons = ""; lastHp = -1;
     quick = [null, null, null, null, null, null]; wireKeys(); lootHooks.changed = () => { hud.health(); hud.pack(); hud.ammo(); };
     const scr = document.createElement("div"); scr.className = "h3-screen"; scr.style.cssText = "position:absolute;inset:0;pointer-events:none"; root().appendChild(scr);
     const ref = document.createElement("div"); ref.className = "ui-ref h3"; root().appendChild(ref);
     const el = (cls: string, html = "", parent: HTMLElement = ref) => { const d = document.createElement("div"); d.className = cls; d.innerHTML = html; parent.appendChild(d); return d; };
     E.hurt = el("h3-hurt", "", scr); E.heard = el("h3-heard", "", scr); E.ehp = el("h3-ehp", "", scr); E.arrows = el("h3-arrows", "", scr);
     E.cross = el("h3-cross", `<u class="ring"></u><u class="rest"></u><i></i><i></i><i></i><i></i><b></b>`, scr); shownScatter = shownRest = 0; lastCross = "";
-    E.rl = el("h3-rl", `<svg viewBox="0 0 44 44"><circle class="tr" cx="22" cy="22" r="17"/><circle class="fg" cx="22" cy="22" r="17" pathLength="100"/></svg>`, scr);
+    // the action ring at the cursor (Duckov's ActionProgressHUD, frames/reload: a ring nested inside the crosshair ticks)
+    E.rl = el("h3-rl", `<svg viewBox="0 0 60 60"><circle class="tr" cx="30" cy="30" r="24"/><circle class="fg fgb" cx="30" cy="30" r="24" pathLength="100"/><circle class="fg" cx="30" cy="30" r="24" pathLength="100"/></svg>`, scr); actA = 0; actK = 0;
     E.clock = el("h3-clock shade", "<b></b><span></span><em></em>");
     E.help = el("h3-help shade", `<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move, <kbd>Shift</kbd> sprint, <kbd>Space</kbd> dash<br>Click to shoot, right-click to aim, <kbd>R</kbd> reload, <kbd>V</kbd> briefcase<br><kbd>E</kbd> search, <kbd>Q</kbd> or <kbd>3</kbd>–<kbd>8</kbd> heal, <kbd>Tab</kbd> pack, <kbd>M</kbd> map`);
     helpT = G.save.raids === 0 ? 30 : 8;
@@ -91,7 +114,10 @@ export const hud = {
     E.weapons = el("h3-weapons", `<div class="plate h3-slot gun" data-k="0"></div><div class="plate h3-slot gun" data-k="1"></div><div class="plate h3-slot case"><span class="key">V</span><span class="emo" style="font-size:30px">💼</span></div>`);
     E.quick = el("h3-quick");
     E.extract = el("plate h3-extract", "");
-    E.use = el("plate h3-use", "");
+    // the waypoint table, bottom-right (Duckov's [M] distance readout): your newest map marker, else the nearest extract
+    E.wp = el("h3-wp shade", `<span class="ic"></span><span class="t"><small></small><b class="num"></b></span><kbd>M</kbd>`); wpT = 0; lastWp = "";
+    // ... and its bar above the hotbar's middle with the cancel key under it (frames/reload: about 6% of the screen wide)
+    E.act = el("h3-act", `<span class="l"></span><div class="bar"><i></i></div><div class="x"><kbd>X</kbd>Cancel</div>`);
     E.toast = el("plate h3-toast", ""); E.banner = el("h3-banner", "");
     E.stam = el("h3-stam");
     E.prompt = el("plate h3-prompt", "");
@@ -127,12 +153,9 @@ export const hud = {
     if (lastHp >= 0 && G.hp < lastHp) { E.hp.classList.remove("shake"); void E.hp.offsetWidth; E.hp.classList.add("shake"); }
     lastHp = G.hp;
   },
-  use(u: { id: string; t: number; time: number } | null) {
-    if (!E.use) return;
-    if (!u) { if (lastUse !== "") { E.use.style.display = "none"; lastUse = ""; } return; }
-    const k = `${u.id}|${Math.round((u.t / u.time) * 100)}`; if (k === lastUse) return; lastUse = k;
-    E.use.style.display = "block"; E.use.innerHTML = `${BRK}${itemDef(u.id).name}<div class="bar"><i style="width:${(u.t / u.time) * 100}%"></i></div>`;
-  },
+  /** heals report here from actors/player.ts; the action ring and bar read G.useItem, G.equipping and the reload directly
+   *  each frame (hud.update), so this only keeps the old call sites working */
+  use(_u: { id: string; t: number; time: number } | null) {},
   money() {},
   ammo() {
     if (!E.ammo) return;
@@ -201,7 +224,7 @@ export const hud = {
   },
   update(dt: number) {
     if (!E.cross) return;
-    updateLoot(dt);
+    updateLoot(dt); menuTick();
     // follow-character pieces: projected each frame, written in reference px
     const me = toScreen(G.pp.clone().setY(G.pp.y + 1.2)), mx = toRef(me.x), my = toRef(me.y);
     { // stamina ring beside the character, hidden when full (Duckov: stamina under FollowCharacterHUD, offset left)
@@ -216,6 +239,8 @@ export const hud = {
       if (rl + dr !== lastRl) { lastRl = rl + dr; const c = E.weapons.querySelector(`[data-k="${G.slot}"]`) as HTMLElement | null;
         for (const q of E.weapons.querySelectorAll<HTMLElement>(".rl")) q.style.setProperty("--rl", "0");
         c?.querySelector<HTMLElement>(".rl")?.style.setProperty("--rl", rl || "0"); c?.querySelector<HTMLElement>(".draw")?.style.setProperty("--dr", dr || "1"); } }
+    if ((wpT -= dt) <= 0) { wpT = 0.25; const w = waypoint(), k = w ? `${w.svg}|${w.label}|${Math.round(w.d)}` : "";
+      if (k !== lastWp) { lastWp = k; E.wp.style.display = w ? "" : "none"; if (w) { (E.wp.querySelector(".ic") as HTMLElement).innerHTML = w.svg; E.wp.classList.toggle("pin", w.kind === "pin"); set(E.wp.querySelector("small") as HTMLElement, w.label); set(E.wp.querySelector("b") as HTMLElement, `${String(Math.round(w.d)).padStart(2, "0")} m`); } } }
     toastT -= dt; bannerT -= dt; promptT -= dt;
     if (prefs.controls) { if (E.help.classList.contains("gone")) E.help.classList.remove("gone"); helpT = Math.max(helpT, 0.01); }
     else if (helpT > 0) { helpT -= dt; if (helpT <= 0) E.help.classList.add("gone"); }
@@ -223,8 +248,19 @@ export const hud = {
     if (bannerT <= 0 && E.banner.classList.contains("on")) E.banner.classList.remove("on");
     if (promptT <= 0 && E.prompt.classList.contains("on")) E.prompt.classList.remove("on");
     const a = toScreen(G.aimPoint); E.cross.style.transform = `translate(${a.x.toFixed(1)}px,${a.y.toFixed(1)}px)`;
-    if (G.reloadT >= 0) { E.rl.style.display = "block"; E.rl.style.transform = `translate(${a.x.toFixed(1)}px,${a.y.toFixed(1)}px)`; (E.rl.querySelector(".fg") as SVGCircleElement).style.strokeDashoffset = String(100 * (1 - G.reloadT)); }
-    else if (E.rl.style.display !== "none") E.rl.style.display = "none";
+    { // the action ring and bar (POLISH_FINDINGS 12: progress = current / total, alpha approaching shown or hidden at 8
+      // per second; frames/reload: the ring at the cursor and the bar over the hotbar together, X cancels)
+      const act = currentAction(), want = act ? 1 : 0;
+      actA = want > actA ? Math.min(want, actA + 8 * dt) : Math.max(want, actA - 8 * dt);
+      if (act) { actK = act.k; if (act.label !== actLabel) { actLabel = act.label; (E.act.querySelector(".l") as HTMLElement).textContent = act.label; } E.act.classList.toggle("nocancel", !act.cancel); E.act.classList.toggle("ringonly", !!act.ringOnly); }
+      const on = actA > 0.001, k = Math.max(0, Math.min(1, actK));
+      if (on) {
+        E.rl.style.display = "block"; E.rl.style.opacity = actA.toFixed(3); E.rl.style.transform = `translate(${a.x.toFixed(1)}px,${a.y.toFixed(1)}px)`;
+        for (const c of E.rl.querySelectorAll<SVGCircleElement>(".fg")) c.style.strokeDashoffset = String(100 * (1 - k));
+        E.act.style.display = "block"; E.act.style.opacity = actA.toFixed(3); (E.act.querySelector(".bar i") as HTMLElement).style.width = `${(k * 100).toFixed(1)}%`;
+      } else if (E.rl.style.display !== "none") { E.rl.style.display = "none"; E.act.style.display = "none"; }
+      E.cross.classList.toggle("act", on && actA > 0.2); // the ticks step out so the ring sits inside them
+    }
     { // scatter gap, ADS ring (CROSS above)
       const step = CROSS.chase * dt, cs = currentScatter(), rs = restScatter() * HS.move;
       shownScatter = Math.abs(cs - shownScatter) <= step ? cs : shownScatter + Math.sign(cs - shownScatter) * step;
@@ -244,10 +280,6 @@ export const hud = {
       else if (ev.type === "interrupted") hud.toast("Interrupted!");
       else if (ev.type === "equipped" && ev.inst) hud.toast(`Wearing the ${itemDef(ev.inst).name}`);
       if (ev.type !== "hit") { hud.health(); hud.pack(); }
-    }
-    { // the action bar: equipping (heals report through hud.use from actors/player.ts)
-      const q = G.equipping, t = q ? q.t : -1;
-      if (t !== lastEquipT) { lastEquipT = t; if (q) hud.use({ id: q.inst, t: q.t, time: q.time }); else if (!G.useItem) hud.use(null); }
     }
     { // headphones: footsteps you can hear show as small rings where the enemy is (Duckov SoundVisable)
       let f = ""; for (const e of heardEnemies()) { const s = toScreen(new THREE.Vector3(e.x, 0.2, e.z)); if (s.on) f += `<i style="left:${Math.round(s.x)}px;top:${Math.round(s.y)}px"></i>`; }

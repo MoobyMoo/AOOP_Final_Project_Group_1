@@ -7,6 +7,8 @@ import { exits, exitStatus } from "../world/props";
 import { inPoly, type Pt } from "../world/map/types";
 import { bossMarkers } from "../ai/enemies";
 import type { MapFrame } from "./mapbake";
+/** Duckov's markers default to white (MAP_FINDINGS "Map UI"); ours is the cream of the ink */
+export const PIN_DEFAULT = "#f3ead6";
 
 export type Level = "surface" | "under";
 export const levelOf = (x: number): Level => (x > UNDER_X ? "under" : "surface");
@@ -47,14 +49,16 @@ export const underClosed = DEMO && !worldInDemo(168, 26);
 
 // ---------------------------------------------------------------- markers
 export type MarkKind = "exit" | "boat" | "link" | "zip" | "lock" | "pin" | "boss" | "danger" | "down";
-export type Mark = { id: string; kind: MarkKind; x: number; z: number; label: string; r?: number };
+export type Mark = { id: string; kind: MarkKind; x: number; z: number; label: string; r?: number; icon?: number; color?: string };
+/** a map marker the player placed (M map, right-click): where, which of the twelve-ish icons, which colour */
+export type Pin = { x: number; z: number; i?: number; c?: string };
 const EXIT_NAMES: Record<string, string> = { hatch: "Hatch home", raft: "Raft", tunnel: "Smuggler Tunnel", boat: "Cove boat" };
 /** labels for the areas on a level (the closed north and the closed grotto are not labelled; the shrine is a secret) */
 export function areaLabels(l: Level) {
   return CLEARINGS.filter((c) => levelOf(c.x) === l && c.id !== "shrine" && c.name !== "???" && inDemo(c.x, c.z)).map((c) => ({ id: c.id, name: c.name, x: c.x, z: c.z }));
 }
 /** every marker on a level right now. Cheap: called when the map opens and a few times a second for the boss */
-export function marks(l: Level, pins: { x: number; z: number }[]): Mark[] {
+export function marks(l: Level, pins: Pin[]): Mark[] {
   const f = frameOf(l), on = (x: number, z: number) => levelOf(x) === l && x >= f.minX && x <= f.maxX && z >= f.minZ && z <= f.maxZ;
   const out: Mark[] = [];
   for (const e of exits) if (e.open && on(e.x, e.z) && inDemo(e.x, e.z)) { const state = exitStatus(e); out.push({ id: "exit-" + e.id, kind: e.id === "boat" ? "boat" : "exit", x: e.x, z: e.z, label: (EXIT_NAMES[e.id] ?? "Extract") + (state.open ? "" : ` · ${state.reason}`) }); }
@@ -73,6 +77,6 @@ export function marks(l: Level, pins: { x: number; z: number }[]): Mark[] {
     out.push({ id: "boss-" + b.id, kind, x, z, label: area ? BOSS_ARENA.label : b.label, r: area ? BOSS_ARENA.radius : undefined });
   }
   if (!live.length && on(BOSS_ARENA.x, BOSS_ARENA.z)) out.push({ id: "boss-" + BOSS_ARENA.id, kind: "danger", x: BOSS_ARENA.x, z: BOSS_ARENA.z, label: BOSS_ARENA.label, r: BOSS_ARENA.radius });
-  pins.forEach((p, i) => { if (on(p.x, p.z)) out.push({ id: "pin-" + i, kind: "pin", x: p.x, z: p.z, label: "Your pin" }); });
+  pins.forEach((p, i) => { if (on(p.x, p.z)) out.push({ id: "pin-" + i, kind: "pin", x: p.x, z: p.z, label: "Your marker", icon: p.i ?? 0, color: p.c ?? PIN_DEFAULT }); });
   return out;
 }

@@ -1,26 +1,23 @@
 // The M map image, made the way Duckov makes theirs (POLISH_FINDINGS 5: MiniMapShooter, an orthographic overhead
-// capture of the real scene per subscene, 2048² outdoors and 1024² for small underground floors), then restyled into
-// an authored map in our art style instead of a photo:
-//   1. capture: the real raid scene from straight above with an orthographic camera, lit flat (a white hemisphere,
-//      sun and fill at zero, fog pushed out, no rim, no cut-outs) so every surface shows its own paint. Water swaps to a flat
-//      tint that marks itself in the alpha channel; the colour and the depth buffer are kept.
-//   2. map pass (GPU, one draw): a Kuwahara filter flattens texture noise into painted areas; a hillshade and a short
-//      cast shadow from the height buffer give relief; ink lines where the height jumps (roof edges, walls, cliffs,
-//      canopies) and along the shoreline; a simplified palette (value bands, held saturation, warm paper shadows).
-//   3. vector overlays on a 2D canvas: roof outlines from the building footprints, cliff ticks.
-//   4. the cut-out (mapshape.ts, map v4): the image is clipped to the level's own shape (land and a sliver of sea, or
-//      the grotto's chambers) with an ink edge and a drop shadow, the closed north fading into a torn edge; the grid
-//      and the coast's water-lining are drawn there, on the piece only.
+// capture of the real scene per subscene, 2048² outdoors and 1024² for small underground floors). Map v5 follows the
+// Duckov frames (research/duckov-footage/frames/m-map): the map IS the game world rendered top-down, round canopies,
+// real roofs, dirt roads and fences, softly lit, with no ink, no hillshade stylisation and no paper:
+//   1. capture: the raid scene from straight above, orthographic, under a soft sky light (the hemisphere: white above,
+//      a warm grey below, so tops read bright and sides fall off; the sun, fill and rim at zero, fog pushed out, no
+//      cut-outs). Grass tufts and the ink hulls are hidden (from above they are speckle and outline). Water swaps to
+//      a flat tint that marks itself in the alpha channel; colour and depth are kept.
+//   2. map pass (GPU, one draw): soft lighting from the depth buffer (a little ambient occlusion where things stand
+//      up, a short soft shadow to the south-east), then a gentle grade toward Duckov's muted olive and ochre.
+//   3. the cut-out (mapshape.ts): the island and a sliver of sea feather into the navy void (#051B2E); the closed north
+//      darkens, loses its colour and fades into the same void.
+// The underground is not captured: it is a slate-cyan floor plan (mapshape.ts blueprint), Duckov's underground style.
 // Drawn once at load (main.ts buildMapShots): nothing here runs per frame.
 import * as THREE from "three";
 import { G } from "../core/state";
 import { CUT } from "../render/cutout";
 import { U, inkU } from "../render/shading";
-import { edgeDist } from "../world/grid";
-import { houseFootprints } from "../world/buildings";
-import { LAND } from "../world/map/grove";
 import { exits } from "../world/props";
-import { cutout, type Closed, type MapShape } from "./mapshape";
+import { cutout, blueprint, type Closed, type MapShape } from "./mapshape";
 
 export type MapFrame = { minX: number; maxX: number; minZ: number; maxZ: number };
 export type MapImage = MapFrame & { id: "surface" | "under"; w: number; h: number; canvas: HTMLCanvasElement; url: string; ppu: number; shape: MapShape };
@@ -30,65 +27,37 @@ const POST_FS = /* glsl */ `
 precision highp float;
 varying vec2 vUv;
 uniform sampler2D tColor; uniform sampler2D tDepth;
-uniform vec2 uTexel; uniform float uPpu; uniform float uNear; uniform float uFar; uniform float uTop; uniform float uUnder;
+uniform vec2 uTexel; uniform float uPpu; uniform float uNear; uniform float uFar; uniform float uTop;
 float height(vec2 uv) { float d = texture2D(tDepth, uv).x; return uTop - (uNear + d * (uFar - uNear)); }
 vec3 toSrgb(vec3 c) { c = max(c, 0.0); return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
 vec3 rgb2hsv(vec3 c) { vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0); vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
   vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r)); float d = q.x - min(q.w, q.y); float e = 1.0e-10;
   return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x); }
 vec3 hsv2rgb(vec3 c) { vec3 p = abs(fract(c.xxx + vec3(1.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0); return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y); }
-float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-// Kuwahara, 4 quadrants of radius R: the flattest quadrant's mean wins, so texture noise becomes flat paint and edges stay sharp
-vec3 kuwahara(vec2 uv) {
-  const int R = 3; vec3 m[4]; vec3 s[4];
-  for (int k = 0; k < 4; k++) { m[k] = vec3(0.0); s[k] = vec3(0.0); }
-  for (int j = -R; j <= R; j++) for (int i = -R; i <= R; i++) {
-    vec3 c = texture2D(tColor, uv + vec2(float(i), float(j)) * uTexel).rgb; vec3 c2 = c * c;
-    if (i <= 0 && j <= 0) { m[0] += c; s[0] += c2; } if (i >= 0 && j <= 0) { m[1] += c; s[1] += c2; }
-    if (i <= 0 && j >= 0) { m[2] += c; s[2] += c2; } if (i >= 0 && j >= 0) { m[3] += c; s[3] += c2; }
-  }
-  float n = float((R + 1) * (R + 1)); float best = 1e9; vec3 outc = vec3(0.0);
-  for (int k = 0; k < 4; k++) { vec3 mu = m[k] / n; vec3 v = abs(s[k] / n - mu * mu); float sv = v.r + v.g + v.b; if (sv < best) { best = sv; outc = mu; } }
-  return outc;
-}
 void main() {
   float h = height(vUv);
-  float water = 1.0 - texture2D(tColor, vUv).a;
-  vec3 c = toSrgb(kuwahara(vUv));
-  // relief: a hillshade from the height field (light from the north-west, the cartographer's convention), clamped so
-  // walls and canopies do not flip to black, and a short cast shadow to the south-east under anything that stands up
-  float e = 2.0;
-  float hx = height(vUv + vec2(uTexel.x * e, 0.0)) - height(vUv - vec2(uTexel.x * e, 0.0));
-  float hz = height(vUv + vec2(0.0, uTexel.y * e)) - height(vUv - vec2(0.0, uTexel.y * e));
-  vec2 g = clamp(vec2(hx, -hz) * uPpu / (2.0 * e), -2.5, 2.5); // image v runs to -z (north up): flip z
-  vec3 n = normalize(vec3(-g.x, -g.y, 1.0));
-  vec3 L = normalize(vec3(-0.6, 0.6, 0.75));
-  float hill = clamp(dot(n, L) / L.z, 0.55, 1.3);
+  vec4 src = texture2D(tColor, vUv);
+  float water = 1.0 - src.a;
+  vec3 c = toSrgb(src.rgb);
+  // soft lighting from the depth: ambient occlusion where neighbours stand above this point (the foot of a tree, a
+  // wall, a roof edge), and a soft shadow cast to the south-east by anything taller to the north-west
+  float occ = 0.0;
+  for (int k = 0; k < 12; k++) { float a = float(k) * 0.5236; vec2 o = vec2(cos(a), sin(a)) * uPpu * uTexel * (k < 6 ? 0.7 : 1.5); occ += clamp(height(vUv + o) - h, 0.0, 2.0); }
+  occ = clamp(occ / 12.0, 0.0, 1.0);
   float shadow = 0.0;
-  for (int k = 1; k <= 5; k++) { vec2 o = vec2(-1.0, 1.0) * float(k) * 0.35 * uPpu * uTexel; float hk = height(vUv + o); shadow = max(shadow, smoothstep(0.8, 1.6, hk - h - float(k) * 0.2)); }
-  // ink where the height jumps (roof edges, walls, canopies, cliffs) and where land meets water
-  float jump = 0.0, wEdge = 0.0;
-  for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
-    vec2 o = vec2(float(i), float(j)) * uTexel * 1.25;
-    jump = max(jump, abs(height(vUv + o) - h));
-    wEdge = max(wEdge, abs((1.0 - texture2D(tColor, vUv + o).a) - water));
-  }
-  float ink = smoothstep(0.75, 1.4, jump) * (1.0 - water);
-  // the simplified palette: value in soft bands, saturation held a little under the game's
+  for (int k = 1; k <= 6; k++) { vec2 o = vec2(-1.0, 1.0) * float(k) * 0.35 * uPpu * uTexel; shadow = max(shadow, smoothstep(0.3, 2.0, height(vUv + o) - h - float(k) * 0.25)); }
+  c *= 1.0 - 0.32 * occ;
+  c = mix(c, c * vec3(0.62, 0.66, 0.74), shadow * 0.42 * (1.0 - water));
+  // the grade: Duckov's muted ground (frames: grass #828C68 / #9AA077, paths #BFAB8C, canopies #484527): greens a
+  // step toward olive, everything a little less saturated, the darks lifted a touch
   vec3 hsv = rgb2hsv(c);
-  float band = (floor(hsv.z * 7.0) + 0.5) / 7.0;
-  hsv.z = mix(hsv.z, band, 0.45);
-  hsv.y = clamp(hsv.y * 0.92, 0.0, 0.85);
+  float green = smoothstep(0.16, 0.22, hsv.x) * (1.0 - smoothstep(0.44, 0.52, hsv.x));
+  hsv.x = mix(hsv.x, mix(hsv.x, 0.19, 0.35), green);
+  hsv.y *= mix(0.8, 0.72, green);
+  hsv.z = 0.05 + hsv.z * 0.97;
   c = hsv2rgb(hsv);
-  c *= mix(1.0, hill, 0.55);
-  c = mix(c, c * vec3(0.6, 0.6, 0.68), shadow * 0.4 * (1.0 - water));
-  // water: a flat body that darkens with depth below the surface, ruled by the overlay pass later
-  if (water > 0.5) { float deep = smoothstep(0.1, 2.2, -0.32 - h); c = mix(vec3(0.46, 0.68, 0.66), vec3(0.2, 0.43, 0.52), deep); }
-  vec3 inkC = mix(c * 0.32, vec3(0.13, 0.09, 0.07), 0.5);
-  c = mix(c, inkC, max(ink, smoothstep(0.2, 0.9, wEdge) * 0.85));
-  // paper: a faint fibre so flat areas do not read as screen fills
-  c *= 0.975 + 0.05 * hash(floor(vUv / uTexel / 2.0));
-  if (uUnder > 0.5) c *= 0.92;
+  // water: flat and dark blue, deeper further out (the frames' rivers and sea)
+  if (water > 0.5) { float deep = smoothstep(0.1, 2.2, -0.32 - h); c = mix(vec3(0.27, 0.42, 0.46), vec3(0.11, 0.22, 0.31), deep); }
   gl_FragColor = vec4(c, 1.0);
 }`;
 
@@ -101,17 +70,16 @@ function waterMat() {
     blendSrc: THREE.ZeroFactor, blendDst: THREE.OneFactor, blendSrcAlpha: THREE.ZeroFactor, blendDstAlpha: THREE.ZeroFactor,
   });
 }
-
-/** render one frame of the scene from straight above and run the map pass; returns the image as a canvas */
-function capture(scene: THREE.Scene, f: MapFrame, w: number, h: number, under: boolean): HTMLCanvasElement {
+/** render the scene from straight above and run the map pass; returns the image as a canvas */
+function capture(scene: THREE.Scene, f: MapFrame, w: number, h: number): HTMLCanvasElement {
   const r = G.stage.renderer;
   const cx = (f.minX + f.maxX) / 2, cz = (f.minZ + f.maxZ) / 2, top = 70;
   const cam = new THREE.OrthographicCamera(-(f.maxX - f.minX) / 2, (f.maxX - f.minX) / 2, (f.maxZ - f.minZ) / 2, -(f.maxZ - f.minZ) / 2, 1, 110);
   cam.up.set(0, 0, -1); cam.position.set(cx, top, cz); cam.lookAt(cx, 0, cz); cam.updateMatrixWorld(); cam.updateProjectionMatrix();
   const rt = new THREE.WebGLRenderTarget(w, h, { type: THREE.HalfFloatType, depthTexture: new THREE.DepthTexture(w, h, THREE.UnsignedIntType), samples: 0 });
   rt.texture.minFilter = rt.texture.magFilter = THREE.NearestFilter;
-  // Flat light: every light at zero but the hemisphere, which turns white above and below. Lights, fog and shadow maps
-  // keep their configuration (only intensities, colours and the fog range change), so the capture compiles the same
+  // Soft light: every light at zero but the hemisphere (white sky, warm grey ground). Lights, fog and shadow maps keep
+  // their configuration (only intensities, colours and the fog range change), so the capture compiles the same
   // shader variants the game draws with: the bake warms the game's programs instead of compiling a second set.
   const saved = { bg: scene.background, rim: U.uRimColor.value.clone(), cut: CUT.uCutOn.value, res: inkU.uRes.value.clone(), autoClear: r.autoClear };
   const lights: { l: THREE.Light; i: number; c: THREE.Color; g?: THREE.Color }[] = [];
@@ -123,21 +91,21 @@ function capture(scene: THREE.Scene, f: MapFrame, w: number, h: number, under: b
     if (hemi && !flat && hemi.visible) flat = hemi; else l.intensity = 0;
   });
   const amb = flat ? null : new THREE.AmbientLight("#ffffff", 0); if (amb) scene.add(amb); // a scene without a hemisphere (never the raid)
-  const fl = (flat ?? amb)! as THREE.Light; fl.color.set("#ffffff"); (fl as THREE.HemisphereLight).groundColor?.set("#ffffff"); fl.intensity = Math.PI * (under ? 0.92 : 1.0);
+  const fl = (flat ?? amb)! as THREE.Light; fl.color.set("#ffffff"); (fl as THREE.HemisphereLight).groundColor?.set("#8f877c"); fl.intensity = Math.PI * 1.08;
   const fog = scene.fog as THREE.Fog | null, fogR = fog?.isFog ? [fog.near, fog.far] : null; if (fog?.isFog) { fog.near = 1e5; fog.far = 1e6; }
   const swapped: [THREE.Mesh, THREE.Material | THREE.Material[]][] = [], wm = waterMat();
   const hidden: THREE.Object3D[] = [];
   scene.traverse((o) => {
     const m = o as THREE.Mesh;
-    if (m.name === "water" && m.isMesh) { swapped.push([m, m.material]); m.material = wm; }
-    // gameplay rings, fx sprites and points are not part of a map
-    if (((o as THREE.Points).isPoints || (o as THREE.Sprite).isSprite || o.name === "embers") && o.visible) { hidden.push(o); o.visible = false; }
+    if (m.name === "water" && m.isMesh) { swapped.push([m, m.material]); m.material = wm; return; }
+    // gameplay rings, fx sprites and points are not part of a map; nor are grass tufts and the ink hulls
+    if (((o as THREE.Points).isPoints || (o as THREE.Sprite).isSprite || o.name === "embers" || o.name === "grass" || o.name === "ink") && o.visible) { hidden.push(o); o.visible = false; }
   });
   for (const e of exits) for (const o of [e.ring, e.fill]) if (o.visible) { hidden.push(o); o.visible = false; }
-  scene.background = new THREE.Color(under ? "#17130f" : "#2d6a78");
+  scene.background = new THREE.Color("#2d6a78");
   U.uRimColor.value.set(0, 0, 0); CUT.uCutOn.value = 0; inkU.uRes.value.set(w, h); r.autoClear = true;
   const prevTarget = r.getRenderTarget(), prevClear = r.getClearAlpha(), cc = new THREE.Color(); r.getClearColor(cc);
-  r.setClearColor(under ? "#17130f" : "#2d6a78", 1);
+  r.setClearColor("#2d6a78", 1);
   r.setRenderTarget(rt); r.clear(); r.render(scene, cam);
   // restore the scene before anything else can render it
   amb?.removeFromParent(); for (const q of lights) { q.l.intensity = q.i; q.l.color.copy(q.c); if (q.g) (q.l as THREE.HemisphereLight).groundColor.copy(q.g); }
@@ -148,7 +116,7 @@ function capture(scene: THREE.Scene, f: MapFrame, w: number, h: number, under: b
   const out = new THREE.WebGLRenderTarget(w, h, { type: THREE.UnsignedByteType });
   const post = new THREE.ShaderMaterial({ vertexShader: POST_VS, fragmentShader: POST_FS, depthTest: false, depthWrite: false,
     uniforms: { tColor: { value: rt.texture }, tDepth: { value: rt.depthTexture }, uTexel: { value: new THREE.Vector2(1 / w, 1 / h) }, uPpu: { value: w / (f.maxX - f.minX) },
-      uNear: { value: cam.near }, uFar: { value: cam.far }, uTop: { value: top }, uUnder: { value: under ? 1 : 0 } } });
+      uNear: { value: cam.near }, uFar: { value: cam.far }, uTop: { value: top } } });
   const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), post), ps = new THREE.Scene(); quad.frustumCulled = false; ps.add(quad);
   r.setRenderTarget(out); r.render(ps, cam);
   const px = new Uint8Array(w * h * 4); r.readRenderTargetPixels(out, 0, 0, w, h, px);
@@ -162,55 +130,22 @@ function capture(scene: THREE.Scene, f: MapFrame, w: number, h: number, under: b
   return c;
 }
 
-/** the vector layer the capture cannot give: roof outlines and cliff ticks (the grotto: its rock darkened) */
-function overlay(c: HTMLCanvasElement, f: MapFrame, under: boolean) {
-  const x = c.getContext("2d")!, ppu = c.width / (f.maxX - f.minX);
-  const X = (v: number) => (v - f.minX) * ppu, Z = (v: number) => (v - f.minZ) * ppu;
-  if (!under) {
-    // roofs: a second, crisp ink outline and a ridge line along the long axis (a hand-drawn map's roof)
-    x.lineJoin = "round"; x.lineCap = "round";
-    for (const h of houseFootprints()) {
-      if (h.x < f.minX || h.x > f.maxX || h.z < f.minZ || h.z > f.maxZ) continue;
-      x.strokeStyle = "rgba(32,22,16,0.9)"; x.lineWidth = Math.max(2, ppu * 0.28);
-      x.strokeRect(X(h.x - h.hx), Z(h.z - h.hz), h.hx * 2 * ppu, h.hz * 2 * ppu);
-      x.strokeStyle = "rgba(32,22,16,0.45)"; x.lineWidth = Math.max(1, ppu * 0.14); x.beginPath();
-      if (h.hx >= h.hz) { x.moveTo(X(h.x - h.hx + h.hz), Z(h.z)); x.lineTo(X(h.x + h.hx - h.hz), Z(h.z)); } else { x.moveTo(X(h.x), Z(h.z - h.hz + h.hx)); x.lineTo(X(h.x), Z(h.z + h.hz - h.hx)); }
-      x.stroke();
-    }
-    // cliffs: short hachure ticks on the land side of every cliff stretch of the outline
-    x.strokeStyle = "rgba(40,28,20,0.55)"; x.lineWidth = Math.max(1.2, ppu * 0.12);
-    for (let i = 0; i < LAND.length; i++) {
-      const a = LAND[i], b = LAND[(i + 1) % LAND.length]; if (a[2] !== "cliff") continue;
-      const len = Math.hypot(b[0] - a[0], b[1] - a[1]), nx = -(b[1] - a[1]) / len, nz = (b[0] - a[0]) / len;
-      for (let t = 0; t < len; t += 1.6) {
-        const px = a[0] + (b[0] - a[0]) * (t / len), pz = a[1] + (b[1] - a[1]) * (t / len), s = edgeDist(px + nx * 2, pz + nz * 2) > 0 ? 1 : -1;
-        x.beginPath(); x.moveTo(X(px), Z(pz)); x.lineTo(X(px + nx * s * (1.4 + (t % 3.2 < 1.6 ? 0.8 : 0))), Z(pz + nz * s * (1.4 + (t % 3.2 < 1.6 ? 0.8 : 0)))); x.stroke();
-      }
-    }
-  } else {
-    // underground: rock is dark; only the carved chambers and corridors are lit (Duckov's underground floors)
-    const m = document.createElement("canvas"), step = 0.5, mw = Math.ceil((f.maxX - f.minX) / step), mh = Math.ceil((f.maxZ - f.minZ) / step);
-    m.width = mw; m.height = mh; const mx = m.getContext("2d")!, img = mx.createImageData(mw, mh);
-    for (let j = 0; j < mh; j++) for (let i = 0; i < mw; i++) {
-      const d = edgeDist(f.minX + (i + 0.5) * step, f.minZ + (j + 0.5) * step), k = (j * mw + i) * 4;
-      const a = d > 0.2 ? 0 : Math.min(1, (0.2 - d) / 2.0); // the rock rim the cut-out keeps reads as wall shading
-      img.data[k] = 18; img.data[k + 1] = 15; img.data[k + 2] = 13; img.data[k + 3] = Math.round(a * 255);
-    }
-    mx.putImageData(img, 0, 0); x.imageSmoothingEnabled = true; x.drawImage(m, 0, 0, c.width, c.height);
-  }
-}
-
-/** bake one level's map image: capture + map pass + vector layer + cut-out. `extra` draws before the cut (the demo edge) */
-export function bakeMap(scene: THREE.Scene, id: MapImage["id"], f: MapFrame, longSide: number, opts: { extra?: (x: CanvasRenderingContext2D, img: MapImage) => void; closed?: Closed; dim?: boolean } = {}): MapImage {
+/** bake one level's map image. Surface: capture + map pass + vector layer + cut-out (`extra` draws before the cut: the
+ *  demo edge). Underground: the blueprint floor plan, `inDemo` deciding which rooms are lit */
+export function bakeMap(scene: THREE.Scene, id: MapImage["id"], f: MapFrame, longSide: number, opts: { extra?: (x: CanvasRenderingContext2D, img: MapImage) => void; closed?: Closed; lit?: (x: number, z: number) => boolean } = {}): MapImage {
   const t0 = performance.now(), W = f.maxX - f.minX, H = f.maxZ - f.minZ;
   const w = Math.round(W >= H ? longSide : (longSide * W) / H), h = Math.round(W >= H ? (longSide * H) / W : longSide);
-  const under = id === "under", c = capture(scene, f, w, h, under), t1 = performance.now();
-  overlay(c, f, under); const t2 = performance.now();
-  const img = { ...f, id, w, h, canvas: c, url: "", ppu: w / W } as MapImage;
-  opts.extra?.(c.getContext("2d")!, img);
-  img.shape = cutout(c, f, under, opts.closed, opts.dim); const t3 = performance.now();
+  const img = { ...f, id, w, h, canvas: null as unknown as HTMLCanvasElement, url: "", ppu: w / W } as MapImage;
+  let t1 = t0, t2 = t0;
+  if (id === "under") { const b = blueprint(f, w, h, opts.lit ?? (() => true)); img.canvas = b.canvas; img.shape = b.shape; t1 = t2 = performance.now(); }
+  else {
+    const c = capture(scene, f, w, h); t1 = t2 = performance.now(); img.canvas = c;
+    opts.extra?.(c.getContext("2d")!, img);
+    img.shape = cutout(c, f, opts.closed);
+  }
+  const c = img.canvas, t3 = performance.now();
   // encoded off the main thread; until it lands the map reads the canvas through a data URL on demand (never in play)
   c.toBlob((b) => { if (b) img.url = URL.createObjectURL(b); else img.url = c.toDataURL("image/png"); }, "image/webp", 0.93);
-  console.info(`map bake ${id}: ${w}x${h} in ${Math.round(performance.now() - t0)} ms (capture ${Math.round(t1 - t0)}, overlay ${Math.round(t2 - t1)}, cut-out ${Math.round(t3 - t2)})`);
+  console.info(`map bake ${id}: ${w}x${h} in ${Math.round(performance.now() - t0)} ms (capture ${Math.round(t1 - t0)}, cut-out ${Math.round(t3 - t2)})`);
   return img;
 }

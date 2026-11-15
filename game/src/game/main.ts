@@ -32,6 +32,7 @@ import { CONTAINER_SOCKETS } from "./world/map/grove";
 import { enterBunker, stepBunker, renderBunker, leaveBunker, bunkerScene, homeApi } from "./home/bunker";
 import { openCreator, renderCreator } from "./ui/creator";
 import { buildMapShots, toggleMap, mapOpen, toggleMinimap } from "./ui/mapview";
+import { menuPageOpen } from "./ui/menubar";
 import { itemDef, dropItem, placeItem } from "./loot/raidloot";
 import { visualGear } from "./loot/equipment";
 import { payoutSlip } from "./ui/payout";
@@ -65,7 +66,7 @@ if (QS.has("dev")) Object.assign(window as unknown as object, { __G: G, __RIG_TU
 addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlockAudio);
 // Esc settings (ui/settings.ts): the loot screen, the map and the bunker panels own Esc while open and close first;
 // quitting a raid from it is a bonk-out (core/raid.ts quitRaid)
-initSettings({ blocked: () => lootOpen() || mapOpen() || homeApi.panelOpen() || storyPanelOpen() || introRunning(), quit: () => quitRaid() });
+initSettings({ blocked: () => lootOpen() || mapOpen() || menuPageOpen() || homeApi.panelOpen() || storyPanelOpen() || introRunning(), quit: () => quitRaid() });
 
 // world + rig up front (the map snapshot needs the raid scene built); the gun model is a GLB, loaded before anything asks for it
 await preloadGunModels(); // the Kingpin's GLB, every gun's GLB that has landed, placeholders for the rest
@@ -131,7 +132,7 @@ function frame() {
     if (hud.swallowInteract() && G.scene === "raid") Object.assign(G.intent, { interact: false, interactHeld: false }); // E closes an open container; don't reopen it
     if (G.intent.mini && G.scene === "raid") toggleMinimap();
     if (G.intent.esc && mapOpen()) toggleMap();
-    if (G.scene === "raid") { interpSnap(); if (G.hitStop > 0) G.hitStop -= STEP; else { if (mapOpen() || storyPanelOpen()) neutral(); stepRaid(STEP); } }
+    if (G.scene === "raid") { interpSnap(); if (G.hitStop > 0) G.hitStop -= STEP; else { if (mapOpen() || menuPageOpen() || storyPanelOpen()) neutral(); stepRaid(STEP); } }
     else if (G.scene === "bunker") stepBunker(STEP);
     acc -= STEP;
   }

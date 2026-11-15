@@ -88,8 +88,15 @@ html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .h3-extract .t{font:700 30px/1.05 var(--a-font);font-variant-numeric:tabular-nums;color:var(--a-stam);margin-top:3px}
 .h3-extract .t.wait{color:var(--a-warn);font-size:24px}
 .h3-extract .bar{height:3px;background:#141317;margin-top:6px}.h3-extract .bar i{display:block;height:100%;background:var(--a-stam)}
-.h3-use{left:50%;bottom:225px;transform:translateX(-50%);min-width:240px;padding:8px 14px 10px;text-align:center;display:none;font:600 18px/1 var(--a-font)}
-.h3-use .bar{height:5px;background:#141317;border:1px solid #000;margin-top:7px}.h3-use .bar i{display:block;height:100%;background:var(--a-tie)}
+/* the action bar (UI v4, frames/reload): over the hotbar's middle, a rounded bar about 6% of the screen wide, the action
+   above it and "[X] Cancel" under it; shown with the ring at the cursor, both fading at Duckov's 8 alpha a second */
+.h3-act{position:absolute;left:50%;bottom:216px;width:264px;margin-left:-132px;display:none;text-align:center;pointer-events:none}
+.h3-act .l{display:block;min-height:18px;font:600 17px/1 var(--a-font);color:var(--a-ink);text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 8px rgba(0,0,0,.4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.h3-act .bar{height:14px;margin-top:7px;border-radius:7px;background:rgba(18,17,21,.78);box-shadow:inset 0 0 0 1px rgba(0,0,0,.8),0 2px 6px rgba(0,0,0,.4);overflow:hidden}
+.h3-act .bar i{display:block;height:100%;border-radius:7px;background:linear-gradient(90deg,#e9dfc7,#fbf6ea 85%,var(--a-tie));box-shadow:0 0 8px rgba(244,106,16,.45)}
+.h3-act .x{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font:600 18px/1 var(--a-font);color:var(--a-ink);text-shadow:0 1px 3px rgba(0,0,0,.9)}
+.h3-act .x kbd{margin:0}
+.h3-act.nocancel .x{visibility:hidden}.h3-act.ringonly{visibility:hidden}
 .h3-toast{left:50%;top:150px;transform:translateX(-50%) translateY(-6px);padding:9px 18px;max-width:640px;text-align:center;font:600 19px/1.3 var(--a-font);opacity:0;transition:opacity .2s,transform .2s;text-wrap:balance}
 .h3-toast.on{opacity:1;transform:translateX(-50%)}
 .h3-banner{position:absolute;left:50%;top:21%;transform:translateX(-50%);opacity:0;text-align:center}
@@ -127,10 +134,15 @@ html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .h3-cross.ads i,.h3-cross.ads b{background:var(--a-brass-hi)}
 .h3-cross.ads b{width:3px;height:3px;left:-1.5px;top:-1.5px}
 .h3-cross.lock i,.h3-cross.lock b{background:var(--a-tie)}
-.h3-rl{position:absolute;left:0;top:0;width:48px;height:48px;margin:-24px 0 0 -24px;display:none}
-.h3-rl svg{width:100%;height:100%;transform:rotate(-90deg)}
-.h3-rl .tr{fill:none;stroke:rgba(20,19,23,.7);stroke-width:5}
-.h3-rl .fg{fill:none;stroke:var(--a-tie);stroke-width:3;stroke-dasharray:100;stroke-dashoffset:100}
+/* the action ring at the cursor: 56 px across with a 6 px stroke (the 48 px, 3 px v3 ring was easy to miss), a cream
+   sweep clockwise from twelve on a dark track with a tie-orange glow; the crosshair ticks step out so it sits inside them */
+.h3-rl{position:absolute;left:0;top:0;width:56px;height:56px;margin:-28px 0 0 -28px;display:none;pointer-events:none}
+.h3-rl svg{width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+.h3-rl .tr{fill:none;stroke:rgba(18,17,21,.55);stroke-width:7}
+.h3-rl .fg.fgb{stroke:#141317;stroke-width:9;filter:none}
+.h3-rl .fg{fill:none;stroke:#fbf6ea;stroke-width:5;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;filter:drop-shadow(0 0 3px rgba(244,106,16,.85))}
+.h3-cross.act i:nth-child(3){left:max(var(--spread),34px)}.h3-cross.act i:nth-child(4){right:max(var(--spread),34px)}
+.h3-cross.act i:nth-child(5){top:max(var(--spread),34px)}.h3-cross.act i:nth-child(6){bottom:max(var(--spread),34px)}
 .h3-ehp i{position:absolute;width:58px;height:7px;margin-left:-29px;background:#141317;border:1px solid #000;box-shadow:0 1px 3px rgba(0,0,0,.5)}
 .h3-ehp i::before,.h3-ehp i::after{content:"";position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--a-brass)}
 .h3-ehp i::before{left:-3px}.h3-ehp i::after{right:-3px}
@@ -149,7 +161,10 @@ html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .hitmark.crit i{background:#ffcf3a!important}.hitmark b{border-color:#ffcf3a!important}
 .hitmark.kill i,.hitmark.critKill i{background:var(--a-tie)!important}.hitmark u{border-color:var(--a-tie)!important}
 .floater{font-family:var(--a-font)!important;font-weight:700!important}
-#ui:has(.lv) .h3 .h3-prompt,#ui:has(.lv) .h3-help,#ui:has(.lv) .h3-use{visibility:hidden}
+#ui:has(.lv) .h3 .h3-prompt,#ui:has(.lv) .h3-help{visibility:hidden}
+/* a full-screen menu (the Tab screen, the map, a Jobs or Notes page) takes the whole screen: the raid HUD steps away
+   (Duckov hides it under its menus); the v3 Tab screen showed the hotbar through its dim */
+body:has(.lv) #ui > .ui-ref.h3,body:has(.mb3-page) #ui > .ui-ref.h3,body:has(.lv) .mm3{visibility:hidden}
 
 /* ---------------------------------------------------------------- the shared loot / inventory screen (row 05, Duckov LootView) */
 .lv{position:fixed;inset:0;z-index:12;pointer-events:auto;color:var(--a-ink);font-family:var(--a-font);user-select:none;-webkit-user-select:none}
@@ -502,3 +517,73 @@ html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .set3 .actions{margin:18px 20px 0}
 .set3 button.armed{background:var(--a-hp);border-color:#ff9a8c;color:#1c120b}
 .set3 .quitnote{margin:10px 20px 0;font-size:16px}
+
+/* ---------------------------------------------------------------- the menu bar (UI v4, ui/menubar.ts): Duckov's row of
+   icons centred across the top of every full-screen menu, the open one in a filled circle, the pack's load under it */
+.mb3{position:fixed;inset:0;z-index:30;pointer-events:none;font-family:var(--a-font);color:var(--a-ink)}
+.mb3-row{position:absolute;left:50%;top:14px;transform:translateX(-50%);display:flex;gap:26px;padding:0 30px 26px;pointer-events:auto}
+.mb3-row button{position:relative;width:68px;height:68px;border:0;border-radius:50%;background:transparent;color:var(--a-ink);display:grid;place-items:center;padding:0;cursor:pointer;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.8));transition:background-color .12s,color .12s}
+.mb3-row button svg{width:36px;height:36px}
+.mb3-row button:hover{background:rgba(243,234,214,.1)}
+.mb3-row button.on{background:var(--a-tie);color:#1c120b;box-shadow:0 0 0 3px rgba(28,18,11,.55),0 4px 14px rgba(0,0,0,.45);filter:none}
+.mb3-row .nm{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:6px;font:600 16px/1 var(--a-font);letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;color:var(--a-ink);text-shadow:0 1px 3px rgba(0,0,0,.9);display:none}
+.mb3-row button.on .nm{display:block}
+.mb3-row small{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:24px;font:600 15px/1 var(--a-mono);white-space:nowrap;color:var(--a-ink);text-shadow:0 1px 3px rgba(0,0,0,.9)}
+.mb3-row button:not(.on) small{margin-top:6px}
+.mb3-row small.over{color:var(--a-hp)}
+.mb3-rule{position:absolute;left:0;right:0;bottom:2px;height:1px;background:linear-gradient(90deg,transparent,rgba(243,234,214,.45) 15%,rgba(243,234,214,.45) 85%,transparent)}
+/* the raid's Jobs and Notes pages: one ledger plate in the middle, under the bar */
+.mb3-page{position:fixed;inset:0;z-index:14;pointer-events:auto;font-family:var(--a-font);color:var(--a-ink)}
+.mb3-page .dim{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(14,13,16,.72),rgba(14,13,16,.93))}
+.mb3-sheet{left:calc(50% - 380px);top:132px;bottom:90px;width:760px;display:flex;flex-direction:column;pointer-events:auto}
+.mb3-sheet header{display:flex;align-items:baseline;justify-content:space-between;padding:14px 18px 10px}
+.mb3-sheet h2{margin:0;font:700 30px/1 var(--a-font)}
+.mb3-sheet header small{font:600 16px/1 var(--a-font);color:var(--a-dim)}
+.mb3-sheet>.tie{margin:0 18px}
+.mb3-body{flex:1;overflow:auto;padding:12px 18px 18px}
+/* the Tab and loot screen sit under the bar: their panels start below it (short screens: a tighter bar) */
+body:has(.mb3) .lv-panel{top:132px}
+.ui-short .mb3-row{top:4px;gap:20px}.ui-short .mb3-row button{width:58px;height:58px}.ui-short .mb3-row button svg{width:32px;height:32px}
+.ui-short .mb3-row small{margin-top:21px}.ui-short .mb3-row button:not(.on) small{margin-top:4px}
+.ui-short body:has(.mb3) .lv-panel, html.ui-short body:has(.mb3) .lv-panel{top:104px}
+.ui-short .mb3-sheet{top:104px;bottom:64px}
+
+/* the waypoint table, bottom-right (UI v4, frames/in-raid-hud: a round marker icon and the distance, "05 M") */
+.h3-wp{position:absolute;right:36px;bottom:40px;display:flex;align-items:center;gap:10px;pointer-events:none}
+.h3-wp .ic{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:rgba(18,17,21,.7);box-shadow:inset 0 0 0 2px rgba(243,234,214,.55),0 2px 8px rgba(0,0,0,.4)}
+.h3-wp .ic svg{width:28px;height:28px}
+.h3-wp.pin .ic svg{width:24px;height:24px;filter:drop-shadow(0 0 1px #05121c) drop-shadow(0 0 1px #05121c)}
+.h3-wp .t{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.h3-wp small{font:600 15px/1 var(--a-font);color:var(--a-ink)}
+.h3-wp b{font:700 28px/1 var(--a-font);color:var(--a-ink);letter-spacing:.01em}
+.h3-wp kbd{align-self:flex-end;margin-bottom:2px}
+
+/* the creator's stage controls (UI v4): a hint and "Front view" under the monkey; the canvas shows a grab hand */
+.c-canvas{cursor:grab}.c-canvas.c-turning{cursor:grabbing}
+.c-stage{position:absolute;left:66%;bottom:calc(36px * var(--s));transform:translateX(-50%);display:flex;align-items:center;gap:calc(14px * var(--s));font-family:var(--a-font);z-index:2}
+.c-stage .hint{font:600 calc(17px * var(--s))/1 var(--a-font);color:#3a2a22;opacity:.8}
+.c-stage button{display:inline-flex;align-items:center;gap:8px;height:calc(40px * var(--s));padding:0 calc(16px * var(--s));border:1px solid var(--a-edge);background:linear-gradient(180deg,#2b2a30,var(--a-wool));color:var(--a-ink);
+  font:600 calc(18px * var(--s))/1 var(--a-font);cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.35)}
+.c-stage button:hover{border-color:var(--a-tie);color:#ffb37a}
+
+/* ---------------------------------------------------------------- UI v4 polish pass (research/look/ui_v4/CRITIQUE.md) */
+/* every station plate, the settings plate and the payout slip dim the room behind them, so the plate is the one thing
+   to read (v3 floated them over a busy, fully lit scene; the slip's footer vanished on the light floor) */
+#ui:has(> .panel)::before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse at center,rgba(10,9,12,.3),rgba(10,9,12,.62));pointer-events:none}
+/* the Banana Express: the tagline sits on the plate's text edge; a locked card's fare never wraps; Pick reads as an action */
+.panel .quote{margin:4px 20px 12px}
+.dcard .dfoot{gap:14px}
+.dcard .dfare{white-space:nowrap;flex:none}
+.dcard em.dlock{font-size:15px;line-height:1.25;text-align:right}
+.dcard .dgo{padding:5px 12px;border:1px solid rgba(95,211,106,.55);background:rgba(95,211,106,.12);color:#b8ec9a}
+.panel .dcard:hover:not(:disabled) .dgo{background:var(--a-tie);border-color:#ffb37a;color:#1c120b}
+/* the Tab screen's pouch note had no room at 720p and ran under the load bar */
+.lv-pouch{font-size:16px;margin-top:8px}
+.ui-short .lv-pouch{font-size:14px;line-height:1.2;margin-top:4px}
+/* the tag card in the middle starts under the menu bar too */
+body:has(.mb3) .lv-tagwrap{top:150px}
+html.ui-short body:has(.mb3) .lv-tagwrap{top:108px}
+/* station plates, the settings plate and the slip were sized in fixed 1080p px: at 720p they filled the screen and
+   Sal's shop scrolled. They now scale with the HUD (ui/scale.ts --s, 0.75 at 720p) like every other ui3 layer */
+.panel{zoom:var(--s);max-height:calc((100vh - 120px) / var(--s))}
