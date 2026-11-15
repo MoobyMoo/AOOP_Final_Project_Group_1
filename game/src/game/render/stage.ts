@@ -13,8 +13,9 @@ import { EffectComposer, RenderPass, EffectPass, BloomEffect, SMAAEffect, Vignet
 import { U, inkU } from "./shading";
 
 const QS = new URLSearchParams(location.search);
-/** camera-side fill intensity (?bounce= overrides) */
-export const BOUNCE = 1.1;
+/** key and camera-side fill (?sun= and ?bounce= override). The fill came down from 1.6 so props keep a shaded side; the
+ *  sun went 6.0 -> 6.3 to hold the ground where it was (lumastats: colony p50 145, camp clip 0.3%, same as before). */
+export const SUN = 6.3, BOUNCE = 1.1;
 
 export class Stage {
   renderer: THREE.WebGLRenderer;
@@ -39,7 +40,7 @@ export class Stage {
     r.toneMapping = THREE.NoToneMapping; r.toneMappingExposure = Number(QS.get("exp") ?? 1.3);
     const s = this.scene;
     s.background = new THREE.Color(haze); s.fog = new THREE.Fog(haze, 52, 110);
-    this.sun = new THREE.DirectionalLight("#" + (QS.get("suncol") ?? "ffe0b0"), Number(QS.get("sun") ?? 6.0));
+    this.sun = new THREE.DirectionalLight("#" + (QS.get("suncol") ?? "ffe0b0"), Number(QS.get("sun") ?? SUN));
     const sh = this.sun.shadow; this.sun.castShadow = true; sh.mapSize.set(4096, 4096); sh.radius = 3; sh.bias = -0.0004; sh.normalBias = 0.03;
     Object.assign(sh.camera, { left: -24, right: 24, top: 24, bottom: -24, near: 1, far: 100 });
     this.sunDir = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - Number(QS.get("sunel") ?? 50)), THREE.MathUtils.degToRad(Number(QS.get("sunaz") ?? 160)));
