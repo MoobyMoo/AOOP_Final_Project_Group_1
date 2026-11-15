@@ -12,6 +12,7 @@ import { commitSave, load } from "./core/save";
 import { itemType } from "./loot/instances";
 import { unlockAudio, sfx, stepOn } from "./core/audio";
 import { musicTick, setMusic, sting, musicState } from "./core/music";
+import { interpSnap, interpApply, interpRestore } from "./core/interp";
 import { startRaid, stepRaid, renderRaid, buildRaidWorld, raidScene, quitRaid, lastSpawn, type RaidResult } from "./core/raid";
 import { settleDeploy, cancelDeploy, type DeployRequest } from "./core/deployment";
 import { hideCurtain } from "./home/dispatch";
@@ -94,6 +95,7 @@ function onRaidEnd(r: RaidResult) {
 }
 const shownSettlements = new Set<string>();
 
+const NOLERP = QS.has("nolerp"); // A/B switch for core/interp.ts
 const STEP = 1 / 60, TS = Number(QS.get("ts") ?? 1);
 let acc = 0; const clock = new THREE.Clock();
 const PROF = QS.has("prof"), prof: { t: number; sim: number; prep: number; draw: number; steps: number }[] = [];
@@ -111,15 +113,17 @@ function frame() {
     if (hud.swallowInteract() && G.scene === "raid") Object.assign(G.intent, { interact: false, interactHeld: false }); // E closes an open container; don't reopen it
     if (G.intent.mini && G.scene === "raid") toggleMinimap();
     if (G.intent.esc && mapOpen()) toggleMap();
-    if (G.scene === "raid") { if (G.hitStop > 0) G.hitStop -= STEP; else { if (mapOpen()) neutral(); stepRaid(STEP); } }
+    if (G.scene === "raid") { interpSnap(); if (G.hitStop > 0) G.hitStop -= STEP; else { if (mapOpen()) neutral(); stepRaid(STEP); } }
     else if (G.scene === "bunker") stepBunker(STEP);
     acc -= STEP;
   }
   if (acc > STEP * 8) acc = 0;
   const p1 = performance.now();
+  const lerped = G.scene === "raid" && !NOLERP; if (lerped) interpApply(acc / STEP); // draw between the last two sim steps (core/interp.ts)
   if (G.scene === "raid") renderRaid(real); else if (G.scene === "bunker") renderBunker(real); else if (G.scene === "creator") renderCreator(real);
   const p2 = performance.now();
   G.stage.render(real); musicTick(real);
+  if (lerped) interpRestore();
   if (PROF) { const p3 = performance.now(); if (p3 - p0 > 20 || real > 0.033) prof.push({ t: Math.round(G.raidT * 10) / 10, sim: +(p1 - p0).toFixed(1), prep: +(p2 - p1).toFixed(1), draw: +(p3 - p2).toFixed(1), steps: n }); }
   requestAnimationFrame(frame);
 }

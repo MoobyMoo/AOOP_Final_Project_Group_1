@@ -1,5 +1,7 @@
-// Keyboard + mouse input with a keyboard-only mode (Mac trackpad rule, DESIGN 4): if the mouse hasn't moved
-// for 1.5 s (or T toggles it), aim auto-faces the nearest enemy. The bot writes the same Intent object.
+// Keyboard + mouse input with a keyboard-only mode (Mac trackpad rule, DESIGN 4): T toggles it, and then aim
+// auto-faces the nearest enemy. A still mouse keeps its aim, as in Duckov: the old 1.5 s idle switch snapped the
+// crosshair onto enemies or the walking direction whenever the mouse rested (Moo 2026-11-15). The bot writes the same
+// Intent object.
 export type Intent = {
   move: { x: number; z: number };          // camera-relative stick, |v| <= 1
   aimNdc: { x: number; y: number } | null; // mouse in NDC, null in keyboard mode
@@ -19,9 +21,8 @@ export class Input {
     addEventListener("mouseup", (e) => { if (e.button === 0) this.mouse.down = false; if (e.button === 2) this.mouse.rdown = false; });
     el.addEventListener("contextmenu", (e) => e.preventDefault());
   }
-  /** usingMouse: true while the mouse is the aim device (a held button counts: holding still in ADS is careful aiming,
-   *  not a switch to keyboard auto-aim) */
-  get usingMouse() { return !this.kbMode && (this.t - this.mouse.movedAt < 1.5 || this.mouse.down || this.mouse.rdown); }
+  /** usingMouse: the mouse aims unless keyboard mode is on (T); a resting mouse keeps aiming where it points */
+  get usingMouse() { return !this.kbMode; }
   read(dt: number): Intent {
     this.t += dt;
     const k = this.keys, p = this.pressed;
