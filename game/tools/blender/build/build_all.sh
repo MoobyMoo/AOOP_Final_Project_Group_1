@@ -6,7 +6,7 @@ cd "$(dirname "$0")/../../.."
 BLENDER="${BLENDER:-/home/moo/.local/bin/blender}"
 RENDER=""; GROUPS_=()
 for a in "$@"; do if [ "$a" = "--render" ]; then RENDER="--render"; else GROUPS_+=("$a"); fi; done
-[ ${#GROUPS_[@]} -eq 0 ] && GROUPS_=(loot camp walls ruins landmarks traversal bunker containers projectiles)
+[ ${#GROUPS_[@]} -eq 0 ] && GROUPS_=(loot camp walls ruins landmarks traversal bunker containers projectiles vault)
 mkdir -p /tmp/bv_build
 pids=()
 for g in "${GROUPS_[@]}"; do

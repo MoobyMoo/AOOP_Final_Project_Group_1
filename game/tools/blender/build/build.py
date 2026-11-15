@@ -26,6 +26,9 @@ json.dump(man, open(os.path.join(lib.HERE, "manifest", args.group + ".json"), "w
 print(f"[build] {args.group}: {len(assets)} assets, {sum(a.tris for a in assets)} tris, glb {size / 1024:.0f} KB")
 for a in assets:
     print(f"   {a.name:34s} {a.tris:6d} tris")
+if lib.TRIS_BY:
+    for k, v in sorted(lib.TRIS_BY.items(), key=lambda kv: -kv[1]):
+        print(f"   [tris] {v:5d}  {k}")
 if args.render:
     kw = getattr(mod, "REVIEW", {})
     lib.review_render(os.path.join(lib.OUT_RENDER, f"blender_{args.group}{args.tag}.png"), assets, **kw)
