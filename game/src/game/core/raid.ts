@@ -12,7 +12,9 @@ import { mulberry32 } from "../loot/tables";
 import { startInteractions, updateInteractions, setOnExtract } from "../world/interact";
 import { createRig } from "../actors/rig";
 import { createKingpin, createGunFx } from "../combat/kingpin";
-import { KINGPIN, PLAYER } from "../combat/weapons";
+import { KINGPIN, KINGPIN_HANDLING, PLAYER } from "../combat/weapons";
+import { HS, resetHandling } from "../combat/handling";
+import { tuneObject } from "./tune";
 import { spawnEnemies, updateEnemies } from "../ai/enemies";
 import { setupCrates, updateLoot, sortPack, packValue, itemDef } from "../loot/raidloot";
 import { updatePlayer } from "../actors/player";
@@ -35,6 +37,20 @@ const QS = new URLSearchParams(location.search);
 /** ?seed= is the world seed: map scatter, crate sockets and patrol set all derive from it (the bot has ?botseed=) */
 export const WORLD_SEED = Number.isFinite(Number(QS.get("seed"))) && QS.has("seed") ? Number(QS.get("seed")) >>> 0 : 4242;
 export const raidScene = new THREE.Scene();
+/** the raid camera (?tune "camera"): angles in degrees, distance in u, FOV landscape / portrait. Follow: the focus
+ *  eases toward hero + lead at `follow` /s (`followFiring` while the trigger was pulled in the last 0.2 s, Duckov's
+ *  1.5-vs-12 slow-down when shooting), lead = `lead` x the hero-to-aim distance (capped at leadMax u) scaled by the
+ *  gun's ADS lead factor (Duckov GameCamera: aimOffsetDistanceFactor and maxAimOffset both x ADSAimDistanceFactor). */
+export const CAMERA = tuneObject("camera", {
+  pitch: Number(QS.get("pitch") ?? 55), yaw: Number(QS.get("yaw") ?? -30), dist: Number(QS.get("dist") ?? 40), fov: 24, fovPortrait: 34,
+  lead: 0.22, leadMax: 10, follow: 6, followFiring: 3, heightFollow: 2.2,
+}, {
+  pitch: { min: 20, max: 89, step: 0.5, label: "pitch (deg)" }, yaw: { min: -180, max: 180, step: 1, label: "yaw (deg)" }, dist: { min: 10, max: 90, step: 0.5, label: "distance (height)" },
+  fov: { min: 10, max: 60, step: 0.5, label: "FOV" }, fovPortrait: { min: 10, max: 80, step: 0.5, label: "FOV portrait" },
+  lead: { min: 0, max: 0.7, step: 0.01, label: "aim lead factor" }, leadMax: { min: 0, max: 30, step: 0.5, label: "aim lead cap (u)" },
+  follow: { min: 0.5, max: 30, step: 0.5, label: "follow /s" }, followFiring: { min: 0.5, max: 30, step: 0.5, label: "follow while firing /s" },
+  heightFollow: { min: 0.2, max: 20, step: 0.1, label: "ground height follow /s" },
+}, { note: "raid camera (core/raid.ts)" });
 let built = false;
 export function buildRaidWorld() {
   if (built) return; built = true;
@@ -73,7 +89,7 @@ export function startRaid(end: (r: RaidResult) => void) {
   if (QS.has("peace")) { for (const e of G.enemies) e.rig.dispose(); G.enemies = []; } else spawnEnemies((G.save.raids + WORLD_SEED) % 2);
   setupCrates();
   for (const c of raidScene.children) if (!before.has(c)) c.userData.perRaid = true;
-  hud.build(); buildMinimap(); resetTrail(); clearBullets(); clearRangFx(); clearDashFx(); startInteractions(); bonkT = 0;
+  resetHandling(); hud.build(); buildMinimap(); resetTrail(); clearBullets(); clearRangFx(); clearDashFx(); startInteractions(); bonkT = 0;
   (G.fx as KingpinFx).groundY = groundHeight; // casings land on the terrain
   // warm-up: compile every shader now (hidden enemies/props would otherwise compile mid-raid and hitch)
   const hidden: THREE.Object3D[] = []; raidScene.traverse((o) => { if (!o.visible) { hidden.push(o); o.visible = true; } });
@@ -98,6 +114,11 @@ function finish(how: RaidResult["how"], bonus: number) {
   onEnd({ how, kept, lost, bonus, raidT: G.raidT, log: G.log });
 }
 let bonkT = 0;
+/** the settings menu's "Quit to bunker": leaving mid-raid counts as a bonk-out (loose pack and worn gear stay behind,
+ *  the pouch comes home), so quitting can never be a free extract */
+export function quitRaid() { if (G.scene === "raid") finish("bonked", 0); }
+/** last frame's camera lead and focus (capture tools measure the ADS push from these) */
+export const camLead = new THREE.Vector3(), camFocus = new THREE.Vector3();
 /** Moo 2026-11-15: guns were way too big; Duckov-like proportions put a pistol at ~1/4 of the character's height */
 const GUN_SCALE = 0.65;
 const focus = new THREE.Vector3(), chest = new THREE.Vector3(), sockQ = new THREE.Quaternion(), yawQ = new THREE.Quaternion(), UPV = new THREE.Vector3(0, 1, 0);
@@ -122,12 +143,19 @@ export function renderRaid(dt: number) {
   G.fx.update(dt); renderBullets(); updateRangFx(dt); updateFeedback(dt); updateFx(dt); hud.update(dt); updateMinimap();
   updateHouses(dt, isUnder(G.pp.x)); updateProps(dt); updateLightPool(dt, G.pp);
   U.uTime.value = G.time; U.uPlayer.value.copy(G.pp);
-  // camera: damped follow + a small lead toward the aim point (CODE_FINDINGS 8.1: aim lookahead, kept modest, rule 19)
-  const lead = G.aimPoint.clone().sub(G.pp).setY(0); const L = Math.min(lead.length(), 10); lead.setLength(L * 0.22);
-  { const y = focus.y; focus.lerp(G.pp.clone().add(lead), Math.min(1, dt * (G.fireCd > -0.2 ? 3 : 6)));
-    focus.y = y + (G.pp.y - y) * Math.min(1, dt * 2.2); } // ground bumps reach the camera slowly: no step-by-step bob (Moo: dizzy)
+  // camera: damped follow + a lead toward the aim point (CODE_FINDINGS 8.1: aim lookahead, kept modest, rule 19). ADS
+  // pushes it: lead factor and cap x the gun's ADS lead factor, FOV x its ADS scale, both by the aim amount
+  // (POLISH_FINDINGS 16, Duckov GameCamera.LateUpdate / UpdateFov)
+  const C = CAMERA, push = 1 + (KINGPIN_HANDLING.adsDist - 1) * HS.ads;
+  G.stage.cam.pitch = THREE.MathUtils.degToRad(C.pitch); G.stage.cam.yaw = THREE.MathUtils.degToRad(C.yaw); G.stage.cam.dist = C.dist;
+  G.stage.setFov(C.fov, C.fovPortrait, 1 + (KINGPIN_HANDLING.adsFov - 1) * HS.ads);
+  const lead = G.aimPoint.clone().sub(G.pp).setY(0); const L = Math.min(lead.length(), C.leadMax * push); lead.setLength(L * C.lead * push);
+  { const y = focus.y; focus.lerp(G.pp.clone().add(lead), Math.min(1, dt * (G.fireCd > -0.2 ? C.followFiring : C.follow)));
+    focus.y = y + (G.pp.y - y) * Math.min(1, dt * C.heightFollow); } // ground bumps reach the camera slowly: no step-by-step bob (Moo: dizzy)
+  camLead.copy(lead); camFocus.copy(focus);
   G.stage.place(focus, dt, G.time);
   updateCutout(G.stage.camera, chest.copy(G.pp).setY(G.pp.y + 1.1), G.stage.renderer, G.aimPoint, G.pp.y);
   updateCampfires(G.time, G.stage.scene, G.stage.renderer);
   void V; void itemDef;
 }
+(globalThis as unknown as { __cam: object }).__cam = { lead: camLead, focus: camFocus, CAMERA };

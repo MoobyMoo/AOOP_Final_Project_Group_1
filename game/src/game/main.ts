@@ -11,7 +11,9 @@ import { G } from "./core/state";
 import { load, save, retainKeys } from "./core/save";
 import { unlockAudio } from "./core/audio";
 import { musicTick, setMusic, sting, musicState } from "./core/music";
-import { startRaid, stepRaid, renderRaid, buildRaidWorld, raidScene, type RaidResult } from "./core/raid";
+import { startRaid, stepRaid, renderRaid, buildRaidWorld, raidScene, quitRaid, type RaidResult } from "./core/raid";
+import { initSettings, settingsOpen } from "./ui/settings";
+import { lootOpen } from "./ui/lootview";
 import { path, walkable, los, lintReport, gates, setGate, pathLength, collide } from "./world/grid";
 import { worldStats, countVisible, scattered } from "./world/world";
 import { blockoutSvg } from "./world/map/dump";
@@ -40,6 +42,9 @@ G.save = load(); G.bot = QS.has("bot"); G.intent = G.input.read(0);
 if (G.bot) { const bot = createBot({ greed: Number(QS.get("greed") ?? 0.5), reactionLag: Number(QS.get("lag") ?? 0.25), seed: Number(QS.get("botseed") ?? QS.get("seed") ?? 1) }); setBot(bot); (window as unknown as { __bot: unknown }).__bot = bot; }
 if (QS.has("dev")) Object.assign(window as unknown as object, { __G: G, __RIG_TUNE: RIG_TUNE, __music: musicState }); // captures and debugging only
 addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlockAudio);
+// Esc settings (ui/settings.ts): the loot screen, the map and the bunker panels own Esc while open and close first;
+// quitting a raid from it is a bonk-out (core/raid.ts quitRaid)
+initSettings({ blocked: () => lootOpen() || mapOpen() || homeApi.panelOpen(), quit: () => quitRaid() });
 
 // world + rig up front (the map snapshot needs the raid scene built); the gun model is a GLB, loaded before anything asks for it
 await preloadKingpin();
@@ -48,6 +53,7 @@ await preloadCharacters(); // character GLBs (rig v2): createRig() is synchronou
 await Promise.all([preloadNature(), preloadHouse()]); // nature + building kits (the structures kit is loaded above): the raid world builds from them
 buildRaidWorld(); G.stage.setScene(raidScene); buildMapShots(raidScene);
 if (QS.has("dev")) (window as unknown as { __ui: unknown }).__ui = await import("./ui/devhooks"); // UI captures and tools/uitest.mjs
+if (QS.has("tune")) (await import("./ui/tunepanel")).openTunePanel(); // live tuning panel (core/tune.ts)
 if (QS.has("glitch")) (window as unknown as { __glitch: unknown }).__glitch = await import("./dev/glitch"); // the glitch hunt (tools/glitchcheck.mjs)
 G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); G.rig.setGear?.(G.save.gear);
 
@@ -81,6 +87,7 @@ function frame() {
   acc += real; let n = 0;
   while (acc >= STEP && n++ < 8 * TS) {
     G.intent = G.bot ? botTick(STEP) : G.input.read(STEP);
+    if (settingsOpen()) { acc -= STEP; continue; } // paused under the settings plate: input is read and dropped
     if (G.intent.map && G.scene === "raid") toggleMap();
     if (G.intent.inv && G.scene === "raid") hud.inventory();
     if (hud.invOpen() && G.scene === "raid") Object.assign(G.intent, { fire: false, firePressed: false, ads: false, melee: false, reload: false, roll: false }); // the loot screen takes the mouse and R (sort)

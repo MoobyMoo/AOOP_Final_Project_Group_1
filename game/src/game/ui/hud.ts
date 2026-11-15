@@ -23,6 +23,9 @@ import { iconUrl } from "./icons";
 import { carriedWeight } from "../actors/player";
 import { HEALS } from "../combat/weapons";
 import { toRef } from "./scale";
+import { HS, currentScatter, restScatter } from "../combat/handling";
+import { tuneObject } from "../core/tune";
+import { prefs } from "./settings";
 import { closeLoot, lootHooks, lootOpen, lootSwallowsInteract, openLoot, toggleInventory, updateLoot, useHeal, type LootTarget } from "./lootview";
 
 export { openLoot, closeLoot, lootOpen, type LootTarget };
@@ -32,7 +35,15 @@ let E: Record<string, HTMLElement> = {};
 const proj = new THREE.Vector3();
 function toScreen(p: THREE.Vector3) { proj.copy(p).project(G.stage.camera); return { x: (proj.x * 0.5 + 0.5) * innerWidth, y: (-proj.y * 0.5 + 0.5) * innerHeight, on: Math.abs(proj.x) < 1 && Math.abs(proj.y) < 1 && proj.z < 1 }; }
 let lastHeard = "", lastEhp = "", lastEquipT = -1, lastArrows = "", lastClock = "", lastHp = -1, lastPrompt = "", lastStam = "", lastLoad = "", lastAmmo = "", lastQuick = "", lastUse = "", lastRl = "", lastSearch = "";
-let toastT = 0, bannerT = 0, promptT = 0, helpT = 0;
+let toastT = 0, bannerT = 0, promptT = 0, helpT = 0, shownScatter = 0, shownRest = 0, lastCross = "";
+/** the crosshair reads the gun (POLISH_FINDINGS 16, Duckov AimMarker): each tick sits base + perDeg x scatter px from
+ *  the centre (1440-tall reference, scaled to the window), the shown scatter chasing the live cone at `chase` deg/s.
+ *  ADS fades in a brass ring at the same radius and a second, inner ring at the resting cone, so you see the bloom
+ *  above rest shrink back. The whole cross sits on the kicked aim point, so recoil moves it. */
+export const CROSS = tuneObject("crosshair", { base: 20, perDeg: 5, chase: 500 }, {
+  base: { min: 0, max: 80, step: 0.5, label: "gap at zero scatter (px @1440)" }, perDeg: { min: 0, max: 20, step: 0.1, label: "px per degree of scatter (@1440)" },
+  chase: { min: 5, max: 2000, step: 5, label: "shown scatter chase (deg/s)" },
+}, { note: "crosshair (ui/hud.ts)" });
 const noiseRings: { m: THREE.Mesh; t: number }[] = [];
 const keyed = (t: string) => { const m = /^([A-Z0-9/]+) · (.*)$/.exec(t); return m ? `<kbd>${m[1]}</kbd><span>${m[2]}</span>` : `<span>${t}</span>`; };
 const set = (el: HTMLElement | undefined, html: string) => { if (el && el.innerHTML !== html) el.innerHTML = html; };
@@ -62,7 +73,7 @@ export const hud = {
     const ref = document.createElement("div"); ref.className = "ui-ref h3"; root().appendChild(ref);
     const el = (cls: string, html = "", parent: HTMLElement = ref) => { const d = document.createElement("div"); d.className = cls; d.innerHTML = html; parent.appendChild(d); return d; };
     E.hurt = el("h3-hurt", "", scr); E.heard = el("h3-heard", "", scr); E.ehp = el("h3-ehp", "", scr); E.arrows = el("h3-arrows", "", scr);
-    E.cross = el("h3-cross", `<i></i><i></i><i></i><i></i><b></b>`, scr);
+    E.cross = el("h3-cross", `<u class="ring"></u><u class="rest"></u><i></i><i></i><i></i><i></i><b></b>`, scr); shownScatter = shownRest = 0; lastCross = "";
     E.rl = el("h3-rl", `<svg viewBox="0 0 44 44"><circle class="tr" cx="22" cy="22" r="17"/><circle class="fg" cx="22" cy="22" r="17" pathLength="100"/></svg>`, scr);
     E.clock = el("h3-clock shade", "<b></b><span></span><em></em>");
     E.help = el("h3-help shade", `<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move, <kbd>Shift</kbd> sprint, <kbd>Space</kbd> dash<br>Click to shoot, right-click to aim, <kbd>R</kbd> reload, <kbd>V</kbd> briefcase<br><kbd>E</kbd> search, <kbd>Q</kbd> or <kbd>3</kbd>–<kbd>8</kbd> heal, <kbd>Tab</kbd> pack, <kbd>M</kbd> map`);
@@ -173,15 +184,26 @@ export const hud = {
     hud.ammo(); hud.load();
     { const rl = G.reloadT >= 0 ? G.reloadT.toFixed(2) : ""; if (rl !== lastRl) { lastRl = rl; const r = E.weapons.querySelector(".rl") as HTMLElement; r.style.setProperty("--rl", rl || "0"); } }
     toastT -= dt; bannerT -= dt; promptT -= dt;
-    if (helpT > 0) { helpT -= dt; if (helpT <= 0) E.help.classList.add("gone"); }
+    if (prefs.controls) { if (E.help.classList.contains("gone")) E.help.classList.remove("gone"); helpT = Math.max(helpT, 0.01); }
+    else if (helpT > 0) { helpT -= dt; if (helpT <= 0) E.help.classList.add("gone"); }
     if (toastT <= 0 && E.toast.classList.contains("on")) E.toast.classList.remove("on");
     if (bannerT <= 0 && E.banner.classList.contains("on")) E.banner.classList.remove("on");
     if (promptT <= 0 && E.prompt.classList.contains("on")) E.prompt.classList.remove("on");
     const a = toScreen(G.aimPoint); E.cross.style.transform = `translate(${a.x.toFixed(1)}px,${a.y.toFixed(1)}px)`;
     if (G.reloadT >= 0) { E.rl.style.display = "block"; E.rl.style.transform = `translate(${a.x.toFixed(1)}px,${a.y.toFixed(1)}px)`; (E.rl.querySelector(".fg") as SVGCircleElement).style.strokeDashoffset = String(100 * (1 - G.reloadT)); }
     else if (E.rl.style.display !== "none") E.rl.style.display = "none";
-    const spread = (6 + Math.max(0, 1 - G.fireT) * 8 - (G.ads ? 2 : 0)).toFixed(1) + "px";
-    if (E.cross.style.getPropertyValue("--spread") !== spread) E.cross.style.setProperty("--spread", spread);
+    { // scatter gap, ADS ring (CROSS above)
+      const step = CROSS.chase * dt, cs = currentScatter(), rs = restScatter() * HS.move;
+      shownScatter = Math.abs(cs - shownScatter) <= step ? cs : shownScatter + Math.sign(cs - shownScatter) * step;
+      shownRest = Math.abs(rs - shownRest) <= step ? rs : shownRest + Math.sign(rs - shownRest) * step;
+      const k = innerHeight / 1440, gap = (CROSS.base + CROSS.perDeg * shownScatter) * k, rest = (CROSS.base + CROSS.perDeg * shownRest) * k;
+      const key = `${gap.toFixed(1)}|${rest.toFixed(1)}|${HS.ads.toFixed(2)}`;
+      if (key !== lastCross) {
+        lastCross = key; const st = E.cross.style;
+        st.setProperty("--spread", gap.toFixed(1) + "px"); st.setProperty("--rest", rest.toFixed(1) + "px"); st.setProperty("--ads", HS.ads.toFixed(2));
+        E.cross.classList.toggle("ads", HS.ads > 0.5);
+      }
+    }
     const lock = !G.intent.aimNdc; if (E.cross.classList.contains("lock") !== lock) E.cross.classList.toggle("lock", lock);
     for (let i = noiseRings.length - 1; i >= 0; i--) { const n = noiseRings[i]; n.t += dt / 0.6; const r = (n.m.userData as { r: number }).r; n.m.scale.setScalar(r * (0.3 + 0.7 * Math.min(1, n.t))); (n.m.material as THREE.MeshBasicMaterial).opacity = 0.5 * (1 - n.t); if (n.t >= 1) { n.m.removeFromParent(); (n.m.material as THREE.Material).dispose(); n.m.geometry.dispose(); noiseRings.splice(i, 1); } }
     for (const ev of drainEquipmentEvents()) {
