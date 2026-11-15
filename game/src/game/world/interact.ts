@@ -10,14 +10,14 @@ import { CLEARINGS, SUPPLY_DROPS, ZIPLINES } from "./layout";
 import { doorPrompt, useDoor } from "./buildings";
 import { sfx } from "../core/audio";
 import { hud } from "../ui/hud";
-import { nearestCrate, spawnPickup, beam, RAR_COLOR } from "../loot/raidloot";
+import { nearestCrate, addSupplyCrate } from "../loot/raidloot";
 import { rollCrate } from "../loot/tables";
 import * as K from "./kit_build";
 import { mergePieces } from "./kitutil";
 
 export const EXTRACT_TIME = 3;
 let lastPp = new THREE.Vector3(), lastHp = 100, fading = false;
-export let onExtract: (id: "hatch" | "raft" | "tunnel", bonus: number) => void = () => {};
+export let onExtract: (id: "hatch" | "raft" | "tunnel" | "boat", bonus: number) => void = () => {};
 export const setOnExtract = (f: typeof onExtract) => { onExtract = f; };
 let drop: { t: number; at: { x: number; z: number; area: string }; done: boolean; smoke?: THREE.Points; gondola?: THREE.Object3D } | null = null;
 
@@ -46,7 +46,7 @@ export function updateInteractions(dt: number) {
     if (moved || hit) { if (G.extract.t > 0.15 && hit) hud.toast("Hit! The countdown starts over"); G.extract.t = 0; }
     else { const before = G.extract.t; G.extract.t += dt; if (Math.floor(before) !== Math.floor(G.extract.t)) sfx("tick"); }
     inEx.fill.scale.setScalar(Math.max(0.01, G.extract.t / EXTRACT_TIME));
-    const label = inEx.id === "raft" ? "🛶 Raft home, +30% sale" : inEx.id === "tunnel" ? "🕳️ Smuggler Tunnel home" : "🏠 Hatch home";
+    const label = inEx.id === "raft" ? "🛶 Raft home, +30% sale" : inEx.id === "tunnel" ? "🕳️ Smuggler Tunnel home" : inEx.id === "boat" ? "🚣 Row the cove boat home" : "🏠 Hatch home";
     hud.extract(label, Math.max(0.02, G.extract.t / EXTRACT_TIME), moved ? null : Math.max(0, EXTRACT_TIME - G.extract.t));
     if (G.extract.t >= EXTRACT_TIME) { sfx("extract"); hud.extract("", 0); const b = inEx.bonus, id = inEx.id; G.alive = false; fadeTo(() => onExtract(id, b)); }
   } else { if (G.extract.id) { for (const e of exits) e.fill.scale.setScalar(0.01); hud.extract("", 0); } G.extract = { id: "", t: 0 }; }
@@ -71,7 +71,7 @@ export function updateInteractions(dt: number) {
     const g = K.asset("supply_gondola"), gy = groundHeight(p.x, p.z);
     const obj = mergePieces(g.pieces); obj.add(g.parts.root);
     obj.position.set(p.x - 1.6, gy, p.z - 0.6); obj.rotation.y = 0.5; G.stage.scene.add(obj); drop.gondola = obj; block(p.x - 1.6, p.z - 0.6, 1.1, false, false, "drop");
-    const items = rollCrate("gold", G.lootCtx, G.rng); items.forEach((id, k) => spawnPickup(id, V(p.x, p.z, 6), k, items.length)); beam(V(p.x, p.z), RAR_COLOR.rare);
+    addSupplyCrate(p.x - 1.6, p.z - 0.6, obj); // its loot stays inside: searched and taken in the looting screen
     const n = 60, pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) pos.set([p.x + (G.rng() - 0.5), gy + G.rng() * 8, p.z + (G.rng() - 0.5)], i * 3);
     const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     drop.smoke = new THREE.Points(geo, new THREE.PointsMaterial({ color: "#ff5a3a", size: 1.4, transparent: true, opacity: 0.55, depthWrite: false })); G.stage.scene.add(drop.smoke);

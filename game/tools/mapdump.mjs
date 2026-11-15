@@ -12,7 +12,8 @@ const b = await chromium.launch({ executablePath: "/usr/bin/chromium", args: ["-
 const p = await b.newPage(); const errs = []; p.on("pageerror", (e) => errs.push(String(e)));
 await p.goto(`${BASE}/game.html?fresh=1&raid=1&peace=1${seed ? `&seed=${seed}` : ""}`);
 await p.waitForFunction(() => window.__g?.world?.(), null, { timeout: 90000 });
-const r = await p.evaluate(() => { const g = window.__g, w = g.world(); return { lint: w.lint, world: { seed: w.seed, placed: w.placed, scattered: w.scattered, edge: w.edge, kitTris: w.kitTris, grass: w.grass, buildMs: w.ms }, svg: g.svg() }; });
+// the exact lint (G1.5-13): the demo's route locks must hold at a monkey's real radius, not just on the nav raster
+const r = await p.evaluate(() => { const g = window.__g, w = g.world(); return { lint: g.lint({ exact: true }), world: { seed: w.seed, placed: w.placed, scattered: w.scattered, edge: w.edge, kitTris: w.kitTris, grass: w.grass, buildMs: w.ms }, svg: g.svg() }; });
 await b.close();
 console.log(JSON.stringify({ ...r.lint, world: r.world }, null, 1)); if (errs.length) console.log("PAGE ERRORS:", errs.join("\n"));
 mkdirSync(dirname(out), { recursive: true }); writeFileSync(out, r.svg); console.log("wrote", out);

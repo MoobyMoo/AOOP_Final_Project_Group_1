@@ -66,7 +66,7 @@ const edge = { kind: "jungle" as string };
 /** the surface at a bullet's stopping point (x, z) */
 export function surfaceAt(x: number, z: number): Surface {
   const g = wallAt(x, z); if (g?.mat) return WALL_MAT[g.mat] ?? "wood";
-  for (const c of G.crates) if (Math.abs(c.x - x) < 1.3 && Math.abs(c.z - z) < 1.3) return c.tier === "gold" ? "metal" : "wood";
+  for (const c of G.crates) if (c.kind !== "body" && Math.abs(c.x - x) < 1.3 && Math.abs(c.z - z) < 1.3) return c.tier === "gold" ? "metal" : "wood";
   for (const w of WALLS) if (segDist(x, z, w.pts[0][0], w.pts[0][1], w.pts[1][0], w.pts[1][1]) < 1) return WALL_MAT[w.kind] ?? "stone";
   const h = ensure();
   let best: Item | null = null, bd = 0.6;   // a piece whose collider edge is within 0.6 u of the stop point

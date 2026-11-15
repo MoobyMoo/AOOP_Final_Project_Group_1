@@ -295,7 +295,9 @@ function buildOne(scene: THREE.Scene, p: Placed, rng: () => number) {
   else if (p.k === "gate") b = K.gate(!!o.open);
   else b = K.asset(p.k);
   let y = o.y !== undefined ? Number(o.y) : groundHeight(p.x, p.z) - (o.deck ? DECK_Y : p.k === "bridge" ? 0.72 : 0.04);
-  const tilt = o.y === undefined && !o.deck ? settle(p.k, p.x, p.z) : undefined;
+  // o.tilt [x, z] radians: an authored lean (a collapsed span hanging into the water); o.lift: raised off the ground by this much
+  const tilt = Array.isArray(o.tilt) ? new THREE.Quaternion().setFromEuler(new THREE.Euler(Number(o.tilt[0]), 0, Number(o.tilt[1]))) : o.y === undefined && !o.deck ? settle(p.k, p.x, p.z) : undefined;
+  if (o.lift !== undefined) y += Number(o.lift);
   if (o.y === undefined && p.k !== "bridge") y += clearance(lowFlats(p.k.startsWith("wall:") ? null : p.k + (p.k === "gate" ? !!o.open : ""), b.pieces), p.x, p.z, yaw, s, y, tilt);
   if (o.deck && o.y === undefined) y = deckY(p.x, p.z, p.k === "boardwalk_ramp" ? 1.6 : Math.max(1.5, Number(o.len ?? 4) / 2 + 0.2), y, lowFlats(p.k, b.pieces));
   // collinear deck sections also share their side boards where they overlap: every other one sits 6 mm to the side

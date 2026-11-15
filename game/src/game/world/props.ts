@@ -4,7 +4,8 @@
 // Built once with the world; resetProps() puts every per-raid state back at the start of a raid.
 import * as THREE from "three";
 import { G, V } from "../core/state";
-import { WALLS, DOOR, POI, PORTALS, ZIPLINES, PLACED, UNDER_X } from "./map/grove";
+import { WALLS, DOOR, POI, PORTALS, ZIPLINES, PLACED, UNDER_X, DEMO, COVE_BOAT, ROUTE_LOCKS, portalOpen } from "./map/grove";
+import { houseModule } from "./kit_house";
 import { groundHeight } from "./terrain";
 import { setGate, gate } from "./grid";
 import { addPieces, placedParts, contactShade, pieceRec } from "./dress";
@@ -20,7 +21,7 @@ type BreakWall = { id: string; parts: Record<string, THREE.Object3D>; chunks: Ch
 const walls = new Map<string, BreakWall>();
 const yawOf = (a: number[], b: number[]) => Math.atan2(b[0] - a[0], b[1] - a[1]);
 
-export type Exit = { id: "hatch" | "raft" | "tunnel"; x: number; z: number; ring: THREE.Mesh; fill: THREE.Mesh; bonus: number; open: boolean; armed?: boolean };
+export type Exit = { id: "hatch" | "raft" | "tunnel" | "boat"; x: number; z: number; ring: THREE.Mesh; fill: THREE.Mesh; bonus: number; open: boolean; armed?: boolean };
 export const exits: Exit[] = [];
 export const portalMarks: { id: string; x: number; z: number; to: { x: number; z: number }; label: string; oneWay?: boolean }[] = [];
 /** things you can read with E: the notes and gags from the Shorts (LORE.md) */
@@ -55,9 +56,20 @@ export function buildProps(scene: THREE.Scene) {
   { const [r, f] = ring(POI.hatch.x, POI.hatch.z, "#ffe066"); exits.push({ id: "hatch", x: POI.hatch.x, z: POI.hatch.z, ring: r, fill: f, bonus: 0, open: true }); }
   { const [r, f] = ring(POI.raft.x, POI.raft.z, "#7fd4ff"); exits.push({ id: "raft", x: POI.raft.x, z: POI.raft.z, ring: r, fill: f, bonus: 0.3, open: true }); }
   { const [r, f] = ring(POI.tunnelExit.x, POI.tunnelExit.z, "#c9a0ff"); exits.push({ id: "tunnel", x: POI.tunnelExit.x, z: POI.tunnelExit.z, ring: r, fill: f, bonus: 0, open: false }); }
+  // the cove boat (G1.5-13): the slice's second way home, the same ring and countdown as the others. The smugglers'
+  // rowboat (the house kit's boat) lies at the waterline beside the ring
+  { const [r, f] = ring(POI.coveBoat.x, POI.coveBoat.z, "#9fe6c8"); exits.push({ id: "boat", x: POI.coveBoat.x, z: POI.coveBoat.z, ring: r, fill: f, bonus: 0, open: true });
+    try { const b = houseModule("boat"), q = COVE_BOAT.boat, y = groundHeight(q.x, q.z) + 0.04; if (pieceRec.on) pieceRec.owner = { src: "prop", k: "cove_boat", x: q.x, z: q.z, yaw: q.yaw, s: 1, id: "cove-boat" };
+      // it lies on the shelving beach: tilt it to the slope like a loose prop (dress.ts settle), up to 12 deg
+      const e = 0.9, gx = (groundHeight(q.x + e, q.z) - groundHeight(q.x - e, q.z)) / (2 * e), gz = (groundHeight(q.x, q.z + e) - groundHeight(q.x, q.z - e)) / (2 * e);
+      const n = new THREE.Vector3(-gx, 1, -gz).normalize(), tq = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), n), ang = 2 * Math.acos(Math.min(1, tq.w)), max = (12 * Math.PI) / 180;
+      addPieces(b.pieces, q.x, q.z, q.yaw, 1.25, y, ang > max ? new THREE.Quaternion().slerp(tq, max / ang) : tq); pieceRec.owner = null; contactShade(q.x, q.z, 1.4, 2.6, q.yaw, 4, 0.6); } catch (e) { console.warn("cove boat model", e); } }
+  // the demo slice shuts the raft (north of the locks) and the tunnel (the grotto)
+  if (DEMO) for (const e of exits) if (e.id === "raft" || e.id === "tunnel") { e.open = false; e.ring.visible = e.fill.visible = false; }
   // ---- portals (the models are placed pieces; these are the stand-here marks)
   portalMarks.length = 0;
   for (const p of PORTALS) {
+    if (!portalOpen(p.id)) continue; // shut in the demo: the cave has fallen in, the well is boarded (reads below)
     portalMarks.push({ id: p.id, x: p.a.x, z: p.a.z, to: p.b, label: p.label, oneWay: p.oneWay });
     if (!p.oneWay) portalMarks.push({ id: p.id + "-back", x: p.b.x, z: p.b.z, to: p.a, label: "Climb back up" });
   }
@@ -88,6 +100,9 @@ export function buildProps(scene: THREE.Scene) {
   { const p = byId("statue"); reads.push({ x: p.x + 1.6, z: p.z, label: "Read the plaque", text: () => "A golden monkey in a bowler hat. The plaque: IN BANANAS WE TRUST." }); }
   { const p = byId("vat"); reads.push({ x: p.x + 2.6, z: p.z + 2.6, label: "Look at the vat", text: () => "MOLASSES. The tank split years ago; the spill never quite dried." }); }
   { const p = byId("bomber"); reads.push({ x: p.x - 2.4, z: p.z + 3.4, label: "Look at the bomber", text: () => "Bullet holes all over the wings, none on the engines. The ones hit there never made it back." }); }
+  // the demo's shut ways: read them with E (the map marks them too, ROUTE_LOCKS)
+  for (const l of ROUTE_LOCKS) reads.push({ x: l.inside[0], z: l.inside[1], label: `Look at the ${l.label.toLowerCase()}`, text: () => l.note });
+  if (!portalOpen("camp-well")) { const w = PORTALS.find((q) => q.id === "camp-well")!; reads.push({ x: w.a.x, z: w.a.z, label: "Look down the well", text: () => "The Peel Gang nailed planks over it. Something down there echoes." }); }
   { const p = byId("fusebox"); reads.push({ x: p.x - 1.2, z: p.z + 1.2, label: "Pull the lever (PULL TO OPEN)", text: pullLever }); }
 }
 let leverT = -1;
@@ -128,10 +143,10 @@ const dq = new THREE.Quaternion(), ev = new THREE.Euler();
 // when the crate list changes (one draw call for all of them)
 let crateShade: THREE.Mesh | null = null, crateKey = "";
 function shadeCrates() {
-  const list = G.crates, key = list.length ? `${list.length}:${list[0].id}:${list[list.length - 1].id}` : "";
+  const list = G.crates.filter((c) => c.kind !== "body"), key = list.length ? `${list.length}:${list[0].id}:${list[list.length - 1].id}` : "";
   if (key === crateKey) return; crateKey = key;
   if (crateShade) { crateShade.removeFromParent(); crateShade.geometry.dispose(); crateShade = null; }
-  crateShade = dynamicDecals(() => { for (const c of list) { if (c.fixed === "satchel" || c.obj.position.y > groundHeight(c.x, c.z) + 0.2) continue; contactShade(c.x, c.z, c.tier === "green" ? 0.85 : 0.68, 0.5, c.obj.rotation.y, 4, 0.82); } });
+  crateShade = dynamicDecals(() => { for (const c of list) { if (c.fixed === "satchel" || c.obj.position.y > groundHeight(c.x, c.z) + 0.2) continue; contactShade(c.x, c.z, c.kind === "container" ? (c.r ?? 0.6) * 1.3 : c.tier === "green" ? 0.85 : 0.68, c.kind === "container" ? (c.r ?? 0.6) * 0.95 : 0.5, c.obj.rotation.y, 4, 0.82); } });
   if (crateShade) G.stage.scene.add(crateShade);
 }
 /** per render frame */
