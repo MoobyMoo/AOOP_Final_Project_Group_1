@@ -51,8 +51,9 @@ const tmpM = new THREE.Matrix4();
 export type PieceOwner = { src: "placed" | "scatter" | "edge" | "house" | "prop"; k: string; x: number; z: number; yaw: number; s: number; id?: string; p?: Placed };
 export const pieceRec = { on: typeof location !== "undefined" && /[?&]glitch\b/.test(location.search), owner: null as PieceOwner | null, list: [] as { o: PieceOwner; geo: THREE.BufferGeometry; m: THREE.Matrix4; mat: MatId; tall: boolean }[] };
 /** add one piece to its chunk at a world transform (y defaults to just under the ground, so bases embed) */
-export function addPiece(p: KitPiece, x: number, z: number, yaw: number, s = 1, y?: number) {
-  tmpM.copy(M(x, y ?? groundHeight(x, z) - 0.04, z, 0, yaw, 0, s));
+export function addPiece(p: KitPiece, x: number, z: number, yaw: number, s = 1, y?: number, tilt?: THREE.Quaternion) {
+  if (tilt) tmpM.compose(tv.set(x, y ?? groundHeight(x, z) - 0.04, z), tq.setFromAxisAngle(UP, yaw).premultiply(tilt), ts.setScalar(s));
+  else tmpM.copy(M(x, y ?? groundHeight(x, z) - 0.04, z, 0, yaw, 0, s));
   const geo = p.geo.clone().applyMatrix4(tmpM);
   if (p.tall) tagObject(geo, x, z);
   if (pieceRec.on && pieceRec.owner) pieceRec.list.push({ o: pieceRec.owner, geo: p.geo, m: tmpM.clone(), mat: p.mat, tall: p.tall });
@@ -70,7 +71,18 @@ function tagObject(geo: THREE.BufferGeometry, _x: number, _z: number) {
   for (let i = 0; i < n; i++) a.set(q, i * 4);
   geo.setAttribute("aObj", new THREE.BufferAttribute(a, 4));
 }
-export function addPieces(ps: KitPiece[], x: number, z: number, yaw: number, s = 1, y?: number) { for (const p of ps) addPiece(p, x, z, yaw, s, y); }
+export function addPieces(ps: KitPiece[], x: number, z: number, yaw: number, s = 1, y?: number, tilt?: THREE.Quaternion) { for (const p of ps) addPiece(p, x, z, yaw, s, y, tilt); }
+const tv = new THREE.Vector3(), tq = new THREE.Quaternion(), ts = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0);
+/** small loose props settle onto the slope they stand on (up to 15 deg): flat-bottomed on a slope they lifted one side
+ *  clear of the ground by up to 0.4 u (G1.5-12). Walls, fences, buildings and set pieces stay upright */
+const LOOSE = /^(barrel_|crate_wood|crate_green|crate_gold|crate_stack|sack|banana_stash|log_bench|ammo_box|satchel|bottle|lantern$|bedroll|rubble_pile|sandbags|bomber_debris)/;
+function settle(k: string, x: number, z: number): THREE.Quaternion | undefined {
+  if (!LOOSE.test(k)) return undefined;
+  const e = 0.6, gx = (meshHeight(x + e, z) - meshHeight(x - e, z)) / (2 * e), gz = (meshHeight(x, z + e) - meshHeight(x, z - e)) / (2 * e);
+  if (Math.hypot(gx, gz) < 0.04) return undefined;
+  const n = new THREE.Vector3(-gx, 1, -gz).normalize(), q = new THREE.Quaternion().setFromUnitVectors(UP, n), ang = 2 * Math.acos(Math.min(1, q.w)), max = (15 * Math.PI) / 180;
+  return ang > max ? new THREE.Quaternion().slerp(q, max / ang) : q;
+}
 const tallMats: Partial<Record<MatId, THREE.Material>> = {};
 function tallMaterial(id: MatId) {
   if (!tallMats[id]) { const base = kitMaterial(id) as THREE.MeshStandardMaterial; const m = base.clone(); m.onBeforeCompile = base.onBeforeCompile; m.customProgramCacheKey = base.customProgramCacheKey; tallMats[id] = id === "emissive" ? m : withCutout(m); }
@@ -229,9 +241,10 @@ function lowFlats(key: string | null, pieces: KitPiece[]) {
   if (key) flatCache.set(key, pts); return pts;
 }
 /** how far a piece placed at y must rise so its low flat faces clear the drawn terrain */
-function clearance(pts: number[], x: number, z: number, yaw: number, s: number, y: number) {
-  const c = Math.cos(yaw), sn = Math.sin(yaw); let lift = 0;
-  for (let i = 0; i < pts.length; i += 3) { const wx = x + (pts[i] * c + pts[i + 2] * sn) * s, wz = z + (-pts[i] * sn + pts[i + 2] * c) * s; lift = Math.max(lift, meshHeight(wx, wz) + CLEAR - (y + pts[i + 1] * s)); }
+function clearance(pts: number[], x: number, z: number, yaw: number, s: number, y: number, tilt?: THREE.Quaternion) {
+  const m = new THREE.Matrix4().compose(new THREE.Vector3(x, 0, z), new THREE.Quaternion().setFromAxisAngle(UP, yaw).premultiply(tilt ?? new THREE.Quaternion()), new THREE.Vector3(s, s, s)), v = new THREE.Vector3();
+  let lift = 0;
+  for (let i = 0; i < pts.length; i += 3) { v.set(pts[i], pts[i + 1], pts[i + 2]).applyMatrix4(m); lift = Math.max(lift, meshHeight(v.x, v.z) + CLEAR - (y + v.y)); }
   return lift;
 }
 /** flat sheets among a piece's moving parts (the vat's spill): lift each clear of the terrain and keep it out of the
@@ -282,12 +295,13 @@ function buildOne(scene: THREE.Scene, p: Placed, rng: () => number) {
   else if (p.k === "gate") b = K.gate(!!o.open);
   else b = K.asset(p.k);
   let y = o.y !== undefined ? Number(o.y) : groundHeight(p.x, p.z) - (o.deck ? DECK_Y : p.k === "bridge" ? 0.72 : 0.04);
-  if (o.y === undefined && p.k !== "bridge") y += clearance(lowFlats(p.k.startsWith("wall:") ? null : p.k + (p.k === "gate" ? !!o.open : ""), b.pieces), p.x, p.z, yaw, s, y);
+  const tilt = o.y === undefined && !o.deck ? settle(p.k, p.x, p.z) : undefined;
+  if (o.y === undefined && p.k !== "bridge") y += clearance(lowFlats(p.k.startsWith("wall:") ? null : p.k + (p.k === "gate" ? !!o.open : ""), b.pieces), p.x, p.z, yaw, s, y, tilt);
   if (o.deck && o.y === undefined) y = deckY(p.x, p.z, p.k === "boardwalk_ramp" ? 1.6 : Math.max(1.5, Number(o.len ?? 4) / 2 + 0.2), y, lowFlats(p.k, b.pieces));
   // collinear deck sections also share their side boards where they overlap: every other one sits 6 mm to the side
   const side = o.deck && p.k !== "boardwalk_ramp" ? (deckSide++ % 2 ? 0.006 : -0.006) : 0;
-  addPieces(b.pieces, p.x + Math.sin(yaw) * side, p.z + Math.cos(yaw) * side, yaw, s, y); // (a section runs along its local x)
-  if (b.parts.root.children.length) { b.parts.root.position.set(p.x, y, p.z); b.parts.root.rotation.y = yaw; b.parts.root.scale.setScalar(s); scene.add(b.parts.root); clearFlatParts(b.parts.root); if (p.id) placedParts.set(p.id, b.parts); }
+  addPieces(b.pieces, p.x + Math.sin(yaw) * side, p.z + Math.cos(yaw) * side, yaw, s, y, tilt); // (a section runs along its local x)
+  if (b.parts.root.children.length) { b.parts.root.position.set(p.x, y, p.z); b.parts.root.quaternion.setFromAxisAngle(UP, yaw).premultiply(tilt ?? new THREE.Quaternion()); b.parts.root.scale.setScalar(s); scene.add(b.parts.root); clearFlatParts(b.parts.root); if (p.id) placedParts.set(p.id, b.parts); }
   else if (p.id) placedParts.set(p.id, b.parts);
 }
 export function buildPlaced(scene: THREE.Scene, list: Placed[], rng: () => number, src: "placed" | "scatter" = "placed") {

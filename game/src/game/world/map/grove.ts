@@ -202,7 +202,7 @@ for (const [x, z] of [[-58, 104], [-22, 96], [10, 106], [46, 97], [78, 104], [-6
 // ---------------------------------------------------------------- The Prison Ferry (enterable hull; the stern boards break)
 put("ferry", 64, 101, 0, 1, undefined, "ferry");
 breakable("hull-boards", "hull", 60, 98.5, 60, 103.5, 4, false, "The ferry's hold");
-group(64, 101, 0, [["barrel_rust", 4.4, 1.8], ["sack_pile", 0.6, 1.9, 0.2], ["crate_wood_b", -2.4, -1.9, 0.3], ["barrel_teal", -6.6, -3.4], ["barrel_teal", -7.4, 2.6], ["driftwood", -8.5, 0.5, 1.4, 1.5], ["rockl", 9.5, 2, 0, 1.4], ["rockl", 8.5, -4.5, 2, 1.2], ["rockm", -6, 5.6], ["log", -9, -3, 0.4], ["signpost_a", -7.6, -0.8, 1.2]]);
+group(64, 101, 0, [["barrel_rust", 4.4, 1.4], ["sack_pile", -0.6, 1.4, 0.2], ["crate_wood_b", -1.6, -0.6, 0.3], ["barrel_teal", -6.6, -3.4], ["barrel_teal", -7.4, 2.6], ["driftwood", -8.5, 0.5, 1.4, 1.5], ["rockl", 9.5, 2, 0, 1.4], ["rockl", 8.5, -4.5, 2, 1.2], ["rockm", -6, 5.6], ["log", -9, -3, 0.4], ["signpost_a", -7.6, -0.8, 1.2]]);
 
 // ---------------------------------------------------------------- Smuggler's Cove (cave portal into the grotto)
 put("portal_cave", -97, 91, H, 1, undefined, "cove-cave");
@@ -220,7 +220,7 @@ group(-14, 72, 0, [["palm", 0, 0], ["palm", 3.5, 2.5, 1], ["log", 1.8, -2.2, 0.8
 group(14, 70, 0, [["palm", 0, 0, 2], ["tree", -3.6, 2.4], ["rockl", 2.6, 2.4, 0, 1.2], ["stump", -1.6, -2.4], ["bigleaf", 3.6, -1.4]]);
 // the fork: three ways on (rule 9: a decision, a sign, a wreck)
 group(0, 64, 0, [["signpost_key", -2.8, -1.6, 0.6], ["signpost_raft", 2.6, -2.4, -0.4], ["lantern_post", 2.9, 1.9, 1], ["log_bench", -3.4, 2.4, 0.3], ["rockm", 4.5, 3.5]]);
-group(-18, 66, 0.2, [["crate_wood_b", 0, 0, 0.4], ["barrel_wood", 1.3, 0.5], ["barrel_wood", 1.9, -0.6], ["sack_pile", -1.8, 0.6, 1], ["log", -0.6, 2.2, 0.2], ["stump", 2.8, 1.9]]); // a looted cart's load
+group(-18, 66, 0.2, [["crate_wood_b", 0, 0, 0.4], ["barrel_wood", 1.3, 0.5], ["barrel_wood", 1.9, -0.6], ["sack_pile", -2.3, 0.9, 1], ["log", -0.6, 2.2, 0.2], ["stump", 2.8, 1.9]]); // a looted cart's load
 group(4, 52, 0, [["log", -3.4, 0.4, 1.2], ["log", 3.2, -0.6, 0.3], ["stump", 4.4, 1.2], ["banana", -4.6, -1.6], ["banana", 5.2, -2.2], ["rockm", -5.4, 2.2], ["bush", 5.8, 2.6]]); // the overgrown middle road
 
 // ---------------------------------------------------------------- Lookout Bend (a bandit lookout over the west trail)
@@ -242,8 +242,8 @@ put("tent_a", -71, 26, 0.5); put("tent_b", -66.5, 16.5, 0.35); put("tent_b", -55
 group(-52, 34, -0.4, [["tarp", 0, 0], ["bedroll_b", -0.3, -0.3, 0.4], ["crate_wood_b", 1.4, -1.0, 0.3], ["lantern_post", -3.2, 2.2, 0.4]]);
 group(-56, 30, 0, [["crate_green", 1.7, -0.8, -0.25], ["barrel_wood", 0.4, 1.6], ["barrel_rust", 1.4, 1.3], ["sack_pile", 2.8, 1.4, 0.4], ["ammo_box", -0.8, 1.6, 0.5], ["sack", 0.7, -1.7, 1]]);
 group(-66, 35, 0, [["lemon_stand", 0, 0, 0.3], ["barrel_teal", 2.2, 0.8], ["sack", -1.4, 0.9], ["banana_stash", -3, -0.6, 0.2]]);
-group(-70, 21, 0, [["banana_stash", 1.2, 2.4, 0.2], ["barrel_wood", -5.5, 1.4], ["sack_pile", -5, 6.5, 1.2], ["lantern_post", 3.4, -3.2, 2.2], ["barrel_rust", -6, -6.4]]);
-group(-49, 15, 0, [["barrel_wood", 0, 0], ["barrel_wood", 1, 0.8], ["sack_pile", -1.8, 0.4, 0.3], ["lantern_post", 0.8, 3.5, 3]]);
+group(-70, 21, 0, [["banana_stash", 1.2, 2.4, 0.2], ["barrel_wood", -5.5, 1.4], ["sack_pile", -5, 6.5, 1.2], ["lantern_post", 4.6, -2.6, 2.2], ["barrel_rust", -6, -6.4]]);
+group(-49, 15, 0, [["barrel_wood", 0, 0], ["barrel_wood", 1, 0.8], ["sack_pile", -2.4, 0.6, 0.3], ["lantern_post", 0.8, 3.5, 3]]);
 group(-60, 43, 0, [["signpost_a", 3.2, 1.6, 0.3], ["barrel_wood", -3, 0.6], ["rockm", 4.5, 3], ["log", -4.8, 2.6, 0.5]]);
 // G1 council fix round 1: the camp read as equipment spaced out on clean sand. It is lived in now: a sandbag post
 // covering the south gate with a decoy sentry behind it, the gang's washing strung by the stores, a lean-to bunk, crates
@@ -253,7 +253,7 @@ put("sandbags", -63.9, 38.9, -0.12);
 put("washing_line", -57.2, 34.2, 0.25);
 put("lean_to", -67.6, 30.9, 0.35);
 group(-67.6, 30.9, 0.35, [["lantern", 2.3, 1.9], ["sack", -2.3, 1.6, 0.4], ["barrel_teal", 2.6, -0.6]]);
-put("crate_stack", -48.6, 32.6, 0.3); put("crate_stack", -74.2, 37.0, -0.25);
+put("crate_stack", -47.8, 32.6, 0.3); put("crate_stack", -74.2, 37.0, -0.25);
 put("dummy_seated", -62.7, 24.3, 0.1);
 group(-69.4, 20.4, 0, [["sack_pile", 0, 0, 0.8], ["bedroll_a", 1.9, 0.9, 0.3], ["lantern", -1.4, 1.0]]);
 // the shortcut track east of the breakable palisade
@@ -272,7 +272,7 @@ put("zip_tower", 21, 8, 0, 1, undefined, "zip-tower");
 rows(-16, 22, -12, 27); rows(8, 34, 23, 38.5); rows(-16, 34.5, -4, 38.5, 2.4, 2.2);
 group(2, 22, 0, [["barrel_wood", 3.5, -2.5], ["barrel_wood", 4.4, -1.8], ["sack_pile", 4.2, 0.4, 1.4], ["log_bench", -3, 3.5, 0.2], ["lantern_post", -3.2, -2.6, 1], ["crate_wood_b", 5.6, 3.2, 0.3], ["banana_stash", -4.5, 0.4, 1.2]]);
 group(6, 31, 0, [["barrel_rust", 3, 1.6], ["sack", -2.6, 1.2], ["crate_wood", -2.8, -1.8, 0.5], ["log", 1, 3.6, 0.3]]);
-group(-9, 31, 0, [["barrel_wood", 3.2, -2.4], ["barrel_wood", 3.9, -1.5], ["barrel_rust", 3, 3.4]]);
+group(-9, 31, 0, [["barrel_wood", 3.2, -2.4], ["barrel_wood", 3.9, -1.5], ["barrel_rust", 3.6, 3.4]]);
 group(21, 8, 0, [["barrel_wood", -3, 1.5], ["sack_pile", -3.2, -1.6, 0.4], ["signpost_a", 2.6, 3, 0.2], ["crate_wood_b", 3, -2, 0.2]]);
 group(-6.5, 18.5, 0, [["log_bench", -2.4, 0.4], ["barrel_teal", 3.6, 0.2], ["lantern_post", 1.6, 1.8, 1], ["sack", -4.4, 0.6]]);
 group(-22, 23, 0, [["signpost_a", 0.6, -2.4, 1.2], ["banana_stash", 0.4, 2.2], ["barrel_wood", -1.2, 2.8]]);
@@ -311,7 +311,7 @@ group(68, 6, 0, [["pillar_a", -9.6, -3.4], ["pillar_b", -3.2, -3.8], ["pillar_c"
 put("ruin_arch", 68, 14.2, 0); put("ruin_steps", 68, 16.2, Math.PI);
 group(86, 4, 0, [["rubble_pile_rock", -0.6, -1.6], ["rubble_pile", 0.4, 1.4, 1], ["rubble_pile_rock", 1.2, -0.2, 2], ["rockl", 2.6, 3.6, 0, 1.2], ["pillar_c", -2.4, 2.6, 1.9]]);
 group(53, -16, 0, [["rubble_pile", -1.4, -2.6], ["barrel_wood", 0.6, -3.6], ["pillar_b", 0.4, 2.6]]);
-group(72, -17, 0, [["ruin_wall_broken", 2.4, 1.6, 0.3], ["crate_wood", -2.5, -2.8, 0.2], ["rubble_pile", 5, -2.6, 1], ["pillar_a", 9.5, 1.8], ["barrel_rust", 12, -3.6]]);
+group(72, -17, 0, [["ruin_wall_broken", 2.4, 1.6, 0.3], ["crate_wood", -2.5, -2.8, 0.2], ["rubble_pile", 5, -2.6, 1], ["pillar_a", 9.5, 1.8], ["barrel_rust", 12.6, -2.2]]);
 group(80, -22, 0, [["rubble_pile", -4.2, 2.2], ["lantern_post", -3.4, 1.6, 1], ["pillar_b", 3.6, 3.2]]);
 // the secret shrine: a walled court behind the cellblock. The only way in is through the cracked back wall of cell 1
 wall("stone", 56.5, -22, 56.5, -11.7); wall("stone", 66.5, -22, 66.5, -11.7);
@@ -323,7 +323,7 @@ ridge([[75.6, -24.2], [75.2, -31.6]], 1.25);
 
 // ---------------------------------------------------------------- Bomber Wreck (EGG ep03) and the road from the camp
 put("bomber", -66, -44, 0.3, 1, undefined, "bomber");
-group(-66, -44, 0.3, [["rubble_pile_rock", -7.6, 1.2], ["rubble_pile_rock", -8.4, -1.4, 1], ["barrel_rust", 3.4, 3.2], ["barrel_rust", 4.4, 3.8], ["crate_wood_b", 2.2, -3.4, 0.4], ["sack_pile", 5.6, -3.2, 0.3], ["stump", -4.4, 5.6], ["stump", -2.4, -6.4], ["log", 9.5, 5, 0.6], ["tarp", 9, -5.5, 0.4], ["bedroll_a", 9.2, -5.6, 1], ["campfire", 6.5, -8.5], ["log_bench_b", 4.6, -9.6, 0.4], ["rockl", -10, 6, 0, 1.3], ["lantern_post", 11.5, -2.4, 2]]);
+group(-66, -44, 0.3, [["rubble_pile_rock", -7.6, 1.2], ["rubble_pile_rock", -8.4, -1.4, 1], ["barrel_rust", 3.4, 3.2], ["barrel_rust", 5.0, 4.6], ["crate_wood_b", 2.2, -3.4, 0.4], ["sack_pile", 5.6, -3.2, 0.3], ["stump", -4.4, 5.6], ["stump", -6.4, -4.0], ["log", 9.5, 5, 0.6], ["tarp", 9, -5.5, 0.4], ["bedroll_a", 9.2, -5.6, 1], ["campfire", 6.5, -8.5], ["log_bench_b", 4.6, -9.6, 0.4], ["rockl", -10, 6, 0, 1.3], ["lantern_post", 11.5, -2.4, 2]]);
 put("bomber_debris_a", -56.4, -46.2, 0.8); put("bomber_debris_b", -59.6, -51.6, 2.1); put("bomber_debris_c", -70.6, -51.4, 0.4); put("bomber_debris_a", -70.4, -38.4, 3.6); put("bomber_debris_c", -52.6, -48.8, 1.4); put("bomber_debris_b", -47.6, -51.2, 0.3);
 group(-58, -40, 0, [["rubble_pile_rock", 0, 0], ["stump", 2.4, 1.6], ["stump", -1.6, 2.6], ["log", 3.6, -1.6, 0.6], ["rockm", -3.2, -1.4], ["barrel_rust", 1.2, -2.8], ["sack", -2.4, -2.6], ["rubble_pile_rock", 4.6, 2.6, 1]]); // what the bomber shed along its furrow
 group(-70, -6, 0, [["tarp", 0, 0, 1.1], ["crate_wood_b", 0.4, 0.2, 0.3], ["barrel_wood", -2.6, 1.6], ["sack_pile", 2.4, -2, 0.4], ["bedroll_b", -0.6, -0.8, 1.2], ["lantern_post", 3.4, 2.4, 1], ["rockl", -4.5, -2.5, 0, 1.2]]); // a smuggler stash on the way
@@ -349,7 +349,7 @@ group(69, -36, 0, [["pillar_c", -3, 0.6, 0.4], ["pillar_b", 3.2, -1.4], ["rubble
 group(36, -61, 0, [["mushroom", -2.4, 1.4, 0, 1.6], ["mushroom", 2.2, 2.4, 0, 1.4], ["mushroom", 0.4, -2.8, 0, 1.8], ["rockl", -4.4, -2, 0, 1.3], ["log", 3.8, -1.6, 0.6], ["stump", -3.4, 3.4], ["flowers", 4.6, 3.4]]); // the mushroom ring
 
 // ---------------------------------------------------------------- the north ridge, the river checkpoint, Raft Landing (boathouse + dock)
-ridge([[-60, -84], [-44, -82], [-28, -84], [-12, -82], [1, -84]], 2.2); ridge([[16, -85], [28, -82], [40, -84], [50, -86]], 2.2);
+ridge([[-60, -84], [-44, -82], [-28, -84], [-12, -82], [1, -84]], 2.2); ridge([[17.4, -84.6], [28, -82], [40, -84], [50, -86]], 2.2); // starts clear of the north hut (its first boulder stood in the hut corner)
 fence(2.4, -84.5, 6.4, -84.5); put("gate", 8, -84.5, 0, 1, { open: true }); fence(9.6, -84.5, 15, -84.5);
 put("building:guard_hut", 13.5, -88.5, -H, 1, undefined, "hut-north");
 group(8, -86, 0, [["signpost_raft", -3.6, 3.4, 0.2], ["barrel_wood", 2.6, 3.6], ["lantern_post", -2.8, -2.2, 2], ["sack_pile", -4.4, -3.6, 0.4], ["log_bench", 3.4, -5.6, 0.3], ["barrel_rust", -5.6, -2.2]]);
@@ -362,7 +362,7 @@ put("dock_a", 17, -105.6, H, 1, DOCK); put("dock_b", 17, -109.6, H, 1, DOCK); pu
 put("dock_broken", 13.55, -108, Math.PI, 1, DOCK);
 put("dock_piles", 9.2, -108.1, 0.1, 1, DOCK); put("dock_piles", 5.4, -108.5, -0.25, 1, DOCK);
 put("raft", 17, -118.1, 0, 1, { y: -0.34 }, "raft");
-group(17, -102, 0, [["barrel_teal", 3.0, 0.3], ["barrel_teal", 3.8, -0.6], ["barrel_rust", 3.4, 1.3], ["sack_pile", -3.4, 0.5, 0.4], ["lantern_post", 2.4, -2.5, 1], ["crate_stack", -2.8, 3.6, 0.5], ["signpost_raft", -2.3, 1.9, 0.3], ["log_bench", 5.6, 2.4, 0.3], ["sandbags", 6.6, -1.4, 0.5]]);
+group(17, -102, 0, [["barrel_teal", 3.0, 0.3], ["barrel_teal", 3.8, -0.6], ["barrel_rust", 3.4, 1.3], ["sack_pile", -3.4, 0.5, 0.4], ["lantern_post", 2.4, -2.5, 1], ["crate_stack", -2.8, 3.6, 0.5], ["signpost_raft", -2.3, 1.9, 0.3], ["log_bench", 5.6, 2.4, 0.3], ["sandbags", 6.0, -0.8, 0.5]]);
 // what the river leaves on the high-water line (the wrack line the ground shader paints runs through these)
 for (const [x, z, yaw] of [[5.6, -104.6, 0.4], [9.4, -105.0, 2.1], [12.6, -105.1, 1.2], [21.6, -103.9, 0.2], [25.2, -104.2, 2.6], [28.8, -104.6, 0.9], [33.5, -105.6, 1.7], [38.5, -107.3, 0.3]]) group(x, z, yaw, [["driftwood", 0, 0, 0, rr(1.0, 1.4)], ["shells", 0.9, 0.3], ["pebbles", -0.8, 0.4], ["rocks", 0.3, -0.7, rr(0, 6), rr(0.8, 1.2)]]);
 group(7.6, -103.4, 0, [["rockm", 0, 0, 0.4, 1.1], ["beachgrass", 1.6, 1.2], ["rockl", -3.4, 0.9, 1, 1.1], ["beachgrass", -2.0, 2.2, 2]]);
@@ -436,7 +436,7 @@ export const CRATES: CrateSocket[] = [
   // the ferry hull, one behind the cove rocks; the beach itself holds nothing
   { ...at("ferry", 2.4, 1.2), tier: "green", in: "ferry" }, { x: -88, z: 100, tier: "green" },
   // the checkpoint hut and the lookout
-  { x: 7.4, z: 50.6, tier: "wood" }, { x: -41, z: 57.6, tier: "wood" }, // the checkpoint hut itself holds nothing: it is 23 u from the hatch, the first guard's post
+  { x: 7.25, z: 50.05, tier: "wood" }, { x: -41, z: 57.6, tier: "wood" }, // the checkpoint hut itself holds nothing: it is 23 u from the hatch, the first guard's post
   // Peel Gang camp: the key is up the tower, the far corner from both gates
   { ...at("watchtower", 0.2, 0.25), tier: "gold", fixed: "key", y: 3.07 }, { x: -70.5, z: 31.5, tier: "green" }, { x: -57.4, z: 22, tier: "wood" }, { x: -49.4, z: 37, tier: "wood" },
   // Old Plantation: one in each building, one by the tractor
@@ -447,7 +447,7 @@ export const CRATES: CrateSocket[] = [
   { x: 59.4, z: 9.4, tier: "wood" }, { ...at("cellblock", 5.4, 2.8), tier: "gold", in: "cellblock" }, { x: 79, z: 9, tier: "wood" },
   { x: 82.2, z: -28.4, tier: "gold", fixed: "vault", y: 0.44 }, { x: 64.2, z: -19.6, tier: "gold", fixed: "secret" },
   // the radio shack, the stash on the camp's north road, the bomber
-  { ...at("radio", 0.3, 0.2), tier: "green", fixed: "radio", in: "radio" }, { x: -72.6, z: -8.4, tier: "wood" }, { x: -60, z: -49.4, tier: "green" }, { x: -73.5, z: -39, tier: "wood" },
+  { ...at("radio", 0.3, 0.2), tier: "green", fixed: "radio", in: "radio" }, { x: -72, z: -8.7, tier: "wood" } /* sockets nudged 0.5-0.9 u clear of the next collider (G1.5-12): an outdoor crate turns at random */, { x: -59.6, z: -50.3, tier: "green" }, { x: -73.5, z: -39, tier: "wood" },
   // the hollow: the Sleeper's own chest and a stash at the tree's back
   { x: 8, z: -64, tier: "gold", fixed: "sleeper" }, { x: -13, z: -54, tier: "green" }, { x: -33.4, z: -55.6, tier: "wood" },
   // the falls: beside the pool, and in the nook behind the water

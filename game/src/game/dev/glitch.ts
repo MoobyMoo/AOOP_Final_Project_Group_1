@@ -648,3 +648,10 @@ export function occlTest(x: number, z: number, r = 6) {
   }
   return out2;
 }
+/** debug: the nearest static movement collider to a point and the spot `need` u clear of it, pushed straight away */
+export function clearSpot(x: number, z: number, need: number) {
+  const dg = debugGrid() as unknown as { cols: W[] }, idx = colIndex(dg.cols.filter((q) => q.flags! & 1 && !q.whenOpen && (q.gate === undefined || q.gate < 0)));
+  let px = x, pz = z;
+  for (let it = 0; it < 40; it++) { const d = idx.dist(px, pz); if (d >= need) break; const e = 0.05, gx = idx.dist(px + e, pz) - idx.dist(px - e, pz), gz = idx.dist(px, pz + e) - idx.dist(px, pz - e), l = Math.hypot(gx, gz) || 1; px += (gx / l) * 0.05; pz += (gz / l) * 0.05; }
+  return { from: [x, z, r2(idx.dist(x, z))], to: [r2(px), r2(pz), r2(idx.dist(px, pz))], walk: walkable(px, pz) };
+}
