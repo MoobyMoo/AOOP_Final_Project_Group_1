@@ -10,3 +10,4 @@ __pycache__/
 # generated .blend files (character builds write tools/blender/build/*.blend; the kit writes build/blend/)
 tools/blender/build/*.blend
 tools/blender/build/blend/
+*.blend1

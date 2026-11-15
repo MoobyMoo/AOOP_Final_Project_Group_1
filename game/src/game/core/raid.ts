@@ -118,7 +118,8 @@ export function renderRaid(dt: number) {
   U.uTime.value = G.time; U.uPlayer.value.copy(G.pp);
   // camera: damped follow + a small lead toward the aim point (CODE_FINDINGS 8.1: aim lookahead, kept modest, rule 19)
   const lead = G.aimPoint.clone().sub(G.pp).setY(0); const L = Math.min(lead.length(), 10); lead.setLength(L * 0.22);
-  focus.lerp(G.pp.clone().add(lead), Math.min(1, dt * (G.fireCd > -0.2 ? 3 : 6)));
+  { const y = focus.y; focus.lerp(G.pp.clone().add(lead), Math.min(1, dt * (G.fireCd > -0.2 ? 3 : 6)));
+    focus.y = y + (G.pp.y - y) * Math.min(1, dt * 2.2); } // ground bumps reach the camera slowly: no step-by-step bob (Moo: dizzy)
   G.stage.place(focus, dt, G.time);
   updateCutout(G.stage.camera, chest.copy(G.pp).setY(G.pp.y + 1.1), G.stage.renderer, G.aimPoint);
   updateCampfires(G.time, G.stage.scene, G.stage.renderer);
