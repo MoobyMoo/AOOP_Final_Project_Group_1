@@ -38,11 +38,19 @@ function drawClosed(x: CanvasRenderingContext2D, m: MapImage) {
   x.strokeStyle = "rgba(42,26,18,0.55)"; x.lineWidth = 6; x.stroke();
   x.strokeStyle = "#f46a10"; x.lineWidth = 3.2; x.setLineDash([14, 9]); x.stroke(); x.restore();
 }
+/** the grotto past the tunnel cave-in: washed into the board's fog tone, like the closed north on the surface */
+function drawUnderClosed(x: CanvasRenderingContext2D, m: MapImage) {
+  const step = 0.5, px = step * m.ppu;
+  x.save(); x.fillStyle = "rgba(70,77,85,0.82)";
+  for (let wz = m.minZ; wz < m.maxZ; wz += step) for (let wx = m.minX; wx < m.maxX; wx += step)
+    if (!inDemo(wx + step / 2, wz + step / 2)) x.fillRect((wx - m.minX) * m.ppu, (wz - m.minZ) * m.ppu, px + 0.5, px + 0.5);
+  x.restore();
+}
 export function buildMapShots(scene?: THREE.Scene) {
   const s = scene ?? G.stage.scene;
   const poly = closedPoly();
   imgs.surface = bakeMap(s, "surface", SURFACE, 2048, poly ? { extra: drawClosed, closed: { edge: demoEdge(), poly } } : {});
-  imgs.under = bakeMap(s, "under", UNDER, 1024, { dim: underClosed });
+  imgs.under = bakeMap(s, "under", UNDER, 1024, underClosed ? { dim: true } : { extra: drawUnderClosed });
   if (new URLSearchParams(location.search).has("dev")) (window as unknown as { __map: unknown }).__map = { imgs, open: (l?: Level) => { if (!el) open(l); }, setLevel: (l: Level) => setLevel(l) };
 }
 
@@ -98,7 +106,7 @@ function open(start?: Level) {
       </div>
       <aside class="mv3-side">
         <h3>Legend</h3>
-        <ul>${LEGEND.map(([k, t]) => `<li><span class="ic">${ICON[k]}</span>${t}</li>`).join("")}<li><span class="ic trail-k"></span>Your route this raid</li><li class="closed-row"><span class="ic closed-k"></span><span>Closed until the full game<small>Old Colony, the Vault, the Hollow, Raft Landing and the grotto open after the demo</small></span></li></ul>
+        <ul>${LEGEND.map(([k, t]) => `<li><span class="ic">${ICON[k]}</span>${t}</li>`).join("")}<li><span class="ic trail-k"></span>Your route this raid</li><li class="closed-row"><span class="ic closed-k"></span><span>Closed until the full game<small>Old Colony, the Vault, the Hollow, Raft Landing and the Smuggler Tunnel open after the demo</small></span></li></ul>
         <h3>Raid</h3>
         <dl><dt>Areas found</dt><dd class="num">${[...G.discovered].filter((id) => inDemo(CLEARINGS.find((c) => c.id === id)?.x ?? 0, CLEARINGS.find((c) => c.id === id)?.z ?? 0)).length} / ${areaLabels("surface").length + areaLabels("under").length}</dd><dt>Pins</dt><dd class="num pins">${pins.length}</dd></dl>
       </aside>

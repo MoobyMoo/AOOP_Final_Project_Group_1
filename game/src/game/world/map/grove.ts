@@ -419,7 +419,10 @@ export function inDemo(x: number, z: number) {
   if (!DEMO) return true;
   // the grotto is in the demo (Moo: an underground level with its own map tab); past the cave-in in the Smuggler
   // Tunnel (toward the north exit) is out
-  if (x > UNDER_X) return (x - TUNNEL_LOCK.x) * TUNNEL_LOCK.dx + (z - TUNNEL_LOCK.z) * TUNNEL_LOCK.dz < 1.5;
+  if (x > UNDER_X) { // out = past the cave-in AND in the dead-end tunnel chamber (a bare half-plane also cut into the Grotto Mouth)
+    const ax = x - TUNNEL_LOCK.x, az = z - TUNNEL_LOCK.z;
+    return ax * TUNNEL_LOCK.dx + az * TUNNEL_LOCK.dz < 1.5 || ax * ax + az * az > 26 * 26;
+  }
   return x < -46 ? z > 12.5 : x <= 50 ? z > (x > 44 ? -8 : -3) : z > 14.6;
 }
 /** the cave-in across the Smuggler Tunnel: its centre and the way along the tunnel toward the north exit */
