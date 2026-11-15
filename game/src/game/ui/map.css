@@ -4,7 +4,11 @@
    mapview.ts; every rule is scoped under .mv3 or .mm3. The fallbacks keep it styled if ui3.css is not loaded. */
 .mv3, .mm3 { --ink: var(--a-ink, #f3ead6); --dim: var(--a-dim, #b3a993); --wool: var(--a-wool, #26252a); --wool2: var(--a-wool2, #1d1c20);
   --line: var(--a-line, #3b3940); --brass: var(--a-brass, #c29a5b); --tie: var(--a-tie, #f46a10); --tie-d: var(--a-tie-d, #c4500a);
-  --edge: var(--a-edge, #4a4650); --mfont: var(--a-font, "Barlow Condensed", system-ui, sans-serif); --mono: var(--a-mono, "IBM Plex Mono", ui-monospace, monospace); }
+  --edge: var(--a-edge, #4a4650); --mfont: var(--a-font, "Barlow Condensed", system-ui, sans-serif); --mono: var(--a-mono, "IBM Plex Mono", ui-monospace, monospace);
+  /* map v4: the board the map piece lies on, a slate desk blotter (mapshape.ts BOARD is the same colour) with a felt
+     grain; the island's warm greens and sand sit forward on the cool slate */
+  --board: #313840;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 .07 0 0 0 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 
 /* ---------------------------------------------------------------- M map */
 .mv3 { position: fixed; inset: 0; z-index: 15; display: grid; place-items: center; pointer-events: auto; cursor: default;
@@ -31,12 +35,15 @@
 .mv3-where span { display: block; font: 500 calc(14px * var(--s, 1))/1 var(--mfont); color: var(--dim); text-transform: uppercase; letter-spacing: .6px; }
 .mv3-where b { display: block; margin-top: 4px; font: 600 calc(22px * var(--s, 1))/1 var(--mfont); }
 .mv3-body { display: grid; grid-template-columns: 1fr 230px; min-height: 0; }
-.mv3-view { position: relative; overflow: hidden; margin: 12px 0 12px 14px; background: #121115; border: 1px solid #000; box-shadow: inset 0 0 0 1px var(--line); cursor: crosshair; touch-action: none; }
+.mv3-view { position: relative; overflow: hidden; margin: 12px 0 12px 14px; border: 1px solid #000; cursor: crosshair; touch-action: none;
+  /* the board: field-book rules and a tie-orange margin line over the blotter, lit a touch in the middle */
+  background: radial-gradient(ellipse 75% 70% at 50% 46%, rgba(255,248,230,.06), transparent 72%),
+    linear-gradient(90deg, transparent 46px, rgba(244,106,16,.22) 46px 47px, transparent 47px),
+    repeating-linear-gradient(180deg, transparent 0 33px, rgba(243,234,214,.045) 33px 34px), var(--grain), var(--board);
+  box-shadow: inset 0 0 0 1px var(--line), inset 0 0 80px rgba(8,10,14,.5); }
 .mv3-view.drag { cursor: grabbing; }
-.mv3.under .mv3-view { background: #120f0d; }
-.mv3.under .mv3-plane img { box-shadow: none; }
 .mv3-plane { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
-.mv3-plane img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; box-shadow: 0 0 0 2px #0b0a0d, 0 10px 40px rgba(0,0,0,.6); }
+.mv3-plane img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .mv3-vec, .mm3-vec { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
 .mv3-vec .danger, .mm3-vec .danger { fill: rgba(255,91,74,.1); stroke: #ff5b4a; stroke-width: 2; stroke-dasharray: 8 6; vector-effect: non-scaling-stroke; }
 .mv3-vec .trail polyline, .mm3-vec .trail polyline { fill: none; stroke: var(--tie); stroke-width: 4; stroke-dasharray: 1 7; stroke-linecap: round; vector-effect: non-scaling-stroke; opacity: 1; filter: drop-shadow(0 0 1px rgba(20,12,6,.9)); }
@@ -75,7 +82,10 @@
 .mv3-side .ic { width: 30px; height: 30px; display: grid; place-items: center; flex: none; }
 .mv3-side .ic svg { max-width: 26px; max-height: 26px; }
 .mv3-side .trail-k::before { content: ""; width: 26px; height: 0; border-top: 3px dotted var(--tie); }
-.mv3-side .closed-k { background: repeating-linear-gradient(135deg, rgba(194,154,91,.45) 0 2px, #1d1b22 2px 6px); border: 1px dashed var(--tie); width: 26px; height: 20px; }
+/* the closed north in small: land fading into the board's fog under a torn top, the dashed demo edge across it */
+.mv3-side .closed-k { position: relative; width: 26px; height: 22px; background: linear-gradient(0deg, #6f8b4d 0 40%, #56604f 55%, #464d55 85%);
+  clip-path: polygon(0 16%, 14% 6%, 27% 14%, 41% 3%, 57% 12%, 72% 4%, 86% 13%, 100% 7%, 100% 100%, 0 100%); }
+.mv3-side .closed-k::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 2px dashed var(--tie); }
 .mv3-side dl { margin: 0; display: grid; grid-template-columns: 1fr auto; row-gap: 8px; font: 500 calc(17px * var(--s, 1))/1 var(--mfont); }
 .mv3-side dt { color: var(--dim); } .mv3-side dd { margin: 0; font: 500 calc(16px * var(--s, 1))/1 var(--mono); font-variant-numeric: tabular-nums; }
 .mv3-keys { display: flex; gap: 24px; justify-content: center; padding: 0 0 12px; font: 600 calc(17px * var(--s, 1))/1 var(--mfont); color: var(--dim); }
@@ -85,9 +95,8 @@
 /* placed and scaled like ui3's minimap frame: the mockup's 190 px at the HUD scale */
 .mm3 { position: absolute; top: calc(20px * var(--s, 1)); right: calc(24px * var(--s, 1)); width: 180px; height: 180px; transform: scale(calc(var(--s, 1) * 190 / 180)); transform-origin: 100% 0; transition: opacity .2s; font-family: var(--mfont); }
 .mm3.faded { opacity: .3; }
-.mm3-clip { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; background: #1a1916; border: 2px solid var(--brass);
+.mm3-clip { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; background: var(--grain), var(--board); border: 2px solid var(--brass);
   box-shadow: 0 6px 18px rgba(0,0,0,.5), inset 0 0 18px rgba(0,0,0,.55); }
-.mm3.under .mm3-clip { background: #0f0d0c; }
 .mm3-plane { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 .mm3-plane img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .mm3-icons { position: absolute; inset: 0; }

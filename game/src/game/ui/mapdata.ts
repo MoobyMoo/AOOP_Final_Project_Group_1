@@ -11,10 +11,12 @@ import type { MapFrame } from "./mapbake";
 export type Level = "surface" | "under";
 export const levelOf = (x: number): Level => (x > UNDER_X ? "under" : "surface");
 
-/** the demo slice (G1.5 brief, "Demo scope"): Exile Beach to the Old Plantation, with a strip of the closed north */
-export const SURFACE: MapFrame = { minX: -108, maxX: 104, minZ: -22, maxZ: 120 };
+/** the demo slice (G1.5 brief, "Demo scope"): Exile Beach to the Old Plantation, with a strip of the closed north.
+ *  The frame only bounds the bake: the map is cut to the island's shape (mapshape.ts), so it leaves room around the
+ *  outline for the sea sliver, the torn north edge and the drop shadow */
+export const SURFACE: MapFrame = { minX: -114, maxX: 112, minZ: -24, maxZ: 126 };
 /** the grotto sub-level: its own image, never drawn beside the surface (the level toggle picks one) */
-export const UNDER: MapFrame = { minX: 136, maxX: 202, minZ: -38, maxZ: 74 };
+export const UNDER: MapFrame = { minX: 132, maxX: 206, minZ: -40, maxZ: 78 };
 export const frameOf = (l: Level) => (l === "surface" ? SURFACE : UNDER);
 
 // ---------------------------------------------------------------- the locked routes north

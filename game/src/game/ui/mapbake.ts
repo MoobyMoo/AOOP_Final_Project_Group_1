@@ -7,7 +7,10 @@
 //   2. map pass (GPU, one draw): a Kuwahara filter flattens texture noise into painted areas; a hillshade and a short
 //      cast shadow from the height buffer give relief; ink lines where the height jumps (roof edges, walls, cliffs,
 //      canopies) and along the shoreline; a simplified palette (value bands, held saturation, warm paper shadows).
-//   3. vector overlays on a 2D canvas: roof outlines from the building footprints, a sea hatch, cliff ticks, a grid.
+//   3. vector overlays on a 2D canvas: roof outlines from the building footprints, cliff ticks.
+//   4. the cut-out (mapshape.ts, map v4): the image is clipped to the level's own shape (land and a sliver of sea, or
+//      the grotto's chambers) with an ink edge and a drop shadow, the closed north fading into a torn edge; the grid
+//      and the coast's water-lining are drawn there, on the piece only.
 // Drawn once at load (main.ts buildMapShots): nothing here runs per frame.
 import * as THREE from "three";
 import { G } from "../core/state";
@@ -17,10 +20,10 @@ import { edgeDist } from "../world/grid";
 import { houseFootprints } from "../world/buildings";
 import { LAND } from "../world/map/grove";
 import { exits } from "../world/props";
-import type { EdgeKind } from "../world/map/types";
+import { cutout, type Closed, type MapShape } from "./mapshape";
 
 export type MapFrame = { minX: number; maxX: number; minZ: number; maxZ: number };
-export type MapImage = MapFrame & { id: "surface" | "under"; w: number; h: number; canvas: HTMLCanvasElement; url: string; ppu: number };
+export type MapImage = MapFrame & { id: "surface" | "under"; w: number; h: number; canvas: HTMLCanvasElement; url: string; ppu: number; shape: MapShape };
 
 const POST_VS = /* glsl */ `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
 const POST_FS = /* glsl */ `
@@ -152,13 +155,14 @@ function capture(scene: THREE.Scene, f: MapFrame, w: number, h: number, under: b
   r.setRenderTarget(prevTarget); r.setClearColor(cc, prevClear); r.autoClear = saved.autoClear;
   rt.depthTexture?.dispose(); rt.dispose(); out.dispose(); post.dispose(); quad.geometry.dispose();
   // GL rows run bottom-up; the camera's up is -z, so the first canvas row is the frame's north edge
-  const c = document.createElement("canvas"); c.width = w; c.height = h; const x = c.getContext("2d")!, img = x.createImageData(w, h);
+  // a CPU-backed canvas: the cut-out reads the pixels back once, which a GPU canvas would make a readback stall
+  const c = document.createElement("canvas"); c.width = w; c.height = h; const x = c.getContext("2d", { willReadFrequently: true })!, img = x.createImageData(w, h);
   for (let row = 0; row < h; row++) img.data.set(px.subarray((h - 1 - row) * w * 4, (h - row) * w * 4), row * w * 4);
   x.putImageData(img, 0, 0);
   return c;
 }
 
-/** the vector layer the capture cannot give: roof outlines, the sea hatch, cliff ticks and a reference grid */
+/** the vector layer the capture cannot give: roof outlines and cliff ticks (the grotto: its rock darkened) */
 function overlay(c: HTMLCanvasElement, f: MapFrame, under: boolean) {
   const x = c.getContext("2d")!, ppu = c.width / (f.maxX - f.minX);
   const X = (v: number) => (v - f.minX) * ppu, Z = (v: number) => (v - f.minZ) * ppu;
@@ -173,17 +177,6 @@ function overlay(c: HTMLCanvasElement, f: MapFrame, under: boolean) {
       if (h.hx >= h.hz) { x.moveTo(X(h.x - h.hx + h.hz), Z(h.z)); x.lineTo(X(h.x + h.hx - h.hz), Z(h.z)); } else { x.moveTo(X(h.x), Z(h.z - h.hz + h.hx)); x.lineTo(X(h.x), Z(h.z + h.hz - h.hx)); }
       x.stroke();
     }
-    // the sea and the river: fine ruled swell lines (a printed map's water), only on water pixels
-    const water = document.createElement("canvas"); water.width = c.width; water.height = c.height; const wx = water.getContext("2d")!;
-    wx.strokeStyle = "rgba(230,248,245,0.16)"; wx.lineWidth = 1.2;
-    for (let yy = 4; yy < c.height; yy += 9) { wx.beginPath(); for (let xx = 0; xx <= c.width; xx += 24) wx.lineTo(xx, yy + Math.sin(xx * 0.03 + yy * 0.7) * 1.6); wx.stroke(); }
-    wx.globalCompositeOperation = "destination-in"; wx.fillStyle = "#000"; wx.beginPath();
-    const step = 1.0, k: { kind: EdgeKind | "cave" } = { kind: "jungle" }; // world units per mask sample
-    for (let wz = f.minZ; wz < f.maxZ; wz += step) for (let wxx = f.minX; wxx < f.maxX; wxx += step) {
-      const d = edgeDist(wxx + step / 2, wz + step / 2, k);
-      if (d < -1.5 && (k.kind === "coast" || k.kind === "river")) wx.rect(X(wxx), Z(wz), step * ppu + 0.5, step * ppu + 0.5);
-    }
-    wx.fill(); x.drawImage(water, 0, 0);
     // cliffs: short hachure ticks on the land side of every cliff stretch of the outline
     x.strokeStyle = "rgba(40,28,20,0.55)"; x.lineWidth = Math.max(1.2, ppu * 0.12);
     for (let i = 0; i < LAND.length; i++) {
@@ -200,27 +193,24 @@ function overlay(c: HTMLCanvasElement, f: MapFrame, under: boolean) {
     m.width = mw; m.height = mh; const mx = m.getContext("2d")!, img = mx.createImageData(mw, mh);
     for (let j = 0; j < mh; j++) for (let i = 0; i < mw; i++) {
       const d = edgeDist(f.minX + (i + 0.5) * step, f.minZ + (j + 0.5) * step), k = (j * mw + i) * 4;
-      const a = d > 0.2 ? 0 : Math.min(1, (0.2 - d) / 2.4);
+      const a = d > 0.2 ? 0 : Math.min(1, (0.2 - d) / 2.0); // the rock rim the cut-out keeps reads as wall shading
       img.data[k] = 18; img.data[k + 1] = 15; img.data[k + 2] = 13; img.data[k + 3] = Math.round(a * 255);
     }
     mx.putImageData(img, 0, 0); x.imageSmoothingEnabled = true; x.drawImage(m, 0, 0, c.width, c.height);
   }
-  // the reference grid: 25 u squares, ruled faintly, so distances read (Duckov's technical look, our ledger rule)
-  x.strokeStyle = under ? "rgba(194,154,91,0.10)" : "rgba(30,24,20,0.10)"; x.lineWidth = 1;
-  for (let gx = Math.ceil(f.minX / 25) * 25; gx < f.maxX; gx += 25) { x.beginPath(); x.moveTo(X(gx) + 0.5, 0); x.lineTo(X(gx) + 0.5, c.height); x.stroke(); }
-  for (let gz = Math.ceil(f.minZ / 25) * 25; gz < f.maxZ; gz += 25) { x.beginPath(); x.moveTo(0, Z(gz) + 0.5); x.lineTo(c.width, Z(gz) + 0.5); x.stroke(); }
 }
 
-/** bake one level's map image: capture + map pass + vector layer. `extra` draws on top (the locked north, etc.) */
-export function bakeMap(scene: THREE.Scene, id: MapImage["id"], f: MapFrame, longSide: number, extra?: (x: CanvasRenderingContext2D, img: MapImage) => void): MapImage {
+/** bake one level's map image: capture + map pass + vector layer + cut-out. `extra` draws before the cut (the demo edge) */
+export function bakeMap(scene: THREE.Scene, id: MapImage["id"], f: MapFrame, longSide: number, opts: { extra?: (x: CanvasRenderingContext2D, img: MapImage) => void; closed?: Closed } = {}): MapImage {
   const t0 = performance.now(), W = f.maxX - f.minX, H = f.maxZ - f.minZ;
   const w = Math.round(W >= H ? longSide : (longSide * W) / H), h = Math.round(W >= H ? (longSide * H) / W : longSide);
   const under = id === "under", c = capture(scene, f, w, h, under), t1 = performance.now();
   overlay(c, f, under); const t2 = performance.now();
-  const img: MapImage = { ...f, id, w, h, canvas: c, url: "", ppu: w / W };
-  extra?.(c.getContext("2d")!, img);
+  const img = { ...f, id, w, h, canvas: c, url: "", ppu: w / W } as MapImage;
+  opts.extra?.(c.getContext("2d")!, img);
+  img.shape = cutout(c, f, under, opts.closed); const t3 = performance.now();
   // encoded off the main thread; until it lands the map reads the canvas through a data URL on demand (never in play)
   c.toBlob((b) => { if (b) img.url = URL.createObjectURL(b); else img.url = c.toDataURL("image/png"); }, "image/webp", 0.93);
-  console.info(`map bake ${id}: ${w}x${h} in ${Math.round(performance.now() - t0)} ms (capture ${Math.round(t1 - t0)}, overlay ${Math.round(t2 - t1)})`);
+  console.info(`map bake ${id}: ${w}x${h} in ${Math.round(performance.now() - t0)} ms (capture ${Math.round(t1 - t0)}, overlay ${Math.round(t2 - t1)}, cut-out ${Math.round(t3 - t2)})`);
   return img;
 }
