@@ -1,7 +1,7 @@
 // The raid scene: builds Banana Grove once, starts/steps/ends a raid. Fixed-step sim (advisor 31).
 import * as THREE from "three";
 import { G, V } from "./state";
-import { groundHeight } from "../world/terrain";
+import { groundHeight, standHeight } from "../world/terrain";
 import { resetRaidColliders, walkable, isUnder } from "../world/grid";
 import { START } from "../world/layout";
 import { resetProps, updateProps } from "../world/props";
@@ -54,7 +54,7 @@ export function startRaid(end: (r: RaidResult) => void) {
   raidScene.add(G.rig.root);
   G.pp = G.rig.root.position; G.pp.set(START.x, 0, START.z); // just outside the hatch ring
   { const at = QS.get("at")?.split(",").map(Number); if (at && at.length === 2 && at.every(Number.isFinite) && walkable(at[0], at[1])) G.pp.set(at[0], 0, at[1]); } // ?at=x,z: start somewhere else (captures, tests)
-  G.pp.y = groundHeight(G.pp.x, G.pp.z);
+  G.pp.y = standHeight(G.pp.x, G.pp.z);
   G.vel.set(0, 0, 0); G.moveYaw = Math.PI; G.aimYaw = Math.PI;
   G.maxHp = PLAYER.hp + 25 * G.save.upgrades.heart; G.hp = G.maxHp; G.stamina = PLAYER.stamina.max; G.staminaDelay = 0; G.sprinting = false; G.painT = 0; G.useItem = null; G.iframes = 0;
   G.magSize = G.save.upgrades.mag || G.save.fixtures.includes("extended_mag") ? KINGPIN.extMag : KINGPIN.mag; G.gun.setVariant({ extMag: G.magSize > KINGPIN.mag });

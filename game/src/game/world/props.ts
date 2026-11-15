@@ -7,7 +7,7 @@ import { G, V } from "../core/state";
 import { WALLS, DOOR, POI, PORTALS, ZIPLINES, PLACED, UNDER_X } from "./map/grove";
 import { groundHeight } from "./terrain";
 import { setGate, gate } from "./grid";
-import { addPieces, placedParts, contactShade } from "./dress";
+import { addPieces, placedParts, contactShade, pieceRec } from "./dress";
 import { dynamicDecals } from "./decals";
 import { addLamp } from "./lights";
 import { mergePieces } from "./kitutil";
@@ -36,13 +36,14 @@ export function buildProps(scene: THREE.Scene) {
     if (!w.breakable) continue;
     const [a, b] = w.pts, len = Math.hypot(b[0] - a[0], b[1] - a[1]), mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2, y = groundHeight(mx, mz) - 0.04, yaw = yawOf(a, b);
     const built = K.wallSection(w.kind as K.WallKind, { length: len, breakable: true });
-    addPieces(built.pieces, mx, mz, yaw, 1, y);
+    if (pieceRec.on) pieceRec.owner = { src: "prop", k: "breakwall:" + w.kind, x: mx, z: mz, yaw, s: 1, id: w.id };
+    addPieces(built.pieces, mx, mz, yaw, 1, y); pieceRec.owner = null;
     built.parts.root.position.set(mx, y, mz); built.parts.root.rotation.y = yaw; scene.add(built.parts.root);
     const chunks: Chunk[] = (built.parts.debris?.children ?? []).map((o) => ({ o, p0: o.position.clone(), q0: o.quaternion.clone(), v: new THREE.Vector3(), w: new THREE.Vector3(), rest: true }));
     walls.set(w.id, { id: w.id, parts: built.parts, chunks, t: -1, mid: new THREE.Vector3(mx, y + 1, mz) });
   }
   // ---- the vine door: frame in the chunks, the leaf swings
-  { const d = K.door(), y = groundHeight(DOOR.x, DOOR.z) - 0.04; addPieces(d.pieces, DOOR.x, DOOR.z, DOOR.yaw, 1, y);
+  { const d = K.door(), y = groundHeight(DOOR.x, DOOR.z) - 0.04; if (pieceRec.on) pieceRec.owner = { src: "prop", k: "vine_door", x: DOOR.x, z: DOOR.z, yaw: DOOR.yaw, s: 1, id: "vine" }; addPieces(d.pieces, DOOR.x, DOOR.z, DOOR.yaw, 1, y); pieceRec.owner = null;
     d.parts.root.position.set(DOOR.x, y, DOOR.z); d.parts.root.rotation.y = DOOR.yaw; scene.add(d.parts.root); vineLeaf = d.parts.leaf; }
   // ---- exits: a ground ring that fills while you stand still in it
   exits.length = 0;

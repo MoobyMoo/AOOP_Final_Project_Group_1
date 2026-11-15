@@ -63,13 +63,36 @@ function rawHeight(x: number, z: number) {
   if (d > 0) return h;
   return h + (kind === "cliff" ? sstep(-d, 0.2, 3.2) * 4.4 + (fbm(x * 0.21, z * 0.21) - 0.5) * 1.2 * sstep(-d, 1, 4) : sstep(-d, 0, 7) * 2.4);
 }
+// Water planes are flat; where the ground runs nearly level within a couple of cm of one, the two fight over a wide band
+// (G1.5-12: the swamp shallows and the river bank). The ground steps 2.5 cm clear of any water level it would graze, so
+// the shoreline is a clean line. A 5 cm step at the waterline is under the water's edge and changes no walk height.
+const WATER_LEVELS = (x: number, z: number) => {
+  const out: number[] = [];
+  if (z > SEA_Z - 4 || z < RIVER_Z + 16) out.push(-0.32);
+  for (const w of WET) if (inBB(w.bb, x, z)) out.push(w.z.water!);
+  for (const p of POOLS) if (Math.hypot(x - p.x, z - p.z) < Number(p.o?.r ?? 6) + 1.3) out.push(POOL_Y);
+  return out;
+};
+function clearOfWater(x: number, z: number, h: number) {
+  for (const w of WATER_LEVELS(x, z)) if (Math.abs(h - w) < 0.025) h = h >= w ? w + 0.025 : w - 0.025;
+  return h;
+}
 // ---- the 1 u height field (bilinear): what groundHeight() reads at runtime
 const FX0 = BOUNDS.minX - 16, FZ0 = BOUNDS.minZ - 16, FW = BOUNDS.maxX - BOUNDS.minX + 33, FH = BOUNDS.maxZ - BOUNDS.minZ + 33;
 let field: Float32Array | null = null;
 function ensureField() {
   if (field) return field; field = new Float32Array(FW * FH);
-  for (let r = 0; r < FH; r++) for (let c = 0; c < FW; c++) field[r * FW + c] = rawHeight(FX0 + c, FZ0 + r);
+  for (let r = 0; r < FH; r++) for (let c = 0; c < FW; c++) { const x = FX0 + c, z = FZ0 + r; field[r * FW + c] = x > UNDER_X ? rawHeight(x, z) : clearOfWater(x, z, rawHeight(x, z)); }
   return field;
+}
+/** low platforms you step up onto (the hatch's 0.33 u plinth, radius 1.15): actors stand on them (standHeight), props and
+ *  decals keep using the ground under them. Without this the hero's feet sank into the plinth at every extraction (G1.5-12) */
+const PADS = PLACED.filter((p) => p.k === "hatch").map((p) => ({ x: p.x, z: p.z, r: 1.15, top: 0.33 }));
+/** where an actor's feet are: groundHeight, or on top of a pad, eased over its 0.25 u rim */
+export function standHeight(x: number, z: number) {
+  const g = groundHeight(x, z);
+  for (const p of PADS) { const d = Math.hypot(x - p.x, z - p.z); if (d < p.r + 0.25) return Math.max(g, terrainHeight(p.x, p.z) - 0.04 + p.top * (1 - sstep(d, p.r - 0.05, p.r + 0.25))); }
+  return g;
 }
 /** where things stand and walk: the terrain, or a pier deck over it */
 export function groundHeight(x: number, z: number) { const h = terrainHeight(x, z); return deckAt(x, z, h) ?? h; }
@@ -77,6 +100,21 @@ export function groundHeight(x: number, z: number) { const h = terrainHeight(x, 
 export function terrainHeight(x: number, z: number) {
   const f = ensureField(), fx = Math.max(0, Math.min(FW - 1.001, x - FX0)), fz = Math.max(0, Math.min(FH - 1.001, z - FZ0)), c = Math.floor(fx), r = Math.floor(fz), u = fx - c, v = fz - r, i = r * FW + c;
   return (f[i] * (1 - u) + f[i + 1] * u) * (1 - v) + (f[i + FW] * (1 - u) + f[i + FW + 1] * u) * v;
+}
+/** the terrain surface as drawn: the tiles below are 0.8 u PlaneGeometry triangles on one lattice from (-128, -144),
+ *  each cell split along its b-d diagonal (u + v = 1). terrainHeight() is the smooth 1 u field; on curved ground the two
+ *  differ by a few cm, which is the whole of a decal's lift. Anything that has to lie a set distance above the ground
+ *  as seen (decals, puddles, floor plates) measures from this (G1.5-12: Moo's flickering molasses puddle) */
+export function meshHeight(x: number, z: number) {
+  const fx = (x + 128) / 0.8, fz = (z + 144) / 0.8, c = Math.floor(fx), r = Math.floor(fz), u = fx - c, v = fz - r;
+  const x0 = -128 + c * 0.8, z0 = -144 + r * 0.8, ha = terrainHeight(x0, z0), hb = terrainHeight(x0, z0 + 0.8), hc = terrainHeight(x0 + 0.8, z0 + 0.8), hd = terrainHeight(x0 + 0.8, z0);
+  return u + v <= 1 ? ha + (hd - ha) * u + (hb - ha) * v : hc + (hb - hc) * (1 - u) + (hd - hc) * (1 - v);
+}
+/** the highest drawn terrain within r of a point (a flat sheet laid over it at this height never dips under it) */
+export function meshHeightMax(x: number, z: number, r = 0.45) {
+  let h = meshHeight(x, z);
+  for (let a = 0; a < 6; a++) h = Math.max(h, meshHeight(x + Math.cos(a * 1.047) * r, z + Math.sin(a * 1.047) * r));
+  return h;
 }
 const tmp = new THREE.Color();
 // ---- ground paint (G1 council fix round 1, F2 item 2). The ground is two layers and a mask: the bare surface (dirt,

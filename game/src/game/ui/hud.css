@@ -22,7 +22,7 @@ kbd{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 
 .hud-clock span{display:block;font-size:15px;margin-top:2px}
 .hud-clock em{display:inline-block;margin-top:6px;font-style:normal;font-size:12px;color:var(--dim)}
 
-.hud-vitals{position:absolute;left:22px;bottom:20px;display:flex;align-items:center;gap:10px}
+.hud-vitals{position:absolute;left:22px;bottom:26px;display:flex;align-items:center;gap:10px}
 .hud-hp{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 12px 5px 8px;box-shadow:var(--shadow);backdrop-filter:blur(6px)}
 .hud-hp .heart{color:var(--coral);font-size:16px}
 .hud-hp .bar{position:relative;width:150px;height:12px;border-radius:6px;background:rgba(0,0,0,.4);overflow:hidden}
@@ -33,10 +33,10 @@ kbd{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 
 .gauge{position:relative;width:40px;height:40px;border-radius:50%;background:conic-gradient(var(--c,var(--banana)) calc(var(--k,1)*360deg),rgba(255,255,255,.12) 0);box-shadow:var(--shadow)}
 .gauge::after{content:attr(data-i);position:absolute;inset:5px;border-radius:50%;background:var(--panel-solid);display:grid;place-items:center;font-size:15px}
 .gauge.low{--c:var(--coral)}
-.hud-warn{background:var(--coral);color:var(--ink);text-shadow:none;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:800;box-shadow:var(--shadow)}
+.hud-warn{position:absolute;left:0;bottom:calc(100% + 8px);background:var(--coral);color:var(--ink);text-shadow:none;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:800;box-shadow:var(--shadow)}
 .hud-warn.heavy{background:#ffb35a}
 
-.hud-bar{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;align-items:flex-end;gap:6px}
+.hud-bar{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);display:flex;align-items:flex-end;gap:6px}
 .hb-slot{position:relative;width:62px;height:62px;border-radius:var(--r-m);background:var(--panel);border:1px solid var(--line);display:grid;place-items:center;box-shadow:var(--shadow);backdrop-filter:blur(6px)}
 .hb-slot.on{border:2px solid var(--banana);background:rgba(255,210,63,.12)}
 .hb-slot .key{position:absolute;bottom:-21px;left:50%;transform:translateX(-50%)}
@@ -50,7 +50,7 @@ kbd{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 
 .hb-pack .chip b{color:var(--banana)}.hb-pack .chip.full{border-color:var(--banana)}
 
 .hud-time{position:absolute;top:212px;right:24px;font-size:13px;color:var(--dim);text-align:right}
-.hud-prompt{position:absolute;bottom:118px;left:50%;transform:translateX(-50%) translateY(4px);font-size:14px;background:var(--panel-solid);border:1px solid var(--line);border-radius:999px;padding:6px 14px 6px 8px;opacity:0;transition:opacity .12s,transform .12s;white-space:nowrap}
+.hud-prompt{position:absolute;bottom:122px;left:50%;transform:translateX(-50%) translateY(4px);font-size:14px;background:var(--panel-solid);border:1px solid var(--line);border-radius:999px;padding:6px 14px 6px 8px;opacity:0;transition:opacity .12s,transform .12s;white-space:nowrap}
 .hud-prompt.on{opacity:1;transform:translateX(-50%)}
 .hud-toast{position:absolute;top:24px;left:50%;transform:translateX(-50%);font-size:14px;background:var(--panel-solid);border:1px solid var(--line);border-radius:var(--r-m);padding:8px 16px;max-width:520px;text-align:center;opacity:0;transition:opacity .25s}
 .hud-toast.on{opacity:1}
@@ -86,9 +86,9 @@ kbd{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 
 .hud-arrows .arrow.hot{border-left-color:var(--coral);border-left-width:20px;border-top-width:12px;border-bottom-width:12px}
 .hud-stam{position:absolute;width:6px;height:38px;border-radius:3px;background:rgba(0,0,0,.45);overflow:hidden;transition:opacity .3s;transform:translate(-50%,-50%)}
 .hud-stam i{position:absolute;left:0;right:0;bottom:0;background:var(--banana)}.hud-stam.low i{background:var(--coral)}
-.hud-use{position:absolute;bottom:126px;left:50%;transform:translateX(-50%);display:none;background:var(--panel-solid);border:1px solid var(--line);border-radius:var(--r-m);padding:7px 14px;font-size:14px;text-align:center}
+.hud-use{position:absolute;bottom:122px;left:50%;transform:translateX(-50%);display:none;background:var(--panel-solid);border:1px solid var(--line);border-radius:var(--r-m);padding:7px 14px;font-size:14px;text-align:center}
 .hud-use .bar{width:180px;height:6px;background:rgba(0,0,0,.4);border-radius:3px;overflow:hidden;margin-top:6px}.hud-use .bar i{display:block;height:100%;background:var(--leaf)}
-.hud-help{position:absolute;top:96px;left:22px;font-size:12px;line-height:2.1;color:var(--dim);transition:opacity 1.2s}
+.hud-help{position:absolute;top:112px;left:22px;font-size:12px;line-height:2.1;color:var(--dim);transition:opacity 1.2s}
 .hud-help.gone{opacity:0}
 .floater{position:fixed;transform:translate(-50%,-50%);font:800 18px/1 var(--body);pointer-events:none;-webkit-text-stroke:4px rgba(20,14,18,.85);paint-order:stroke fill;white-space:nowrap;z-index:5}
 .fade{position:fixed;inset:0;background:#120c08;opacity:0;pointer-events:none;transition:opacity .35s;z-index:20}.fade.on{opacity:1}
@@ -113,7 +113,7 @@ kbd{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 
 .cell{position:relative;width:64px;height:64px;border-radius:var(--r-s);background:var(--rbg,var(--r-common));display:grid;place-items:center;box-shadow:inset 0 0 0 1px var(--line)}
 .cell .v{position:absolute;right:4px;bottom:3px;font-size:11px;font-weight:800;color:var(--banana)}
 .cell .x{position:absolute;left:4px;top:3px;font-size:11px;font-weight:800}
-.cell.pouch{box-shadow:inset 0 0 0 2px var(--banana)}.cell.pouch::after{content:"safe";position:absolute;left:4px;bottom:3px;font-size:9px;font-weight:800;color:var(--banana)}
+.cell.pouch{box-shadow:inset 0 0 0 2px var(--banana)}.cell.pouch::after{content:"safe";position:absolute;left:4px;bottom:3px;font-size:9px;font-weight:800;color:var(--banana)}.cell.pouch.eq::after{bottom:9px}
 .cell.empty{background:rgba(255,255,255,.04)}
 .rows{display:flex;flex-direction:column}
 .row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 14px;padding:10px 0;border-bottom:1px solid var(--line)}
@@ -152,7 +152,7 @@ kbd{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 
 .chips{display:flex;flex-wrap:wrap;gap:5px}
 .chips b{cursor:pointer;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:13px}
 .chips b.on{background:var(--banana);color:var(--ink);border-color:var(--banana)}.chips b.locked{opacity:.4}
-.c-body{overflow:auto;flex:1;padding-right:6px}
+.c-body{overflow:auto;flex:1;padding:0 6px 0 5px;margin-left:-5px}
 .sw{display:flex;flex-wrap:wrap;gap:7px;align-items:center}.sw i{width:26px;height:26px;border-radius:50%;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}.sw i.on{box-shadow:0 0 0 2px var(--panel-solid),0 0 0 4px var(--banana)}
 .sw input{width:30px;height:28px;border:0;background:none;cursor:pointer}
 .sl{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:13px}.sl span{width:120px}.sl input{flex:1;accent-color:var(--banana)}.sl em{width:36px;font-style:normal;color:var(--dim)}
@@ -226,3 +226,31 @@ button.cell{border:0;padding:0;color:inherit;font:inherit;cursor:pointer}button.
 /* stamina is green, as in Duckov (Moo); coral when low */
 .gauge{--c:#5fd36a}.gauge.low{--c:var(--coral)}
 .hud-stam i{background:#5fd36a}.hud-stam.low i{background:var(--coral)}
+/* G1.5-12 UI glitch hunt: clearances at 1280x720 to 1920x1080 */
+.panel{max-height:calc(100vh - 140px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line-2) transparent}
+#ui:has(> .panel) .hud-prompt,#ui:has(> .panel) .hud-help,#ui:has(> .panel) .home-hint{opacity:0;transition-duration:.12s}
+/* the HUD layer sits above world-anchored text: the floaters (fx.ts, body, z 5) drew over the open pack and the bunker panels */
+#ui{z-index:6}
+/* the use/equip bar takes the prompt's spot above the hotbar and steps up over the prompt when both show; with the pack
+   open on a short screen it would peek out under the panel, and the busy slot in the doll already shows the progress */
+#ui:not(:has(> .panel)) .hud-use:has(~ .hud-prompt.on){bottom:166px}
+@media (max-height:800px){#ui:has(> .panel) .hud-use{visibility:hidden}}
+.home-top .place b,.home-top .place span,.home-hint{text-shadow:0 1px 2px rgba(0,0,0,.75),0 0 8px rgba(0,0,0,.35)}
+.mapview{box-sizing:border-box;padding-bottom:56px}
+/* pack and locker: anchored by the top, so a taller details card grows the panel downward instead of sliding the cells
+   under the cursor (centred, it shifted the grid 7-25 px on each hover) */
+.panel.inv{--top:max(24px,calc(50% - 270px));top:var(--top);transform:translateX(-50%);max-height:calc(100% - 62px - var(--top));animation-name:panelInTop}
+@keyframes panelInTop{from{opacity:0;transform:translate(-50%,8px) scale(.98)}}
+@media (max-height:800px){
+  .panel.inv{--top:max(24px,calc(50% - 280px))}
+  .panel.inv .eq-slot{height:70px;padding-top:12px}
+  .panel.inv .inv-detail{min-height:80px;margin-top:10px}
+  .panel.inv header{padding-bottom:8px;margin-bottom:10px}
+}
+/* the vitals and the centred hotbar share the bottom edge: below 1440 px wide the HP bar gives way (1280 px with armor text and 3-digit HP overlapped the gun slot by 13 px) */
+@media (max-width:1440px){.hud-hp .bar{width:108px}}
+/* an icon inside a row title sits beside the name (.ico is display:block, which put it on its own line in the Fence's gear rows) */
+.row b .ico{display:inline-block;vertical-align:middle;margin:-4px 4px -2px 0}
+/* creator: anchored by the top so the tab row stays put when a tab's content is taller or shorter (centred, switching
+   from Presets to Your suit moved the tabs up to 290 px from under the cursor at 1920x1080) */
+.creator{--top:max(24px,calc(50% - 330px));top:var(--top);transform:none;max-height:calc(100% - 60px - var(--top))}

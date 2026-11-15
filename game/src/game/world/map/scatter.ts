@@ -5,7 +5,7 @@
 import type { Placed } from "../../contracts";
 import { PLACED, CRATES, SPAWNS, PORTALS, POI, ZIPLINES, SUPPLY_DROPS, START, WALLS, DOOR, BOUNDS, UNDER_X, LANDMARKS } from "./grove";
 import type { Biome } from "./types";
-import { collidersFor } from "./colliders";
+import { collidersFor, pinVariant } from "./colliders";
 import { edgeDist, zoneAt, roadDist } from "../grid";
 import { fbm } from "../noise";
 import { mulberry32 } from "../../loot/tables";
@@ -85,7 +85,7 @@ export function makeScatter(seed: number, houses: Footprint[]): Placed[] {
     if (solid) { stamp(x, z, 0.8, 2); stamp(x, z, 1.9, 1); } // solid scatter keeps a gap from the next solid thing, so it never walls a route
     const p: Placed = { k: row[0], x: Math.round(x * 100) / 100, z: Math.round(z * 100) / 100, yaw: Math.round(r3 * 628) / 100, s: Math.round((row[2] + r4 * (row[3] - row[2])) * 100) / 100 };
     if (zn?.water !== undefined && (row[0] === "lily" || row[0] === "reeds")) p.o = { water: zn.water };
-    out.push(p);
+    out.push(pinVariant(p));
   }
   return out;
 }

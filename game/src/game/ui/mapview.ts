@@ -97,7 +97,7 @@ function open() {
     return `<div class="mp ${cls}" data-s="${s === over ? "o" : "u"}"><h3>${title}</h3><div class="mrot" style="transform:rotate(${rot}deg)"><div class="mimg" style="aspect-ratio:${s.maxX - s.minX}/${s.maxZ - s.minZ}"><img src="${s.url}">${fog}${crumbs}${labels}${icons}${me}</div></div></div>`;
   };
   el.innerHTML = `<div class="mwrap" style="transform:scale(${zoom})">${panel(over, "Banana Grove", "big")}${panel(under, "Underground", "small")}</div><div class="mneedle" style="transform:rotate(${(G.stage.cam.yaw * 180) / Math.PI}deg)">N</div><div class="mfoot"><kbd>M</kbd> close, scroll to zoom, click to drop or remove a pin. Areas found: ${[...G.discovered].length} of ${CLEARINGS.length}</div>`;
-  document.body.appendChild(el);
+  document.body.appendChild(el); declutter(el);
   el.onwheel = (e) => { zoom = THREE.MathUtils.clamp(zoom * (e.deltaY < 0 ? 1.1 : 0.9), 0.7, 2.5); (el!.querySelector(".mwrap") as HTMLElement).style.transform = `scale(${zoom})`; };
   el.querySelectorAll<HTMLElement>(".mimg").forEach((m) => m.onclick = (e) => {
     const s = (m.parentElement!.dataset.s === "o" ? over : under)!, r = m.getBoundingClientRect();
@@ -108,9 +108,27 @@ function open() {
   void POI;
 }
 
+/** area labels sit on the area centre and icons on their real spots, so a hatch or a ladder near the centre can cover
+ *  the name: slide the label up or down (screen-aligned, after its counter-rotation) until it clears the icons. */
+function declutter(root: HTMLElement) {
+  const hit = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  root.querySelectorAll<HTMLElement>(".mimg").forEach((m) => {
+    const icons = [...m.querySelectorAll<HTMLElement>(".ico, .me")].map((i) => i.getBoundingClientRect());
+    const k = zoom; // screen px per layout px (.mwrap is scaled by the zoom; the rotations cancel on the labels)
+    m.querySelectorAll<HTMLElement>(".lab").forEach((l) => {
+      const base = l.style.transform; let dy = 0;
+      for (let n = 0; n < 4; n++) {
+        const r = l.getBoundingClientRect(), o = icons.find((i) => hit(r, i)); if (!o) break;
+        const up = o.top + o.height / 2 >= r.top + r.height / 2;
+        dy += (up ? o.top - r.bottom - 2 : o.bottom - r.top + 2) / k; l.style.transform = `${base} translateY(${dy.toFixed(1)}px)`;
+      }
+    });
+  });
+}
+
 // ---------------------------------------------------------------- corner minimap (camera-up, like the game view)
 let mini: HTMLDivElement | null = null, miniImg: HTMLDivElement | null = null, miniFog: HTMLCanvasElement | null = null, fogKey = "";
-const MINI_PX = 190, MINI_RANGE = 38; // world units across the circle
+const MINI_PX = 180, MINI_RANGE = 38; // world units across the circle
 export function buildMinimap() {
   if (!over) return; mini?.remove();
   mini = document.createElement("div"); mini.className = "minimap";

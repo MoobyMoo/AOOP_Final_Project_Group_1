@@ -9,12 +9,35 @@ const C = (r: number, move = true, shot = false, x = 0, z = 0): Collider => ({ t
 const B = (w: number, d: number, shot = false, x = 0, z = 0, yaw = 0): Collider => ({ t: "box", x, z, w, d, yaw, move: true, shot, low: !shot });
 const S = (ax: number, az: number, bx: number, bz: number, thick: number, shot = true): Collider => ({ t: "seg", ax, az, bx, bz, thick, move: true, shot, low: !shot });
 
-/** nature kit: type -> [radius, move, shot]. Understory (bush, fern, big leaves...) is walk-through unless o.solid. */
+/** nature kit: type -> [radius, move, shot]. Understory (bush, fern, big leaves...) is walk-through unless o.solid.
+ *  Radii are the meshes' own outline cut 0.15 u up (G1.5-12 glitch hunt, src/game/dev/glitch.ts fitNature): the old
+ *  rockm 0.8 / rockl 1.2 / boulders 1.8 / caverock 0.85 / stalagmite 0.6 / crystal 0.45 stood 0.3 to 1 u clear of the
+ *  rock (an invisible wall all round it), mangrove 1.1 let you walk into its roots. Types in NATURE_V use those instead. */
 const NATURE: Record<string, [number, boolean, boolean]> = {
-  palm: [0.3, true, true], palmlean: [0.3, true, true], tree: [0.42, true, true], treefar: [0.42, true, true], mangrove: [1.1, true, true], giant: [2.6, true, true],
-  rockm: [0.8, true, false], rockl: [1.2, true, true], boulders: [1.8, true, true], log: [0.6, true, false], stump: [0.5, true, false],
-  caverock: [0.85, true, true], stalagmite: [0.6, true, true], crystal: [0.45, true, false], roots: [0.9, true, true],
+  palm: [0.3, true, true], palmlean: [0.3, true, true], tree: [0.42, true, true], treefar: [0.42, true, true], mangrove: [1.5, true, true], giant: [2.6, true, true],
+  rockm: [0.52, true, false], rockl: [0.85, true, true], boulders: [0.8, true, true], stump: [0.46, true, false],
+  caverock: [0.58, true, true], stalagmite: [0.32, true, true], crystal: [0.3, true, false], roots: [0.9, true, true],
 };
+/** per-variant footprints for pieces that are several rocks, or lean: [x, z, r] circles in piece space at scale 1, or a
+ *  [ax, az, bx, bz, thick] segment (a leaning trunk from its foot to where it is at chest height). The first shape
+ *  carries the type's shot flag, the rest block walking only. Variant counts match the GLBs (glitch.ts checks it). */
+type VShape = [number, number, number] | [number, number, number, number, number];
+const NATURE_V: Record<string, VShape[][]> = {
+  rockl: [[[0.03, 0.08, 0.89], [1.1, 0.29, 0.36]], [[0.07, -0.02, 0.76], [-0.06, -1.02, 0.37]], [[0, 0.01, 0.79], [-0.12, 1.08, 0.36]], [[-0.02, -0.08, 0.83], [0.67, -0.93, 0.36]]],
+  boulders: [[[-0.01, -0.01, 0.82], [-0.11, -1.29, 0.48], [0.08, 1.2, 0.45]], [[-0.05, 0.03, 0.74], [-0.52, 1.07, 0.48], [1.0, -0.62, 0.47], [-0.95, -0.68, 0.42]], [[0.03, 0, 0.75], [0.47, 1.13, 0.45], [-0.87, -0.64, 0.33]]],
+  caverock: [[[0.04, 0, 0.56], [0.73, -0.05, 0.24]], [[0.05, 0.02, 0.5]], [[0.06, -0.01, 0.22], [0.05, -0.49, 0.22], [-0.41, 0.18, 0.21]], [[0.04, 0.09, 0.61]]],
+  stalagmite: [[[0, 0, 0.3], [0.27, -0.03, 0.22], [-0.6, 0.32, 0.21]], [[0, -0.01, 0.27], [0.53, 0.18, 0.18]], [[0, 0, 0.29], [0.67, 0.09, 0.21]]],
+  palmlean: [[[0.06, -0.04, 1.27, -0.9, 0.5]], [[0.04, 0.05, 0.81, 0.9, 0.5]], [[0.06, -0.05, 1.35, -1.11, 0.52]]], // to where the trunk is at 1.6 u
+};
+/** how many variants each per-variant type has (the nature GLBs) */
+export const NATURE_VARIANTS = Object.fromEntries(Object.entries(NATURE_V).map(([k, v]) => [k, v.length])) as Record<string, number>;
+/** fix which variant a placed nature piece shows, from its position, so the grid and the renderer agree on its shape
+ *  (o.cv; an authored o.v wins). Pure: no rng is drawn, so the world rng stream stays as it was */
+export function pinVariant(p: Placed): Placed {
+  const n = NATURE_VARIANTS[p.k]; if (!n || p.o?.v !== undefined || p.o?.cv !== undefined) return p;
+  const h = (Math.imul(Math.round(p.x * 100), 73856093) ^ Math.imul(Math.round(p.z * 100), 19349663)) >>> 0;
+  p.o = { ...(p.o ?? {}), cv: h % n }; return p;
+}
 /** trees the Sleeper stuns himself on */
 export const RAM = new Set(["palm", "palmlean", "tree", "treefar", "mangrove", "giant", "rockl", "boulders", "pillar_a"]);
 /** walk-through nature types (no collider): listed so the lint can tell "known, open" from "unknown kind" */
@@ -23,7 +46,7 @@ const OPEN_NATURE = new Set(["bush", "fern", "bigleaf", "banana", "flowers", "re
 /** build kit: asset name -> colliders */
 const BUILD: Record<string, Collider[]> = {
   // camp
-  tent_a: [B(4.4, 3.6, true)], tent_b: [B(3.0, 2.6, true)], tarp: [C(0.18, true, false, -2.2, -2.0), C(0.18, true, false, 2.2, -2.0), C(0.18, true, false, -2.2, 1.8), C(0.18, true, false, 2.2, 1.8)],
+  tent_a: [B(3.3, 3.2, true)] /* the canvas body (was 4.4 x 3.6: an invisible wall past its ends, G1.5-12) */, tent_b: [B(3.0, 2.6, true)], tarp: [C(0.18, true, false, -2.2, -2.0), C(0.18, true, false, 2.2, -2.0), C(0.18, true, false, -2.2, 1.8), C(0.18, true, false, 2.2, 1.8)],
   campfire: [C(0.8)], lantern_post: [C(0.22)], fence_a: [B(2.6, 0.32)], fence_b: [B(2.6, 0.32)],
   gate: [C(0.32, true, true, -1.5, 0), C(0.32, true, true, 1.5, 0)],
   watchtower: [C(0.3, true, false, -1.35, -1.35), C(0.3, true, false, 1.35, -1.35), C(0.3, true, false, -1.35, 1.35), C(0.3, true, false, 1.35, 1.35)],
@@ -67,6 +90,14 @@ export function collidersFor(k: string, o: Record<string, unknown> = {}): Collid
   }
   if (k === "waterfall") return [B(6.0, 5.4, true, -4.3, -0.95), B(6.0, 5.4, true, 4.3, -0.95)]; // the two piers; the 2.6 u gap stays open
   if (k === "pool" || k === "ground" || k === "light") return [];
+  const vs = NATURE_V[k], vi = Number(o.v ?? o.cv);
+  if (vs && Number.isInteger(vi) && vs[vi % vs.length]) {
+    const shot = NATURE[k][2];
+    return vs[vi % vs.length].map((q, i) => q.length === 3 ? C(q[2], true, i === 0 && shot, q[0], q[1]) : S(q[0], q[1], q[2], q[3], q[4], i === 0 && shot));
+  }
+  if (k === "log") return [B(2.6, 0.75)];
+  // an open gate's leaf swings to local +z from its -x post (x -1.34..-1.0, z 0..2.28): you walked through it (G1.5-12)
+  if (k === "gate" && o.open) return [...BUILD.gate, S(-1.17, 0.12, -1.17, 2.2, 0.34, false)]; // a log lies along its local x (all four variants are 2.5-2.9 u long, 0.7-0.85 u thick)
   const n = NATURE[k];
   if (n) return [{ t: "circle", x: 0, z: 0, r: n[0], move: n[1], shot: n[2], low: n[1] && !n[2] }];
   if (OPEN_NATURE.has(k)) return o.solid ? [C(Number(o.solid === true ? 0.75 : o.solid), true, false)] : [];
