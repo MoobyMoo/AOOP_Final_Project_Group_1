@@ -29,57 +29,73 @@ export type Modifier = { stat: GunStat; type: ModType; value: number };
 /** duckov = the live Duckov item whose modifiers this one carries (POLISH_FINDINGS "Attachments", the catalog) */
 export type AttachmentDef = { id: string; slot: AttSlot; name: string; rarity: Rarity; value: number; weight: number; icon: string; mods: Modifier[]; blurb: string; duckov: string };
 
-/** The Kingpin's slots. Duckov's pistols carry Muzzle, Tec and Mag (TT33: Muzzle + Mag, PM: Tec + Mag, the Space Glick
- *  all three); its one heavy pistol, the hand cannon (MAG_Desert_Normal), adds a Scope. The Kingpin is our heavy .45,
- *  so it gets the hand cannon's four: sight, muzzle, magazine, laser (Duckov's Tec). */
-export const ATT_SLOTS: readonly AttSlot[] = ["sight", "muzzle", "mag", "laser"];
-export const SLOT_LABEL: Record<AttSlot, string> = { sight: "Sight", muzzle: "Muzzle", mag: "Magazine", laser: "Laser" };
-export const EMPTY_GUN: GunAtts = { sight: null, muzzle: null, mag: null, laser: null };
+/** Every slot type, in display order (Duckov's gun slot keys Scope, Muzzle, Grip, Stock, Tec, Mag; no Special). Each gun
+ *  lists the ones it has (combat/guns.ts GunDef.slots, per class from POLISH_FINDINGS "Attachments" A1). The Kingpin
+ *  keeps the hand cannon's four: sight, muzzle, magazine, laser (Duckov's Tec). Compatibility is by slot type only
+ *  (Duckov also gates muzzles, mags and stocks by gun-type tag; ours: one part fits every gun with that slot). */
+export const ATT_SLOTS: readonly AttSlot[] = ["sight", "muzzle", "grip", "stock", "laser", "mag"];
+export const SLOT_LABEL: Record<AttSlot, string> = { sight: "Sight", muzzle: "Muzzle", mag: "Magazine", laser: "Laser", grip: "Grip", stock: "Stock" };
+export const EMPTY_GUN: GunAtts = { sight: null, muzzle: null, mag: null, laser: null, grip: null, stock: null };
 
 const m = (stat: GunStat, type: ModType, value: number): Modifier => ({ stat, type, value });
 /** Our catalog: our names and art, Duckov's modifiers. Each item copies one live Duckov attachment that fits a pistol
  *  or the hand cannon (the `duckov` field); the numbers are the same because every modified Kingpin stat sits on a
  *  Duckov pistol's scale (sound range 14 vs their 20, bullet range 16 vs 16.5, 8 rounds vs 8, ADS 0.3 s vs 0.3 s).
- *  Rarity follows Duckov quality (2 uncommon, 3 rare, 4 epic); value follows its price (500 / 1100 / 2400 -> 60 / 130 / 290);
+ *  Tier = the Duckov item's quality (q2 fine, q3 uncommon, q4 rare; loot/tiers.ts; before the 7-tier scale these read
+ *  uncommon / rare / epic); value follows its price (500 / 1100 / 2400 -> 60 / 130 / 290);
  *  weight is its kg. */
 export const ATTACHMENTS: Record<string, AttachmentDef> = {
   // sights (Scope): Duckov's four small sights are one item (+0.16 lead, +0.1 crit damage); 2X is the first real zoom
-  att_sight_holo: { id: "att_sight_holo", slot: "sight", name: "Banana Dot Sight", rarity: "uncommon", value: 60, weight: 0.2, icon: "🔴", duckov: "Scope_All_Holo_1",
+  att_sight_holo: { id: "att_sight_holo", slot: "sight", name: "Banana Dot Sight", rarity: "fine", value: 60, weight: 0.2, icon: "🔴", duckov: "Scope_All_Holo_1",
     mods: [m("adsDist", "add", 0.16), m("critMult", "add", 0.1)],
     blurb: "A little glass window with a glowing banana-yellow dot. A touch more zoom, and headshots hit harder." },
-  att_sight_2x: { id: "att_sight_2x", slot: "sight", name: "Lookout 2x Scope", rarity: "rare", value: 130, weight: 0.25, icon: "🔭", duckov: "Scope_All_2X_1",
+  att_sight_2x: { id: "att_sight_2x", slot: "sight", name: "Lookout 2x Scope", rarity: "uncommon", value: 130, weight: 0.25, icon: "🔭", duckov: "Scope_All_2X_1",
     mods: [m("adsDist", "add", 0.72), m("adsTime", "add", 0.1), m("recoilV", "percent", 0.2), m("recoilH", "percent", 0.08)],
     blurb: "A stubby brass scope. You see much further down the line, but it is slower to raise and kicks more." },
   // muzzles
-  att_muzzle_comp: { id: "att_muzzle_comp", slot: "muzzle", name: "Peel Compensator", rarity: "rare", value: 130, weight: 0.1, icon: "🗜️", duckov: "Muzzle_PST_REC_2",
+  att_muzzle_comp: { id: "att_muzzle_comp", slot: "muzzle", name: "Peel Compensator", rarity: "uncommon", value: 130, weight: 0.1, icon: "🗜️", duckov: "Muzzle_PST_REC_2",
     mods: [m("recoilV", "percent", -0.23), m("recoilH", "percent", -0.23)],
     blurb: "Slotted like a banana peel, it throws the blast upward so the gun kicks less." },
-  att_muzzle_supp: { id: "att_muzzle_supp", slot: "muzzle", name: "Hush Can", rarity: "uncommon", value: 60, weight: 0.25, icon: "🤫", duckov: "Muzzle_PST_SIL_1",
+  att_muzzle_supp: { id: "att_muzzle_supp", slot: "muzzle", name: "Hush Can", rarity: "fine", value: 60, weight: 0.25, icon: "🤫", duckov: "Muzzle_PST_SIL_1",
     mods: [m("noise", "percent", -0.75), m("range", "percent", -0.1), m("bulletSpeed", "percent", -0.1)],
     blurb: "A fat can on the barrel. The bang becomes a cough, and guards a few steps away never hear it." },
-  att_muzzle_horn: { id: "att_muzzle_horn", slot: "muzzle", name: "Brass Horn Barrel", rarity: "rare", value: 130, weight: 0.25, icon: "📯", duckov: "Muzzle_PST_DIS_1",
+  att_muzzle_horn: { id: "att_muzzle_horn", slot: "muzzle", name: "Brass Horn Barrel", rarity: "uncommon", value: 130, weight: 0.25, icon: "📯", duckov: "Muzzle_PST_DIS_1",
     mods: [m("range", "percent", 0.3), m("noise", "percent", 0.3), m("moveSpeed", "percent", -0.05)],
     blurb: "A long flared barrel extension. Rounds carry much further, and the whole island hears it." },
   // magazines
-  att_mag_ext: { id: "att_mag_ext", slot: "mag", name: "Kingpin Extended Mag", rarity: "uncommon", value: 60, weight: 0.12, icon: "📎", duckov: "Magazine_PST_CAP_1",
+  att_mag_ext: { id: "att_mag_ext", slot: "mag", name: "Extended Mag", rarity: "fine", value: 60, weight: 0.12, icon: "📎", duckov: "Magazine_PST_CAP_1",
     mods: [m("mag", "percent", 0.5)],
-    blurb: "A longer magazine for the Kingpin: 12 rounds a mag." },
-  att_mag_drum: { id: "att_mag_drum", slot: "mag", name: "Coconut Drum Mag", rarity: "rare", value: 130, weight: 0.15, icon: "🥥", duckov: "Magazine_PST_CAP_2",
+    blurb: "A longer magazine: half as many rounds again (12 in the Kingpin)." },
+  att_mag_drum: { id: "att_mag_drum", slot: "mag", name: "Coconut Drum Mag", rarity: "uncommon", value: 130, weight: 0.15, icon: "🥥", duckov: "Magazine_PST_CAP_2",
     mods: [m("mag", "percent", 1), m("adsTime", "percent", 0.1)],
-    blurb: "A round drum in a coconut shell: 16 rounds a mag, a little heavier to aim." },
-  att_mag_quick: { id: "att_mag_quick", slot: "mag", name: "Slick Speed Mag", rarity: "uncommon", value: 60, weight: 0.1, icon: "⚡", duckov: "Magazine_PST_ADS_1",
+    blurb: "A round drum in a coconut shell: twice the rounds (16 in the Kingpin), a little heavier to aim." },
+  att_mag_quick: { id: "att_mag_quick", slot: "mag", name: "Slick Speed Mag", rarity: "fine", value: 60, weight: 0.1, icon: "⚡", duckov: "Magazine_PST_ADS_1",
     mods: [m("adsTime", "percent", -0.12), m("reload", "percent", -0.2), m("moveSpeed", "percent", 0.05), m("recoverAds", "percent", 0.12)],
-    blurb: "A light, waxed magazine with a pull tab. Same 8 rounds, faster reloads, quicker hands." },
+    blurb: "A light, waxed magazine with a pull tab. Same rounds, faster reloads, quicker hands." },
   // lasers (Duckov's Tec slot)
-  att_laser: { id: "att_laser", slot: "laser", name: "Red Pointer", rarity: "uncommon", value: 60, weight: 0.05, icon: "🔦", duckov: "Tec_Laser_SCA_1",
+  att_laser: { id: "att_laser", slot: "laser", name: "Red Pointer", rarity: "fine", value: 60, weight: 0.05, icon: "🔦", duckov: "Tec_Laser_SCA_1",
     mods: [m("scatterHip", "percent", -0.13)],
     blurb: "A small rail laser. The red dot keeps your shots from the hip a little closer together." },
-  att_laser_gold: { id: "att_laser_gold", slot: "laser", name: "Gilded Pointer", rarity: "epic", value: 290, weight: 0.12, icon: "✨", duckov: "Tec_Laser_SCA_2",
+  att_laser_gold: { id: "att_laser_gold", slot: "laser", name: "Gilded Pointer", rarity: "rare", value: 290, weight: 0.12, icon: "✨", duckov: "Tec_Laser_SCA_2",
     mods: [m("scatterHip", "percent", -0.23)],
     blurb: "A gold-plated rail laser for a businessman who shoots from the hip." },
+  // grips (universal in Duckov) and stocks (rifle-tagged in Duckov, fitting every long gun): the long guns' new slots
+  att_grip_quick: { id: "att_grip_quick", slot: "grip", name: "Bamboo Foregrip", rarity: "fine", value: 60, weight: 0.1, icon: "🎋", duckov: "Grip_ALL_ADS_1",
+    mods: [m("adsTime", "percent", -0.12)],
+    blurb: "A short bamboo handle under the barrel. The gun comes up to your eye a little faster." },
+  att_grip_steady: { id: "att_grip_steady", slot: "grip", name: "Vine-Wrap Grip", rarity: "rare", value: 290, weight: 0.19, icon: "🪢", duckov: "Grip_ALL_REC_3",
+    mods: [m("recoilV", "percent", -0.23), m("recoilH", "percent", -0.23)],
+    blurb: "A vine-wrapped vertical grip. Both hands on the gun, and the kick stays where you put it." },
+  att_stock_crate: { id: "att_stock_crate", slot: "stock", name: "Crate-Slat Stock", rarity: "fine", value: 60, weight: 0.3, icon: "🪵", duckov: "Stock_AR_REC_1",
+    mods: [m("recoilV", "percent", -0.13), m("recoilH", "percent", -0.13)],
+    blurb: "Two banana-crate slats nailed into a shoulder stock. Crude, and it still soaks up the kick." },
+  att_stock_padded: { id: "att_stock_padded", slot: "stock", name: "Padded Leather Stock", rarity: "rare", value: 290, weight: 0.47, icon: "🛋️", duckov: "Stock_AR_SCA_5",
+    mods: [m("scatterHip", "percent", -0.23)],
+    blurb: "A stitched leather stock off an office chair. Shots from the hip stay much tighter." },
 };
 /** attachments with no icon of their own borrow a look-alike's (the asset set covers the six brief ids) */
 export const LOOKS_LIKE: Record<string, string> = { att_laser_gold: "att_laser", att_muzzle_horn: "att_muzzle_comp", att_mag_drum: "att_mag_ext", att_mag_quick: "att_mag_ext" };
+/** grips and stocks have no models yet: they show as the tier-tinted emoji icon in the UI and nothing on the gun */
 /** ...and on the gun and on the ground, its model; the speed mag is a standard-size mag, so it shows no extension */
 export const MODEL_LIKE: Record<string, string> = { att_laser_gold: "att_laser", att_muzzle_horn: "att_muzzle_comp", att_mag_drum: "att_mag_ext" };
 export const isAttachment = (id: string | null | undefined): boolean => typeof id === "string" && Object.hasOwn(ATTACHMENTS, itemType(id));
@@ -94,17 +110,17 @@ export function applyMods(base: number, mods: readonly Modifier[]): number {
   for (const q of mods) { if (q.type === "add") add += q.value; else if (q.type === "percent") pct += q.value; else mul *= Math.max(0, 1 + q.value); }
   return (base + add) * Math.max(0, 1 + pct) * mul;
 }
-/** every modifier on the gun right now, by stat */
-export function gunMods(fitted: GunAtts): Map<GunStat, Modifier[]> {
+/** every modifier on the gun right now, by stat (only the slots the gun has) */
+export function gunMods(fitted: GunAtts, slots: readonly AttSlot[] = ATT_SLOTS): Map<GunStat, Modifier[]> {
   const out = new Map<GunStat, Modifier[]>();
-  for (const slot of ATT_SLOTS) { const a = attachmentDef(fitted[slot]); if (!a || a.slot !== slot) continue; for (const q of a.mods) { const l = out.get(q.stat); if (l) l.push(q); else out.set(q.stat, [q]); } }
+  for (const slot of slots) { const a = attachmentDef(fitted[slot]); if (!a || a.slot !== slot) continue; for (const q of a.mods) { const l = out.get(q.stat); if (l) l.push(q); else out.set(q.stat, [q]); } }
   return out;
 }
-/** a clean fitted set: unknown ids and ids in the wrong slot are dropped */
-export function sanitizeGun(raw: unknown): GunAtts {
+/** a clean fitted set: unknown ids, ids in the wrong slot and slots the gun lacks are dropped */
+export function sanitizeGun(raw: unknown, slots: readonly AttSlot[] = ATT_SLOTS): GunAtts {
   const o = raw !== null && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, unknown> : {};
   const out: GunAtts = { ...EMPTY_GUN };
-  for (const slot of ATT_SLOTS) { const id = o[slot]; if (typeof id === "string" && attachmentDef(id)?.slot === slot) out[slot] = id; }
+  for (const slot of slots) { const id = o[slot]; if (typeof id === "string" && attachmentDef(id)?.slot === slot) out[slot] = id; }
   return out;
 }
 
@@ -133,9 +149,10 @@ export function statLines(id: string, magBase = 8): StatLine[] {
 }
 
 // ---------------------------------------------------------------- loot weights (rarity -> weight inside a pool)
-/** inside a pool, attachments weigh by rarity (Duckov rolls a quality first; its live parts are 29 / 40 / 18 at
- *  quality 2 / 3 / 4, and the better qualities roll less often). Ours: uncommon 3, rare 1.2, epic 0.4 */
-export const ATT_RARITY_WEIGHT: Record<Rarity, number> = { common: 6, uncommon: 3, rare: 1.2, epic: 0.4 };
+/** inside a pool, attachments weigh by tier (Duckov rolls a quality first; its live parts are 29 / 40 / 18 at
+ *  quality 2 / 3 / 4, and the better qualities roll less often). Ours: q2 fine 3, q3 uncommon 1.2, q4 rare 0.4 (the
+ *  same weights as before the re-tier, which moved each part to its Duckov quality's key) */
+export const ATT_RARITY_WEIGHT: Record<Rarity, number> = { junk: 8, common: 6, fine: 3, uncommon: 1.2, rare: 0.4, epic: 0.15, legendary: 0.05 };
 /** the pool scale that makes attachments `share` of the rolls in a pool whose other weights sum to `others` */
 export function attachmentShare(share: number, others: number): number {
   const total = Object.values(ATTACHMENTS).reduce((sum, a) => sum + ATT_RARITY_WEIGHT[a.rarity], 0);

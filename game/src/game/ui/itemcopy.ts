@@ -5,8 +5,11 @@ import { equipDef } from "../loot/equipment";
 import { itemDef } from "../loot/raidloot";
 import { equipLines, SLOT_NAME } from "./equipui";
 import { attachmentDef, SLOT_LABEL, statLines, type StatLine } from "../loot/attachments";
+import { TIERS } from "../loot/tiers";
+import { CALIBERS, CLASS_LABEL, gunOf, isCaliber } from "../combat/guns";
 
-const RARITY: Record<string, string> = { common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic" };
+/** the tier names (loot/tiers.ts) */
+const RARITY: Record<string, string> = Object.fromEntries(Object.values(TIERS).map(t => [t.key, t.name]));
 /** one short line about the thing itself, written as the Businessman would label it */
 const BLURB: Record<string, string> = {
   banana: "A bunch of island bananas. The Fence takes them by the crate.",
@@ -22,7 +25,10 @@ const BLURB: Record<string, string> = {
   bandage: "A banana-leaf wrap. Quick to put on, heals a little.",
   firstaid: "A proper first-aid kit from the ferry.",
   boomerang: "A bandit's banana boomerang. Sells as a curiosity.",
-  ammo45: "Rounds for your Kingpin .45.",
+  ammo45: "Pistol and SMG rounds: the Kingpin and every .45 gun take them.",
+  ammo_rifle: "Rifle rounds for assault rifles and the machine gun.",
+  ammo_shell: "Shotgun shells, five pellets in each.",
+  ammo_sniper: "Long, heavy sniper rounds.",
   vine_key: "Opens the vault door. Get it home and it stays on your keyring.",
   radio_key: "Opens the radio shack.",
   plantation_seal: "The workshop seal from the Old Plantation.",
@@ -48,8 +54,17 @@ export function itemCopy(inst: string): ItemCopy {
     does = h ? [`Heals ${h.heal} health`, `Takes ${h.time} s to use; you move slower meanwhile`, ...(h.uses ? [`${h.uses} uses`] : [])] : ["Heals you"];
     use = "Double-click it, press its quick key (3 to 8) or press Q";
     rarityLine = `${r} healing`;
+  } else if (d.kind === "gun") {
+    const g = gunOf(inst);
+    if (g) {
+      blurb = g.blurb;
+      does = [g.trait, `${CALIBERS[g.caliber].name}, ${g.mag} in the ${g.pellets > 1 ? "tube" : "magazine"}`];
+      use = "Drag it onto gun 1 or gun 2, or double-click it to fill an empty gun slot";
+      rarityLine = g.bound ? "Yours for good: never lost" : `${r} ${CLASS_LABEL[g.cls].toLowerCase()}`;
+    }
   } else if (d.kind === "ammo") {
-    does = [`${d.stack ?? 8} rounds for the Kingpin`, "Goes straight into your ammo pouch"];
+    const cal = id.split("~")[0];
+    does = [`${d.stack ?? 8} ${isCaliber(cal) ? CALIBERS[cal].name.toLowerCase() : "rounds"}`, "Goes straight into your ammo pouch; only guns of this caliber load it"];
     use = "Take it to add the rounds";
     rarityLine = "Ammunition";
   } else if (d.kind === "key") {

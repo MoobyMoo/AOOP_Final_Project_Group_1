@@ -55,7 +55,7 @@ const bad = migrate({
   stats: { bonkOuts: -5, extracts: 3, best: "9" },
   order: { id: "sal", progress: { vine_rope: 2, old_gear: "3", bad: -2 }, done: "yes" },
 });
-equal([bad.money, bad.raids, bad.ammo, bad.lookDone], [0, 0, KINGPIN.startAmmo, false], "reject wrong scalar types/ranges");
+equal([bad.money, bad.raids, bad.ammo.ammo45, bad.lookDone], [0, 0, KINGPIN.startAmmo, false], "reject wrong scalar types/ranges");
 equal(bad.upgrades, { mag: 1, pack: 0, heart: 0 }, "upgrade levels validated");
 equal(bad.keys, ["vine_key"], "mixed arrays sanitized and deduplicated");
 equal(bad.trophies, [], "wrong list type defaults");
@@ -110,27 +110,58 @@ assert(reset().v === 1, "Node without storage resets");
   const bx = (bad.look as unknown as { x?: { build?: number; jacket?: string } }).x;
   assert(bx?.build === 1 && bx.jacket === "two", "look.x out-of-range values clamp to safe defaults");
 }
-{ // gun attachments (G1.5 row 36): old saves fold their extended mag into the magazine slot, once
+{ // gun attachments (G1.5 row 36), now on gun slots: old saves fold their extended mag into the Kingpin's magazine slot, once
+  const k0 = (sv: { guns: import("../contracts").GunSlots }) => sv.guns[0]!.atts;
+  const E = { sight: null, muzzle: null, mag: null, laser: null, grip: null, stock: null };
   const fresh = migrate(null);
-  equal(fresh.gun, { sight: null, muzzle: null, mag: null, laser: null }, "a fresh save has a bare Kingpin");
+  equal(k0(fresh), E, "a fresh save has a bare Kingpin");
+  assert(itemType(fresh.guns[0]!.inst) === "kingpin" && fresh.guns[1] === null, "a fresh save holds the Kingpin in gun 1 and nothing in gun 2");
+  equal(fresh.ammo, { ammo45: KINGPIN.startAmmo, ammo_rifle: 0, ammo_shell: 0, ammo_sniper: 0 }, "a fresh save starts with .45 only");
   const vaultMag = migrate({ v: 1, fixtures: ["extended_mag", "open:wall_1"], locker: ["hardhat"] });
-  assert(vaultMag.gun.mag === "att_mag_ext" && !vaultMag.fixtures.includes("extended_mag") && vaultMag.fixtures.includes("open:wall_1"), "an old vault extended mag becomes the fitted magazine attachment");
+  assert(k0(vaultMag).mag === "att_mag_ext" && !vaultMag.fixtures.includes("extended_mag") && vaultMag.fixtures.includes("open:wall_1"), "an old vault extended mag becomes the fitted magazine attachment");
   assert(!vaultMag.locker.includes("att_mag_ext"), "the migrated mag is not duplicated into the locker");
   const boughtMag = migrate({ v: 1, upgrades: { mag: 1, pack: 0, heart: 0 } });
-  assert(boughtMag.gun.mag === "att_mag_ext" && boughtMag.upgrades.mag === 1, "a bought extended mag becomes the fitted magazine attachment and the bench stays done");
+  assert(k0(boughtMag).mag === "att_mag_ext" && boughtMag.upgrades.mag === 1, "a bought extended mag becomes the fitted magazine attachment and the bench stays done");
   const noMag = migrate({ v: 1, upgrades: { mag: 0, pack: 1, heart: 0 } });
-  assert(noMag.gun.mag === null, "no extended mag, nothing fitted");
-  // a current save that has taken its mag off keeps it off (the grant only applies to saves from before attachments)
+  assert(k0(noMag).mag === null, "no extended mag, nothing fitted");
+  // a pre-slots save: its "gun" (the Kingpin's parts) moves onto the Kingpin in gun 1; a removed mag stays removed
   const takenOff = migrate({ v: 1, upgrades: { mag: 1, pack: 0, heart: 0 }, gun: { sight: "att_sight_2x", muzzle: null, mag: null, laser: null }, locker: ["att_mag_ext"] });
-  assert(takenOff.gun.mag === null && takenOff.gun.sight === "att_sight_2x" && takenOff.locker.filter((i) => i === "att_mag_ext").length === 1, "a removed mag stays in the locker, never re-granted");
-  const badGun = migrate({ v: 1, gun: { sight: "att_muzzle_supp", muzzle: "att_muzzle_supp", mag: 5, laser: "__proto__", extra: "att_laser" } });
-  equal(badGun.gun, { sight: null, muzzle: "att_muzzle_supp", mag: null, laser: null }, "wrong-slot, unknown and non-string attachments are dropped");
+  assert(k0(takenOff).mag === null && k0(takenOff).sight === "att_sight_2x" && takenOff.locker.filter((i) => i === "att_mag_ext").length === 1, "a removed mag stays in the locker, never re-granted");
+  const badGun = migrate({ v: 1, gun: { sight: "att_muzzle_supp", muzzle: "att_muzzle_supp", mag: 5, laser: "__proto__", extra: "att_laser", grip: "att_grip_steady" } });
+  equal(k0(badGun), { ...E, muzzle: "att_muzzle_supp" }, "wrong-slot, unknown, non-string attachments and slots the Kingpin lacks are dropped");
   const oldItems = migrate({ v: 1, reserved: ["extended_mag", "banana", "att_laser"], satchel: { items: ["extended_mag", "att_sight_holo"], x: 1, z: 2 }, locker: ["att_laser", "nope"] });
   assert(oldItems.locker.includes("att_mag_ext") && oldItems.locker.filter((i) => i === "att_laser").length === 2 && !oldItems.locker.includes("nope"), "attachments in the stash move to the locker; the locker keeps attachment ids");
   equal(oldItems.reserved, ["banana"], "the Fence's stash keeps only sellable loot");
   equal(oldItems.satchel?.items, ["att_mag_ext", "att_sight_holo"], "a dropped satchel keeps its attachments");
   equal(migrate(vaultMag), vaultMag, "attachment migration is idempotent");
   equal(migrate(takenOff), takenOff, "a current save round-trips unchanged");
+}
+{ // two gun slots and calibers (POLISH_FINDINGS 17): the single .45 count becomes the per-caliber ledger; slots keep
+  // any gun, re-check each gun's attachments against its own slots, and never hold two Kingpins
+  const old = migrate({ v: 1, ammo: 37, gun: { sight: null, muzzle: "att_muzzle_comp", mag: null, laser: null }, boundWeapons: { kingpin: "kingpin@abc", briefcase: "briefcase@def" } });
+  equal(old.ammo, { ammo45: 37, ammo_rifle: 0, ammo_shell: 0, ammo_sniper: 0 }, "an old .45 count becomes the .45 reserve");
+  assert(old.guns[0]!.inst === "kingpin@abc" && old.guns[0]!.atts.muzzle === "att_muzzle_comp" && old.guns[1] === null, "the old Kingpin, its identity and its parts land in gun 1");
+  const two = migrate({ v: 1, ammo: { ammo45: 3, ammo_rifle: 40, ammo_shell: -2, ammo_sniper: "x" }, boundWeapons: { kingpin: "kingpin@abc", briefcase: "briefcase@def" },
+    guns: [{ inst: "contraband_carbine@c1", atts: { grip: "att_grip_steady@g1", stock: "att_stock_crate@s1", sight: "att_sight_2x@x1" } }, { inst: "kingpin@abc", atts: { stock: "att_stock_padded@s2", mag: "att_mag_ext@m1" } }] });
+  equal(two.ammo, { ammo45: 3, ammo_rifle: 40, ammo_shell: 0, ammo_sniper: 0 }, "per-caliber rounds survive; bad counts drop to zero");
+  assert(two.guns[0]!.inst === "contraband_carbine@c1" && two.guns[0]!.atts.grip === "att_grip_steady@g1" && two.guns[0]!.atts.stock === "att_stock_crate@s1", "a rifle keeps its grip and stock");
+  assert(two.guns[1]!.inst === "kingpin@abc" && two.guns[1]!.atts.mag === "att_mag_ext@m1" && two.guns[1]!.atts.stock === null && two.locker.includes("att_stock_padded@s2"), "a part a gun has no slot for comes off into the locker (the Kingpin has no stock)");
+  const dupes = migrate({ v: 1, guns: [{ inst: "kingpin@a", atts: {} }, { inst: "kingpin@b", atts: {} }] });
+  assert(dupes.guns[1] === null && itemType(dupes.guns[0]!.inst) === "kingpin", "two Kingpins collapse to one");
+  const junk = migrate({ v: 1, guns: [{ inst: "laser_cannon@z", atts: {} }, "nope"] });
+  assert(junk.guns[0] === null && junk.guns[1] === null, "unknown guns are dropped");
+  const rack = migrate({ v: 1, guns: [null, { inst: "peel_sprayer@p1", atts: {} }], locker: ["long_ledger@l1", "kingpin@nope"] });
+  assert(rack.guns[0] === null && rack.guns[1]!.inst === "peel_sprayer@p1" && rack.locker.includes("long_ledger@l1") && !rack.locker.some((i) => itemType(i) === "kingpin"), "the Kingpin can be on the rack; guns keep in the locker; a Kingpin never lands in the locker");
+  equal(migrate(two), two, "the slot migration is idempotent");
+  // tiers (loot/tiers.ts): the stored items keep their identities; their tier comes from the table, so an old
+  // trophy list (epic finds) is kept as earned even where the re-tier moved a part down (the Gilded Pointer, q4)
+  const tro = migrate({ v: 1, trophies: ["att_laser_gold", "golden_banana"] });
+  equal(tro.trophies, ["att_laser_gold", "golden_banana"], "trophies earned under the old tiers are kept");
+  const prevStorage = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: storage });
+  const saved = load(); assert(save({ ...saved, guns: [saved.guns[0], { inst: "board_meeting", atts: { sight: null, muzzle: "att_muzzle_supp", mag: null, laser: null, grip: null, stock: null } }] }), "a save with two guns commits");
+  const back = load(); assert(back.guns[1]!.inst.startsWith("board_meeting@") && back.guns[1]!.atts.muzzle!.startsWith("att_muzzle_supp@"), "a gun in a slot and its parts persist through save and load, owned");
+  reset(); if (prevStorage) Object.defineProperty(globalThis, "localStorage", prevStorage);
 }
 const cash = (save: { money: number }) => save.money; // read through a call: TS would narrow save.money to the last asserted literal
 { // the buildable vault (G1.5 row 17): new saves start empty; a save from before the vault keeps the old room's stations
@@ -174,8 +205,8 @@ const cash = (save: { money: number }) => save.money; // read through a call: TS
   build(c, "med", 4, 4, 0); assert(craft(c, "bandage") && c.reserved.filter((inst) => itemType(inst) === "bandage").length === 2 && !c.reserved.includes("vine_rope"), "a vine rope makes two bandages");
   build(c, "press", 8, 4, 0);
   assert(!c.base.items.some((item) => item.def === "press"), "the press can't be built without power");
-  build(c, "generator", 12, 4, 0); build(c, "press", 8, 4, 0); const ammo = c.ammo;
-  assert(craft(c, "rounds8") && c.ammo === ammo + 8 && !c.reserved.includes("spring"), "a spring presses 8 rounds");
+  build(c, "generator", 12, 4, 0); build(c, "press", 8, 4, 0); const ammo = c.ammo.ammo45;
+  assert(craft(c, "rounds8") && c.ammo.ammo45 === ammo + 8 && !c.reserved.includes("spring"), "a spring presses 8 rounds");
   assert(stashCapacity(c) === 24 && (build(c, "stash", -6, 6, 0), stashCapacity(c)) === 36, "a safe-deposit wall adds 12 slots");
   c.reserved = Array(36).fill("banana"); c.locker = []; assert(!craft(c, "smoothie") || c.reserved.length <= 36, "crafting respects the stash");
   assert(STARTERS.every((starter) => !CATALOG.some((def) => def.id === (starter.id as string))), "starters are not buildable");

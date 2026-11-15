@@ -1,38 +1,51 @@
-// Review page for the Kingpin .45 (gun.html). Two views in the real stage lighting:
+// Review page for the guns (gun.html). ?gun=<id> picks the gun (combat/guns.ts GUNS; default kingpin45): its GLB when
+// it has landed in public/models/guns/, else its placeholder (combat/gunmodels.ts). Views in the real stage lighting:
 //   ?view=turntable (default)  the gun big, turning (or fixed with &rot=deg)
 //   ?view=gameplay             the Businessman holding it, seen from the game camera (40 u, 55 deg, FOV 24)
 // Exact frames for capture: &fireT=0.05 and/or &reloadT=0.6 freeze the pose. In the gameplay view the FX are pre-rolled
 // too (&shots=N shots at the real 0.22 s spacing, stopping fireT of an interval after the last one); on the turntable
 // a frozen frame is the bare pose unless &fx=1 (the flash is sized for the game camera and floods a close-up).
-// &ext=1 extended magazine.
+//   ?view=lineup             every gun at rest, side by side by class (the Kingpin first, for scale)
+// &ext=1 extended magazine (the Kingpin only). &atts=id,id fits attachments (loot/attachments.ts ids).
 // &auto=1 loops 4 shots then a reload, forever. &hit=enemy|wall|none picks the target. &face=deg turns the shooter.
 // Keys: SPACE fire, R reload, E extended magazine, T next target, V other view. &hud=0 hides the text.
 import * as THREE from "three";
 import { Stage } from "../render/stage";
 import { U, mat } from "../render/shading";
-import { createKingpin, createGunFx, preloadKingpin } from "./kingpin";
+import { createGunFx } from "./kingpin";
+import { createGunView, gunModelSource, preloadGunModels } from "./gunmodels";
+import { GUNS, GUN_IDS, CLASS_LABEL, isGunId } from "./guns";
+import { tierOf } from "../loot/tiers";
 import { KINGPIN, FEEL } from "./weapons";
-import { createRig } from "../actors/rig";
+import { createRig, preloadCharacters } from "../actors/rig";
 import { DEFAULT_LOOK } from "../actors/look";
 import { crate, rock, bush, ruinBlock } from "../world/kit";
-import type { RigState } from "../contracts";
+import { ATTACHMENTS } from "../loot/attachments";
+import type { RigState, GunAtts } from "../contracts";
 
 const QS = new URLSearchParams(location.search);
 const num = (k: string) => (QS.has(k) ? Number(QS.get(k)) : null);
-const view = QS.get("view") === "gameplay" ? "gameplay" : "turntable";
+const view = QS.get("view") === "gameplay" ? "gameplay" : QS.get("view") === "lineup" ? "lineup" : "turntable";
+const GUN_ID = isGunId(QS.get("gun") ?? "") ? QS.get("gun")! : "kingpin45", DEF = GUNS[GUN_ID], IS_KP = GUN_ID === "kingpin45";
 const pFire = num("fireT"), pReload = num("reloadT"), auto = QS.get("auto") === "1";
 const frozen = !auto && (pFire !== null || pReload !== null);
 type Hit = "enemy" | "wall" | "none";
 const HITS: Hit[] = ["enemy", "wall", "none"];
 let hit: Hit = (HITS as string[]).includes(QS.get("hit") ?? "") ? (QS.get("hit") as Hit) : view === "gameplay" ? "enemy" : "none";
-let ext = QS.get("ext") === "1";
+let ext = IS_KP && QS.get("ext") === "1";
 
 const stage = new Stage(document.getElementById("game") as HTMLCanvasElement);
 const scene = stage.scene, rad = THREE.MathUtils.degToRad;
 stage.renderer.info.autoReset = false;
-await preloadKingpin();
-const gun = createKingpin(), fx = createGunFx(scene);
+await Promise.all([preloadGunModels(), preloadCharacters()]);
+const gun = createGunView(GUN_ID), fx = createGunFx(scene);
 gun.setVariant({ extMag: ext });
+// &atts=att_sight_holo,att_laser fits those attachments on their slots (a slot the gun lacks shows nothing)
+if (QS.get("atts")) {
+  const fit: GunAtts = { sight: null, muzzle: null, mag: null, laser: null, grip: null, stock: null };
+  for (const a of QS.get("atts")!.split(",")) if (Object.hasOwn(ATTACHMENTS, a)) fit[ATTACHMENTS[a].slot] = a;
+  gun.setAttachments?.(fit);
+}
 const target = new THREE.Vector3(), focus = new THREE.Vector3(), aimDir = new THREE.Vector3();
 let live = !frozen, fireT = pFire ?? 1, reloadT = pReload ?? -1;
 
@@ -60,13 +73,31 @@ const SUN_SPOT = (() => {
 const SHOOTER = new THREE.Vector3(-3.6, 0, 0.6).add(SUN_SPOT), ENEMY = new THREE.Vector3(), WALL = new THREE.Vector3();
 const _qs = new THREE.Quaternion(), _qd = new THREE.Quaternion(), UP = new THREE.Vector3(0, 1, 0);
 
-if (view === "turntable") {
+// the gun's length along the barrel (and its middle), for framing: the Kingpin is 1.11 u
+const gunBox = new THREE.Box3().setFromObject(gun.root), gunLen = gunBox.max.z - gunBox.min.z, gunMid = (gunBox.max.z + gunBox.min.z) / 2;
+if (view === "lineup") {
+  // rows by class, guns in tier order along a row; each gun's middle on its spot, barrel to screen-right
+  if (!QS.has("pitch")) stage.cam.pitch = rad(62);
+  if (!QS.has("yaw")) stage.cam.yaw = 0;
+  if (!QS.has("dist")) stage.cam.dist = 19;
+  const rows = ["pistol", "smg", "rifle", "shotgun", "sniper", "lmg"];
+  const ped = new THREE.Mesh(new THREE.BoxGeometry(10, 0.05, 8.4), mat("#b9a678", { rough: 0.9, rim: 0 })); ped.position.copy(SUN_SPOT).setY(0.025); ped.receiveShadow = true; scene.add(ped);
+  rows.forEach((cls, r) => GUN_IDS.filter((id) => GUNS[id].cls === cls).forEach((id, i) => {
+    const g = createGunView(id), b = new THREE.Box3().setFromObject(g.root);
+    g.root.rotation.y = Math.PI / 2; // barrel along +x
+    g.root.position.set(SUN_SPOT.x - 3 + i * 3 - (b.max.z + b.min.z) / 2, 0.45, SUN_SPOT.z - 3.5 + r * 1.4);
+    g.root.traverse((o) => { o.castShadow = true; });
+    scene.add(g.root);
+  }));
+  Object.assign(stage.sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8 }); stage.sun.shadow.camera.updateProjectionMatrix();
+  focus.copy(SUN_SPOT).setY(0.4); focus.z += 0.2;
+} else if (view === "turntable") {
   if (!QS.has("pitch")) stage.cam.pitch = rad(16);
   if (!QS.has("yaw")) stage.cam.yaw = rad(115); // key light from the camera's left; the stage sun sits at azimuth 160
-  if (!QS.has("dist")) stage.cam.dist = 3.1;
+  if (!QS.has("dist")) stage.cam.dist = IS_KP ? 3.1 : 3.1 * Math.max(1, gunLen / 1.15);
   const ped = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.6, 0.05, 48), mat("#b9a678", { rough: 0.9, rim: 0 })); ped.position.copy(SUN_SPOT).setY(0.025); ped.receiveShadow = true; scene.add(ped);
   spin.position.copy(SUN_SPOT).setY(1.05); scene.add(spin);
-  gun.root.position.set(0, -0.02, -0.2); spin.add(gun.root); // turn about the middle of the gun, not the grip
+  gun.root.position.set(0, -0.02, IS_KP ? -0.2 : -gunMid); spin.add(gun.root); // turn about the middle of the gun, not the grip
   Object.assign(stage.sun.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3 }); stage.sun.shadow.camera.updateProjectionMatrix(); stage.sun.shadow.bias = -0.0002; stage.sun.shadow.normalBias = 0.004;
   focus.copy(SUN_SPOT).setY(1.06);
 } else {
@@ -85,6 +116,7 @@ if (view === "turntable") {
 
 /** aim the shooter (or the turntable gun) and work out where the shot lands */
 function aim(t: number) {
+  if (view === "lineup") { gun.root.updateWorldMatrix(true, true); gun.muzzle.getWorldPosition(target); return; }
   if (view === "turntable") {
     // rot is relative to the camera: 0 = side profile with the muzzle to screen-right, 180 = the ejection-port side
     spin.rotation.y = stage.cam.yaw + Math.PI / 2 + (QS.has("rot") ? rad(Number(QS.get("rot"))) : t * 0.5 - 0.6);
@@ -104,26 +136,27 @@ function aim(t: number) {
   rig.sockets.handR.getWorldQuaternion(_qs).invert(); gun.root.quaternion.copy(_qs).multiply(_qd.setFromAxisAngle(UP, yaw));
   gun.root.updateWorldMatrix(true, true);
   gun.muzzle.getWorldPosition(target); aimDir.set(Math.sin(yaw), 0, Math.cos(yaw));
-  const d = hit === "none" ? KINGPIN.range : Math.hypot(to.x - SHOOTER.x, to.z - SHOOTER.z) - (hit === "wall" ? 0.42 : 0.3) - 1.2;
+  const d = hit === "none" ? DEF.range : Math.hypot(to.x - SHOOTER.x, to.z - SHOOTER.z) - (hit === "wall" ? 0.42 : 0.3) - 1.2;
   target.addScaledVector(aimDir, Math.max(1, d)); if (hit === "enemy") target.y = 1.0;
 }
 
 // ------------------------------------------------------------------------------------------------ gameplay-side clock
 let sinceShot = 9, reloadClock = -1, ammo = 0, autoShots = 4, autoWait = 0.4, clock = 0;
-const magSize = () => (ext ? KINGPIN.extMag : KINGPIN.mag);
+const magSize = () => (ext ? KINGPIN.extMag : DEF.mag);
 ammo = magSize();
 function shoot() {
+  if (view === "lineup") return;
   gun.pose({ fireT: 0, reloadT: -1 }); aim(clock);
   fx.fire(gun.muzzle, gun.eject, target, hit);
   sinceShot = 0; ammo--; stage.kick.addScaledVector(aimDir, -FEEL.shotKick);
 }
-function tryFire() { if (reloadClock >= 0 || sinceShot < KINGPIN.interval) return false; if (ammo <= 0) { startReload(); return false; } shoot(); return true; }
+function tryFire() { if (reloadClock >= 0 || sinceShot < DEF.interval) return false; if (ammo <= 0) { startReload(); return false; } shoot(); return true; }
 function startReload() { if (reloadClock < 0) reloadClock = 0; }
 addEventListener("keydown", (e) => {
   if (e.repeat && e.code !== "Space") return;
   if (e.code === "Space") { live = true; tryFire(); e.preventDefault(); }
   else if (e.code === "KeyR") { live = true; startReload(); }
-  else if (e.code === "KeyE") { ext = !ext; gun.setVariant({ extMag: ext }); ammo = Math.min(ammo, magSize()); }
+  else if (e.code === "KeyE" && IS_KP) { ext = !ext; gun.setVariant({ extMag: ext }); ammo = Math.min(ammo, magSize()); }
   else if (e.code === "KeyT") hit = HITS[(HITS.indexOf(hit) + 1) % HITS.length];
   else if (e.code === "KeyV") { QS.set("view", view === "gameplay" ? "turntable" : "gameplay"); location.search = QS.toString(); }
 });
@@ -135,7 +168,7 @@ if (frozen) {
     const shots = Math.max(1, num("shots") ?? (view === "gameplay" ? 4 : 1)), STEP = 1 / 240;
     for (let s = 0; s < shots; s++) {
       shoot();
-      const span = s < shots - 1 ? KINGPIN.interval : pFire * KINGPIN.interval;
+      const span = s < shots - 1 ? DEF.interval : pFire * DEF.interval;
       for (let t = 0; t + 1e-6 < span; t += STEP) fx.update(Math.min(STEP, span - t));
     }
     stage.kick.set(0, 0, 0);
@@ -145,25 +178,30 @@ if (frozen) {
 // ------------------------------------------------------------------------------------------------ loop + stats
 const statsEl = document.getElementById("stats")!, hudEl = document.getElementById("hud")!;
 if (QS.get("hud") === "0") hudEl.style.display = "none";
+const tier = tierOf(DEF.tier), titleEl = hudEl.querySelector("b")!;
+titleEl.textContent = view === "lineup" ? "The arsenal" : DEF.name;
+if (view !== "lineup") { const sub = document.createElement("i"); sub.textContent = ` ${CLASS_LABEL[DEF.cls]} · ${tier.name} · ${gunModelSource(GUN_ID)}`; sub.style.color = tier.color; titleEl.append(sub); }
+if (!IS_KP) document.getElementById("keys")!.textContent = "SPACE fire · R reload · T target · V view";
+document.title = `Bananaville: ${view === "lineup" ? "arsenal" : DEF.name} review`;
 let gunTris = 0, gunCalls = 0;
 const countGun = () => { gunTris = 0; gunCalls = 0; gun.root.traverse((o) => { const m = o as THREE.Mesh; if (!m.isMesh || !m.visible) return; gunCalls++; const g = m.geometry; gunTris += (g.index ? g.index.count : g.attributes.position.count) / 3; }); };
 const peak = { fxCalls: 0, sprites: 0, shells: 0, fxTris: 0 };
-const report = { gun: { drawCalls: 0, triangles: 0 }, fx: fx.stats(), peak, frame: { calls: 0, triangles: 0 }, view, ext };
+const report = { id: GUN_ID, source: gunModelSource(GUN_ID), length: gunLen, gun: { drawCalls: 0, triangles: 0 }, fx: fx.stats(), peak, frame: { calls: 0, triangles: 0 }, view, ext };
 (window as unknown as { __gun: typeof report }).__gun = report;
 let last = performance.now(), statT = 0;
 function frame(now: number) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now; clock += dt; U.uTime.value = 0; // canopy cookie held still: the review stays in its sunny patch
   if (live) {
     sinceShot += dt;
-    if (reloadClock >= 0) { reloadClock += dt; if (reloadClock >= KINGPIN.reload) { reloadClock = -1; ammo = magSize(); } }
+    if (reloadClock >= 0) { reloadClock += dt; if (reloadClock >= DEF.reload) { reloadClock = -1; ammo = magSize(); } }
     if (auto) {
       if (reloadClock < 0) {
         autoWait -= dt;
-        if (autoShots > 0) { if (autoWait <= 0 && sinceShot >= KINGPIN.interval + 0.03) { ammo = Math.max(ammo, 1); shoot(); autoShots--; if (autoShots === 0) autoWait = 0.5; } }
+        if (autoShots > 0) { if (autoWait <= 0 && sinceShot >= DEF.interval + 0.03) { ammo = Math.max(ammo, 1); shoot(); autoShots--; if (autoShots === 0) autoWait = 0.5; } }
         else if (autoWait <= 0) { startReload(); autoShots = 4; autoWait = 0.35; if (view === "gameplay" && !QS.has("hit")) hit = hit === "enemy" ? "wall" : "enemy"; }
       }
     }
-    fireT = Math.min(1, sinceShot / KINGPIN.interval); reloadT = reloadClock >= 0 ? Math.min(1, reloadClock / KINGPIN.reload) : -1;
+    fireT = Math.min(1, sinceShot / DEF.interval); reloadT = reloadClock >= 0 ? Math.min(1, reloadClock / DEF.reload) : -1;
     aim(clock); gun.pose({ fireT, reloadT }); fx.update(dt);
   } else { aim(0); gun.pose({ fireT, reloadT }); }
   stage.place(focus, dt, clock); stage.render(dt);

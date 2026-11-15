@@ -16,6 +16,7 @@ import { createKingpin, createGunFx } from "../combat/kingpin";
 import { KINGPIN, KINGPIN_HANDLING, PLAYER } from "../combat/weapons";
 import { HS, resetHandling } from "../combat/handling";
 import { GUN, refreshGun } from "../combat/gunstats";
+import { loadForRaid, mountActiveGun } from "../combat/arsenal";
 import { updateLaser } from "../combat/laser";
 import { tuneObject } from "./tune";
 import { spawnEnemies, updateEnemies } from "../ai/enemies";
@@ -84,14 +85,15 @@ export function startRaid(end: (r: RaidResult) => void, entry: RaidEntry = {}) {
   const before = new Set(raidScene.children); resetRaidColliders(); resetWalls(); resetHouses(); resetProps();
   // player
   if (!G.rig) { G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); }
+  G.fx.update(0);
   G.rig.setLook?.(G.save.look); G.gear = { ...G.save.gear }; restoreBoundKit(); G.rig.setGear?.(G.gear);
   raidScene.add(G.rig.root);
   G.pp = G.rig.root.position; G.pp.set(START.x, 0, START.z); // just outside the hatch ring (placed for real below, once the enemies stand)
   G.pp.y = standHeight(G.pp.x, G.pp.z);
   G.vel.set(0, 0, 0); G.moveYaw = Math.PI; G.aimYaw = Math.PI;
   G.maxHp = PLAYER.hp + 25 * G.save.upgrades.heart; G.hp = G.maxHp; G.stamina = PLAYER.stamina.max; G.staminaDelay = 0; G.sprinting = false; G.painT = 0; G.useItem = null; G.iframes = 0;
-  refreshGun(); // magazine size, the extended mag's look and the fitted attachments (combat/gunstats.ts)
-  G.ammo = G.save.ammo; G.mag = Math.min(G.magSize, G.ammo); G.ammo -= G.mag;
+  // both guns load from their caliber's loose rounds; the gun in hand gets its model, mag size and attachments
+  G.reserve = { ...G.save.ammo }; loadForRaid(); mountActiveGun();
   G.fireCd = 0; G.fireT = 1; G.reloadT = -1; G.meleeT = -1; G.rollT = -1; G.rollCd = 0; G.skidT = 0; G.zipping = null;
   G.pouchSlots = 2; G.pack = []; G.equipping = null; G.equipmentEvents = []; refreshEquipment();
   // heals bought at home come along (up to 3)
@@ -165,7 +167,7 @@ export function renderRaid(dt: number) {
   // level the gun in the hand and point it along the aim (the socket's own rotation follows the arm pose)
   G.rig.root.updateMatrixWorld(true); G.rig.sockets.handR.getWorldQuaternion(sockQ);
   G.gun.root.quaternion.copy(sockQ.invert()).multiply(yawQ.setFromAxisAngle(UPV, G.aimYaw));
-  G.gun.root.visible = G.meleeT < 0 && G.alive;
+  G.gun.root.visible = G.meleeT < 0 && G.alive && GUN.armed;
   G.gun.root.scale.setScalar(GUN_SCALE);
   G.gun.pose({ fireT: Math.min(1, G.fireT), reloadT: G.reloadT });
   updateDashFx(dt); // after the pose: the afterimages copy it

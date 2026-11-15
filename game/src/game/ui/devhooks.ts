@@ -44,3 +44,16 @@ export function lay(items: string[], spacing = 1.1) {
   const fx = Math.sin(G.aimYaw), fz = Math.cos(G.aimYaw), sx = fz, sz = -fx;
   items.map(own).forEach((id, i) => { const o = (i - (items.length - 1) / 2) * spacing; placeItem(id, G.pp.x + fx * 2.5 + sx * o, G.pp.z + fz * 2.5 + sz * o); });
 }
+
+// ---- arsenal (tools/gunfeel.mjs, captures): every hand-out goes through the real pickup path (raidloot giveItem), so
+// the settlement journal sees an item that arrived and was used, never rounds from nothing
+import { giveItem } from "../loot/raidloot";
+import { withCount } from "../loot/instances";
+import { takeGun } from "../combat/arsenal";
+import { spawnDummy } from "../ai/enemies";
+/** put a fresh gun in gun 2 (the gun already there goes to the pack with its parts, so nothing vanishes) */
+export function gun2(id: string) { const out = takeGun(1); if (out) G.pack.push(out.inst, ...out.atts); return giveItem(own(id)); }
+/** n rounds of a caliber, picked up as one stack */
+export function rounds(cal: string, n: number) { return giveItem(withCount(own(cal), n), n); }
+/** a still target with this much HP at x, z */
+export function dummy(x: number, z: number, hp = 48) { const e = spawnDummy(x, z, hp); return e.id; }

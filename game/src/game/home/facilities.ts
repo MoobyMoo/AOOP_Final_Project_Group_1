@@ -219,7 +219,7 @@ export function craft(save: SaveV1, id: string): boolean {
   const r = RECIPES.find((q) => q.id === id);
   if (!r || !canCraft(save, r).ok) return false;
   for (const [item, n] of Object.entries(r.inputs)) for (let k = 0; k < n; k++) save.reserved.splice(save.reserved.findIndex(inst => itemType(inst) === item), 1);
-  if (r.out === "ammo") save.ammo += r.n; else for (let k = 0; k < r.n; k++) save.reserved.push(own(r.out));
+  if (r.out === "ammo") save.ammo.ammo45 += r.n; else for (let k = 0; k < r.n; k++) save.reserved.push(own(r.out));
   return true;
 }
 

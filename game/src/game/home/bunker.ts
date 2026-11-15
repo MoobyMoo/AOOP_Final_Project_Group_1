@@ -6,6 +6,7 @@
 // menus for walking around (advisor 27); stations open the ui3 ledger plates.
 import { attachmentDef } from "../loot/attachments";
 import { refreshGun } from "../combat/gunstats";
+import { itemType } from "../loot/instances";
 import * as THREE from "three";
 import { G, V } from "../core/state";
 import { own } from "../loot/instances";
@@ -190,7 +191,7 @@ function open(s: Station) {
 function salShopHtml() {
   const sv = G.save;
   return `${head("Smuggler Sal", "cash only")}<p class="quote">"Ammo, bandages, smoothies."</p><div class="rows">
-    <div class="row"><b>8 rounds of .45</b><small>You carry ${sv.ammo} rounds into the next raid.</small><button class="act" data-a="buyAmmo">🍌 ${PRICES.ammo8}</button></div>
+    <div class="row"><b>8 rounds of .45</b><small>You carry ${sv.ammo.ammo45} rounds of .45 into the next raid${sv.ammo.ammo_rifle + sv.ammo.ammo_shell + sv.ammo.ammo_sniper ? ` (plus ${sv.ammo.ammo_rifle} rifle, ${sv.ammo.ammo_shell} shells, ${sv.ammo.ammo_sniper} sniper)` : ""}.</small><button class="act" data-a="buyAmmo">🍌 ${PRICES.ammo8}</button></div>
     <div class="row"><b>Banana-leaf bandage</b><small>Heals 15, quick to use</small><button class="act" data-a="buyBandage">🍌 ${PRICES.bandage}</button></div>
     <div class="row"><b>Banana smoothie</b><small>Heals 40, slow to drink</small><button class="act" data-a="buySmoothie">🍌 ${PRICES.smoothie}</button></div></div>`;
 }
@@ -202,7 +203,7 @@ function craftHtml(at: "med" | "press") {
     return `<div class="row"><b>${r.out === "ammo" ? "🔸" : iconHtml(r.out, 26)} ${r.name}</b><small>From ${need}${wanted}${can.ok ? "" : `. ${can.reason}`}</small><button class="act" data-a="craft:${r.id}" ${can.ok ? "" : "disabled"}>Make</button></div>`;
   }).join("");
   return at === "med" ? `${head("First-aid kiosk", `${stashUsed(sv)}/${stashCapacity(sv)} stash`)}<p class="quote">"Wrap it tight. Drink it slow."</p><div class="rows">${rows}</div><p class="dim" style="margin-top:10px">Heals you make wait in the stash; up to three come along on the next raid.</p>`
-    : `${head("Coin-op ammo press", powered(sv) ? "powered" : "no power")}<p class="quote">"Insert spring. Pull lever. Count to eight."</p><div class="rows">${rows}</div><p class="dim" style="margin-top:10px">You carry ${sv.ammo} rounds into the next raid.</p>`;
+    : `${head("Coin-op ammo press", powered(sv) ? "powered" : "no power")}<p class="quote">"Insert spring. Pull lever. Count to eight."</p><div class="rows">${rows}</div><p class="dim" style="margin-top:10px">You carry ${sv.ammo.ammo45} rounds of .45 into the next raid.</p>`;
 }
 /** the locker (G1-23): the shared loot screen (ui/lootview.ts) with the locker as the target: what you wear on the
  *  left, stored gear on the right, the leather tag in the middle. Double-click or drag to swap. */
@@ -222,7 +223,7 @@ function repairRow() {
 }
 function benchHtml() {
   const u = G.save.upgrades, row = (k: "mag" | "pack" | "heart", name: string, desc: string) => { const lvl = u[k], c = PRICES[k][lvl]; return `<div class="row"><b>${name}</b><small>${desc}</small>${c === undefined ? `<em class="act">Done</em>` : `<button class="act" data-a="up:${k}" ${G.save.money < c ? "disabled" : ""}>🍌 ${c}</button>`}</div>`; };
-  return `${head("Workbench", `🍌 ${G.save.money} to spend`)}<div class="rows">${row("mag", "Extended Mag", "A magazine attachment: the Kingpin holds 12 rounds instead of 8" + (G.save.gun.mag === "att_mag_ext" || G.save.locker.includes("att_mag_ext") ? ". You already have one" : ""))}${row("pack", "Bigger Pack", "2 more pack slots")}${row("heart", "Banana Breakfast", "25 more max HP")}${repairRow()}</div><p class="dim" style="margin-top:10px">🔒 Contraband Carbine arrives with the Smuggler Caves.</p>`;
+  return `${head("Workbench", `🍌 ${G.save.money} to spend`)}<div class="rows">${row("mag", "Extended Mag", "A magazine attachment: half as many rounds again (the Kingpin holds 12 instead of 8)" + (G.save.guns.some(g => g?.atts.mag && itemType(g.atts.mag) === "att_mag_ext") || G.save.locker.some(i => itemType(i) === "att_mag_ext") ? ". You already have one" : ""))}${row("pack", "Bigger Pack", "2 more pack slots")}${row("heart", "Banana Breakfast", "25 more max HP")}${repairRow()}</div><p class="dim" style="margin-top:10px">🔒 Contraband Carbine arrives with the Smuggler Caves.</p>`;
 }
 function orderHtml() {
   if (G.save.salMovedIn) return `${head("Order board")}<p>Sal's job is done. New jobs arrive with new regions.</p>`;
@@ -290,7 +291,7 @@ function act(a: string) {
   if (a.startsWith("up:")) {
     const k = a.slice(3) as "mag" | "pack" | "heart", c = PRICES[k][sv.upgrades[k]]; if (c === undefined || sv.money < c) { sfx("nope"); return; }
     sv.money -= c; sv.upgrades[k]++;
-    if (k === "mag") { if (!sv.gun.mag) sv.gun.mag = own("att_mag_ext"); else sv.locker.push(own("att_mag_ext")); refreshGun(); } // the bench builds the magazine attachment: fitted, or into the locker if a mag is on
+    if (k === "mag") { const kp = sv.guns.find(g => g && g.inst === sv.boundWeapons?.kingpin); if (kp && !kp.atts.mag) kp.atts.mag = own("att_mag_ext"); else sv.locker.push(own("att_mag_ext")); refreshGun(); } // the bench builds the magazine attachment: fitted on the Kingpin, or into the locker if a mag is on
     save(sv); sfx("buy"); money(); refreshFixtures(); closePanel();
     const f = facObj("bench")?.getObjectByName(`fx_${k}`);
     if (f) { popIn(f, 0, 0.42, f.scale.x || 1); burst(f.getWorldPosition(new THREE.Vector3()), 24, "#ffd84a", 1); }
@@ -307,7 +308,7 @@ function act(a: string) {
     if (grow && stashUsed(sv) + grow > stashCapacity(sv)) { sfx("nope"); floatText("Stash full", atFac("sal"), "#ffb648", 24); return; }
     sv.money -= cost; f(); save(sv); sfx("buy"); money(); const st = stations.find((s) => s.id === "sal"); if (st) open(st);
   };
-  if (a === "buyAmmo") buy(PRICES.ammo8, 0, () => { sv.ammo += 8; });
+  if (a === "buyAmmo") buy(PRICES.ammo8, 0, () => { sv.ammo.ammo45 += 8; });
   if (a === "buyBandage") buy(PRICES.bandage, 1, () => { sv.reserved.push("bandage"); });
   if (a === "buySmoothie") buy(PRICES.smoothie, 1, () => { sv.reserved.push("smoothie"); });
 }

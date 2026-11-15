@@ -36,7 +36,10 @@ import { itemDef, dropItem, placeItem } from "./loot/raidloot";
 import { visualGear } from "./loot/equipment";
 import { payoutSlip } from "./ui/payout";
 import { createRig, preloadCharacters, RIG_TUNE } from "./actors/rig";
-import { createKingpin, createGunFx, preloadKingpin } from "./combat/kingpin";
+import { createKingpin, createGunFx } from "./combat/kingpin";
+import { createGunView, gunPickupModel, preloadGunModels } from "./combat/gunmodels";
+import { groundHooks } from "./loot/ground";
+import { arsenalHooks } from "./combat/arsenal";
 import { botTick, setBot } from "./core/botdrive";
 import { createBot } from "./core/bot";
 import { hud } from "./ui/hud";
@@ -54,7 +57,8 @@ addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlock
 initSettings({ blocked: () => lootOpen() || mapOpen() || homeApi.panelOpen(), quit: () => quitRaid() });
 
 // world + rig up front (the map snapshot needs the raid scene built); the gun model is a GLB, loaded before anything asks for it
-await preloadKingpin();
+await preloadGunModels(); // the Kingpin's GLB, every gun's GLB that has landed, placeholders for the rest
+arsenalHooks.createView = createGunView; arsenalHooks.changed = () => hud.ammo(); groundHooks.gunModel = gunPickupModel;
 await preloadBuild().catch((e) => console.warn("build kit missing, bunker uses the blockout", e)); // structures kit (bunker room, raid structures)
 await preloadCharacters(); // character GLBs (rig v2): createRig() is synchronous once this resolves
 await Promise.all([preloadNature(), preloadHouse(), preloadGroundItems(), preloadFauna()]); // nature + building kits (the structures kit is loaded above): the raid world builds from them

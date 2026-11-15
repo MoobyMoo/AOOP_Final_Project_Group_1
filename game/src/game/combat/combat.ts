@@ -3,9 +3,9 @@
 import { faunaHear } from "../ai/fauna";
 import * as THREE from "three";
 import { G, V, flat, angDiff, type Enemy } from "../core/state";
-import { KINGPIN, BRIEFCASE, ENEMY, FEEL, GEAR_CRIT_BASE } from "./weapons";
+import { BRIEFCASE, ENEMY, FEEL, GEAR_CRIT_BASE } from "./weapons";
 import { rayShot, wallAt, breakWall, isWall, gate, los } from "../world/grid";
-import { sfx } from "../core/audio";
+import { sfx, gunShot } from "../core/audio";
 import { burst, floatText } from "../../fx";
 import { hud } from "../ui/hud";
 import { alertEnemy, hearNoise } from "../ai/enemies";
@@ -14,8 +14,9 @@ import { breakWallVisual } from "../world/props";
 import { recordBotCombat } from "../core/bot";
 import { gearStats } from "../loot/equipment";
 import type { KingpinFx } from "./kingpin";
-import { onShot } from "./handling";
-import { GUN } from "./gunstats";
+import { onShot, scatterDev } from "./handling";
+import { ARM, GUN } from "./gunstats";
+import type { GunDef } from "./guns";
 import { aimHead, headCenter } from "./headshot";
 import { damageNumber, hitMarker, clearFeedback } from "./feedback";
 import { surfaceAt } from "./surface";
@@ -29,11 +30,31 @@ const tmp = new THREE.Vector3(), to = new THREE.Vector3(), hitAt = new THREE.Vec
 // G1.5 row 03: the streak is what a 0.04 s trail behind the round would cover (Duckov's ordinary trail retention, its
 // width 0.19; ours 0.14), and when the round stops the tail keeps running into the stop point for those 0.04 s
 // instead of the whole streak blinking out. Bullets are pooled (MAX_BULLETS objects, reused).
-// Speed is per round (KINGPIN.bulletSpeed 48 u/s, a suppressor takes 10% off: combat/gunstats.ts GUN.bulletSpeed).
+// Speed is per round (the gun's bulletSpeed, combat/guns.ts; a suppressor takes 10% off: combat/gunstats.ts GUN).
+// A bullet belongs to a team: player rounds hit enemies; enemy rounds (AI shooters, fireGun) hit the player through
+// bulletHooks.hitPlayer (actors/player.ts wires it to hurtPlayer, so the roll contract still protects).
 const TRAIL_T = 0.04;
-type Bullet = { p: THREE.Vector3; d: THREE.Vector3; left: number; flown: number; alive: boolean; dieT: number; damage: number; crit: boolean; head: Enemy | null; speed: number };
-const MAX_BULLETS = 48;
-const pool: Bullet[] = Array.from({ length: MAX_BULLETS }, () => ({ p: new THREE.Vector3(), d: new THREE.Vector3(), left: 0, flown: 0, alive: false, dieT: -1, damage: 0, crit: false, head: null, speed: 48 }));
+export type Team = "player" | "enemy";
+type Bullet = { p: THREE.Vector3; d: THREE.Vector3; left: number; flown: number; alive: boolean; dieT: number; damage: number; crit: boolean; head: Enemy | null; speed: number; team: Team; owner: Enemy | null };
+const MAX_BULLETS = 128; // an SMG at 18 /s and a 5-pellet shotgun both fit with room for enemy fire
+const pool: Bullet[] = Array.from({ length: MAX_BULLETS }, () => ({ p: new THREE.Vector3(), d: new THREE.Vector3(), left: 0, flown: 0, alive: false, dieT: -1, damage: 0, crit: false, head: null, speed: 48, team: "player" as Team, owner: null }));
+export const bulletHooks = { hitPlayer: null as null | ((from: THREE.Vector3, damage: number, owner: Enemy | null) => void) };
+/** a shooter, for fireGun: where the rounds leave from and whose they are */
+export type Shooter = { team: Team; from: THREE.Vector3; owner?: Enemy | null };
+/** one trigger pull's aim: the yaw of each pellet (one entry per projectile), and the crit classification */
+export type ShotAim = { yaws: readonly number[]; crit?: boolean; head?: Enemy | null; critMult?: number };
+/** FIRE A GUN (the player's shoot() and AI shooters alike): one projectile per entry in aim.yaws, each carrying the
+ *  gun's shot budget split over its pellets (Duckov: Damage / ShotCount per projectile), at the gun's speed and range.
+ *  Visual flash, sound and noise are the caller's (the player has its own FX pool; AI shooters bring theirs). */
+export function fireGun(shooter: Shooter, gun: Pick<GunDef, "damage" | "pellets" | "range" | "bulletSpeed">, aim: ShotAim) {
+  const per = gun.damage / Math.max(1, gun.pellets), crit = !!aim.crit;
+  const dmg = Math.max(1, Math.round(per * (crit ? aim.critMult ?? 1 : 1)));
+  for (const yaw of aim.yaws) {
+    const b = pool.find((q) => !q.alive && q.dieT < 0) ?? pool.reduce((x, y) => (y.flown > x.flown ? y : x)); // full: recycle the oldest
+    b.p.copy(shooter.from); b.d.set(Math.sin(yaw), 0, Math.cos(yaw)); b.left = gun.range; b.speed = gun.bulletSpeed; b.flown = 0; b.alive = true; b.dieT = -1;
+    b.crit = crit; b.head = aim.head ?? null; b.damage = dmg; b.team = shooter.team; b.owner = shooter.owner ?? null;
+  }
+}
 let bulletMesh: THREE.InstancedMesh | null = null;
 const bm = new THREE.Matrix4(), bq = new THREE.Quaternion(), bs = new THREE.Vector3(), FWD = new THREE.Vector3(0, 0, 1);
 function ensureBulletMesh() {
@@ -46,33 +67,33 @@ function ensureBulletMesh() {
   G.stage.scene.add(bulletMesh); return bulletMesh;
 }
 const fxk = () => G.fx as KingpinFx;
-/** crit damage multiplier for the Kingpin with the worn gear (weapons.ts CRITS) */
+/** crit damage multiplier for the gun in hand with the worn gear (weapons.ts CRITS) */
 export function critMultiplier() { return GUN.critMult * (1 + gearStats(G.gear).critDmg - GEAR_CRIT_BASE); }
+const yaws: number[] = [];
 export function shoot() {
   G.log.shots++;
   if (G.bot) recordBotCombat("shot", "pistol", G.raidT);
-  // the magnet: bend toward the enemy nearest the aim ray within 7 degrees (10 while aiming)
+  // the magnet: bend toward the enemy nearest the aim ray within the gun's magnet angle (wider while aiming)
   const stats = gearStats(G.gear);
-  let yaw = G.aimYaw, target: Enemy | null = null, bestA = (G.ads ? KINGPIN.magnetAds : KINGPIN.magnet) + stats.aim * Math.PI / 180;
+  let yaw = G.aimYaw, target: Enemy | null = null, bestA = (G.ads ? ARM.magnetAds : ARM.magnet) + stats.aim * Math.PI / 180;
   for (const e of G.enemies) {
     if (e.down || !e.active) continue; const d = flat(G.pp, e.p); if (d > GUN.range) continue;
     const a = Math.abs(angDiff(Math.atan2(e.p.x - G.pp.x, e.p.z - G.pp.z), G.aimYaw)) - Math.atan2(e.rig.bounds.radius, d);
     if (a < bestA) { bestA = a; target = e; }
   }
   if (target) yaw = Math.atan2(target.p.x - G.pp.x, target.p.z - G.pp.z);
-  // scatter (combat/handling.ts): the round leaves somewhere inside the live cone, then the cone grows and the cursor kicks
+  // scatter (combat/handling.ts): each pellet leaves somewhere inside the live cone, then the cone grows and the cursor kicks
   tmp.copy(G.pp).setY(G.pp.y + 1).project(G.stage.camera);
-  yaw += onShot({ x: tmp.x * innerWidth * 0.5, y: tmp.y * innerHeight * 0.5 });
+  yaws.length = 0; yaws.push(yaw + onShot({ x: tmp.x * innerWidth * 0.5, y: tmp.y * innerHeight * 0.5 }));
+  for (let k = 1; k < GUN.pellets; k++) yaws.push(yaw + scatterDev());
   G.gun.pose({ fireT: 0, reloadT: -1 }); G.gun.root.updateMatrixWorld(true);
   G.gun.muzzle.getWorldPosition(to);
   G.fx.fire(G.gun.muzzle, G.gun.eject, to, "none"); // flash, light, brass; the bullet itself draws the tracer
-  // crit at aim time (headshot.ts): the cursor on a head makes this round critical; body shots crit only via gear perks
+  // crit at aim time (headshot.ts): the cursor on a head makes this shot critical; body shots crit only via gear perks
   const head = G.intent.aimNdc ? aimHead.enemy : null, critical = !!head || G.rng() < stats.crit;
-  const b = pool.find((q) => !q.alive && q.dieT < 0) ?? pool.reduce((x, y) => (y.flown > x.flown ? y : x)); // full: recycle the oldest
-  b.p.copy(to); b.d.set(Math.sin(yaw), 0, Math.cos(yaw)); b.left = GUN.range; b.speed = GUN.bulletSpeed; b.flown = 0; b.alive = true; b.dieT = -1;
-  b.crit = critical; b.head = head; b.damage = Math.round(KINGPIN.damage * (critical ? critMultiplier() : 1));
-  sfx("shot"); sfx("shell");
-  G.stage.kick.add(tmp.set(-b.d.x, 0, -b.d.z).multiplyScalar(FEEL.shotKick));
+  fireGun({ team: "player", from: to }, GUN, { yaws, crit: critical, head, critMult: critMultiplier() });
+  gunShot(ARM.sound); sfx("shell");
+  G.stage.kick.add(tmp.set(-Math.sin(yaw), 0, -Math.cos(yaw)).multiplyScalar(FEEL.shotKick * ARM.kick));
   makeNoise(G.pp, GUN.noise, "shot"); // a suppressor shrinks this (combat/gunstats.ts)
 }
 /** advance bullets one sim step; hits resolve on contact */
@@ -82,7 +103,14 @@ export function updateBullets(dt: number) {
     const step = Math.min(b.left, b.speed * dt);
     const wallD = rayShot(b.p.x, b.p.z, b.d.x, b.d.z, step + 0.01);
     let hit: Enemy | null = null, hitD = Math.min(step, wallD);
+    if (b.team === "enemy") { // AI rounds: the player is the only target (no friendly fire between enemies)
+      const px = G.pp.x - b.p.x, pz = G.pp.z - b.p.z, along = px * b.d.x + pz * b.d.z;
+      if (G.alive && along >= -0.3 && along <= hitD && Math.abs(px * b.d.z - pz * b.d.x) < 0.45 + 0.12) {
+        b.p.addScaledVector(b.d, Math.max(0, along)); b.alive = false; b.dieT = 0; bulletHooks.hitPlayer?.(hitAt.copy(b.p).addScaledVector(b.d, -2), b.damage, b.owner); continue;
+      }
+    }
     for (const e of G.enemies) {
+      if (b.team !== "player") break;
       if (e.down) continue;
       const ex = e.p.x - b.p.x, ez = e.p.z - b.p.z, along = ex * b.d.x + ez * b.d.z; if (along < -0.3 || along > hitD) continue;
       if (Math.abs(ex * b.d.z - ez * b.d.x) < e.rig.bounds.radius + 0.12) { hit = e; hitD = Math.max(0, along); }

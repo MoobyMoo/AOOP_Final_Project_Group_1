@@ -1,8 +1,9 @@
 // Player controller on Duckov's body mechanisms (combat/weapons.ts header): HP + armor, stamina (sprint, dodge,
 // melee, pain), weight states, timed healing, aim-down-sights. Implements the roll contract and the one cancel rule.
 import * as THREE from "three";
-import { G, V, flat, angDiff, type Enemy } from "../core/state";
-import { PLAYER, KINGPIN, KINGPIN_HANDLING, BRIEFCASE, FEEL, HEALS } from "../combat/weapons";
+import { G, V, flat, angDiff, activeCaliber, type Enemy } from "../core/state";
+import { CALIBERS } from "../combat/guns";
+import { PLAYER, BRIEFCASE, FEEL, HEALS } from "../combat/weapons";
 import { itemType } from "../loot/instances";
 import { consumeInstance } from "../core/raid-journal";
 import { updateHandling, kickedNdc } from "../combat/handling";
@@ -12,13 +13,14 @@ import { EQUIP_MOVE, interruptEquip, protectPlayerHit, updateEquipment } from ".
 import { collide, walkable, zoneAt, roadDist } from "../world/grid";
 import { groundHeight, standHeight } from "../world/terrain";
 import { sfx, stepOn } from "../core/audio";
-import { shoot, swingBriefcase, makeNoise } from "../combat/combat";
+import { shoot, swingBriefcase, makeNoise, bulletHooks } from "../combat/combat";
 import { hud } from "../ui/hud";
 import { itemDef } from "../loot/raidloot";
 import { floatText, burst } from "../../fx";
 import { updateAimHead, aimHead } from "../combat/headshot";
 import { startReload, cancelReload, updateReload, emptyTrigger } from "../combat/reload";
-import { GUN, GUN_DEF } from "../combat/gunstats";
+import { ARM, GUN, GUN_DEF, H } from "../combat/gunstats";
+import { switchTo, cycleGun, drawing } from "../combat/arsenal";
 import { startDash, dustColor } from "./dash";
 import type { KingpinFx } from "../combat/kingpin";
 
@@ -54,7 +56,13 @@ export function nearestToRay(maxD: number, maxAng: number, from = G.pp, yaw = G.
   return best;
 }
 export function useStamina(n: number) { G.stamina = Math.max(0, G.stamina - n); G.staminaDelay = PLAYER.stamina.delay; }
-export function carriedWeight() { return G.pack.reduce((a, id) => a + (itemDef(id).weight ?? 1), 0) + SLOTS.reduce((total, slot) => total + (equipDef(G.gear[slot])?.weight ?? 0), 0) + Object.values(G.save.gun).reduce<number>((total, inst) => total + (inst ? itemDef(inst).weight ?? 0 : 0), 0) + (G.ammo + G.mag) * 0.02; }
+/** kg carried: the pack, worn gear, both guns with their parts, and every round (0.02 kg each, loaded or loose) */
+export function carriedWeight() {
+  let w = G.pack.reduce((a, id) => a + (itemDef(id).weight ?? 1), 0) + SLOTS.reduce((total, slot) => total + (equipDef(G.gear[slot])?.weight ?? 0), 0);
+  for (const gs of G.save.guns) if (gs) { w += itemDef(gs.inst).weight ?? 0; for (const a of Object.values(gs.atts)) if (a) w += itemDef(a).weight ?? 0; }
+  const rounds = Object.values(G.reserve).reduce((a, b) => a + b, 0) + G.loaded[0] + G.loaded[1];
+  return w + rounds * 0.02;
+}
 export function weightState() { const r = G.weight / (PLAYER.maxWeight + 4 * G.save.upgrades.pack + gearStats(G.gear).maxWeight), w = PLAYER.weight; return r > 1 ? "over" : r > w.heavy ? "heavy" : r <= w.light ? "light" : "normal"; }
 
 export function updatePlayer(dt: number) {
@@ -121,7 +129,7 @@ export function updatePlayer(dt: number) {
   if (G.skidT > 0) speed *= PLAYER.roll.skidSpeed; G.skidT -= dt;
   if (G.painT > 0) speed *= 1 - PLAYER.pain.slow;
   if (G.useItem) speed *= 1 - HEALS[itemType(G.useItem.id)].slow;
-  if (G.ads) speed *= KINGPIN_HANDLING.adsWalk; else if (G.fireCd > -0.25) speed *= 0.85; // Duckov: walk x AdsWalkSpeedMultiplier while aiming
+  if (G.ads) speed *= H.adsWalk; else if (G.fireCd > -0.25) speed *= 0.85; // Duckov: walk x AdsWalkSpeedMultiplier while aiming
   G.vel.lerp(mv.multiplyScalar(speed), Math.min(1, dt * 14));
   move(G.vel.clone().multiplyScalar(dt));
   if (G.vel.lengthSq() > 0.3) {
@@ -149,6 +157,10 @@ export function updatePlayer(dt: number) {
     else { G.useItem = { id, t: 0, time: HEALS[itemType(id)].time }; cancelReload(); sfx("ui"); }
   }
 
+  // ---- weapon slots (combat/arsenal.ts): 1 / 2 draw a gun, the wheel cycles; a draw takes 0.15 s before it can fire
+  G.drawT += dt;
+  if (i.swap1) switchTo(0); else if (i.swap2) switchTo(1); else if (i.wheel) cycleGun(i.wheel > 0 ? 1 : -1);
+
   // ---- reload (combat/reload.ts): R, or the trigger on an empty gun; walk and run freely meanwhile
   const loaded = G.mag;
   if (!G.useItem) updateReload(dt);
@@ -170,21 +182,30 @@ export function updatePlayer(dt: number) {
     }
   }
 
-  // ---- fire (hold to fire at 0.22 s). Empty: a dry click (one per 200 ms) and a fresh pull starts the reload;
-  // autoReload is off for the Kingpin, so running dry with the trigger held only clicks once
+  // ---- fire. Every gun repeats while the trigger is held, at its interval (the Kingpin has always done this); a burst
+  // gun fires `burst` rounds per pull at its interval, then rests burstGap. Empty: a dry click (one per 200 ms) and a
+  // fresh pull starts the reload; autoReload guns (the single-shot) reload by themselves after the shot
   const trigger = i.fire || i.firePressed; // a tap shorter than one sim step still fires
   if (!trigger) dryLatch = false;
-  if (trigger && G.meleeT < 0 && G.fireCd <= 0 && G.reloadT < 0 && !G.useItem && !G.equipping) {
+  const ready = G.meleeT < 0 && G.fireCd <= 0 && G.reloadT < 0 && !G.useItem && !G.equipping && GUN.armed && !drawing();
+  if (ready && (trigger || G.burstLeft > 0)) {
     G.sprinting = false;
     if (G.mag > 0) {
-      G.mag--; G.fireCd = KINGPIN.interval; G.fireT = 0; shoot(); hud.ammo(); if (G.log.firstShot < 0) G.log.firstShot = G.raidT;
-      if (G.mag === 0 && KINGPIN.autoReload) startReload(GUN_DEF);
-    } else {
+      if (ARM.fire === "burst" && G.burstLeft <= 0) G.burstLeft = ARM.burst ?? 3;
+      G.mag--; G.fireT = 0; shoot(); hud.ammo(); if (G.log.firstShot < 0) G.log.firstShot = G.raidT;
+      if (ARM.fire === "burst") { G.burstLeft--; G.fireCd = G.burstLeft > 0 ? GUN.interval : GUN.interval + (ARM.burstGap ?? 0.2); }
+      else G.fireCd = GUN.interval;
+      if (G.mag === 0) { G.burstLeft = 0; if (GUN_DEF.autoReload) startReload(GUN_DEF); }
+    } else if (trigger) {
+      G.burstLeft = 0;
       const click = i.firePressed || !dryLatch; dryLatch = true;
-      if (!emptyTrigger(GUN_DEF, click, i.firePressed) && G.ammo <= 0 && i.firePressed) hud.toast("Out of rounds: bonk them with the briefcase (V)");
-    }
+      if (!emptyTrigger(GUN_DEF, click, i.firePressed) && G.ammo <= 0 && i.firePressed) hud.toast(`Out of ${GUN_CAL()}: switch guns (1 / 2) or bonk them with the briefcase (V)`);
+    } else G.burstLeft = 0;
   }
 }
+const GUN_CAL = () => { const c = activeCaliber(); return c ? CALIBERS[c].name.toLowerCase() : "rounds"; };
+// enemy rounds (fireGun with team "enemy") land through hurtPlayer, so the roll contract and armour apply
+bulletHooks.hitPlayer = (from, damage) => { hurtPlayer(from, "gun", damage); };
 
 function moveVec(m: { x: number; z: number }) { return new THREE.Vector3(m.x, 0, m.z).applyAxisAngle(UP, G.stage.cam.yaw); }
 function move(d: THREE.Vector3) {

@@ -2,6 +2,9 @@
 // numbers read from the page (combat/handling.ts __gun, core/raid.ts __cam, core/tune.ts __tune), crops saved.
 //   node tools/gunfeel.mjs <outdir> [scenario,...]     BASE=http://127.0.0.1:5356 (never 5318 or 5340)
 // scenarios: burst rest kick ads tune menu sights comp supp laser   (the last four: G1.5 row 36 attachments)
+//            arsenal: every gun in combat/guns.ts measured in game (time to kill a still 48 HP target, the resting
+//            cone hip and aimed, the first shot's kick in px at 1440, the aimed camera lead and FOV) and set against
+//            Duckov's class bands (research/duckov-re/balance_ranges.json); writes arsenal.md and arsenal.json
 import { chromium } from "playwright-core";
 import fs from "node:fs";
 const [OUT = "/tmp/bv-gun-shots", only = ""] = process.argv.slice(2);
@@ -294,6 +297,80 @@ if (want("laser")) { // laser: the resting hip cone, standing and walking, bare 
   await fitOnly(p, []);
   log.laser = { ...out, errs: p.errs };
   await p.ctx.close();
+}
+if (want("arsenal")) {
+  const bands = JSON.parse(fs.readFileSync(new URL("../research/duckov-re/balance_ranges.json", import.meta.url)));
+  const BY = { pistol: "pistol", smg: "SMG", rifle: "rifle", shotgun: "shotgun", sniper: "sniper", lmg: "rifle" }; // LMG: Duckov's belt-fed guns are rifle-class (POLISH_FINDINGS 17)
+  const band = (cls, stat) => bands.categories.guns.by_class[BY[cls]].stats[stat];
+  const ttkBand = (cls) => bands.ttk.find((t) => t.tier === "ordinary.hp_0_60" && t.class === BY[cls] && t.ammo === "neutral_ammo").stats.seconds;
+  const rows = [];
+  const p = await open("peace=1");
+  const defs = await p.evaluate(() => JSON.parse(JSON.stringify(window.__arsenal.defs())));
+  for (const id of Object.keys(defs)) {
+    const d = defs[id], cal = d.caliber;
+    // in hand, drawn, with a full magazine and rounds to spare (all through the real pickup and reload paths)
+    await p.evaluate(({ id, cal }) => { const ui = window.__ui, G = window.__g.G; if (id === "kingpin45") window.__arsenal.switchTo(0); else { ui.gun2(id); window.__arsenal.switchTo(1); } ui.rounds(cal, 300); G.drawT = 1; G.hp = G.maxHp; }, { id, cal });
+    await p.waitForTimeout(300);
+    for (let k = 0; k < 4 && await p.evaluate(() => window.__g.G.mag < window.__g.G.magSize); k++) { await p.keyboard.press("r"); await p.waitForFunction(() => window.__g.G.reloadT < 0, null, { timeout: 20000 }); await p.waitForTimeout(100); }
+    // the resting cone, hip then aimed; the camera lead and FOV at full aim
+    const [hx, hy] = await hero(p); await p.mouse.move(hx + 420, hy - 40); await p.waitForTimeout(1500);
+    const hip = await p.evaluate(() => ({ cone: window.__gun.currentScatter(), lead: window.__cam.lead.length(), fov: window.__g.G.stage.camera.fov }));
+    await p.mouse.down({ button: "right" }); await p.waitForTimeout(d.h.adsTime * 1000 + 2500); // the cone settles from the hip rest to the aimed one
+    const ads = await p.evaluate(() => ({ cone: window.__gun.currentScatter(), lead: window.__cam.lead.length(), fov: window.__g.G.stage.camera.fov, ads: window.__gun.HS.ads }));
+    await p.mouse.up({ button: "right" }); await p.waitForTimeout(900);
+    // the first shot's kick: the recoil offset's peak, px scaled to the 1440 reference
+    await record(p); await p.mouse.click(hx + 420, hy - 40); await p.waitForTimeout(450);
+    const rec = await stop(p), kick = Math.max(0, ...rec.map((q) => Math.hypot(q.rx, q.ry))) * 1440 / H;
+    await p.waitForTimeout(Math.max(900, d.interval * 1000 + 400));
+    if (await p.evaluate(() => window.__g.G.mag < window.__g.G.magSize)) { await p.keyboard.press("r"); await p.waitForFunction(() => window.__g.G.reloadT < 0, null, { timeout: 20000 }); }
+    // time to kill a still 48 HP target (Duckov's ordinary hp_0_60 median), hip at 6 u; snipers aimed at 12 u, shotguns at 5 u
+    const dist = d.cls === "sniper" ? 12 : d.cls === "shotgun" ? 5 : 6, aimed = d.cls === "sniper";
+    const spot = await p.evaluate((dist) => { const g = window.__g, G = g.G; for (let a = 0; a < 16; a++) { const yaw = Math.PI + a * Math.PI / 8 * (a % 2 ? 1 : -1) / 2; const x = G.pp.x + Math.sin(yaw) * dist, z = G.pp.z + Math.cos(yaw) * dist; if (g.walkable(x, z) && g.los(G.pp.x, G.pp.z, x, z)) return { x, z }; } return null; }, dist);
+    if (!spot) { rows.push({ id, err: "no clear line for the target" }); continue; }
+    await p.evaluate(({ x, z }) => { window.__dummy = window.__ui.dummy(x, z, 48); }, spot);
+    const aimAt = async () => { const [x, y] = await p.evaluate(() => { if (!window.__g.G.enemies.some((q) => q.id === window.__dummy && !q.down)) return [innerWidth / 2, innerHeight / 2]; const G = window.__g.G, e = G.enemies.find((q) => q.id === window.__dummy), v = e.p.clone().setY(G.pp.y + 1).project(G.stage.camera); /* the game picks the aim on the plane at the hero's chest */ return [(v.x * 0.5 + 0.5) * innerWidth, (-v.y * 0.5 + 0.5) * innerHeight]; }); await p.mouse.move(x, y, { steps: 2 }); };
+    await aimAt(); await p.waitForTimeout(500);
+    if (aimed) { await p.mouse.down({ button: "right" }); await p.waitForTimeout(d.h.adsTime * 1000 + 500); await aimAt(); }
+    const s0 = await p.evaluate(() => ({ shots: window.__g.G.log.shots, hits: window.__g.G.log.hits, t: window.__g.G.raidT }));
+    const deliberate = d.cls === "sniper"; // a sniper waits for the aimed cone to settle between shots (it grows 30 deg a shot)
+    if (!deliberate) await p.mouse.down();
+    const t0 = Date.now(); let first = null, killed = null;
+    while (Date.now() - t0 < 20000) {
+      const st = await p.evaluate(() => { const G = window.__g.G, e = G.enemies.find((q) => q.id === window.__dummy); return { t: G.raidT, shots: G.log.shots, down: !e || e.down, mag: G.mag, rl: G.reloadT }; });
+      if (first === null && st.shots > s0.shots) first = st.t;
+      if (st.down) { killed = st.t; break; }
+      if (st.mag === 0 && st.rl < 0) { await p.mouse.up(); await p.keyboard.press("r"); await p.waitForTimeout(150); if (!deliberate) await p.mouse.down(); }
+      if (deliberate && st.rl < 0 && await p.evaluate(() => window.__g.G.fireCd <= 0 && window.__gun.currentScatter() <= window.__gun.restScatter() * window.__gun.HS.move + 0.3)) { await p.mouse.down(); await p.waitForTimeout(30); await p.mouse.up(); }
+      await aimAt(); // track the target as the camera's aim lead moves the view, as a player does
+      await p.waitForTimeout(16);
+    }
+    await p.mouse.up(); if (aimed) await p.mouse.up({ button: "right" });
+    const s1 = await p.evaluate(() => ({ shots: window.__g.G.log.shots, hits: window.__g.G.log.hits }));
+    await p.evaluate(() => { const G = window.__g.G, e = G.enemies.find((q) => q.id === window.__dummy); if (e) { e.down = true; e.rig.root.visible = false; } });
+    // Duckov's modelled TTK with our numbers (BALANCE_RANGES "Modeled time to kill": 48 HP, armour 0.5823)
+    const armor = 0.5823, m = 2 / (Math.max(0, armor - d.pen) + 2), per = Math.max(1, d.damage / d.pellets * m) * d.pellets, N = Math.ceil(48 / per), sps = 1 / d.interval;
+    const L = Math.floor((N - 1) / d.mag), rl = d.reloadMode === "round" ? d.perRound * d.mag : d.reload, modelled = (N - 1 - L) / sps + L * Math.max(rl, 1 / sps);
+    const B = (stat) => { const b = band(d.cls, stat); return b ? [b.p10, b.median, b.p90] : null; };
+    const tb = ttkBand(d.cls);
+    rows.push({ id, name: d.name, cls: d.cls, tier: d.tier, damage: d.damage, pellets: d.pellets, sps: r2(sps), mag: d.mag, reload: d.reloadMode === "round" ? `${d.perRound}/rd` : d.reload,
+      ttkMeasured: killed !== null && first !== null ? r2(killed - first) : null, shots: s1.shots - s0.shots, hits: s1.hits - s0.hits, ttkModelled: r2(modelled), ttkBand: [r2(tb.p10), r2(tb.median), r2(tb.p90)],
+      coneHip: r2(hip.cone), coneAds: r2(ads.cone), kickPx: r2(kick), adsLead: r2(ads.lead), adsFovScale: r2(ads.fov / hip.fov), adsLeadHip: r2(hip.lead),
+      bands: { damage: B("Damage"), sps: B("ShootSpeed"), mag: B("Capacity"), reload: B("ReloadTime"), coneHip: B("effective.DefaultScatter"), coneAds: B("effective.DefaultScatterADS"), kick: B("RecoilScaleV"), adsTime: B("ADSTime"), lead: B("ADSAimDistanceFactor") },
+      errs: [...p.errs] });
+    console.log(`arsenal ${id}: ttk ${rows.at(-1).ttkMeasured} s (model ${rows.at(-1).ttkModelled}, band ${rows.at(-1).ttkBand.join("/")}), cone ${rows.at(-1).coneHip}/${rows.at(-1).coneAds}, kick ${rows.at(-1).kickPx} px`);
+  }
+  await p.ctx.close();
+  // a markdown table: each number and its Duckov class band p10 / median / p90; a mark when it sits outside
+  const fmt = (v, b, lowerBetter = false) => { if (v === null || v === undefined) return "-"; if (!b) return `${v}`; const tol = 0.01 * Math.max(Math.abs(b[0]), Math.abs(b[2])), out = v < b[0] - tol ? " ▼" : v > b[2] + tol ? " ▲" : ""; void lowerBetter; return `${typeof v === "number" ? r2(v) : v}${out}`; };
+  const md = [`| Gun | Class / tier | Damage | Shots/s | Mag | Reload | TTK measured (shots, hits) | TTK modelled vs band | Cone hip / ADS deg | Kick px | ADS lead, FOV |`, `|---|---|---|---|---|---|---|---|---|---|---|`];
+  for (const r of rows) {
+    if (r.err) { md.push(`| ${r.id} | ${r.err} |`); continue; }
+    const bb = (b) => b ? `${r2(b[0])}/${r2(b[1])}/${r2(b[2])}` : "-";
+    md.push(`| ${r.name} | ${r.cls} / ${r.tier} | ${fmt(r.damage, r.bands.damage)} ${r.pellets > 1 ? `(${r.pellets} pellets)` : ""} [${bb(r.bands.damage)}] | ${fmt(r.sps, r.bands.sps)} [${bb(r.bands.sps)}] | ${fmt(r.mag, r.bands.mag)} [${bb(r.bands.mag)}] | ${typeof r.reload === "number" ? fmt(r.reload, r.bands.reload) : r.reload} [${bb(r.bands.reload)}] | ${r.ttkMeasured ?? "-"} s (${r.shots}, ${r.hits}) | ${fmt(r.ttkModelled, r.ttkBand)} s [${bb(r.ttkBand)}] | ${fmt(r.coneHip, r.bands.coneHip)} / ${fmt(r.coneAds, r.bands.coneAds)} [${bb(r.bands.coneHip)} / ${bb(r.bands.coneAds)}] | ${r.kickPx} | ${r.adsLead} u, ×${r.adsFovScale} |`);
+  }
+  fs.writeFileSync(`${OUT}/arsenal.md`, md.join("\n") + "\n\n▲ / ▼ = above p90 / below p10 of the Duckov class band. Bands in brackets are p10 / median / p90. LMG rows use the rifle band (Duckov's belt-fed guns are rifle-class). Measured TTK: a still 48 HP target tracked by the mouse, hip at 6 u (shotguns 5 u; snipers aimed at 12 u, each shot taken once the aimed cone has settled), first shot to knockout, no armour, body aim (no head crits). Modelled TTK: Duckov's formula with our numbers against its ordinary hp_0_60 tier (48 HP, armour 0.58).\n");
+  fs.writeFileSync(`${OUT}/arsenal.json`, JSON.stringify(rows, null, 1));
+  log.arsenal = rows.map((r) => ({ id: r.id, ttk: r.ttkMeasured, model: r.ttkModelled, err: r.err }));
 }
 fs.writeFileSync(`${OUT}/gunfeel.json`, JSON.stringify(log, null, 1));
 console.log(JSON.stringify(log, null, 1));

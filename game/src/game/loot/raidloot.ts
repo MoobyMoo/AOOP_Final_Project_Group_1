@@ -31,6 +31,9 @@ import { sfx } from "../core/audio";
 import { floatText, popIn } from "../../fx";
 import { hud } from "../ui/hud";
 import { KINGPIN } from "../combat/weapons";
+import { CALIBERS, isCaliber, type Caliber } from "../combat/guns";
+import { equipFound, freeGunSlot } from "../combat/arsenal";
+import { TIERS } from "./tiers";
 import { makeNoise } from "../combat/combat";
 import { takeModel, releaseModel, throwVelocity, stepThrow, poseModel, PICK_REACH, hullResolution } from "./ground";
 import { openLoot, closeLoot, lootOpen, type LootTarget } from "../ui/hud";
@@ -39,7 +42,8 @@ import { own, itemType, withCount } from "./instances";
 import { consumeInstance } from "../core/raid-journal";
 
 export const containerType = (crate: Crate) => crate.type;
-export const RAR_COLOR: Record<string, string> = { common: "#f3ead6", uncommon: "#6ad16a", rare: "#4aa8ff", epic: "#c77dff" };
+/** tier colours (loot/tiers.ts): the float text, item icons' rims, ground beams */
+export const RAR_COLOR: Record<string, string> = Object.fromEntries(Object.values(TIERS).map(t => [t.key, t.color]));
 /** a generic crate's opening delay by tier (the old whole-crate search times, now just the lid) */
 const OPEN: Record<string, number> = { wood: 0.5, green: 0.9, gold: 1.4 };
 /** type colours for the readability mark (kit_build container(): slate-blue weapon, straw food, olive ammo, teal parts, coral medical) */
@@ -111,7 +115,7 @@ export function sessionOf(c: Crate): SearchSession | null {
     let items: string[];
     if (c.fixed === "satchel") items = [...(c.items ?? [])];
     else if (c.kind === "container" && c.type) items = rollContainer(c.type, G.rng, ctx);
-    else { ctx.fixed = c.fixed as LootContext["fixed"]; ctx.ownsExtendedMag = [G.save.gun.mag, ...G.save.locker, ...G.pack].some(inst => inst && itemType(inst) === "att_mag_ext"); ctx.containerType = c.type; items = rollCrate(c.tier, ctx, G.rng); ctx.fixed = undefined; ctx.containerType = undefined; }
+    else { ctx.fixed = c.fixed as LootContext["fixed"]; ctx.ownsExtendedMag = [...G.save.guns.map(g => g?.atts.mag), ...G.save.locker, ...G.pack].some(inst => inst && itemType(inst) === "att_mag_ext"); ctx.containerType = c.type; items = rollCrate(c.tier, ctx, G.rng); ctx.fixed = undefined; ctx.containerType = undefined; }
     items = items.map(own); c.items = items;
     c.session = createSearch(items, { openSeconds: c.kind === "container" && c.type ? CONTAINERS[c.type].openSeconds : OPEN[c.tier], searchFactor: factor });
   }
@@ -289,6 +293,7 @@ export function fits(item: string) {
   const d = itemDef(item);
   if (equipDef(item)?.bound) return false;
   if (d.kind === "ammo") return true;
+  if (d.kind === "gun" && freeGunSlot() >= 0) return true; // Duckov TryPlug: an empty gun slot first, then the pack
   return G.pack.length < G.packSlots;
 }
 /** put an item into the pack / the gun / the ammo pouch. Returns false if it did not fit (the caller keeps it) */
@@ -297,13 +302,17 @@ export function giveItem(item: string, n?: number): boolean {
   item = own(item);
   const d = itemDef(item);
   if (equipDef(item)?.bound) return false;
-  if (d.kind === "ammo") { const k = n ?? d.stack ?? 8; G.ammo += k; consumeInstance(item); sfx("pick"); floatText(`+${k} rounds`, G.pp.clone().setY(2.4), "#ffcf6a", 20); hud.ammo(); return true; }
+  // rounds go to their own caliber's reserve (Duckov matches caliber strings; a .45 never loads a rifle)
+  if (d.kind === "ammo") { const cal = itemType(item), k = n ?? d.stack ?? 8; if (isCaliber(cal)) G.reserve[cal] += k; consumeInstance(item); sfx("pick"); floatText(`+${k} ${CALIBERS[cal as Caliber]?.short ?? ""} rounds`, G.pp.clone().setY(2.4), "#ffcf6a", 20); hud.ammo(); return true; }
+  // a gun goes into the first empty gun slot, empty of rounds; with both full it packs like loot (never swaps the one in hand)
+  if (d.kind === "gun" && equipFound(item) >= 0) { sfx("pick"); hud.ammo(); floatText(`${d.name}`, G.pp.clone().setY(2.4), RAR_COLOR[d.rarity], 22); hud.toast(`${d.name} in gun ${G.save.guns.findIndex(g => g?.inst === item) + 1}: press ${G.save.guns.findIndex(g => g?.inst === item) + 1} to draw it`); return true; }
   // gun attachments pack like loot; Duckov never fits a part on pickup (Tab, then drag it onto the Kingpin)
   if (G.pack.length >= G.packSlots) return false;
   if (isEquip(item)) { const result = collectEquipment(item); if (result !== "full") { sortPack(); sfx("pick"); hud.pack(); return true; } }
   G.pack.push(item); sortPack(); sfx("pick"); hud.pack();
-  floatText(`${d.icon} ${d.name}`, G.pp.clone().setY(2.4), RAR_COLOR[d.rarity] === "#f3ead6" ? "#fff8ec" : RAR_COLOR[d.rarity], 20);
-  if (d.kind === "attachment") hud.toast(`${d.name}: press Tab and drag it onto your Kingpin to fit it`);
+  floatText(`${d.icon} ${d.name}`, G.pp.clone().setY(2.4), RAR_COLOR[d.rarity], 20);
+  if (d.kind === "attachment") hud.toast(`${d.name}: press Tab and drag it onto a gun to fit it`);
+  if (d.kind === "gun") hud.toast(`${d.name} packed: both gun slots are full. Tab to swap it in`);
   if (itemType(item) === "vine_key") hud.toast("The Vine Key! Get it home: the key opens the vault door from your next raid");
   return true;
 }

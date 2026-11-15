@@ -3,6 +3,15 @@ import type { CrateSocket } from "../world/layout";
 import { EQUIP, enemyGear, parseInst, saleValue } from "./equipment";
 import { rollContainer, type ContainerType } from './containers';
 import { ATTACHMENT_ITEMS } from "./attachments";
+import { CALIBERS, GUNS, type GunClass } from "../combat/guns";
+import { tierQuality } from "./tiers";
+
+const GUN_ICON: Record<GunClass, string> = { pistol: "🔫", smg: "🔫", rifle: "🔫", shotgun: "🔫", sniper: "🔭", lmg: "🔫" };
+/** guns as items (combat/guns.ts): kind "gun", tier, value, kg. "kingpin" is the bound Kingpin's instance type */
+export const GUN_ITEMS: Record<string, ItemDef> = Object.fromEntries([
+  ...Object.values(GUNS).map(g => [g.id, { id: g.id, name: g.name, icon: GUN_ICON[g.cls], rarity: g.tier, value: g.value, kind: "gun" as const, weight: g.weight }]),
+  ["kingpin", { id: "kingpin", name: GUNS.kingpin45.name, icon: "🔫", rarity: GUNS.kingpin45.tier, value: 0, kind: "gun" as const, weight: GUNS.kingpin45.weight }],
+]);
 
 export type LootContext = RaidLootCtx & {
   fixed?: CrateSocket["fixed"] | "radio" | "radio_shack";
@@ -26,7 +35,8 @@ export const ITEMS: Record<string, ItemDef> = {
   bandage: { id: "bandage", name: "Banana-Leaf Bandage", icon: "🩹", rarity: "common", value: 6, kind: "heal", weight: 0.2 },
   firstaid: { id: "firstaid", name: "Jungle First-Aid Kit", icon: "🧰", rarity: "rare", value: 30, kind: "heal", weight: 0.9 },
   boomerang: { id: "boomerang", name: "Banana Boomerang", icon: "🪃", rarity: "uncommon", value: 20, kind: "sell", weight: 0.7 },
-  ammo45: { id: "ammo45", name: ".45 Rounds", icon: "🔸", rarity: "common", value: 0, kind: "ammo", weight: 0, stack: 8 },
+  // ammunition, one type per caliber (combat/guns.ts CALIBERS; Duckov matches caliber strings on reload)
+  ...Object.fromEntries(Object.entries(CALIBERS).map(([id, c]) => [id, { id, name: c.name, icon: c.icon, rarity: "common" as const, value: 0, kind: "ammo" as const, weight: 0, stack: c.stack }])),
   vine_key: { id: "vine_key", name: "Vine Key", icon: "🗝️", rarity: "rare", value: 0, kind: "key", weight: 0.1 },
   radio_key: { id: "radio_key", name: "Radio Shack Key", icon: "🗝️", rarity: "rare", value: 0, kind: "key", weight: 0.1 },
   spring: { id: "spring", name: "Spring", icon: "🌀", rarity: "common", value: 11, kind: "part", weight: 0.5 },
@@ -38,6 +48,7 @@ export const ITEMS: Record<string, ItemDef> = {
   banana_notes: { id: "banana_notes", name: "Banana Notes", icon: "💵", rarity: "uncommon", value: 25, kind: "sell", weight: 0.1 },
   plank: { id: "plank", name: "Plank", icon: "🪵", rarity: "common", value: 8, kind: "part", weight: 2.0 },
   ...ATTACHMENT_ITEMS, // gun attachments (loot/attachments.ts; att_mag_ext is the old extended_mag)
+  ...GUN_ITEMS,
   oar: { id: "oar", name: "Cove boat oar", icon: "🪵", rarity: "common", value: 8, kind: "part", weight: 1.5 },
   ...Object.fromEntries(Object.values(EQUIP).map(def => [def.id, { id: def.id, name: def.name, icon: { head: "🎩", face: "🕶️", body: "🦺", back: "🎒", ears: "🎧" }[def.slot], rarity: def.rarity, value: def.value, weight: def.weight, kind: "wear" as const }])),
 };
@@ -108,7 +119,9 @@ function randomContents(tier: CrateTier, ctx: RaidLootCtx, rng: () => number, ep
   const found = [draw(pool, ctx, rng)];
   if (rng() < table.extra) found.push(draw(pool, ctx, rng));
   if (equipment && rng() < EQUIPMENT_CHANCE[tier]) {
-    const equipment = Object.fromEntries(Object.values(EQUIP).filter(def => !def.bound && (tier === "wood" ? def.rarity === "common" : tier === "green" ? ["common", "uncommon"].includes(def.rarity) : true)).map(def => [def.id, { common: 6, uncommon: 3, rare: 1, epic: 0.2 }[def.rarity]]));
+    // by tier quality (loot/tiers.ts): wood crates hold up to q2, green up to q3, gold anything; better tiers rarer
+    const cap = tier === "wood" ? 2 : tier === "green" ? 3 : 6;
+    const equipment = Object.fromEntries(Object.values(EQUIP).filter(def => !def.bound && tierQuality(def.rarity) <= cap).map(def => [def.id, [6, 6, 4.5, 3, 1, 0.2, 0.1][tierQuality(def.rarity)]]));
     const id = draw(equipment, ctx, rng);
     found[0] = EQUIP[id].dur ? `${id}#${65 + Math.floor(rng() * 36)}` : id;
   }

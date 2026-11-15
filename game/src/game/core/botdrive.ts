@@ -74,5 +74,5 @@ export function botTick(dt: number): Intent {
   const mx = wx * c - wz * s, mz = wx * s + wz * c, l = Math.hypot(mx, mz) || 1;
   let aimNdc: { x: number; y: number } | null = null;
   if (b.aim) { const p = G.pp.clone().set(b.aim[0], G.pp.y + 1, b.aim[1]).project(G.stage.camera); aimNdc = { x: p.x, y: p.y }; }
-  return { move: { x: mx / Math.max(1, l), z: mz / Math.max(1, l) }, aimNdc, fire: !!b.fire, firePressed: !!b.fire, ads: false, sprint: false, melee: !!b.melee, roll: !!b.roll, interact: !!b.interact, interactHeld: !!b.interact, map: false, inv: false, mini: false, reload: !!b.reload, heal: !!b.heal, swap1: false, swap2: false, swap3: false, esc: false };
+  return { move: { x: mx / Math.max(1, l), z: mz / Math.max(1, l) }, aimNdc, fire: !!b.fire, firePressed: !!b.fire, ads: false, sprint: false, melee: !!b.melee, roll: !!b.roll, interact: !!b.interact, interactHeld: !!b.interact, map: false, inv: false, mini: false, reload: !!b.reload, heal: !!b.heal, swap1: false, swap2: false, swap3: false, esc: false, wheel: 0 };
 }

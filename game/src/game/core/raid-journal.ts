@@ -2,6 +2,7 @@ import { G } from "./state";
 import { commitSave } from "./save";
 import { checkpointRaid } from "./settlement";
 import { instanceId } from "../loot/instances";
+import { heldRounds } from "../combat/arsenal";
 
 let signature = "";
 /** extra item holders the world lists don't cover (the ?dev test containers in ui/devhooks.ts): their items count as present */
@@ -21,8 +22,8 @@ export function checkpointInventory(force = false) {
   }
   for (const holder of externalHolders) world.push(...holder());
   for (const enemy of G.enemies) world.push(...enemy.stolen, ...enemy.carry, ...Object.values(enemy.gear ?? {}).filter((inst): inst is string => !!inst));
-  const snapshot = { pack: G.pack, gear: G.gear, gun: G.save.gun, world, consumed: G.save.activeRaid.consumed, ammo: G.ammo + G.mag, x: G.pp.x, z: G.pp.z, elapsed: G.raidT };
-  const nextSignature = JSON.stringify([snapshot.pack, snapshot.gear, snapshot.gun, world, snapshot.consumed, snapshot.ammo, satchel, G.save.locker, G.save.fixtures, Math.floor(G.raidT)]);
+  const snapshot = { pack: G.pack, gear: G.gear, guns: G.save.guns, world, consumed: G.save.activeRaid.consumed, ammo: heldRounds(), x: G.pp.x, z: G.pp.z, elapsed: G.raidT };
+  const nextSignature = JSON.stringify([snapshot.pack, snapshot.gear, snapshot.guns, world, snapshot.consumed, snapshot.ammo, satchel, G.save.locker, G.save.fixtures, Math.floor(G.raidT)]);
   if (!force && nextSignature === signature) return;
   const next = checkpointRaid({ ...G.save, satchel }, snapshot);
   G.save = commitSave(next); signature = nextSignature;

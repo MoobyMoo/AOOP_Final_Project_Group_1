@@ -4,7 +4,9 @@
 //    horizontal and 2.5 vertical, rotation frozen; the physics comes off after 3 s (6 s when it is still falling).
 //    Procedural loot skips the throw: it is placed at rest with a random yaw. Pickup is manual (E), one selected item.
 //  - POLISH_FINDINGS 13: our own dark 1.5-2 px silhouette for readability, a warm rim (1, 0.85, 0.25) on the selected
-//    one, a small contact shade, the item itself lit like the world. No rarity beams.
+//    one, a small contact shade, the item itself lit like the world. No rarity beams: the silhouette itself takes the
+//    item's tier colour from Standard (q2) up (loot/tiers.ts; Duckov tints the icon glow by display quality), so a
+//    good find reads on the ground without a light column.
 // Models: the 40 Blender item GLBs (public/models/items, the icon set's meshes), the wearable meshes (actors/wearables.ts)
 // for gear that has no item GLB, the gun GLB for a gun. Small items are shown larger than life (longest side at least
 // 0.42 u) so a 14 cm ammo box still reads from the gameplay camera. Every model is pooled: one merged item mesh, one
@@ -18,6 +20,13 @@ import { groundHeight, meshHeightMax } from "../world/terrain";
 import { walkable } from "../world/grid";
 import { baseId, buildWearable, hasWearable, WEARABLES } from "../actors/wearables";
 import { MODEL_LIKE } from "./attachments";
+import { gunId } from "../combat/guns";
+import { itemDef } from "./tables";
+import { tierOf } from "./tiers";
+/** guns on the ground (combat/gunmodels.ts gunPickupModel, set by main.ts so node tests never load three's GLB code) */
+export const groundHooks = { gunModel: null as null | ((id: string) => THREE.Object3D) };
+/** a gun lies on its side at its in-hand scale (core/raid.ts GUN_SCALE), so a machine gun looks bigger than a pistol */
+const GUN_GROUND_SCALE = 0.65;
 
 /** loot ids -> item GLB names (the icon set's short names; ui/itemicon.ts uses the same) */
 const ALIAS: Record<string, string> = { banana: "bunch", vine_rope: "rope", golden_banana: "golden", honey_pot: "honey", old_gear: "gear", sunset_mango: "mango", brass_compass: "compass", banana_idol: "idol", vine_key: "key", ammo45: "ammo", plantation_seal: "radio_key", oar: "plank", ...MODEL_LIKE };
@@ -112,6 +121,7 @@ function addAttachments(g: { scene: THREE.Object3D }) {
 
 /** which model an item shows: an item GLB, a wearable mesh, or the fallback crate-pack */
 export function modelKey(item: string) {
+  const gid = gunId(item); if (gid && groundHooks.gunModel) return "gun:" + gid;
   const id = baseId(item) ?? item, glb = ALIAS[id] ?? id;
   if (RAW.has(glb)) return "glb:" + glb;
   if (hasWearable(id)) return "wear:" + id;
@@ -125,7 +135,7 @@ function upness(geos: THREE.BufferGeometry[]) {
     for (let i = 0; i + 2 < p.count; i += 3) { a.fromBufferAttribute(p, i); b.fromBufferAttribute(p, i + 1); c.fromBufferAttribute(p, i + 2); n.subVectors(c, b).cross(a.sub(b)); up += -n.y; } }
   return up;
 }
-function ground(geos: THREE.BufferGeometry[], lie: boolean, wear = false) {
+function ground(geos: THREE.BufferGeometry[], lie: boolean, wear = false, fixed = 0) {
   const box = new THREE.Box3(); for (const g of geos) { g.computeBoundingBox(); box.union(g.boundingBox!); }
   const size = box.getSize(new THREE.Vector3()), m = new THREE.Matrix4();
   // a wearable built for a socket stands however it was worn: anything much taller than it is wide lies down
@@ -135,7 +145,7 @@ function ground(geos: THREE.BufferGeometry[], lie: boolean, wear = false) {
   // a helmet authored hanging from the head socket can come out upside down: turn it so its outside faces up
   if (wear && upness(geos) < 0) { const f = new THREE.Matrix4().makeRotationX(Math.PI); for (const g of geos) g.applyMatrix4(f); }
   const b2 = new THREE.Box3(); for (const g of geos) { g.computeBoundingBox(); b2.union(g.boundingBox!); }
-  const s2 = b2.getSize(new THREE.Vector3()), side = Math.max(s2.x, s2.z, 1e-3), k = Math.min(MAX_SCALE, MAX_SIDE / side, Math.max(MIN_SCALE, MIN_SIDE / side));
+  const s2 = b2.getSize(new THREE.Vector3()), side = Math.max(s2.x, s2.z, 1e-3), k = fixed || Math.min(MAX_SCALE, MAX_SIDE / side, Math.max(MIN_SCALE, MIN_SIDE / side));
   const c = b2.getCenter(new THREE.Vector3()), t = new THREE.Matrix4().makeScale(k, k, k).multiply(new THREE.Matrix4().makeTranslation(-c.x, -b2.min.y, -c.z));
   for (const g of geos) { g.applyMatrix4(t); g.computeBoundingSphere(); }
   return { foot: Math.max(s2.x, s2.z) * k, h: s2.y * k };
@@ -162,6 +172,14 @@ function template(key: string): Tmpl {
     });
     const f = ground(geos, LIE.has(name)), geo = mergeGeometries(geos, false)!;
     t = { meshes: [{ geo, mat: itemMaterial() }], hull: hullOf([geo]), ...f };
+  } else if (kind === "gun") {
+    const src = groundHooks.gunModel!(name), meshes: { geo: THREE.BufferGeometry; mat: THREE.Material }[] = [];
+    src.updateMatrixWorld(true);
+    const side = new THREE.Matrix4().makeRotationZ(-Math.PI / 2); // on its right side, the ejection port up
+    src.traverse((o) => { const mesh = o as THREE.Mesh; if (mesh.isMesh && mesh.visible) meshes.push({ geo: mesh.geometry.clone().applyMatrix4(mesh.matrixWorld).applyMatrix4(side), mat: Array.isArray(mesh.material) ? mesh.material[0] : mesh.material }); });
+    for (const m of meshes) for (const a of Object.keys(m.geo.attributes)) if (a === "skinIndex" || a === "skinWeight") m.geo.deleteAttribute(a);
+    const f = ground(meshes.map((q) => q.geo), false, false, GUN_GROUND_SCALE);
+    t = { meshes, hull: hullOf(meshes.map((q) => q.geo)), ...f };
   } else {
     const src = buildWearable(name), meshes: { geo: THREE.BufferGeometry; mat: THREE.Material }[] = [];
     src.updateMatrixWorld(true);
@@ -179,15 +197,22 @@ const pool = new Map<string, THREE.Group[]>();
 export function takeModel(item: string): { obj: THREE.Group; key: string } {
   const key = modelKey(item), free = pool.get(key);
   const reuse = free?.pop();
-  if (reuse) { reuse.visible = true; (reuse.userData.warm as THREE.Object3D).visible = false; reuse.scale.setScalar(1); return { obj: reuse, key }; }
+  if (reuse) { reuse.visible = true; (reuse.userData.warm as THREE.Object3D).visible = false; reuse.scale.setScalar(1); (reuse.userData.dark as THREE.Mesh).material = rimFor(item); return { obj: reuse, key }; }
   const t = template(key), g = new THREE.Group(); g.name = "pickup:" + key;
   const body = new THREE.Group(); g.add(body);
   for (const m of t.meshes) { const mesh = new THREE.Mesh(m.geo, m.mat); mesh.castShadow = false; mesh.receiveShadow = true; body.add(mesh); }
   DARK ??= hullMaterial("#1d1409", 1.75); WARM ??= hullMaterial("#ffd940", 4.2, 0.9);
-  const dark = new THREE.Mesh(t.hull, DARK), warm = new THREE.Mesh(t.hull, WARM); dark.renderOrder = 1; warm.renderOrder = 0; warm.visible = false; body.add(dark, warm);
+  const dark = new THREE.Mesh(t.hull, rimFor(item)), warm = new THREE.Mesh(t.hull, WARM); dark.renderOrder = 1; warm.renderOrder = 0; warm.visible = false; body.add(dark, warm);
   const shade = new THREE.Mesh(SHADE_GEO, shadeMaterial()); shade.scale.set(t.foot * 1.35 + 0.25, 1, t.foot * 1.35 + 0.25); shade.renderOrder = -1; g.add(shade);
-  g.userData = { body, warm, shade, foot: t.foot, h: t.h };
+  g.userData = { body, warm, dark, shade, foot: t.foot, h: t.h };
   return { obj: g, key };
+}
+/** the silhouette: the shared dark one, or (from Standard up) a slightly wider one in the item's tier colour */
+const RIMS = new Map<string, THREE.Material>();
+function rimFor(item: string): THREE.Material {
+  DARK ??= hullMaterial("#1d1409", 1.75);
+  const t = tierOf(itemDef(item).rarity); if (t.q < 2) return DARK;
+  let m = RIMS.get(t.key); if (!m) { m = hullMaterial(t.color, 2.4); RIMS.set(t.key, m); } return m;
 }
 /** an item's ground model with no outline and no shade (a jacket left on a bench: a container, not a pickup) */
 export function plainModel(item: string): THREE.Group {
