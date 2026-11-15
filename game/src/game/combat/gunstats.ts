@@ -52,7 +52,9 @@ export function refreshGun() {
   if (G.save) {
     G.magSize = GUN.mag;
     if (G.scene === "raid" && G.mag > G.magSize) { G.ammo += G.mag - G.magSize; G.mag = G.magSize; }
-    G.gun?.setVariant?.({ extMag: GUN.mag > KINGPIN.mag });
+    // the extended mag is its own piece hanging under the standard magazine (attachments.glb), so the old longer-mag
+    // geometry stays off: both at once would overlap
+    G.gun?.setVariant?.({ extMag: false });
     G.gun?.setAttachments?.(fitted());
   }
   setShotSuppressed(GUN.suppressed);

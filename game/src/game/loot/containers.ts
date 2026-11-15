@@ -9,7 +9,7 @@ export const CONTAINERS: Record<ContainerType, ContainerDef> = {
   // weapon crate's rolls (Duckov's better weapon crates 24-41%), 4.6% of a parts crate's (its tech box) and 2% of an
   // ammo tin's (1.5-2.1%); inside that share, rarity weights (attachments.ts). Enemies never drop them: Duckov's
   // carry them on their guns, ours carry no guns (G1.5 row 28: an enemy drops only what it uses).
-  weapon: { label: 'Weapon crate', count: [1, 3], openSeconds: 0.6, pool: { boomerang: 3, spring: 2, ammo45: 3, ...attachmentPool(attachmentShare(0.3, 8)) }, placements: ['guard hut locked rack', 'plantation barn secured shelf', 'cell block armoury'] },
+  weapon: { label: 'Weapon crate', count: [1, 3], openSeconds: 0.6, pool: { boomerang: 3, spring: 2, ammo45: 3, ...attachmentPool(attachmentShare(0.3, 8)) }, placements: ['guard hut locked rack', 'plantation barn secured shelf'] },
   food: { label: 'Food basket', count: [1, 4], openSeconds: 0.2, pool: { banana: 5, coconut: 4, honey_pot: 2, sunset_mango: 1 }, placements: ['beach picnic', 'ferry galley', 'palm edge harvest', 'camp kitchen', 'plantation farmhouse kitchen', 'cove picnic'] },
   ammo: { label: 'Ammo tin', count: [2, 3], openSeconds: 0.2, pool: { ammo45: 1, ...attachmentPool(attachmentShare(0.02, 1)) }, placements: ['ferry guard locker', 'guard hut post', 'camp watch post', 'plantation barn sentry'] },
   parts: { label: 'Parts crate', count: [1, 4], openSeconds: 0.2, pool: { spring: 4, plank: 4, old_gear: 3, vine_rope: 3, brass_compass: 1, ...attachmentPool(attachmentShare(0.046, 15)) }, placements: ['ferry engine room', 'beach wreck repair', 'guard hut workbench', 'camp workshop', 'plantation barn', 'cove boat repair'] },
@@ -44,7 +44,6 @@ export function rollContainer(type: ContainerType, rng: () => number, context?: 
   return items;
 }
 export function demoContainerType(socket: { x: number; z: number; in?: string }): ContainerType {
-  if (socket.in === 'hut' || socket.in === 'cellblock') return 'weapon'; // the guard hut rack and the cell block armoury
   if (socket.in === 'barn') return 'parts';
   if (socket.in === 'farmhouse') return 'food';
   if (socket.in === 'ferry') return 'medical';

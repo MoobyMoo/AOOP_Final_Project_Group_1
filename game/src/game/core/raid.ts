@@ -16,6 +16,7 @@ import { createKingpin, createGunFx } from "../combat/kingpin";
 import { KINGPIN, KINGPIN_HANDLING, PLAYER } from "../combat/weapons";
 import { HS, resetHandling } from "../combat/handling";
 import { GUN, refreshGun } from "../combat/gunstats";
+import { updateLaser } from "../combat/laser";
 import { tuneObject } from "./tune";
 import { spawnEnemies, updateEnemies } from "../ai/enemies";
 import { setupCrates, updateLoot, renderLoot, sortPack, packValue, itemDef } from "../loot/raidloot";
@@ -142,6 +143,7 @@ export function renderRaid(dt: number) {
   G.gun.root.scale.setScalar(GUN_SCALE);
   G.gun.pose({ fireT: Math.min(1, G.fireT), reloadT: G.reloadT });
   updateDashFx(dt); // after the pose: the afterimages copy it
+  updateLaser(); // the laser attachment's beam and dot follow the posed gun
   G.fx.update(dt); renderBullets(); updateRangFx(dt); updateFeedback(dt); updateFx(dt); hud.update(dt); updateMinimap();
   updateHouses(dt, isUnder(G.pp.x)); updateProps(dt); renderLoot(dt); updateLightPool(dt, G.pp);
   U.uTime.value = G.time; U.uPlayer.value.copy(G.pp);

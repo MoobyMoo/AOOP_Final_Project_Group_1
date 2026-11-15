@@ -87,6 +87,8 @@ export interface GunView {
   /** fitted attachments (G1.5 row 36): shows each on its named socket (socket_sight / socket_muzzle / socket_mag /
    *  socket_rail) when the models are loaded; a slot with no model, or a gun with no sockets, shows nothing */
   setAttachments?(fitted: GunAtts): void;
+  /** the fitted laser's beam origin (null with no laser, or no laser model) */
+  laser?: THREE.Object3D | null;
   pose(s: { fireT: number; reloadT: number }): void; // fireT: 0..1 after a shot (slide back/forward), reloadT: 0..1 (or -1 = not reloading)
 }
 export interface GunFx {   // pooled; no per-shot allocation

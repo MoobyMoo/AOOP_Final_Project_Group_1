@@ -77,8 +77,10 @@ export const ATTACHMENTS: Record<string, AttachmentDef> = {
     mods: [m("scatterHip", "percent", -0.23)],
     blurb: "A gold-plated rail laser for a businessman who shoots from the hip." },
 };
-/** attachments with no model or icon of their own borrow a look-alike's (the asset set covers the six brief ids) */
+/** attachments with no icon of their own borrow a look-alike's (the asset set covers the six brief ids) */
 export const LOOKS_LIKE: Record<string, string> = { att_laser_gold: "att_laser", att_muzzle_horn: "att_muzzle_comp", att_mag_drum: "att_mag_ext", att_mag_quick: "att_mag_ext" };
+/** ...and on the gun and on the ground, its model; the speed mag is a standard-size mag, so it shows no extension */
+export const MODEL_LIKE: Record<string, string> = { att_laser_gold: "att_laser", att_muzzle_horn: "att_muzzle_comp", att_mag_drum: "att_mag_ext" };
 export const isAttachment = (id: string | null | undefined): boolean => typeof id === "string" && Object.hasOwn(ATTACHMENTS, id);
 export const attachmentDef = (id: string | null | undefined): AttachmentDef | undefined => (id && Object.hasOwn(ATTACHMENTS, id) ? ATTACHMENTS[id] : undefined);
 /** the loot-table entries (tables.ts ITEMS spreads these in) */

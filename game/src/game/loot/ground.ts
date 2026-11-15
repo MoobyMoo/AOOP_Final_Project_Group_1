@@ -17,12 +17,13 @@ import { patch } from "../render/shading";
 import { groundHeight, meshHeightMax } from "../world/terrain";
 import { walkable } from "../world/grid";
 import { baseId, buildWearable, hasWearable, WEARABLES } from "../actors/wearables";
+import { MODEL_LIKE } from "./attachments";
 
 /** loot ids -> item GLB names (the icon set's short names; ui/itemicon.ts uses the same) */
-const ALIAS: Record<string, string> = { banana: "bunch", vine_rope: "rope", golden_banana: "golden", honey_pot: "honey", old_gear: "gear", sunset_mango: "mango", brass_compass: "compass", banana_idol: "idol", vine_key: "key", extended_mag: "extmag", ammo45: "ammo", plantation_seal: "radio_key" };
+const ALIAS: Record<string, string> = { banana: "bunch", vine_rope: "rope", golden_banana: "golden", honey_pot: "honey", old_gear: "gear", sunset_mango: "mango", brass_compass: "compass", banana_idol: "idol", vine_key: "key", ammo45: "ammo", plantation_seal: "radio_key", ...MODEL_LIKE };
 const GLBS = ["ammo", "aviators", "bandage", "banditmask", "beanie", "bigpack", "boomerang", "bowler", "bunch", "cap", "coconut", "compass", "cratepack", "crown", "extmag", "eyepatch", "fedora", "firstaid", "gear", "goggles", "golden", "hardhat", "heartglasses", "honey", "idol", "key", "mango", "monocle", "pith", "plank", "radio_key", "rope", "satchel", "shades", "smoothie", "spring", "suit", "tophat"];
 /** flat things stood upright in their GLB (a jacket, a magazine, a monocle): they lie on their back on the ground */
-const LIE = new Set(["suit", "extmag", "monocle", "satchel", "firstaid"]);
+const LIE = new Set(["suit", "extmag", "monocle", "satchel", "firstaid", "att_mag_ext"]);
 const MIN_SIDE = 0.42, MAX_SIDE = 0.78, MAX_SCALE = 3.2, MIN_SCALE = 1.25;
 /** POLISH_FINDINGS 1 / 13 numbers */
 export const THROW = { hMin: 1.5, hMax: 3, up: 2.5, spread: Math.PI / 8, gravity: 9.81, physicsOff: 3, recover: 6 };
@@ -75,8 +76,38 @@ function shadeMaterial() {
 
 /** load the item GLBs once (raid start; the wearables come with the characters) */
 export function preloadGroundItems(base = `${import.meta.env.BASE_URL}models/items/`): Promise<void> {
-  loading ??= Promise.all(GLBS.map((n) => new GLTFLoader().loadAsync(`${base}${n}.glb`).then((g) => { RAW.set(n, g.scene); }, () => undefined))).then(() => undefined);
+  loading ??= Promise.all([...GLBS.map((n) => new GLTFLoader().loadAsync(`${base}${n}.glb`).then((g) => { RAW.set(n, g.scene); }, () => undefined)),
+    new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}models/attachments.glb`).then(addAttachments, () => undefined)]).then(() => undefined);
   return loading;
+}
+/** gun attachments (attachments.glb, one root node per id) on the ground. Their colour lives in the Kingpin palette
+ *  texture and the item material is vertex colour only, so each vertex takes its palette texel (times its AO). */
+function addAttachments(g: { scene: THREE.Object3D }) {
+  const px = new Map<unknown, { d: Uint8ClampedArray; w: number; h: number } | null>();
+  const pixels = (img: unknown) => {
+    if (px.has(img)) return px.get(img)!;
+    let out: { d: Uint8ClampedArray; w: number; h: number } | null = null;
+    try { const im = img as { width: number; height: number }, c = document.createElement("canvas"); c.width = im.width; c.height = im.height; const x = c.getContext("2d")!; x.drawImage(img as CanvasImageSource, 0, 0); out = { d: x.getImageData(0, 0, c.width, c.height).data, w: c.width, h: c.height }; } catch { out = null; }
+    px.set(img, out); return out;
+  };
+  const col = new THREE.Color();
+  for (const top of g.scene.children) {
+    if (!/^att_[a-z0-9_]+$/.test(top.name)) continue;
+    const node = top.clone(true); node.position.set(0, 0, 0); node.quaternion.identity();
+    node.traverse((o) => {
+      const m = o as THREE.Mesh; if (!m.isMesh) return;
+      const src = m.material as THREE.MeshStandardMaterial, geo = m.geometry.clone(), n = geo.getAttribute("position").count;
+      const ao = geo.getAttribute("color"), uv = geo.getAttribute("uv"), tex = src.map ? pixels(src.map.image) : null, c3 = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) {
+        if (tex && uv) { const u = Math.min(tex.w - 1, Math.max(0, Math.floor((uv.getX(i) % 1 + 1) % 1 * tex.w))), v = Math.min(tex.h - 1, Math.max(0, Math.floor((uv.getY(i) % 1 + 1) % 1 * tex.h))), k = (v * tex.w + u) * 4; col.setRGB(tex.d[k] / 255, tex.d[k + 1] / 255, tex.d[k + 2] / 255, THREE.SRGBColorSpace); }
+        else col.copy(src.emissive && src.emissive.getHex() ? src.emissive : src.color);
+        const a = ao ? ao.getX(i) : 1; c3.set([col.r * a, col.g * a, col.b * a], i * 3);
+      }
+      geo.setAttribute("color", new THREE.BufferAttribute(c3, 3)); m.geometry = geo;
+      m.material = new THREE.MeshStandardMaterial({ roughness: src.map ? 0.45 : 0.3, metalness: src.map ? 0.25 : 0 });
+    });
+    RAW.set(top.name, node);
+  }
 }
 
 /** which model an item shows: an item GLB, a wearable mesh, or the fallback crate-pack */

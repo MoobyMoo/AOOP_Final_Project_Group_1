@@ -28,3 +28,9 @@ export function slip(bonked = false) {
   G.save.lookDone = true;
   enterBunker(() => {}, () => {}, payoutSlip({ raid: 4, how: bonked ? "bonked" : "hatch", raidT: 221, kills: 3, crates: 5, kept: bonked ? ["banana"] : ["golden_banana", "brass_compass", "honey_pot", "coconut", "coconut", "leaf_vest#72", "vine_key"], lost: bonked ? 4 : 0, value: bonked ? 9 : 260, bonus: 0, vineKey: !bonked }));
 }
+import { placeItem } from "../loot/raidloot";
+/** lay items on the ground in a row in front of the player (captures of ground models) */
+export function lay(items: string[], spacing = 1.1) {
+  const fx = Math.sin(G.aimYaw), fz = Math.cos(G.aimYaw), sx = fz, sz = -fx;
+  items.forEach((id, i) => { const o = (i - (items.length - 1) / 2) * spacing; placeItem(id, G.pp.x + fx * 2.5 + sx * o, G.pp.z + fz * 2.5 + sz * o); });
+}
