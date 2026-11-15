@@ -2,10 +2,11 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright-core';
 import { captureBuild } from './botbuild.mjs';
+import { installFixtureLedger } from './botfixture.mjs';
 
 export async function runBossMatrix() {
-  const base = process.env.BASE ?? 'http://127.0.0.1:5347';
-  assert.equal(new URL(base).port, '5347', 'boss fixtures use the systems-only port');
+  const base = process.env.BASE ?? 'http://127.0.0.1:5352';
+  assert.ok(Number(new URL(base).port) >= 5352 && Number(new URL(base).port) <= 5359, 'boss fixtures use a systems-only port from 5352 to 5359');
   const output = process.env.BOT_OUT ?? '/tmp/bv-systems-boss';
   const directory = process.env.BOT_DIST ?? '/tmp/bv-systems-dist';
   const build = await captureBuild(directory, base);
@@ -20,6 +21,7 @@ export async function runBossMatrix() {
       page.on('pageerror', error => errors.push(String(error)));
       await page.goto(`${base}/game.html?fresh=1&raid=1&bot=1&ts=8&post=0&dpr=1&fixdpr=1&greed=${mode === 'avoid' ? 0.3 : 0.8}&lag=0.25&seed=${seed}`);
       await page.waitForFunction(() => window.__g?.G.scene === 'raid' && window.__g.G.enemies.some(enemy => enemy.tag === 'plantation-foreman'), null, { timeout: 90000 });
+      await installFixtureLedger(page);
       await page.evaluate(mode => {
         const { G, tp, walkable, los } = window.__g;
         const boss = G.enemies.find(enemy => enemy.tag === 'plantation-foreman');
@@ -32,10 +34,13 @@ export async function runBossMatrix() {
         tp(start.x, start.z);
         G.hp = G.maxHp = mode === 'prepared' ? 125 : 100;
         G.ammo = mode === 'prepared' ? 88 : 16;
-        G.mag = G.magSize = mode === 'prepared' ? 12 : 8;
+        if (mode === 'prepared') window.__gunStats.fit('att_mag_ext');
+        else window.__gunStats.unfit('mag');
+        G.mag = G.magSize;
         G.gear = mode === 'prepared' ? { head: 'warden_helmet', face: 'shades', body: 'warden_vest', back: 'satchel', ears: null } : { head: 'bowler', face: 'shades', body: 'suit', back: 'satchel', ears: null };
         G.pack = mode === 'prepared' ? ['smoothie', 'smoothie', 'smoothie'] : [];
         G.stamina = 100;
+        window.FixtureLedger.begin(G);
         boss.face = Math.atan2(G.pp.x - boss.p.x, G.pp.z - boss.p.z);
         window.__bossFixture = { startT: G.raidT, bossId: boss.id, maxBossHp: boss.max, start: { x: G.pp.x, z: G.pp.z } };
       }, mode);
@@ -64,7 +69,7 @@ export async function runBossMatrix() {
   const gates = {
     avoidance: { pass: avoided.length === 3, count: avoided.length, total: 3 },
     greedyBonks: { pass: high.length === 10 && high.filter(row => row.bonked).length / high.length >= 0.4, bonks: high.filter(row => row.bonked).length, engaged: high.length },
-    preparedWin: { pass: prepared.length > 0, wins: prepared.length, total: 10 },
+    preparedWin: { pass: prepared.length >= 7, wins: prepared.length, total: 10, minimum: 7 },
   };
   assert.deepEqual(await captureBuild(directory, base), build, 'build and runtime sources unchanged during boss suite');
   const result = { gates, rows, build, scope: 'Live isolated arena fixtures, actual AI/combat/player bot; other encounters removed. Existing combat hook integration is reported separately. Not full-raid population rates.' };
