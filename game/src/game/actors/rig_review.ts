@@ -13,6 +13,8 @@
 //   set=broken  each new piece at durability 0 beside the same piece intact
 //   cam=close|game (game = the real 55 deg / 40 u camera)  turn=<deg> (180 = backs)  row=<i> from=<col> n=<cols> (zoom on a few)
 //   action / speed / t / armed work as in the other views.
+// action=dash (G1.5 row 14) previews the new "dash" clip before the game code maps it: this page plays it through the
+//   roll's full-body slot (same 0.34 s, same snap-in and 0.12 s blend out). Review only; it changes nothing in rig.ts.
 // The gameplay view is the real camera (Stage: 55 deg pitch, -30 deg yaw, FOV 24, distance 40).
 import * as THREE from "three";
 import { Stage } from "../render/stage";
@@ -52,6 +54,12 @@ function add(k: string, x: number, z: number, o: Partial<Actor> & { look?: Monke
 }
 
 await preloadCharacters(); await preloadKingpin();
+/** clips built into the GLBs that rig.ts does not map to an action yet: played here through an existing action's slot */
+const PENDING: Record<string, { dur: number; via: RigActionX }> = { dash: { dur: 0.34, via: "roll" } };
+function borrowSlot(rig: Rig, clip: string) {
+  const clips = (rig as unknown as { model: { clips: Record<string, unknown> } }).model.clips, p = PENDING[clip];
+  if (p && clips[clip]) clips[p.via] = clips[clip];
+}
 const defSpeed = (a: string) => (a === "run" ? 4.6 : a === "walk" ? 1.6 : a === "charge" ? 6 : 0);
 const yaw = THREE.MathUtils.degToRad(num("yaw", view === "gameplay" ? -30 : view === "lineup" ? 172 : 160)), aim = THREE.MathUtils.degToRad(num("aim", 0));
 const look = (QS.get("look") && decodeLook(QS.get("look")!)) || LOOK_PRESETS[num("preset", 0)]?.look || LOOK_PRESETS[0].look;
@@ -111,13 +119,14 @@ let shown = "";
 function frame() {
   const dt = Math.min(clock.getDelta(), 0.1), now = fixed ? fixedT : clock.elapsedTime;
   for (const a of actors) {
-    const ci = CLIP_INFO[a.action], timed = ci && !ci.loop;
+    const pend = PENDING[a.action], ci = pend ?? CLIP_INFO[a.action], timed = ci && !("loop" in ci && ci.loop);
     let act = a.action, at = 0;
     if (timed) {
       if (fixed) at = QS.has("at") ? num("at", 0) : now / ci.dur;
       else if (loop) { const cyc = (now + a.off) % (ci.dur + 0.7); at = cyc / ci.dur; if (at > 1) { act = a.speed > 0.3 ? "run" : "idle"; at = 0; } }
       else at = Math.min(1, now / ci.dur);
     }
+    if (pend && act === a.action) act = pend.via;
     a.rig.root.rotation.y = a.yaw;
     a.rig.pose({ time: now + a.off, speed: a.speed, moveYaw: a.yaw, faceYaw: a.yaw + a.aim, action: act as RigState["action"], actionT: Math.min(1, at), armed: act === "melee" && a.armed !== "none" ? "briefcase" : a.armed === "briefcase" ? "pistol" : a.armed, flash: num("flash", 0) });
   }
@@ -126,5 +135,6 @@ function frame() {
   if (txt !== shown) { shown = txt; info.textContent = QS.get("hud") === "0" ? "" : txt; }
   requestAnimationFrame(frame);
 }
+for (const a of actors) if (PENDING[a.action]) borrowSlot(a.rig, a.action);
 (window as unknown as { __rig: unknown }).__rig = { stats: () => actors.map((a) => rigStats(a.rig)), actors, setT: (t: number) => { fixed = true; fixedT = t; } };
 requestAnimationFrame(frame);
