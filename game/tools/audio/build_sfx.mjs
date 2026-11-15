@@ -12,8 +12,8 @@ const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? proces
 const MAX = Number(arg("--max", 4)), STEPS = Number(arg("--steps", 8)), SKIP = new Set((arg("--skip", "") || "").split(",").filter(Boolean));
 /** longest a processed take may be before it is dropped as overlong (seconds); stings and roars may ring */
 /** quietest peak (dBFS) a take may have before it is dropped as too weak to normalise; a distant echo tail is quiet by nature */
-const WEAK = { shotTail: -32 };
-const LONG = { stepSand: 0.6, stepMud: 0.6, stepGrass: 0.6, stepDirt: 0.6, stepPlank: 0.6, stepStone: 0.6, stepCave: 0.7, roar: 2.6, extract: 2.6, rare: 2, heal: 1.6, door: 1.6, shotTail: 1.6, slam: 1.6, ko: 1.4 };
+const WEAK = { shotTail: -32, smgTail: -32, rifleTail: -32, shotgunTail: -32, sniperTail: -32, lmgTail: -32 };
+const LONG = { sniperTail: 3.2, shotgunTail: 1.9, rifleTail: 1.6, lmgTail: 1.3, smgTail: 0.9, boltCycle: 1.1, lmgBoxIn: 1.1, stepSand: 0.6, stepMud: 0.6, stepGrass: 0.6, stepDirt: 0.6, stepPlank: 0.6, stepStone: 0.6, stepCave: 0.7, roar: 2.6, extract: 2.6, rare: 2, heal: 1.6, door: 1.6, shotTail: 1.6, slam: 1.6, ko: 1.4 };
 const ff = (args) => spawnSync("ffmpeg", ["-hide_banner", ...args], { encoding: "utf8" });
 const dur = (f) => Number(spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f], { encoding: "utf8" }).stdout);
 const camel = (s) => s.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
@@ -76,10 +76,40 @@ function take(kind, src, a, b, out, label) {
   const trim = !why && len > cap;
   report.push(`${why ? "DROP" : "keep"} ${label.padEnd(24)} ${len.toFixed(2)} s  peak ${lv.max} dB  rms ${lv.mean} dB${why ? `  (${why})` : trim ? `  (trimmed to ${cap} s)` : ""}`);
   if (why) return;
-  const file = `${kind}_${out.length + 1}.mp3`;
+  // stage the kept take as a peak-normalised float wav; levelMatch() encodes the kind's takes together
+  const stage = join(OUT, `.stage_${kind}_${out.length + 1}.wav`);
   const af = `${trim ? `atrim=0:${cap},afade=t=out:st=${cap - 0.06}:d=0.06,` : ""}volume=${(-1 - lv.max).toFixed(2)}dB`;
-  ff(["-y", "-loglevel", "error", "-i", tmp, "-af", af, "-c:a", "libmp3lame", "-b:a", "112k", join(OUT, file)]);
-  out.push(file);
+  ff(["-y", "-loglevel", "error", "-i", tmp, "-af", af, "-c:a", "pcm_f32le", stage]);
+  out.push({ stage, label });
+}
+/** loudest 100 ms RMS (dBFS) of a file: how hard a take hits, which peak level alone does not tell */
+function punch(f) {
+  const buf = spawnSync("ffmpeg", ["-v", "error", "-i", f, "-f", "f32le", "-ac", "1", "-ar", "44100", "-"], { maxBuffer: 1 << 27 }).stdout;
+  const x = new Float32Array(buf.buffer, buf.byteOffset, buf.length / 4), W = 4410; let best = 0;
+  for (let i = 0; i < Math.max(1, x.length - W); i += 441) { let e = 0; for (let j = i; j < Math.min(x.length, i + W); j++) e += x[j] * x[j]; best = Math.max(best, e / W); }
+  return 10 * Math.log10(best + 1e-12);
+}
+/** the takes of one kind play at one level: a take whose punch sits more than 6 dB under the kind's median is a weak
+ *  render that peak-normalising lifted (drop it, keeping at least two), and the rest are turned down to the quietest
+ *  kept take, so rotating takes (auto fire, footsteps) never jump in level. Encodes the mp3s; returns their names */
+function levelMatch(kind, staged) {
+  if (!staged.length) return [];
+  let rows = staged.map((t) => ({ ...t, p: punch(t.stage) }));
+  if (rows.length > 1) {
+    const med = [...rows].sort((a, b) => a.p - b.p)[Math.floor(rows.length / 2)].p;
+    const keep = rows.filter((r) => r.p >= med - 6);
+    for (const r of rows) if (!keep.includes(r) && keep.length >= 2) report.push(`DROP ${r.label.padEnd(24)} punch ${r.p.toFixed(1)} dB, ${(med - r.p).toFixed(1)} dB under the kind's median (level outlier)`);
+    if (keep.length >= 2) rows = keep;
+  }
+  const target = Math.min(...rows.map((r) => r.p)), names = [];
+  rows.forEach((r, i) => {
+    const file = `${kind}_${i + 1}.mp3`, gain = target - r.p;
+    if (gain < -0.5) report.push(`  ${r.label.padEnd(24)} turned down ${(-gain).toFixed(1)} dB to the kind's level`);
+    ff(["-y", "-loglevel", "error", "-i", r.stage, "-af", `volume=${gain.toFixed(2)}dB`, "-c:a", "libmp3lame", "-b:a", "112k", join(OUT, file)]);
+    names.push(file);
+  });
+  for (const t of staged) rmSync(t.stage, { force: true });
+  return names;
 }
 for (const [name, files] of Object.entries(groups)) {
   const kind = camel(name), out = [], isStep = name.startsWith("step_");
@@ -100,7 +130,7 @@ for (const [name, files] of Object.entries(groups)) {
     }
     for (const [, w] of walks) rmSync(w, { force: true });
   } else for (const f of files) { if (out.length >= MAX) break; take(kind, join(RAW, f), 0, null, out, f); }
-  if (out.length) manifest[kind] = out;
+  const names = levelMatch(kind, out); if (names.length) manifest[kind] = names;
 }
 rmSync(tmp, { force: true });
 writeFileSync(join(OUT, "manifest.json"), JSON.stringify(manifest, null, 1) + "\n");

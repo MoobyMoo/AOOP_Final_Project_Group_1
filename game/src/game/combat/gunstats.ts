@@ -33,7 +33,7 @@ export const GUN = {
   suppressed: false,
 };
 /** the reload loop's view of the gun (reload.ts startReload) */
-export const GUN_DEF = { mag: ARM.mag, reload: ARM.reload, reloadMode: ARM.reloadMode, perRound: ARM.perRound, autoReload: ARM.autoReload };
+export const GUN_DEF = { mag: ARM.mag, reload: ARM.reload, reloadMode: ARM.reloadMode, perRound: ARM.perRound, autoReload: ARM.autoReload, sound: ARM.sound };
 
 /** the gun slot in hand (null: empty slot) */
 export const activeSlot = (): GunSlot | null => G.save?.guns?.[G.slot] ?? null;
@@ -67,7 +67,7 @@ export function refreshGun() {
   const slot = activeSlot(), def = gunDefOf(slot?.inst) ?? GUNS.kingpin45;
   ARM = def; H = def.h;
   Object.assign(GUN, statsFor(def, slot?.atts ?? EMPTY_GUN), { id: def.id, armed: !!slot, damage: def.damage, pellets: def.pellets, interval: def.interval, pen: def.pen });
-  Object.assign(GUN_DEF, { mag: GUN.mag, reload: GUN.reload, reloadMode: def.reloadMode, perRound: def.perRound, autoReload: def.autoReload });
+  Object.assign(GUN_DEF, { mag: GUN.mag, reload: GUN.reload, reloadMode: def.reloadMode, perRound: def.perRound, autoReload: def.autoReload, sound: def.sound });
   if (G.save) {
     G.magSize = GUN.mag;
     if (G.scene === "raid" && G.mag > G.magSize) { G.ammo += G.mag - G.magSize; G.mag = G.magSize; }
