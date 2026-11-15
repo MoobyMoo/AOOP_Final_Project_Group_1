@@ -13,6 +13,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { GunView, GunFx } from "../contracts";
+import type { Surface } from "./surface";
 import { patch, surf, TOON } from "../render/shading";
 
 const BRASS = "#f0b548";
@@ -218,11 +219,17 @@ export function createKingpin(): GunView {
 // Two draw calls for everything: one instanced sprite batch (flash, tongue, tracer, stars, dust, splinters; additive
 // and alpha-blended in the same batch through premultiplied output) and one instanced brass pool. Plus one PointLight
 // that stays in the scene at intensity 0 so the light count never changes (no shader recompiles on a shot).
-const SPRITES = 160, SHELLS = 24;
+// G1.5 row 03 (POLISH_FINDINGS 4, Duckov's serialized particle counts and lifetimes, our own art):
+// - muzzle: one 0.1 s flash card, three small secondary cards (the tongue and two side jets), three 0.1-0.2 s smoke puffs
+// - one casing per shot, alive 0.9-1.2 s in total (flight, one bounce, a moment on the ground, a dither-out)
+// - impacts by surface: metal and stone throw 2-8 sparks (0.15-0.35 s), wood splinters, dirt clods, foliage leaf
+//   flecks; an enemy hit is a cartoon star with 1-3 flecks (no blood, ever); a crit adds a coral burst
+// - the same batch also draws dash speed lines and footstep/dash dust (dust(), speedLine()), so they cost no draw call
+const SPRITES = 320, SHELLS = 24;
 const GLOW = 0, STAR = 1, BURST = 2, PUFF = 3, CHIP = 4, STREAK = 5, FLAME = 6;        // sprite shapes
-const FREE = 1, TRACER = 2;                                                           // particle behaviours
-const FLASH_T = 0.055, TRACER_T = 0.06, LIGHT_T = 0.075, LIGHT_I = 30;
-const SHELL_LIE = 3, SHELL_FADE = 0.45, GROUND = 0.05, GRAV = 16;
+const FREE = 1, TRACER = 2, SPARK = 3, LINE = 4;                                      // particle behaviours
+const FLASH_T = 0.1, TRACER_T = 0.06, LIGHT_T = 0.075, LIGHT_I = 30;
+const SHELL_FADE = 0.25, GROUND = 0.05, GRAV = 16;
 
 const SPRITE_VERT = /* glsl */ `
 attribute vec3 iPos; attribute vec3 iAxis; attribute vec4 iShape; attribute vec4 iColor; attribute vec2 iMisc;
@@ -276,7 +283,17 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-export type KingpinFx = GunFx & { /** live numbers for the review page */ stats(): { drawCalls: number; sprites: number; shells: number; triangles: number } };
+export type KingpinFx = GunFx & {
+  /** live numbers for the review page */ stats(): { drawCalls: number; sprites: number; shells: number; triangles: number };
+  /** a bullet stopped: the effect for what it hit (an enemy, or a surface from combat/surface.ts); crit = a coral burst */
+  impactOn(at: THREE.Vector3, dir: THREE.Vector3, what: Surface | "enemy", crit?: boolean): void;
+  /** n puffs of ground dust at a point, pushed along (dx, dz); colour = the ground's */
+  dust(at: THREE.Vector3, dx: number, dz: number, n: number, color: string, size?: number): void;
+  /** ground height under a point, for the casings to land on (the raid sets this to the terrain; default flat 0) */
+  groundY: (x: number, z: number) => number;
+  /** a white speed line from a point along a world axis; it shrinks toward its head over life seconds */
+  speedLine(at: THREE.Vector3, ax: number, ay: number, az: number, width: number, life: number, alpha?: number): void;
+};
 
 export function createGunFx(scene: THREE.Scene): KingpinFx {
   // ---- sprite batch
@@ -305,6 +322,7 @@ export function createGunFx(scene: THREE.Scene): KingpinFx {
     starHot: col("#fffbe6", 2.6), starGold: col("#ffc81e", 1.5), starOrange: col("#ff9a1f", 1.15), spark: col("#ffe2a8", 4),
     dustA: col("#c9a468"), dustB: col("#9a7245"), dustC: col("#dcbf8a"), chipA: col("#6e4a28"), chipB: col("#b98f58"),
   };
+  const SMOKE = col("#f3ece0");
   function emit(k: number, sh: number, x: number, y: number, z: number, wx: number, wy: number, wz: number, w: number, h: number, g: number, lifeS: number, c: THREE.Color, a: number, additive: number, fade: number, gravity = 0, dragK = 0, r0 = 0, sp = 0, pl = 0.35) {
     const i = next; next = (next + 1) % SPRITES;
     kind[i] = k; shape[i] = sh; age[i] = 0; life[i] = lifeS; px[i] = x; py[i] = y; pz[i] = z; vx[i] = wx; vy[i] = wy; vz[i] = wz;
@@ -321,6 +339,7 @@ export function createGunFx(scene: THREE.Scene): KingpinFx {
   shells.instanceMatrix.setUsage(THREE.DynamicDrawUsage); shells.frustumCulled = false; shells.name = "kingpinFxShells"; shells.count = 0; scene.add(shells);
   const sT = new Float32Array(SHELLS).fill(-1), sP = new Float32Array(SHELLS * 3), sV = new Float32Array(SHELLS * 3), sAx = new Float32Array(SHELLS * 3);
   const sAng = new Float32Array(SHELLS), sSpin = new Float32Array(SHELLS), sYaw = new Float32Array(SHELLS), sState = new Uint8Array(SHELLS); // 0 flying, 1 bounced, 2 lying
+  const sLife = new Float32Array(SHELLS); // total seconds from ejection, 0.9-1.2 (sT runs from the ejection)
   let sNext = 0;
   // ---- light
   const light = new THREE.PointLight(C.light, 0, 7, 2); light.name = "kingpinFxLight"; scene.add(light);
@@ -342,6 +361,14 @@ export function createGunFx(scene: THREE.Scene): KingpinFx {
         aPos.array[o3] = px[i] + vx[i] * tail; aPos.array[o3 + 1] = py[i] + vy[i] * tail; aPos.array[o3 + 2] = pz[i] + vz[i] * tail;
         aAxis.array[o3] = vx[i] * len; aAxis.array[o3 + 1] = vy[i] * len; aAxis.array[o3 + 2] = vz[i] * len;
         aShape.array[o4] = sx[i]; a = al[i];
+      } else if (kind[i] === SPARK) { // a hot streak stretched along its velocity, head at the particle
+        const st = 0.035 * (1 - 0.5 * k);
+        aPos.array[o3] = px[i] - vx[i] * st; aPos.array[o3 + 1] = py[i] - vy[i] * st; aPos.array[o3 + 2] = pz[i] - vz[i] * st;
+        aAxis.array[o3] = vx[i] * st; aAxis.array[o3 + 1] = vy[i] * st; aAxis.array[o3 + 2] = vz[i] * st; aShape.array[o4] = sx[i];
+      } else if (kind[i] === LINE) {  // a speed line: the tail runs up to the head
+        const tail = e;
+        aPos.array[o3] = px[i] + vx[i] * tail; aPos.array[o3 + 1] = py[i] + vy[i] * tail; aPos.array[o3 + 2] = pz[i] + vz[i] * tail;
+        aAxis.array[o3] = vx[i] * (1 - tail); aAxis.array[o3 + 1] = vy[i] * (1 - tail); aAxis.array[o3 + 2] = vz[i] * (1 - tail); aShape.array[o4] = sx[i];
       } else {
         aPos.array[o3] = px[i]; aPos.array[o3 + 1] = py[i]; aPos.array[o3 + 2] = pz[i];
         if (shape[i] === FLAME) { aAxis.array[o3] = vx[i] * s; aAxis.array[o3 + 1] = vy[i] * s; aAxis.array[o3 + 2] = vz[i] * s; aShape.array[o4] = sx[i] * s; }
@@ -361,49 +388,107 @@ export function createGunFx(scene: THREE.Scene): KingpinFx {
       if (sState[i] === 2) { q.setFromAxisAngle(UP, sYaw[i]); }
       else { q.setFromAxisAngle(ax.set(sAx[o], sAx[o + 1], sAx[o + 2]), sAng[i]); q2.setFromAxisAngle(UP, sYaw[i]); q.multiply(q2); }
       shells.setMatrixAt(sc, mtx.compose(pos.set(sP[o], sP[o + 1], sP[o + 2]), q, scl.set(1, 1, 1)));
-      shellFade.array[sc] = sState[i] === 2 ? 1 - sstep((sT[i] - SHELL_LIE) / SHELL_FADE) : 1;
+      shellFade.array[sc] = 1 - sstep((sT[i] - (sLife[i] - SHELL_FADE)) / SHELL_FADE);
       sc++;
     }
     liveShells = shells.count = sc; shells.visible = sc > 0;
     shells.instanceMatrix.needsUpdate = true; shellFade.needsUpdate = true;
   }
 
-  function doImpact(to: THREE.Vector3, dir: THREE.Vector3, hit: "enemy" | "wall") {
+  const SURF = { // per-surface colours (linear; > 1 feeds the bloom)
+    dirt: { dust: [col("#9a7448"), col("#7c5a38"), col("#b28c5c")], chip: [col("#4e3620"), col("#6a4a2c")] },
+    wood: { dust: [C.dustA, C.dustB, C.dustC], chip: [col("#c79a5e"), C.chipA] },
+    stone: { dust: [col("#b9b1a4"), col("#9d968b"), col("#cfc8bb")], chip: [col("#8d877c"), col("#6f6a62")] },
+    metal: { dust: [col("#9da0a6"), col("#b9bcc2"), col("#8a8d94")], chip: [col("#5d6168"), col("#7d8189")] },
+    foliage: { dust: [col("#8fc461"), col("#a9d47a"), col("#79b04f")], chip: [col("#4f9a3a"), col("#7cc04f")] },
+  };
+  const sparkHot = col("#fff0c8", 5), sparkDim = col("#fff0c8", 3), sparkWarm = col("#ffb347", 3.2), critBurst = col("#ff6b57", 3), critCore = col("#ffe14a", 3.4);
+  function sparks(to: THREE.Vector3, n: THREE.Vector3, count: number, hot: number) { // count sparks off a hard surface, fanned around the normal n
+    for (let i = 0; i < count; i++) {
+      const side = rr(-1.4, 1.4), sp = rr(5, 13), up = rr(0.5, 4.5);
+      emit(SPARK, STREAK, to.x, to.y, to.z, n.x * sp * 0.7 + right.x * side * sp * 0.4, up, n.z * sp * 0.7 + right.z * side * sp * 0.4, rr(0.05, 0.075), 1, 1, rr(0.15, 0.35), i % 2 ? (hot < 1 ? sparkDim : sparkHot) : sparkWarm, 1, 1, 0.5, 18, 2.2, 0, 0, 0.45);
+    }
+  }
+  function puffs(to: THREE.Vector3, n: THREE.Vector3, count: number, pal: THREE.Color[], spread = 1, size = 1) {
+    for (let i = 0; i < count; i++) {
+      const side = (i - (count - 1) / 2) * 0.75 * spread + rr(-0.4, 0.4), sp = rr(1.1, 2.6), sz = rr(0.13, 0.19) * size;
+      emit(FREE, PUFF, to.x + n.x * 0.1, to.y + rr(-0.08, 0.08), to.z + n.z * 0.1, n.x * sp + right.x * side, rr(0.3, 1.3), n.z * sp + right.z * side, sz, sz, rr(1.9, 2.5), rr(0.42, 0.6), pal[i % pal.length], 0.95, 0, 0.45, -0.6, 4.2, 0, 0, 0.45);
+    }
+  }
+  function chips(to: THREE.Vector3, n: THREE.Vector3, count: number, pal: THREE.Color[], w: number, h0: number, h1: number, grav = 14, drg = 0.4, life0 = 0.34, life1 = 0.44) {
+    for (let i = 0; i < count; i++) {
+      const side = rr(-2.2, 2.2), sp = rr(1.6, 3.8);
+      emit(FREE, CHIP, to.x + n.x * 0.1, to.y, to.z + n.z * 0.1, n.x * sp + right.x * side, rr(1.8, 3.6), n.z * sp + right.z * side, w, rr(h0, h1), 1, rr(life0, life1), pal[i % pal.length], 1, 0, 0.75, grav, drg, rnd() * 6, rr(-16, 16), 0.45);
+    }
+  }
+  function doImpact(to: THREE.Vector3, dir: THREE.Vector3, what: Surface | "enemy", crit = false) {
         n.copy(dir).negate(); right.crossVectors(UP, n); if (right.lengthSq() < 1e-6) right.set(1, 0, 0); right.normalize();
-        if (hit === "enemy") { // cartoon pop: a gold star, a white-hot star on top, four little stars flying off. No blood, ever.
-          const r0 = rr(-0.5, 0.5);
-          emit(FREE, STAR, to.x, to.y, to.z, 0, 0, 0, 0.34, 0.34, 2.4, 0.17, C.starOrange, 1, 0, 0.55, 0, 0, r0, 3, 0.75);
-          emit(FREE, STAR, to.x, to.y, to.z, 0, 0, 0, 0.23, 0.23, 2.3, 0.15, C.starHot, 1, 0, 0.5, 0, 0, r0 + 0.63, 3, 0.8);
-          for (let i = 0; i < 4; i++) {
-            const side = (i - 1.5) * rr(1.0, 1.7), back2 = rr(0.6, 2.2), up = rr(2.6, 4.4), sz = rr(0.17, 0.24);
-            emit(FREE, STAR, to.x, to.y, to.z, right.x * side + n.x * back2, up, right.z * side + n.z * back2, sz, sz, 0.75, rr(0.36, 0.46), i % 2 ? C.starHot : C.starGold, 1, 0, 0.7, 11, 0.6, rnd() * 6, rr(-9, 9), 0.8);
+        if (what === "enemy") { // cartoon pop: one gold star with a hot core, then 1-3 little flecks (stars) flying off. No blood, ever.
+          const r0 = rr(-0.5, 0.5), big = crit ? 1.25 : 1;
+          emit(FREE, STAR, to.x, to.y, to.z, 0, 0, 0, 0.34 * big, 0.34 * big, 2.4, 0.17, crit ? critBurst : C.starOrange, 1, 0, 0.55, 0, 0, r0, 3, 0.75);
+          emit(FREE, STAR, to.x, to.y, to.z, 0, 0, 0, 0.23 * big, 0.23 * big, 2.3, 0.15, crit ? critCore : C.starHot, 1, 0, 0.5, 0, 0, r0 + 0.63, 3, 0.8);
+          if (crit) emit(FREE, BURST, to.x, to.y, to.z, 0, 0, 0, 0.42, 0.42, 1.5, 0.12, critBurst, 1, 1, 0.4, 0, 0, rnd() * 6, 0, 0.85);
+          const flecks = crit ? 3 : 1 + Math.floor(rnd() * 3);
+          for (let i = 0; i < flecks; i++) {
+            const side = (i - (flecks - 1) / 2) * rr(1.2, 1.9), back2 = rr(0.6, 2.2), up = rr(2.8, 4.6), sz = rr(0.15, 0.22) * (crit ? 1.15 : 1);
+            emit(FREE, STAR, to.x, to.y, to.z, right.x * side + n.x * back2, up, right.z * side + n.z * back2, sz, sz, 0.75, rr(0.55, 0.7), i % 2 ? C.starHot : C.starGold, 1, 0, 0.7, 11, 0.6, rnd() * 6, rr(-9, 9), 0.8);
           }
-        } else { // wall: a spark, tan dust rolling back off the surface, a few splinters
-          emit(FREE, GLOW, to.x, to.y, to.z, 0, 0, 0, 0.4, 0.4, 1.4, 0.05, C.spark, 0.9, 1, 0.3, 0, 0, 0, 0, 0.5);
-          for (let i = 0; i < 5; i++) {
-            const side = (i - 2) * 0.75 + rr(-0.4, 0.4), sp = rr(1.1, 2.6), sz = rr(0.13, 0.19);
-            emit(FREE, PUFF, to.x + n.x * 0.1, to.y + rr(-0.08, 0.08), to.z + n.z * 0.1, n.x * sp + right.x * side, rr(0.3, 1.3), n.z * sp + right.z * side, sz, sz, rr(1.9, 2.5), rr(0.42, 0.6), i % 3 === 0 ? C.dustC : i % 3 === 1 ? C.dustA : C.dustB, 0.95, 0, 0.45, -0.6, 4.2, 0, 0, 0.45);
-          }
-          for (let i = 0; i < 4; i++) {
-            const side = rr(-2.2, 2.2), sp = rr(1.6, 3.8);
-            emit(FREE, CHIP, to.x + n.x * 0.1, to.y, to.z + n.z * 0.1, n.x * sp + right.x * side, rr(1.8, 3.6), n.z * sp + right.z * side, 0.034, rr(0.09, 0.15), 1, rr(0.34, 0.44), i % 2 ? C.chipA : C.chipB, 1, 0, 0.75, 14, 0.4, rnd() * 6, rr(-16, 16), 0.45);
-          }
+          return;
+        }
+        const P = SURF[what];
+        if (what === "metal") { // a hot flash, 5-8 bright sparks, a little grey smoke
+          emit(FREE, GLOW, to.x, to.y, to.z, 0, 0, 0, 0.45, 0.45, 1.4, 0.06, C.spark, 1, 1, 0.3, 0, 0, 0, 0, 0.5);
+          sparks(to, n, 5 + Math.floor(rnd() * 4), 1); puffs(to, n, 2, P.dust, 0.7, 0.8);
+        } else if (what === "stone") { // 2-4 duller sparks, grey dust, chips
+          emit(FREE, GLOW, to.x, to.y, to.z, 0, 0, 0, 0.32, 0.32, 1.3, 0.05, C.spark, 0.7, 1, 0.3, 0, 0, 0, 0, 0.5);
+          sparks(to, n, 2 + Math.floor(rnd() * 3), 0.6); puffs(to, n, 4, P.dust); chips(to, n, 3, P.chip, 0.05, 0.06, 0.1);
+        } else if (what === "wood") { // tan dust and long splinters
+          puffs(to, n, 4, P.dust); chips(to, n, 5, P.chip, 0.045, 0.12, 0.2);
+        } else if (what === "foliage") { // leaf flecks that flutter down, a green puff
+          puffs(to, n, 2, P.dust, 0.6, 1.1);
+          chips(to, n, 5, P.chip, 0.07, 0.07, 0.11, 3.5, 2.2, 0.7, 0.95);
+        } else { // dirt: a dusty spray and clods
+          puffs(to, n, 5, P.dust, 1.1, 1.3); chips(to, n, 4, P.chip, 0.06, 0.06, 0.09, 16, 0.3);
         }
         }
-  return {
-    impact(at, d, hit) { doImpact(at, d, hit); },
+  // ---- generic emitters the dash, footsteps and others share (same batch, no extra draw call)
+  const dustC = new THREE.Color();
+  function dust(at: THREE.Vector3, dx: number, dz: number, count: number, color: string, size = 1) {
+    dustC.set(color);
+    for (let i = 0; i < count; i++) {
+      const a = rnd() * 6.283, sp = rr(0.3, 1.1), sz = rr(0.16, 0.24) * size;
+      emit(FREE, PUFF, at.x + Math.cos(a) * 0.15, at.y + 0.08, at.z + Math.sin(a) * 0.15, dx * rr(0.6, 1.2) + Math.cos(a) * sp, rr(0.4, 1.0), dz * rr(0.6, 1.2) + Math.sin(a) * sp, sz, sz, rr(2.2, 2.8), rr(0.45, 0.6), dustC, 0.7, 0, 0.35, -0.4, 3.6, 0, 0, 0.3);
+    }
+  }
+  const lineC = col("#d8f6ff", 1.6); // a cool white, matching the dash afterimages
+  function speedLine(at: THREE.Vector3, ax: number, ay: number, az: number, width: number, life: number, alpha = 0.85) {
+    emit(LINE, STREAK, at.x, at.y, at.z, ax, ay, az, width, 1, 1, life, lineC, alpha, 0, 0.2, 0, 0, 0, 0, 0.2);
+  }
+  const fx: KingpinFx = {
+    groundY: () => 0,
+    impact(at, d, hit) { doImpact(at, d, hit === "enemy" ? "enemy" : "dirt"); },
+    impactOn(at, d, what, crit) { doImpact(at, d, what, crit); },
+    dust, speedLine,
     fire(muzzle, eject, to, hit) {
       muzzle.updateWorldMatrix(true, false); eject.updateWorldMatrix(true, false);
       const me = muzzle.matrixWorld.elements, ee = eject.matrixWorld.elements;
       m0.set(me[12], me[13], me[14]); dir.set(me[8], me[9], me[10]).normalize();
-      // ---- muzzle flash: soft glow + rolled star burst + a tongue along the barrel; ~3 frames.
-      // G1 council fix 5: the star was a 70 px white disc that hid the gun and the shot direction. It is now about half
-      // the size, orange with only a small hot centre, and sits ahead of the muzzle, so the barrel, the tongue and the
-      // tracer carry the direction.
+      // ---- muzzle flash (Duckov's structure, POLISH_FINDINGS 4: one 0.1 s card, three secondary cards, three smoke
+      // puffs; ours in look). The main card is the rolled star burst ahead of the muzzle, about 0.5 m across (G1
+      // council fix 5 kept it orange with a small hot centre so the barrel and tracer still carry the direction).
+      // Secondary cards: the tongue along the barrel and two short side jets. Smoke: pale puffs that roll forward.
       const roll = rnd() * 6.283, big = rr(0.9, 1.15);
-      emit(FREE, GLOW, m0.x + dir.x * 0.15, m0.y + dir.y * 0.15, m0.z + dir.z * 0.15, 0, 0, 0, 0.5 * big, 0.5 * big, 1.2, FLASH_T, C.flash, 0.3, 1, 0.2, 0, 0, 0, 0, 0.6);
-      emit(FREE, FLAME, m0.x, m0.y, m0.z, dir.x * 0.95 * big, dir.y * 0.95 * big, dir.z * 0.95 * big, 0.12 * big, 1, 1.3, FLASH_T, C.flash, 1, 1, 0.45, 0, 0, 0, 0, 0.6);
-      emit(FREE, BURST, m0.x + dir.x * 0.2, m0.y + dir.y * 0.2, m0.z + dir.z * 0.2, 0, 0, 0, 0.36 * big, 0.36 * big, 1.3, FLASH_T, C.flashCore, 1, 1, 0.45, 0, 0, roll, rr(-6, 6), 0.7);
+      emit(FREE, BURST, m0.x + dir.x * 0.2, m0.y + dir.y * 0.2, m0.z + dir.z * 0.2, 0, 0, 0, 0.36 * big, 0.36 * big, 1.3, FLASH_T, C.flashCore, 1, 1, 0.3, 0, 0, roll, rr(-6, 6), 0.7);
+      emit(FREE, FLAME, m0.x, m0.y, m0.z, dir.x * 0.95 * big, dir.y * 0.95 * big, dir.z * 0.95 * big, 0.12 * big, 1, 1.3, FLASH_T * 0.7, C.flash, 1, 1, 0.4, 0, 0, 0, 0, 0.6);
+      right.crossVectors(dir, UP); if (right.lengthSq() < 1e-6) right.set(1, 0, 0); right.normalize();
+      for (const sgn of [-1, 1]) {
+        const jx = (dir.x * 0.45 + right.x * sgn) * 0.32 * big, jy = dir.y * 0.45 * 0.32 * big, jz = (dir.z * 0.45 + right.z * sgn) * 0.32 * big;
+        emit(FREE, FLAME, m0.x + dir.x * 0.08, m0.y + dir.y * 0.08, m0.z + dir.z * 0.08, jx, jy, jz, 0.07 * big, 1, 1.2, FLASH_T * 0.6, C.flash, 0.9, 1, 0.4, 0, 0, 0, 0, 0.6);
+      }
+      for (let i = 0; i < 3; i++) {
+        const sp = rr(3, 8) * 0.35, sz = rr(0.13, 0.18), sd = rr(-0.6, 0.6);
+        emit(FREE, PUFF, m0.x + dir.x * 0.25, m0.y + dir.y * 0.25 + 0.03, m0.z + dir.z * 0.25, dir.x * sp + right.x * sd, rr(0.2, 0.7), dir.z * sp + right.z * sd, sz, sz, rr(2.2, 2.8), rr(0.1, 0.2), SMOKE, 0.35, 0, 0.3, -0.5, 6, rnd() * 6, 0, 0.5);
+      }
       light.position.copy(m0).addScaledVector(dir, 0.35); light.position.y += 0.35; lightT = 0; light.intensity = LIGHT_I;
       // ---- tracer
       t1.copy(to).sub(m0); const dist = t1.length();
@@ -415,16 +500,16 @@ export function createGunFx(scene: THREE.Scene): KingpinFx {
       const vr = rr(1.7, 2.6), vu = rr(2.6, 3.6), vb = rr(0.2, 0.9);
       sV[o] = right.x * vr + back.x * vb; sV[o + 1] = right.y * vr + back.y * vb + vu; sV[o + 2] = right.z * vr + back.z * vb;
       ax.set(rr(-1, 1), rr(-0.3, 0.3), rr(-1, 1)).normalize(); sAx[o] = ax.x; sAx[o + 1] = ax.y; sAx[o + 2] = ax.z;
-      sAng[si] = rnd() * 6.283; sSpin[si] = rr(18, 30) * (rnd() < 0.5 ? -1 : 1); sYaw[si] = Math.atan2(dir.x, dir.z) + rr(-0.5, 0.5); sT[si] = 0; sState[si] = 0;
+      sAng[si] = rnd() * 6.283; sSpin[si] = rr(18, 30) * (rnd() < 0.5 ? -1 : 1); sYaw[si] = Math.atan2(dir.x, dir.z) + rr(-0.5, 0.5); sT[si] = 0; sState[si] = 0; sLife[si] = rr(0.9, 1.2);
       // ---- impact, thrown back along the shot (instant mode only; projectile bullets call impact() on arrival)
-      if (hit !== "none") doImpact(to, dir, hit);
+      if (hit !== "none") doImpact(to, dir, hit === "enemy" ? "enemy" : "dirt");
       write();
     },
     update(dt) {
       for (let i = 0; i < SPRITES; i++) {
         if (!kind[i]) continue;
         age[i] += dt; if (age[i] >= life[i]) { kind[i] = 0; continue; }
-        if (kind[i] !== FREE || shape[i] === FLAME) continue;
+        if ((kind[i] !== FREE && kind[i] !== SPARK) || shape[i] === FLAME) continue;
         const d = Math.exp(-drag[i] * dt);
         vy[i] -= grav[i] * dt; vx[i] *= d; vy[i] *= d; vz[i] *= d;
         px[i] += vx[i] * dt; py[i] += vy[i] * dt; pz[i] += vz[i] * dt; rot[i] += spin[i] * dt;
@@ -433,16 +518,19 @@ export function createGunFx(scene: THREE.Scene): KingpinFx {
       for (let i = 0; i < SHELLS; i++) {
         if (sT[i] < 0) continue;
         const o = i * 3;
-        if (sState[i] === 2) { sT[i] += dt; if (sT[i] > SHELL_LIE + SHELL_FADE) sT[i] = -1; continue; }
+        sT[i] += dt; if (sT[i] > sLife[i]) { sT[i] = -1; continue; }
+        if (sState[i] === 2) continue;
         sV[o + 1] -= GRAV * dt; sP[o] += sV[o] * dt; sP[o + 1] += sV[o + 1] * dt; sP[o + 2] += sV[o + 2] * dt; sAng[i] += sSpin[i] * dt;
-        if (sP[o + 1] <= GROUND && sV[o + 1] < 0) {
-          sP[o + 1] = GROUND;
+        const gy = fx.groundY(sP[o], sP[o + 2]) + GROUND;
+        if (sP[o + 1] <= gy && sV[o + 1] < 0) {
+          sP[o + 1] = gy;
           if (sState[i] === 0) { sState[i] = 1; sV[o + 1] *= -0.38; sV[o] *= 0.5; sV[o + 2] *= 0.5; sSpin[i] *= 0.6; } // the one bounce
-          else { sState[i] = 2; sT[i] = 0; }                                                                            // then it lies there
+          else sState[i] = 2;                                                                                           // then it lies there
         }
       }
       write();
     },
     stats: () => ({ drawCalls: (liveSprites > 0 ? 1 : 0) + (liveShells > 0 ? 1 : 0), sprites: liveSprites, shells: liveShells, triangles: liveSprites * 2 + liveShells * (shellGeo.attributes.position.count / 3) }),
   };
+  return fx;
 }

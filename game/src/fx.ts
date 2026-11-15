@@ -28,7 +28,7 @@ export function updateFx(dt: number) {
     // shrink from the particle's own size. This used to drop the size and scale by life alone, so every spark ballooned
     // to a 1 u flat-shaded sphere on its first frame: the "flat cream polygon" beside a hit brute (G1 council bug 4).
     q.o.scale.setScalar(Math.max(0.01, q.s * Math.min(1, (q.life / q.max) * 1.7)));
-    if (q.life <= 0) { scene.remove(q.o); parts.splice(i, 1); }
+    if (q.life <= 0) { q.o.removeFromParent(); parts.splice(i, 1); spare.push(q); }
   }
   for (let i = floaters.length - 1; i >= 0; i--) {
     const f = floaters[i]; f.t += dt; f.pos.y += dt * 1.4;
@@ -63,19 +63,21 @@ export function arc(o: THREE.Object3D, from: THREE.Vector3, to: () => THREE.Vect
   }, () => { o.position.copy(to()); done?.(); });
 }
 
-type P = { o: THREE.Object3D; v: THREE.Vector3; life: number; max: number; s: number };
-const parts: P[] = [];
+type P = { o: THREE.Mesh; v: THREE.Vector3; life: number; max: number; s: number };
+const parts: P[] = [], spare: P[] = []; // spent particles are kept and reused (G1.5 row 03: pool everything)
 const partGeo = new THREE.SphereGeometry(1, 6, 4);
 const partMats = new Map<string, THREE.MeshBasicMaterial>();
 /** a pop of small sparks or dust. size scales the particles (1 = 0.06-0.13 u radius: sparks; 2 reads as kicked-up dust) */
 export function burst(at: THREE.Vector3, n: number, color: string, power = 1, size = 1) {
   const mat = partMats.get(color) ?? partMats.set(color, new THREE.MeshBasicMaterial({ color })).get(color)!;
   for (let i = 0; i < n; i++) {
-    const m = new THREE.Mesh(partGeo, mat);
+    const q = spare.pop() ?? { o: new THREE.Mesh(partGeo, mat), v: new THREE.Vector3(), life: 0, max: 0, s: 0 };
+    const m = q.o; m.material = mat;
     const s = (0.06 + Math.random() * 0.07) * size;
     m.scale.setScalar(s); m.position.copy(at); scene.add(m);
     const life = 0.5 + Math.random() * 0.4;
-    parts.push({ o: m, v: new THREE.Vector3((Math.random() - 0.5) * 6 * power, (2 + Math.random() * 4) * power, (Math.random() - 0.5) * 6 * power), life, max: life, s });
+    q.v.set((Math.random() - 0.5) * 6 * power, (2 + Math.random() * 4) * power, (Math.random() - 0.5) * 6 * power); q.life = life; q.max = life; q.s = s;
+    parts.push(q);
   }
 }
 

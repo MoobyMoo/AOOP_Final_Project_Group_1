@@ -29,6 +29,7 @@ export const G = {
   hp: 100, maxHp: 100, stamina: 100, staminaDelay: 0, sprinting: false, painT: 0, armor: 0, weight: 0, iframes: 0, alive: true,
   useItem: null as null | { id: string; t: number; time: number }, ads: false,
   mag: 8, magSize: 8, ammo: 16, fireCd: 0, fireT: 1, reloadT: -1, reloadPaused: false,
+  reloadTime: 1.2, // seconds the current reload takes (combat/reload.ts); reloadT is its 0..1 progress, -1 = none
   meleeT: -1, meleeHit: false, meleeCd: 0,
   rollT: -1, rollDir: new THREE.Vector3(), rollCd: 0, skidT: 0, rollBuffer: 0, hurtT: -1,
   pack: [] as string[], packSlots: 8, pouchSlots: 2, gear: null as unknown as Gear,

@@ -33,6 +33,9 @@ export const hud = {
     E.bar = el("hud-bar"); E.stam = el("hud-stam", "<i></i>"); E.use = el("hud-use");
     E.prompt = el("hud-prompt"); E.toast = el("hud-toast"); E.banner = el("hud-banner");
     E.search = el("hud-search", `<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" class="bg"/><circle cx="20" cy="20" r="16" class="fg"/></svg><span class="glass"><svg viewBox="0 0 24 24" fill="none" stroke="#fff6e0" stroke-width="2.6" stroke-linecap="round"><circle cx="10" cy="10" r="6"/><path d="M15 15l5 5"/></svg></span>`);
+    // reload ring at the crosshair (G1.5 row 20, combat worker's minimal ring; restyle freely): fills over G.reloadTime
+    E.rl = el("hud-rl", `<svg viewBox="0 0 44 44" width="44" height="44"><circle cx="22" cy="22" r="17" fill="none" stroke="rgba(20,14,18,.55)" stroke-width="5"/><circle cx="22" cy="22" r="17" fill="none" stroke="#ffd23f" stroke-width="3" stroke-linecap="round" pathLength="100" stroke-dasharray="100" transform="rotate(-90 22 22)"/></svg>`);
+    E.rl.style.cssText = "position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;pointer-events:none;display:none";
     E.heard = el("hud-heard"); E.ehp = el("hud-ehp"); E.cross = el("hud-cross", `<i></i><i></i><i></i><i></i><b></b>`); E.extract = el("hud-extract"); E.hurt = el("hud-hurt"); E.arrows = el("hud-arrows"); E.time = el("hud-time");
     E.help = el("hud-help", `<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move &nbsp;<kbd>Shift</kbd> sprint &nbsp;<kbd>Space</kbd> dodge<br>Click to shoot, right click to aim &nbsp;<kbd>V</kbd> briefcase &nbsp;<kbd>R</kbd> reload<br><kbd>E</kbd> search &nbsp;<kbd>Q</kbd> heal &nbsp;<kbd>Tab</kbd> pack &nbsp;<kbd>M</kbd> map &nbsp;<kbd>N</kbd> minimap`);
     helpT = G.save.raids === 0 ? 30 : 8;
@@ -119,6 +122,8 @@ export const hud = {
     if (helpT > 0) { helpT -= dt; if (helpT <= 0) E.help.classList.add("gone"); }
     if (toastT <= 0) E.toast.classList.remove("on"); if (bannerT <= 0) E.banner.classList.remove("on"); if (promptT <= 0) E.prompt.classList.remove("on");
     const a = toScreen(G.aimPoint); E.cross.style.left = a.x + "px"; E.cross.style.top = a.y + "px";
+    if (G.reloadT >= 0) { E.rl.style.display = "block"; E.rl.style.left = a.x + "px"; E.rl.style.top = a.y + "px"; (E.rl.querySelector("circle:last-child") as SVGCircleElement).style.strokeDashoffset = String(100 * (1 - G.reloadT)); }
+    else if (E.rl.style.display !== "none") E.rl.style.display = "none";
     E.cross.style.setProperty("--spread", (6 + Math.max(0, 1 - G.fireT) * 8 - (G.ads ? 2 : 0)) + "px"); E.cross.classList.toggle("lock", !G.intent.aimNdc);
     for (let i = noiseRings.length - 1; i >= 0; i--) { const n = noiseRings[i]; n.t += dt / 0.6; const r = (n.m.userData as { r: number }).r; n.m.scale.setScalar(r * (0.3 + 0.7 * Math.min(1, n.t))); (n.m.material as THREE.MeshBasicMaterial).opacity = 0.5 * (1 - n.t); if (n.t >= 1) { n.m.removeFromParent(); (n.m.material as THREE.Material).dispose(); n.m.geometry.dispose(); noiseRings.splice(i, 1); } }
     for (const ev of drainEquipmentEvents()) {

@@ -17,6 +17,10 @@ import { spawnEnemies, updateEnemies } from "../ai/enemies";
 import { setupCrates, updateLoot, sortPack, packValue, itemDef } from "../loot/raidloot";
 import { updatePlayer } from "../actors/player";
 import { resetWalls, updateBullets, renderBullets, clearBullets } from "../combat/combat";
+import { updateFeedback } from "../combat/feedback";
+import { updateRangFx, clearRangFx } from "../combat/rangfx";
+import { updateDashFx, clearDashFx } from "../actors/dash";
+import type { KingpinFx } from "../combat/kingpin";
 import { hud } from "../ui/hud";
 import { initFx, updateFx } from "../../fx";
 import { U } from "../render/shading";
@@ -69,7 +73,8 @@ export function startRaid(end: (r: RaidResult) => void) {
   if (QS.has("peace")) { for (const e of G.enemies) e.rig.dispose(); G.enemies = []; } else spawnEnemies((G.save.raids + WORLD_SEED) % 2);
   setupCrates();
   for (const c of raidScene.children) if (!before.has(c)) c.userData.perRaid = true;
-  hud.build(); buildMinimap(); resetTrail(); clearBullets(); startInteractions(); bonkT = 0;
+  hud.build(); buildMinimap(); resetTrail(); clearBullets(); clearRangFx(); clearDashFx(); startInteractions(); bonkT = 0;
+  (G.fx as KingpinFx).groundY = groundHeight; // casings land on the terrain
   // warm-up: compile every shader now (hidden enemies/props would otherwise compile mid-raid and hitch)
   const hidden: THREE.Object3D[] = []; raidScene.traverse((o) => { if (!o.visible) { hidden.push(o); o.visible = true; } });
   G.stage.renderer.compile(raidScene, G.stage.camera); hidden.forEach((o) => (o.visible = false));
@@ -113,7 +118,8 @@ export function renderRaid(dt: number) {
   G.gun.root.visible = G.meleeT < 0 && G.alive;
   G.gun.root.scale.setScalar(GUN_SCALE);
   G.gun.pose({ fireT: Math.min(1, G.fireT), reloadT: G.reloadT });
-  G.fx.update(dt); renderBullets(); updateFx(dt); hud.update(dt); updateMinimap();
+  updateDashFx(dt); // after the pose: the afterimages copy it
+  G.fx.update(dt); renderBullets(); updateRangFx(dt); updateFeedback(dt); updateFx(dt); hud.update(dt); updateMinimap();
   updateHouses(dt, isUnder(G.pp.x)); updateProps(dt); updateLightPool(dt, G.pp);
   U.uTime.value = G.time; U.uPlayer.value.copy(G.pp);
   // camera: damped follow + a small lead toward the aim point (CODE_FINDINGS 8.1: aim lookahead, kept modest, rule 19)
