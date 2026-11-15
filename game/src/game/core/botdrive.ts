@@ -1,0 +1,98 @@
+// Bot hook: builds a BotView from game state, asks the bot (Sol's core/bot.ts once merged; a tiny built-in driver
+// until then) for a BotInput, and turns it into an Intent. Also drives the home loop through the bunker API.
+import { G } from "./state";
+import type { Intent } from "./input";
+import type { BotInput } from "../contracts";
+import { gunOf } from "../combat/guns";
+import { drawing } from "../combat/arsenal";
+import type { BotObservation } from "./bot";
+import { botTelemetry, BOT_POLICY } from "./bot";
+import { path, walkable, collide, los, gates, areaAt, state as gridState } from "../world/grid";
+import { DEMO } from '../world/map/grove';
+import { PLAYER } from '../combat/weapons';
+import { healingValue } from '../loot/bot-priority';
+import { GUN } from '../combat/gunstats';
+import { exits, exitStatus, portalMarks } from "../world/props";
+import { itemType } from "../loot/instances";
+import { homeApi, stations } from "../home/bunker";
+import { containerType, packValue, currentSearch, worth, setBotHealingReserve } from "../loot/raidloot";
+import { SLOTS, equipDef } from "../loot/equipment";
+import { betterEquipment, equipFromLocker, equipFromPack, repair, sellEquip } from "../loot/equipment-actions";
+import { isBoss } from '../ai/boss';
+
+type Bot = { tick(v: BotObservation, dt: number): BotInput; events: object[] };
+let bot: Bot | null = null;
+function botWalkable(x: number, z: number): boolean {
+  if (!walkable(x, z)) return false;
+  const probe = { x, z };
+  collide(probe, PLAYER.radius);
+  return Math.hypot(probe.x - x, probe.z - z) < 1e-5;
+}
+export function setBot(b: Bot) { bot = b; }
+let deploying = false;
+const routeProfile = new URLSearchParams(location.search).get('botroute');
+/** the gun in hand and the other slot, for the bot (core/bot.ts fires at the gun's own interval and range) */
+function botGun() {
+  const o = G.slot === 0 ? 1 : 0, od = gunOf(G.save?.guns?.[o]?.inst);
+  return { slot: G.slot, interval: GUN.interval, range: GUN.range, drawing: drawing(), other: od ? { slot: o as 0 | 1, rounds: G.loaded[o] + G.reserve[od.caliber] } : null };
+}
+export function view(): BotObservation {
+  return {
+    t: G.time, scene: G.scene === "map" ? "raid" : G.scene, demo: DEMO, bossRoute: routeProfile === 'prepared' || routeProfile === 'unprepared' ? routeProfile : undefined,
+    lootTiming: { searchSeconds: G.crates.reduce((sum, crate) => sum + (crate.session?.elapsed ?? 0), 0), itemsTaken: G.crates.reduce((sum, crate) => sum + (crate.session?.slots.filter(slot => slot.taken).length ?? 0), 0), opens: G.crates.filter(crate => crate.started).length },
+    raidId: botTelemetry.raidId, outcome: botTelemetry.outcome, combatEvents: botTelemetry.combatEvents,
+    homePanelOpen: homeApi.panelOpen(), searching: !!currentSearch(), extracting: !!G.extract.id,
+    packMinValue: Math.min(...G.pack.map(worth)),
+    exitArmed: Object.fromEntries(exits.map(exit => [exit.id, exit.armed])),
+    player: { x: G.pp.x, z: G.pp.z, hearts: Math.ceil(G.hp / 34), maxHearts: Math.ceil(G.maxHp / 34), hp: G.hp, maxHp: G.maxHp, stamina: G.stamina, usingItem: !!G.useItem, ammo: G.ammo, mag: G.mag, reloading: G.reloadT >= 0, gun: botGun(), rolling: G.rollT >= 0, packFree: G.packSlots - G.pack.length, packValue: packValue(), healing: G.pack.reduce((sum, item) => sum + healingValue(item), 0), smoothies: G.pack.filter(inst => ["smoothie", "bandage", "firstaid"].includes(itemType(inst))).length, shotNoise: GUN.noise },
+    enemies: G.enemies.filter((e) => !e.down && (!e.fauna || ["windup", "charge", "bite"].includes(e.state))).map((e) => ({ id: e.id, kind: e.kind, x: e.p.x, z: e.p.z, state: e.state, hp: e.hp, boss: isBoss(e), escort: e.group === 'plantation-boss' && !isBoss(e), windup: e.state === "windup" || e.state === "aim" || e.state === "charge", awake: e.state !== "sleep" && e.state !== "patrol" })),
+    crates: G.crates.filter(crate => crate.kind !== 'body').map((c) => { const area = areaAt(c.x, c.z); return { id: c.id, x: c.x, z: c.z, tier: c.tier, opened: c.opened, type: containerType(c), area: area === 'wreck' ? 'beach' : ['palms', 'westbend'].includes(area) ? 'checkpoint' : area }; }),
+    bodies: G.crates.filter(crate => crate.kind === 'body' && !crate.opened).map(crate => ({ id: crate.id, x: crate.x, z: crate.z })),
+    pickups: G.pickups.map((p) => ({ id: p.id, x: p.p.x, z: p.p.z, item: p.item })),
+    exits: exits.map(e => ({ id: e.id, x: e.x, z: e.z, ...exitStatus(e) })),
+    portals: portalMarks.filter(portal => !portal.id.startsWith("zip-")).map(portal => ({ id: portal.id, x: portal.x, z: portal.z, to: portal.to })),
+    gates: gates.map(gate => ({ id: gate.id, x: gate.x, z: gate.z, nx: gate.nx, nz: gate.nz, open: gate.open, breakable: gate.hp !== undefined, usable: !gate.locked || G.pack.some(inst => itemType(inst) === gate.locked) || G.save.keys.includes(gate.locked) })),
+    stations: stations.flatMap((s) => { const id = s.id === "trophies" ? "orders" : s.id === "deploy" ? "ladder" : s.id === "locker" ? "mirror" : s.id; return id === "sell" || id === "bench" || id === "orders" || id === "ladder" || id === "mirror" || id === "sal" ? [{ id, x: s.x, z: s.z }] : []; }),
+    upgrades: { ...G.save.upgrades },
+    walkable: botWalkable, path, safePath: (fx, fz, tx, tz, allow) => path(fx, fz, tx, tz, 60000, allow), los, raidT: G.raidT, money: G.save.money, raids: G.save.raids, doorOpen: gridState.doorOpen, hasKey: G.pack.some(inst => itemType(inst) === "vine_key"),
+  };
+}
+export function botTick(dt: number): Intent {
+  setBotHealingReserve(routeProfile === 'prepared' ? BOT_POLICY.boss.healing : 0);
+  const v = view(), b: BotInput = bot ? bot.tick(v, dt) : { move: [0, 0] };
+  if (G.scene === "raid" && !G.equipping && !G.extract.id && !currentSearch() && !v.player.reloading && !b.reload && !b.heal && !b.melee && !b.roll) {
+    const index = G.pack.findIndex(inst => { const def = equipDef(inst); return def && betterEquipment(inst, G.gear[def.slot]); });
+    if (index >= 0 && equipFromPack(index)) bot?.events.push({ type: "equipment-start", t: G.time, inst: G.pack[index] });
+  }
+  if (G.scene !== "bunker") deploying = false;
+  if (G.scene === "bunker" && !deploying) {
+    if (b.ui === "leave") b.interact = true;
+    else if (b.buy) {
+      const before = G.save.upgrades[b.buy], money = G.save.money;
+      homeApi.act("up:" + b.buy);
+      if (G.save.upgrades[b.buy] > before) bot?.events.push({ type: "upgrade-bought", t: G.time, raid: G.save.raids - 1, upgrade: b.buy, level: G.save.upgrades[b.buy], cost: money - G.save.money });
+    }
+    else if (b.ui === "start") {
+      for (const slot of SLOTS) { const before = G.save.money; if (repair(slot)) bot?.events.push({ type: "equipment-repaired", t: G.time, slot, cost: before - G.save.money }); }
+      deploying = true; homeApi.act("deploy");
+    }
+    else if (b.interact && !homeApi.panelOpen()) {
+      for (const slot of SLOTS) {
+        let best = G.save.gear[slot], index = -1;
+        G.save.locker.forEach((inst, candidate) => { if (equipDef(inst)?.slot === slot && betterEquipment(inst, best)) { best = inst; index = candidate; } });
+        if (index >= 0) equipFromLocker(index);
+      }
+      for (let index = G.save.locker.length - 1; index >= 0; index--) if (!equipDef(G.save.locker[index])?.bound) {
+        const inst = G.save.locker[index], value = sellEquip(index);
+        bot?.events.push({ type: "equipment-sold", t: G.time, inst, value });
+      }
+      homeApi.act("sellAll"); b.interact = false;
+    }
+  }
+  // world-space move → camera-relative stick
+  const yaw = G.stage.cam.yaw, c = Math.cos(yaw), s = Math.sin(yaw), [wx, wz] = b.move;
+  const mx = wx * c - wz * s, mz = wx * s + wz * c, l = Math.hypot(mx, mz) || 1;
+  let aimNdc: { x: number; y: number } | null = null;
+  if (b.aim) { const p = G.pp.clone().set(b.aim[0], G.pp.y + 1, b.aim[1]).project(G.stage.camera); aimNdc = { x: p.x, y: p.y }; }
+  return { move: { x: mx / Math.max(1, l), z: mz / Math.max(1, l) }, aimNdc, fire: !!b.fire, firePressed: !!b.fire, ads: false, sprint: false, melee: !!b.melee, roll: !!b.roll, interact: !!b.interact, interactHeld: !!b.interact, map: false, inv: false, mini: false, reload: !!b.reload && !b.melee && !b.roll && !b.heal, heal: !!b.heal, swap1: b.swap === 1, swap2: b.swap === 2, swap3: false, esc: false, wheel: 0 };
+}

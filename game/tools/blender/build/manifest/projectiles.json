@@ -1,0 +1,19 @@
+{
+ "group": "projectiles",
+ "glb_bytes": 15272,
+ "assets": {
+  "rang": {
+   "tris": 344,
+   "parts": [
+    "body",
+    "core"
+   ],
+   "points": [],
+   "footprint": 0.3,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 3.0
+  }
+ }
+}

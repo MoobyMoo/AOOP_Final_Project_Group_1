@@ -1,0 +1,3029 @@
+{
+ "groups": {
+  "bunker": {
+   "glb_bytes": 1147628,
+   "tris": 23705,
+   "assets": {
+    "bunker_room": {
+     "tris": 9712,
+     "parts": [],
+     "points": [
+      "sal",
+      "spawn"
+     ],
+     "footprint": 8,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bunker_counter": {
+     "tris": 1877,
+     "parts": [
+      "bell"
+     ],
+     "points": [
+      "counter"
+     ],
+     "footprint": 1.6,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 2.0
+    },
+    "bunker_workbench": {
+     "tris": 1712,
+     "parts": [],
+     "points": [
+      "light"
+     ],
+     "footprint": 1.4,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 2.2
+    },
+    "bunker_pinboard": {
+     "tris": 500,
+     "parts": [],
+     "points": [
+      "read"
+     ],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bunker_mirror": {
+     "tris": 900,
+     "parts": [
+      "glass"
+     ],
+     "points": [
+      "stand"
+     ],
+     "footprint": 0.7,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bunker_ladder": {
+     "tris": 836,
+     "parts": [],
+     "points": [
+      "climb",
+      "light"
+     ],
+     "footprint": 0.5,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 2.0
+    },
+    "bunker_cot": {
+     "tris": 668,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bunker_desk": {
+     "tris": 2338,
+     "parts": [],
+     "points": [
+      "light"
+     ],
+     "footprint": 1.2,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 2.2
+    },
+    "bunker_shelf": {
+     "tris": 322,
+     "parts": [],
+     "points": [
+      "slot0",
+      "slot1",
+      "slot2",
+      "slot3",
+      "slot4",
+      "slot5",
+      "slot6",
+      "slot7",
+      "slot8"
+     ],
+     "footprint": 0.5,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bunker_lights": {
+     "tris": 900,
+     "parts": [
+      "bulbs"
+     ],
+     "points": [
+      "light0",
+      "light1",
+      "light2",
+      "light3",
+      "light4",
+      "light5",
+      "light6",
+      "light7"
+     ],
+     "footprint": 0.1,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 2.4
+    },
+    "bunker_fx_mag": {
+     "tris": 780,
+     "parts": [],
+     "points": [],
+     "footprint": 0.2,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bunker_fx_pack": {
+     "tris": 634,
+     "parts": [],
+     "points": [],
+     "footprint": 0.2,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bunker_fx_heart": {
+     "tris": 1714,
+     "parts": [],
+     "points": [],
+     "footprint": 0.9,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bunker_fx_neon": {
+     "tris": 812,
+     "parts": [],
+     "points": [
+      "light"
+     ],
+     "footprint": 0.2,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 2.6
+    }
+   }
+  },
+  "camp": {
+   "glb_bytes": 998888,
+   "tris": 21482,
+   "assets": {
+    "tent_a": {
+     "tris": 684,
+     "parts": [],
+     "points": [],
+     "footprint": 1.7,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "tent_b": {
+     "tris": 800,
+     "parts": [],
+     "points": [],
+     "footprint": 1.5,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "tarp": {
+     "tris": 1144,
+     "parts": [],
+     "points": [],
+     "footprint": 1.5,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bedroll_a": {
+     "tris": 288,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bedroll_b": {
+     "tris": 312,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "campfire": {
+     "tris": 1418,
+     "parts": [
+      "flame"
+     ],
+     "points": [
+      "light"
+     ],
+     "footprint": 0.8,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 2.2
+    },
+    "lantern": {
+     "tris": 352,
+     "parts": [],
+     "points": [
+      "light"
+     ],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 2.4
+    },
+    "lantern_post": {
+     "tris": 788,
+     "parts": [],
+     "points": [
+      "light"
+     ],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 2.4
+    },
+    "fence_a": {
+     "tris": 800,
+     "parts": [],
+     "points": [],
+     "footprint": 0.4,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "fence_b": {
+     "tris": 848,
+     "parts": [],
+     "points": [],
+     "footprint": 0.4,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "gate": {
+     "tris": 956,
+     "parts": [
+      "leaf"
+     ],
+     "points": [],
+     "footprint": 0.4,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "watchtower": {
+     "tris": 2288,
+     "parts": [
+      "flag"
+     ],
+     "points": [
+      "crate",
+      "lookout"
+     ],
+     "footprint": 1.7,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "well": {
+     "tris": 1913,
+     "parts": [
+      "bucket",
+      "dark"
+     ],
+     "points": [
+      "drop"
+     ],
+     "footprint": 1.25,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "log_bench": {
+     "tris": 260,
+     "parts": [],
+     "points": [],
+     "footprint": 0.7,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "log_bench_b": {
+     "tris": 260,
+     "parts": [],
+     "points": [],
+     "footprint": 0.7,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "signpost_a": {
+     "tris": 552,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "signpost_raft": {
+     "tris": 525,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "signpost_key": {
+     "tris": 446,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "sandbags": {
+     "tris": 1372,
+     "parts": [],
+     "points": [],
+     "footprint": 1.2,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "crate_stack": {
+     "tris": 1578,
+     "parts": [],
+     "points": [],
+     "footprint": 1.2,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "washing_line": {
+     "tris": 1754,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "lean_to": {
+     "tris": 1272,
+     "parts": [],
+     "points": [],
+     "footprint": 1.5,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "dummy_seated": {
+     "tris": 872,
+     "parts": [],
+     "points": [],
+     "footprint": 0.6,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    }
+   }
+  },
+  "containers": {
+   "glb_bytes": 743300,
+   "tris": 15039,
+   "assets": {
+    "cont_weapon": {
+     "tris": 1616,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "mark"
+     ],
+     "footprint": 0.95,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "cont_food": {
+     "tris": 1632,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "mark"
+     ],
+     "footprint": 0.62,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "cont_ammo": {
+     "tris": 1286,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "mark"
+     ],
+     "footprint": 0.55,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "cont_parts": {
+     "tris": 1756,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "mark"
+     ],
+     "footprint": 0.8,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "cont_medical": {
+     "tris": 1314,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "mark"
+     ],
+     "footprint": 0.62,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "cont_lunchbox": {
+     "tris": 928,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "mark"
+     ],
+     "footprint": 0.45,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "cont_toolbox": {
+     "tris": 1184,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "mark"
+     ],
+     "footprint": 0.62,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "cont_medcabinet": {
+     "tris": 1160,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "mark"
+     ],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8,
+     "wallMount": true,
+     "mountZ": 0.82
+    },
+    "cont_safe": {
+     "tris": 1158,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "mark"
+     ],
+     "footprint": 0.7,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "cont_trash": {
+     "tris": 1187,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "mark"
+     ],
+     "footprint": 0.85,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "cont_sack": {
+     "tris": 858,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "mark"
+     ],
+     "footprint": 0.55,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "cont_jacket": {
+     "tris": 960,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "mark"
+     ],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8,
+     "wallMount": true,
+     "mountZ": 0.8
+    }
+   }
+  },
+  "house": {
+   "glb_bytes": 1270732,
+   "tris": 19306,
+   "assets": {
+    "floor_plank": {
+     "tris": 56,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":0.0,\"w\":2,\"d\":2}}"
+    },
+    "floor_stone": {
+     "tris": 52,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":0.0,\"w\":2,\"d\":2}}"
+    },
+    "floor_dirt": {
+     "tris": 48,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":0.0,\"w\":2,\"d\":2}}"
+    },
+    "wall_plank": {
+     "tris": 78,
+     "parts": [
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "wall_plank_window": {
+     "tris": 250,
+     "parts": [
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":-0.55,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":0.55,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.55,\"az\":-0.0,\"bx\":0.55,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "wall_plank_door": {
+     "tris": 482,
+     "parts": [
+      "door0",
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":-0.8,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":0.8,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.74,\"az\":0.13,\"bx\":0.74,\"bz\":0.13,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"door\"}],\"interiors\":[],\"doors\":[{\"id\":\"door\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-0.74,0.13],\"kind\":\"plank\"}],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "corner_plank": {
+     "tris": 88,
+     "parts": [
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "wall_barn": {
+     "tris": 88,
+     "parts": [
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "wall_barn_window": {
+     "tris": 224,
+     "parts": [
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":-0.55,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":0.55,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.55,\"az\":-0.0,\"bx\":0.55,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "wall_barn_door": {
+     "tris": 430,
+     "parts": [
+      "door0",
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":-0.8,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":0.8,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.74,\"az\":0.13,\"bx\":0.74,\"bz\":0.13,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"door\"}],\"interiors\":[],\"doors\":[{\"id\":\"door\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-0.74,0.13],\"kind\":\"plank\"}],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "corner_barn": {
+     "tris": 88,
+     "parts": [
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "wall_boat": {
+     "tris": 88,
+     "parts": [
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "wall_boat_window": {
+     "tris": 224,
+     "parts": [
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":-0.55,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":0.55,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.55,\"az\":-0.0,\"bx\":0.55,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "wall_boat_door": {
+     "tris": 430,
+     "parts": [
+      "door0",
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":-0.8,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":0.8,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.74,\"az\":0.12,\"bx\":0.74,\"bz\":0.12,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"door\"}],\"interiors\":[],\"doors\":[{\"id\":\"door\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-0.74,0.12],\"kind\":\"plank\"}],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "corner_boat": {
+     "tris": 88,
+     "parts": [
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "wall_stone": {
+     "tris": 102,
+     "parts": [
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.34,\"move\":true,\"shot\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "wall_stone_window": {
+     "tris": 234,
+     "parts": [
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":-0.55,\"bz\":-0.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":0.55,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.55,\"az\":-0.0,\"bx\":0.55,\"bz\":-0.0,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "wall_stone_door": {
+     "tris": 510,
+     "parts": [
+      "door0",
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":-0.8,\"bz\":-0.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":0.8,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.74,\"az\":0.17,\"bx\":0.74,\"bz\":0.17,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"door\"}],\"interiors\":[],\"doors\":[{\"id\":\"door\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-0.74,0.17],\"kind\":\"plank\"}],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "corner_stone": {
+     "tris": 132,
+     "parts": [
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "wall_tin": {
+     "tris": 108,
+     "parts": [
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "wall_tin_window": {
+     "tris": 244,
+     "parts": [
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":-0.55,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":0.55,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.55,\"az\":-0.0,\"bx\":0.55,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "wall_tin_door": {
+     "tris": 462,
+     "parts": [
+      "door0",
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":-0.8,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":0.8,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.74,\"az\":0.1,\"bx\":0.74,\"bz\":0.1,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"door\"}],\"interiors\":[],\"doors\":[{\"id\":\"door\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-0.74,0.1],\"kind\":\"plank\"}],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "corner_tin": {
+     "tris": 88,
+     "parts": [
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "wall_stone_cellwindow": {
+     "tris": 210,
+     "parts": [
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":-0.42,\"bz\":-0.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":0.42,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.42,\"az\":-0.0,\"bx\":0.42,\"bz\":-0.0,\"thick\":0.34,\"move\":true,\"shot\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "wall_stone_cracked": {
+     "tris": 664,
+     "parts": [
+      "brk0_c0",
+      "brk0_c1",
+      "brk0_c2",
+      "brk0_c3",
+      "brk0_c4",
+      "brk0_c5",
+      "brk0_c6",
+      "brk0_c7",
+      "brk0_c8",
+      "brk0_c9",
+      "brk0_marks",
+      "brk0_remains"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.34,\"move\":true,\"shot\":true,\"id\":\"brk0\"}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[{\"id\":\"brk0\",\"chunks\":10,\"marks\":\"brk0_marks\",\"remains\":\"brk0_remains\"}],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "wall_plank_cracked": {
+     "tris": 692,
+     "parts": [
+      "brk0_c0",
+      "brk0_c1",
+      "brk0_c10",
+      "brk0_c11",
+      "brk0_c2",
+      "brk0_c3",
+      "brk0_c4",
+      "brk0_c5",
+      "brk0_c6",
+      "brk0_c7",
+      "brk0_c8",
+      "brk0_c9",
+      "brk0_marks",
+      "brk0_remains"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true,\"id\":\"brk0\"}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[{\"id\":\"brk0\",\"chunks\":12,\"marks\":\"brk0_marks\",\"remains\":\"brk0_remains\"}],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "wall_barn_double": {
+     "tris": 678,
+     "parts": [
+      "door0",
+      "door1",
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-2.0,\"az\":-0.0,\"bx\":-1.6,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":1.6,\"az\":-0.0,\"bx\":2.0,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-1.54,\"az\":0.13,\"bx\":-0.015,\"bz\":0.13,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"doora\"},{\"t\":\"seg\",\"ax\":1.54,\"az\":0.13,\"bx\":0.015,\"bz\":0.13,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"doorb\"}],\"interiors\":[],\"doors\":[{\"id\":\"doora\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.525,\"hinge\":[-1.54,0.13],\"kind\":\"barn\"},{\"id\":\"doorb\",\"leaf\":\"door1\",\"axis\":\"y\",\"open\":1.6,\"w\":1.525,\"hinge\":[1.54,0.13],\"kind\":\"barn\"}],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":4.0,\"d\":0.0}}"
+    },
+    "wall_boat_open": {
+     "tris": 38,
+     "parts": [
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "cell_bars": {
+     "tris": 158,
+     "parts": [
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.2,\"move\":true,\"shot\":false}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "cell_door": {
+     "tris": 258,
+     "parts": [
+      "door0",
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-0.9,\"az\":-0.0,\"bx\":0.9,\"bz\":-0.0,\"thick\":0.2,\"move\":true,\"shot\":false,\"id\":\"door\"}],\"interiors\":[],\"doors\":[{\"id\":\"door\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.5,\"w\":1.8,\"hinge\":[-0.9,-0.0],\"kind\":\"bars\"}],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "wall_tin_door_locked": {
+     "tris": 552,
+     "parts": [
+      "door0",
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":-0.8,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":0.8,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.74,\"az\":0.1,\"bx\":0.74,\"bz\":0.1,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"door\"}],\"interiors\":[],\"doors\":[{\"id\":\"door\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-0.74,0.1],\"kind\":\"steel\",\"locked\":\"radio_key\"}],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "wall_plank_door_weak": {
+     "tris": 506,
+     "parts": [
+      "door0",
+      "upper"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.0,\"az\":-0.0,\"bx\":-0.8,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":0.8,\"az\":-0.0,\"bx\":1.0,\"bz\":-0.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.74,\"az\":0.13,\"bx\":0.74,\"bz\":0.13,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"door\"}],\"interiors\":[],\"doors\":[{\"id\":\"door\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-0.74,0.13],\"kind\":\"plank\",\"breakable\":true}],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.0}}"
+    },
+    "roof_thatch_hip": {
+     "tris": 928,
+     "parts": [
+      "roof"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "roof_thatch": {
+     "tris": 362,
+     "parts": [
+      "roof"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "roof_thatch_end": {
+     "tris": 404,
+     "parts": [
+      "roof"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "roof_tin": {
+     "tris": 184,
+     "parts": [
+      "roof"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "roof_tin_end": {
+     "tris": 218,
+     "parts": [
+      "roof"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "roof_plank": {
+     "tris": 188,
+     "parts": [
+      "roof"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "roof_plank_end": {
+     "tris": 252,
+     "parts": [
+      "roof"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "roof_tin_gambrel": {
+     "tris": 304,
+     "parts": [
+      "roof"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "roof_tin_shed": {
+     "tris": 240,
+     "parts": [
+      "roof"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "porch": {
+     "tris": 546,
+     "parts": [
+      "roof"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-1.88,\"az\":1.88,\"bx\":0.0,\"bz\":1.88,\"thick\":0.2,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":0.0,\"az\":1.88,\"bx\":1.88,\"bz\":1.88,\"thick\":0.2,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":-1.88,\"az\":1.88,\"bx\":-1.88,\"bz\":0.07,\"thick\":0.2,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":1.88,\"az\":1.88,\"bx\":1.88,\"bz\":0.07,\"thick\":0.2,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":1.01,\"w\":4,\"d\":1.98}}"
+    },
+    "steps": {
+     "tris": 24,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "bunk": {
+     "tris": 172,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":1.95,\"d\":0.92,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "cot_iron": {
+     "tris": 122,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":1.95,\"d\":0.92,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "cot": {
+     "tris": 212,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":1.1,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "table": {
+     "tris": 300,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":1.6,\"d\":0.95,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "table_cards": {
+     "tris": 288,
+     "parts": [],
+     "points": [
+      "light0"
+     ],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":1.6,\"d\":0.95,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[\"light0\"],\"breakables\":[],\"size\":null}"
+    },
+    "chair": {
+     "tris": 104,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "stool": {
+     "tris": 76,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "shelf": {
+     "tris": 414,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":1.4,\"d\":0.42,\"move\":true,\"shot\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "shelf_files": {
+     "tris": 348,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":1.4,\"d\":0.42,\"move\":true,\"shot\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "stove": {
+     "tris": 286,
+     "parts": [],
+     "points": [
+      "light0"
+     ],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"circle\",\"x\":0.0,\"z\":-0.0,\"r\":0.42,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":0.62,\"z\":-0.08,\"w\":0.36,\"d\":0.7,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[\"light0\"],\"breakables\":[],\"size\":null}"
+    },
+    "desk": {
+     "tris": 384,
+     "parts": [],
+     "points": [
+      "light0"
+     ],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":1.7,\"d\":0.85,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[\"light0\"],\"breakables\":[],\"size\":null}"
+    },
+    "cabinet": {
+     "tris": 92,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":0.56,\"d\":0.62,\"move\":true,\"shot\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "cabinet_open": {
+     "tris": 184,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":0.1,\"w\":0.56,\"d\":0.82,\"move\":true,\"shot\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "crate_stack": {
+     "tris": 236,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":1.5,\"d\":0.76,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "barrel": {
+     "tris": 126,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"circle\",\"x\":0.0,\"z\":-0.0,\"r\":0.36,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "drum": {
+     "tris": 152,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"circle\",\"x\":0.0,\"z\":-0.0,\"r\":0.33,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "sacks": {
+     "tris": 144,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":0.05,\"w\":1.25,\"d\":0.8,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "haybale": {
+     "tris": 64,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":1.1,\"d\":0.56,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "haystack": {
+     "tris": 192,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.02,\"z\":-0.3,\"w\":1.15,\"d\":1.2,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "radio": {
+     "tris": 490,
+     "parts": [],
+     "points": [
+      "light0"
+     ],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":1.5,\"d\":0.7,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[\"light0\"],\"breakables\":[],\"size\":null}"
+    },
+    "generator": {
+     "tris": 296,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":0.9,\"d\":0.5,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "bench": {
+     "tris": 68,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":1.6,\"d\":0.36,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "workbench": {
+     "tris": 312,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":2.2,\"d\":0.7,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "stall": {
+     "tris": 124,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.2,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "trough": {
+     "tris": 70,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":1.4,\"d\":0.5,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "boat": {
+     "tris": 206,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":3.0,\"d\":1.2,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "net_rack": {
+     "tris": 236,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":2.0,\"d\":0.3,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "buoys": {
+     "tris": 228,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":1.26,\"d\":0.45,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "rope_coil": {
+     "tris": 126,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "noticeboard": {
+     "tris": 128,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":1.3,\"d\":0.2,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "key_rack": {
+     "tris": 124,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "lantern": {
+     "tris": 132,
+     "parts": [],
+     "points": [
+      "light0"
+     ],
+     "footprint": 1.0,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[\"light0\"],\"breakables\":[],\"size\":null}"
+    },
+    "plant": {
+     "tris": 212,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"circle\",\"x\":0.0,\"z\":-0.0,\"r\":0.26,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "firewood": {
+     "tris": 264,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":-0.0,\"w\":1.3,\"d\":0.6,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "mooring": {
+     "tris": 84,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"circle\",\"x\":0.0,\"z\":-0.0,\"r\":0.16,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "ladder": {
+     "tris": 96,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"box\",\"x\":0.0,\"z\":0.3,\"w\":0.6,\"d\":0.55,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "wheel": {
+     "tris": 172,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    },
+    "bucket": {
+     "tris": 42,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.6,
+     "def": "{\"colliders\":[],\"interiors\":[],\"doors\":[],\"lights\":[],\"breakables\":[],\"size\":null}"
+    }
+   }
+  },
+  "landmarks": {
+   "glb_bytes": 1011484,
+   "tris": 23582,
+   "assets": {
+    "ferry": {
+     "tris": 6218,
+     "parts": [],
+     "points": [
+      "smoke"
+     ],
+     "footprint": 5.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "bomber": {
+     "tris": 3900,
+     "parts": [
+      "prop_l",
+      "prop_r"
+     ],
+     "points": [
+      "loot"
+     ],
+     "footprint": 1.3,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "vat": {
+     "tris": 3674,
+     "parts": [
+      "puddle"
+     ],
+     "points": [
+      "pour"
+     ],
+     "footprint": 1.95,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "tractor": {
+     "tris": 3718,
+     "parts": [],
+     "points": [],
+     "footprint": 1.5,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "audit": {
+     "tris": 458,
+     "parts": [],
+     "points": [],
+     "footprint": 0.2,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "falls": {
+     "tris": 3138,
+     "parts": [
+      "water"
+     ],
+     "points": [
+      "foam",
+      "nook"
+     ],
+     "footprint": 2.6,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "bottle": {
+     "tris": 296,
+     "parts": [],
+     "points": [
+      "note"
+     ],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "lemon_stand": {
+     "tris": 1199,
+     "parts": [],
+     "points": [],
+     "footprint": 0.6,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bomber_debris_a": {
+     "tris": 313,
+     "parts": [],
+     "points": [],
+     "footprint": 0.8,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bomber_debris_b": {
+     "tris": 380,
+     "parts": [],
+     "points": [],
+     "footprint": 0.8,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bomber_debris_c": {
+     "tris": 288,
+     "parts": [],
+     "points": [],
+     "footprint": 0.8,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    }
+   }
+  },
+  "loot": {
+   "glb_bytes": 532508,
+   "tris": 11729,
+   "assets": {
+    "crate_wood": {
+     "tris": 1516,
+     "parts": [
+      "lid"
+     ],
+     "points": [],
+     "footprint": 0.7,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "crate_wood_b": {
+     "tris": 1516,
+     "parts": [
+      "lid"
+     ],
+     "points": [],
+     "footprint": 0.7,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "crate_green": {
+     "tris": 1900,
+     "parts": [
+      "lid"
+     ],
+     "points": [],
+     "footprint": 0.75,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "crate_gold": {
+     "tris": 1654,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "glint"
+     ],
+     "footprint": 0.72,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "barrel_wood": {
+     "tris": 650,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "barrel_rust": {
+     "tris": 432,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "barrel_teal": {
+     "tris": 432,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "sack": {
+     "tris": 198,
+     "parts": [],
+     "points": [],
+     "footprint": 0.45,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "sack_pile": {
+     "tris": 760,
+     "parts": [],
+     "points": [],
+     "footprint": 0.8,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "banana_stash": {
+     "tris": 1766,
+     "parts": [],
+     "points": [],
+     "footprint": 0.6,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "ammo_box": {
+     "tris": 323,
+     "parts": [],
+     "points": [],
+     "footprint": 0.4,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "satchel": {
+     "tris": 582,
+     "parts": [],
+     "points": [],
+     "footprint": 0.4,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    }
+   }
+  },
+  "prefab": {
+   "glb_bytes": 2551580,
+   "tris": 43346,
+   "assets": {
+    "guard_hut": {
+     "tris": 4620,
+     "parts": [
+      "door0",
+      "roof",
+      "upper_e",
+      "upper_n",
+      "upper_s",
+      "upper_w"
+     ],
+     "points": [
+      "light0"
+     ],
+     "footprint": 3.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-2.0,\"az\":2.0,\"bx\":-1.8,\"bz\":2.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.2,\"az\":2.0,\"bx\":0.45,\"bz\":2.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":1.55,\"az\":2.0,\"bx\":2.0,\"bz\":2.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-1.74,\"az\":2.17,\"bx\":-0.26,\"bz\":2.17,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"hut_door\"},{\"t\":\"seg\",\"ax\":0.45,\"az\":2.0,\"bx\":1.55,\"bz\":2.0,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":2.0,\"az\":2.0,\"bx\":2.0,\"bz\":-0.45,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":2.0,\"az\":-1.55,\"bx\":2.0,\"bz\":-2.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":2.0,\"az\":-0.45,\"bx\":2.0,\"bz\":-1.55,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":2.0,\"az\":-2.0,\"bx\":-2.0,\"bz\":-2.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-2.0,\"az\":-2.0,\"bx\":-2.0,\"bz\":-1.55,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-2.0,\"az\":-0.45,\"bx\":-2.0,\"bz\":2.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-2.0,\"az\":-1.55,\"bx\":-2.0,\"bz\":-0.45,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":1.05,\"z\":2.34,\"w\":1.1,\"d\":0.2,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":0.75,\"z\":-1.3,\"w\":1.7,\"d\":0.85,\"move\":true,\"shot\":false,\"yaw\":3.1416,\"low\":true},{\"t\":\"box\",\"x\":-1.1,\"z\":-1.58,\"w\":1.2,\"d\":0.42,\"move\":true,\"shot\":true},{\"t\":\"box\",\"x\":1.33,\"z\":0.75,\"w\":1.95,\"d\":0.92,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"circle\",\"x\":-2.5,\"z\":-1.2,\"r\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":2.58,\"z\":-0.6,\"w\":1.5,\"d\":0.76,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"circle\",\"x\":-2.44,\"z\":1.3,\"r\":0.26,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[{\"x\":0.0,\"z\":0.0,\"w\":4,\"d\":4,\"h\":3.0}],\"doors\":[{\"id\":\"hut_door\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-1.74,2.17],\"kind\":\"plank\",\"breakable\":true}],\"lights\":[\"light0\"],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":0.0,\"w\":4,\"d\":4},\"name\":\"Guard hut\"}"
+    },
+    "cellblock": {
+     "tris": 11080,
+     "parts": [
+      "brk0_c0",
+      "brk0_c1",
+      "brk0_c2",
+      "brk0_c3",
+      "brk0_c4",
+      "brk0_c5",
+      "brk0_c6",
+      "brk0_c7",
+      "brk0_c8",
+      "brk0_c9",
+      "brk0_marks",
+      "brk0_remains",
+      "door0",
+      "door1",
+      "door2",
+      "door3",
+      "door4",
+      "door5",
+      "roof",
+      "upper_e",
+      "upper_i",
+      "upper_n",
+      "upper_s",
+      "upper_w"
+     ],
+     "points": [
+      "light0",
+      "light1"
+     ],
+     "footprint": 3.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-8.0,\"az\":4.0,\"bx\":-5.55,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-4.45,\"az\":4.0,\"bx\":-3.8,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-2.2,\"az\":4.0,\"bx\":-1.55,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.45,\"az\":4.0,\"bx\":2.45,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":3.55,\"az\":4.0,\"bx\":6.45,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":7.55,\"az\":4.0,\"bx\":8.0,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-5.55,\"az\":4.0,\"bx\":-4.45,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":-3.74,\"az\":4.17,\"bx\":-2.26,\"bz\":4.17,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"block_door\"},{\"t\":\"seg\",\"ax\":-1.55,\"az\":4.0,\"bx\":-0.45,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":2.45,\"az\":4.0,\"bx\":3.55,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":6.45,\"az\":4.0,\"bx\":7.55,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":8.0,\"az\":4.0,\"bx\":8.0,\"bz\":1.55,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":8.0,\"az\":0.45,\"bx\":8.0,\"bz\":-0.45,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":8.0,\"az\":-1.55,\"bx\":8.0,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":8.0,\"az\":1.55,\"bx\":8.0,\"bz\":0.45,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":8.0,\"az\":-0.45,\"bx\":8.0,\"bz\":-1.55,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":8.0,\"az\":-4.0,\"bx\":5.55,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":4.45,\"az\":-4.0,\"bx\":3.42,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":2.58,\"az\":-4.0,\"bx\":-2.58,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-3.42,\"az\":-4.0,\"bx\":-4.0,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-6.0,\"az\":-4.0,\"bx\":-6.58,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-7.42,\"az\":-4.0,\"bx\":-8.0,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":5.55,\"az\":-4.0,\"bx\":4.45,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":3.42,\"az\":-4.0,\"bx\":2.58,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-2.58,\"az\":-4.0,\"bx\":-3.42,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-4.0,\"az\":-4.0,\"bx\":-6.0,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true,\"id\":\"brk0\"},{\"t\":\"seg\",\"ax\":-6.58,\"az\":-4.0,\"bx\":-7.42,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-8.0,\"az\":-4.0,\"bx\":-8.0,\"bz\":0.2,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-8.0,\"az\":1.8,\"bx\":-8.0,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-8.17,\"az\":0.26,\"bx\":-8.17,\"bz\":1.74,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"block_side\"},{\"t\":\"seg\",\"ax\":-8.0,\"az\":-0.0,\"bx\":-6.0,\"bz\":-0.0,\"thick\":0.2,\"move\":true,\"shot\":false},{\"t\":\"seg\",\"ax\":-5.9,\"az\":-0.0,\"bx\":-4.1,\"bz\":-0.0,\"thick\":0.2,\"move\":true,\"shot\":false,\"id\":\"cell1\"},{\"t\":\"seg\",\"ax\":-4.0,\"az\":-0.0,\"bx\":-2.0,\"bz\":-0.0,\"thick\":0.2,\"move\":true,\"shot\":false},{\"t\":\"seg\",\"ax\":-1.9,\"az\":-0.0,\"bx\":-0.1,\"bz\":-0.0,\"thick\":0.2,\"move\":true,\"shot\":false,\"id\":\"cell2\"},{\"t\":\"seg\",\"ax\":1.9,\"az\":-0.0,\"bx\":0.1,\"bz\":-0.0,\"thick\":0.2,\"move\":true,\"shot\":false,\"id\":\"cell3\"},{\"t\":\"seg\",\"ax\":2.0,\"az\":-0.0,\"bx\":4.0,\"bz\":-0.0,\"thick\":0.2,\"move\":true,\"shot\":false},{\"t\":\"seg\",\"ax\":-4.0,\"az\":-0.0,\"bx\":-4.0,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":0.0,\"az\":-0.0,\"bx\":-0.0,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":4.0,\"az\":4.0,\"bx\":4.0,\"bz\":3.55,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":4.0,\"az\":2.45,\"bx\":4.0,\"bz\":1.8,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":4.0,\"az\":0.2,\"bx\":4.0,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":4.0,\"az\":3.55,\"bx\":4.0,\"bz\":2.45,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":3.83,\"az\":1.74,\"bx\":3.83,\"bz\":0.26,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"warden_door\"},{\"t\":\"box\",\"x\":-7.28,\"z\":-2.45,\"w\":1.95,\"d\":0.92,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"box\",\"x\":-3.28,\"z\":-2.45,\"w\":1.95,\"d\":0.92,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"box\",\"x\":0.72,\"z\":-2.45,\"w\":1.95,\"d\":0.92,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"box\",\"x\":0.2,\"z\":2.3,\"w\":1.3,\"d\":0.9,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":1.9,\"z\":3.52,\"w\":1.6,\"d\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-7.1,\"z\":3.2,\"w\":0.72,\"d\":0.72,\"move\":true,\"shot\":false,\"yaw\":0.1396,\"low\":true},{\"t\":\"circle\",\"x\":-5.6,\"z\":3.3,\"r\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-1.0,\"z\":3.6,\"w\":1.1,\"d\":0.2,\"move\":true,\"shot\":false,\"yaw\":3.1416,\"low\":true},{\"t\":\"box\",\"x\":6.1,\"z\":-1.0,\"w\":1.7,\"d\":0.85,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":4.75,\"z\":-3.42,\"w\":0.56,\"d\":0.62,\"move\":true,\"shot\":true},{\"t\":\"box\",\"x\":5.4,\"z\":-3.32,\"w\":0.56,\"d\":0.82,\"move\":true,\"shot\":true},{\"t\":\"box\",\"x\":7.55,\"z\":1.7,\"w\":1.7,\"d\":0.42,\"move\":true,\"shot\":true,\"yaw\":-1.5708},{\"t\":\"box\",\"x\":7.3,\"z\":3.25,\"w\":0.7,\"d\":0.7,\"move\":true,\"shot\":false,\"yaw\":0.2094,\"low\":true},{\"t\":\"circle\",\"x\":5.2,\"z\":4.5,\"r\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":6.0,\"z\":4.5,\"r\":0.33,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-6.0,\"z\":4.39,\"w\":1.6,\"d\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":8.58,\"z\":1.0,\"w\":1.5,\"d\":0.76,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true}],\"interiors\":[{\"x\":-2.0,\"z\":2.0,\"w\":12,\"d\":4,\"h\":3.0},{\"x\":-6.0,\"z\":-2.0,\"w\":4,\"d\":4,\"h\":3.0},{\"x\":-2.0,\"z\":-2.0,\"w\":4,\"d\":4,\"h\":3.0},{\"x\":2.0,\"z\":-2.0,\"w\":4,\"d\":4,\"h\":3.0},{\"x\":6.0,\"z\":0.0,\"w\":4,\"d\":8,\"h\":3.0}],\"doors\":[{\"id\":\"block_door\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-3.74,4.17],\"kind\":\"plank\"},{\"id\":\"block_side\",\"leaf\":\"door1\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-8.17,0.26],\"kind\":\"plank\",\"breakable\":true},{\"id\":\"cell1\",\"leaf\":\"door2\",\"axis\":\"y\",\"open\":-1.5,\"w\":1.8,\"hinge\":[-5.9,-0.0],\"kind\":\"bars\"},{\"id\":\"cell2\",\"leaf\":\"door3\",\"axis\":\"y\",\"open\":-1.5,\"w\":1.8,\"hinge\":[-1.9,-0.0],\"kind\":\"bars\"},{\"id\":\"cell3\",\"leaf\":\"door4\",\"axis\":\"y\",\"open\":1.5,\"w\":1.8,\"hinge\":[1.9,-0.0],\"kind\":\"bars\"},{\"id\":\"warden_door\",\"leaf\":\"door5\",\"axis\":\"y\",\"open\":1.6,\"w\":1.48,\"hinge\":[3.83,1.74],\"kind\":\"plank\"}],\"lights\":[\"light0\",\"light1\"],\"breakables\":[{\"id\":\"brk0\",\"chunks\":10,\"marks\":\"brk0_marks\",\"remains\":\"brk0_remains\"}],\"size\":{\"x\":0.0,\"z\":0.0,\"w\":16,\"d\":8},\"name\":\"Cellblock\"}"
+    },
+    "farmhouse": {
+     "tris": 9578,
+     "parts": [
+      "door0",
+      "door1",
+      "door2",
+      "roof",
+      "upper_e",
+      "upper_i",
+      "upper_n",
+      "upper_s",
+      "upper_w"
+     ],
+     "points": [
+      "light0",
+      "light1"
+     ],
+     "footprint": 3.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-6.0,\"az\":3.0,\"bx\":-5.55,\"bz\":3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-4.45,\"az\":3.0,\"bx\":-1.8,\"bz\":3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.2,\"az\":3.0,\"bx\":0.45,\"bz\":3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":1.55,\"az\":3.0,\"bx\":4.45,\"bz\":3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":5.55,\"az\":3.0,\"bx\":6.0,\"bz\":3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-5.55,\"az\":3.0,\"bx\":-4.45,\"bz\":3.0,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":-1.74,\"az\":3.13,\"bx\":-0.26,\"bz\":3.13,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"farm_front\"},{\"t\":\"seg\",\"ax\":0.45,\"az\":3.0,\"bx\":1.55,\"bz\":3.0,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":4.45,\"az\":3.0,\"bx\":5.55,\"bz\":3.0,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":6.0,\"az\":3.0,\"bx\":6.0,\"bz\":0.55,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":6.0,\"az\":-0.55,\"bx\":6.0,\"bz\":-3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":6.0,\"az\":0.55,\"bx\":6.0,\"bz\":-0.55,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":6.0,\"az\":-3.0,\"bx\":3.55,\"bz\":-3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":2.45,\"az\":-3.0,\"bx\":-2.45,\"bz\":-3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-3.55,\"az\":-3.0,\"bx\":-6.0,\"bz\":-3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":3.55,\"az\":-3.0,\"bx\":2.45,\"bz\":-3.0,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":-2.45,\"az\":-3.0,\"bx\":-3.55,\"bz\":-3.0,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":-6.0,\"az\":-3.0,\"bx\":-6.0,\"bz\":-0.8,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-6.0,\"az\":0.8,\"bx\":-6.0,\"bz\":3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-6.13,\"az\":-0.74,\"bx\":-6.13,\"bz\":0.74,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"farm_side\"},{\"t\":\"seg\",\"ax\":2.0,\"az\":3.0,\"bx\":2.0,\"bz\":0.8,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":2.0,\"az\":-0.8,\"bx\":2.0,\"bz\":-3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":1.87,\"az\":0.74,\"bx\":1.87,\"bz\":-0.74,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"farm_bed\"},{\"t\":\"seg\",\"ax\":-3.88,\"az\":4.88,\"bx\":-1.96,\"bz\":4.88,\"thick\":0.2,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":-0.04,\"az\":4.88,\"bx\":1.88,\"bz\":4.88,\"thick\":0.2,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":-3.88,\"az\":4.88,\"bx\":-3.88,\"bz\":3.2,\"thick\":0.2,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":1.88,\"az\":4.88,\"bx\":1.88,\"bz\":3.2,\"thick\":0.2,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":-1.0,\"z\":-2.3,\"r\":0.42,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-0.38,\"z\":-2.38,\"w\":0.36,\"d\":0.7,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-3.1,\"z\":-0.3,\"w\":1.6,\"d\":0.95,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-4.9,\"z\":-2.62,\"w\":1.5,\"d\":0.42,\"move\":true,\"shot\":true},{\"t\":\"circle\",\"x\":-5.35,\"z\":2.3,\"r\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":1.167,\"z\":-2.153,\"w\":1.25,\"d\":0.8,\"move\":true,\"shot\":false,\"yaw\":0.3491,\"low\":true},{\"t\":\"box\",\"x\":1.35,\"z\":2.3,\"w\":0.7,\"d\":0.7,\"move\":true,\"shot\":false,\"yaw\":0.1396,\"low\":true},{\"t\":\"box\",\"x\":5.3,\"z\":-1.75,\"w\":2.0,\"d\":1.1,\"move\":true,\"shot\":false,\"yaw\":-1.5708,\"low\":true},{\"t\":\"box\",\"x\":3.55,\"z\":-1.75,\"w\":2.0,\"d\":1.1,\"move\":true,\"shot\":false,\"yaw\":-1.5708,\"low\":true},{\"t\":\"box\",\"x\":4.42,\"z\":-2.45,\"w\":0.5,\"d\":0.5,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":5.6,\"z\":1.9,\"w\":1.3,\"d\":0.42,\"move\":true,\"shot\":true,\"yaw\":-1.5708},{\"t\":\"box\",\"x\":0.9,\"z\":3.6,\"w\":1.4,\"d\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":-3.5,\"z\":3.55,\"r\":0.26,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":-6.52,\"z\":-2.0,\"r\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":6.52,\"z\":1.2,\"w\":1.3,\"d\":0.6,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"box\",\"x\":-2.975,\"z\":4.393,\"w\":1.25,\"d\":0.8,\"move\":true,\"shot\":false,\"yaw\":0.5236,\"low\":true},{\"t\":\"box\",\"x\":4.4,\"z\":3.61,\"w\":1.5,\"d\":0.76,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[{\"x\":-2.0,\"z\":0.0,\"w\":8,\"d\":6,\"h\":3.0},{\"x\":4.0,\"z\":0.0,\"w\":4,\"d\":6,\"h\":3.0},{\"x\":-1.0,\"z\":4.0,\"w\":6,\"d\":2,\"h\":2.6}],\"doors\":[{\"id\":\"farm_front\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-1.74,3.13],\"kind\":\"plank\"},{\"id\":\"farm_side\",\"leaf\":\"door1\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-6.13,-0.74],\"kind\":\"plank\",\"breakable\":true},{\"id\":\"farm_bed\",\"leaf\":\"door2\",\"axis\":\"y\",\"open\":1.6,\"w\":1.48,\"hinge\":[1.87,0.74],\"kind\":\"plank\"}],\"lights\":[\"light0\",\"light1\"],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":1.0,\"w\":12,\"d\":8},\"name\":\"Farmhouse\"}"
+    },
+    "barn": {
+     "tris": 7984,
+     "parts": [
+      "door0",
+      "door1",
+      "door2",
+      "roof",
+      "upper_e",
+      "upper_n",
+      "upper_s",
+      "upper_w"
+     ],
+     "points": [
+      "light0",
+      "light1"
+     ],
+     "footprint": 3.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-4.0,\"az\":5.0,\"bx\":-1.6,\"bz\":5.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":1.6,\"az\":5.0,\"bx\":4.0,\"bz\":5.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-1.54,\"az\":5.13,\"bx\":-0.015,\"bz\":5.13,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"barn_doora\"},{\"t\":\"seg\",\"ax\":1.54,\"az\":5.13,\"bx\":0.015,\"bz\":5.13,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"barn_doorb\"},{\"t\":\"seg\",\"ax\":4.0,\"az\":5.0,\"bx\":4.0,\"bz\":2.55,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":4.0,\"az\":1.45,\"bx\":4.0,\"bz\":-1.45,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":4.0,\"az\":-2.55,\"bx\":4.0,\"bz\":-5.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":4.0,\"az\":2.55,\"bx\":4.0,\"bz\":1.45,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":4.0,\"az\":-1.45,\"bx\":4.0,\"bz\":-2.55,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":4.0,\"az\":-5.0,\"bx\":-4.0,\"bz\":-5.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-4.0,\"az\":-5.0,\"bx\":-4.0,\"bz\":-2.55,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-4.0,\"az\":-1.45,\"bx\":-4.0,\"bz\":1.2,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-4.0,\"az\":2.8,\"bx\":-4.0,\"bz\":5.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-4.0,\"az\":-2.55,\"bx\":-4.0,\"bz\":-1.45,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":-4.13,\"az\":1.26,\"bx\":-4.13,\"bz\":2.74,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"barn_side\"},{\"t\":\"box\",\"x\":2.45,\"z\":-3.42,\"w\":1.15,\"d\":1.2,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"box\",\"x\":1.2,\"z\":-4.25,\"w\":1.1,\"d\":0.56,\"move\":true,\"shot\":false,\"yaw\":0.0698,\"low\":true},{\"t\":\"box\",\"x\":2.9,\"z\":-1.9,\"w\":1.1,\"d\":0.56,\"move\":true,\"shot\":false,\"yaw\":1.3963,\"low\":true},{\"t\":\"box\",\"x\":2.95,\"z\":-0.4,\"w\":1.9,\"d\":0.2,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":2.944,\"z\":2.0,\"w\":1.9,\"d\":0.2,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":3.35,\"z\":0.8,\"w\":1.4,\"d\":0.5,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"box\",\"x\":-1.5,\"z\":-4.4,\"w\":2.2,\"d\":0.7,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":0.35,\"z\":-4.48,\"w\":0.6,\"d\":0.55,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-3.057,\"z\":-2.375,\"w\":1.25,\"d\":0.8,\"move\":true,\"shot\":false,\"yaw\":1.0472,\"low\":true},{\"t\":\"box\",\"x\":-3.05,\"z\":-0.1,\"w\":1.5,\"d\":0.76,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"circle\",\"x\":-3.25,\"z\":3.9,\"r\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":-2.5,\"z\":4.3,\"r\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":3.3,\"z\":4.2,\"r\":0.33,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":4.38,\"z\":3.6,\"w\":1.1,\"d\":0.56,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"circle\",\"x\":-4.4,\"z\":-3.8,\"r\":0.33,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":-4.4,\"z\":-3.1,\"r\":0.33,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":3.1,\"z\":5.49,\"w\":1.5,\"d\":0.76,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-4.41,\"z\":3.9,\"w\":1.3,\"d\":0.6,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true}],\"interiors\":[{\"x\":0.0,\"z\":0.0,\"w\":8,\"d\":10,\"h\":5.4}],\"doors\":[{\"id\":\"barn_doora\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.525,\"hinge\":[-1.54,5.13],\"kind\":\"barn\"},{\"id\":\"barn_doorb\",\"leaf\":\"door1\",\"axis\":\"y\",\"open\":1.6,\"w\":1.525,\"hinge\":[1.54,5.13],\"kind\":\"barn\"},{\"id\":\"barn_side\",\"leaf\":\"door2\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-4.13,1.26],\"kind\":\"plank\",\"breakable\":true}],\"lights\":[\"light0\",\"light1\"],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":0.0,\"w\":8,\"d\":10},\"name\":\"Barn\"}"
+    },
+    "boathouse": {
+     "tris": 5942,
+     "parts": [
+      "door0",
+      "roof",
+      "upper_e",
+      "upper_n",
+      "upper_s",
+      "upper_w"
+     ],
+     "points": [
+      "light0"
+     ],
+     "footprint": 3.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":3.0,\"az\":2.0,\"bx\":3.0,\"bz\":-0.2,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":3.0,\"az\":-1.8,\"bx\":3.0,\"bz\":-4.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":3.12,\"az\":-0.26,\"bx\":3.12,\"bz\":-1.74,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"boat_door\"},{\"t\":\"seg\",\"ax\":3.0,\"az\":-4.0,\"bx\":0.55,\"bz\":-4.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.55,\"az\":-4.0,\"bx\":-3.0,\"bz\":-4.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":0.55,\"az\":-4.0,\"bx\":-0.55,\"bz\":-4.0,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":-3.0,\"az\":-4.0,\"bx\":-3.0,\"bz\":-1.55,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-3.0,\"az\":-0.45,\"bx\":-3.0,\"bz\":2.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-3.0,\"az\":-1.55,\"bx\":-3.0,\"bz\":-0.45,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-0.95,\"z\":-0.9,\"w\":3.0,\"d\":1.2,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"box\",\"x\":1.25,\"z\":-3.5,\"w\":2.0,\"d\":0.7,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-1.85,\"z\":-3.6,\"w\":1.9,\"d\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":2.3,\"z\":1.3,\"w\":1.26,\"d\":0.45,\"move\":true,\"shot\":false,\"yaw\":0.3491,\"low\":true},{\"t\":\"circle\",\"x\":2.5,\"z\":-2.55,\"r\":0.33,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":0.9,\"z\":-2.5,\"w\":0.6,\"d\":0.6,\"move\":true,\"shot\":false,\"yaw\":0.3491,\"low\":true},{\"t\":\"circle\",\"x\":-2.85,\"z\":3.85,\"r\":0.16,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":2.85,\"z\":3.85,\"r\":0.16,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":-0.85,\"z\":6.45,\"r\":0.16,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":0.85,\"z\":6.45,\"r\":0.16,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":1.9,\"z\":3.1,\"w\":1.5,\"d\":0.76,\"move\":true,\"shot\":false,\"yaw\":0.1745,\"low\":true},{\"t\":\"circle\",\"x\":3.42,\"z\":-3.2,\"r\":0.33,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-3.33,\"z\":-2.9,\"w\":1.26,\"d\":0.45,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"circle\",\"x\":3.42,\"z\":1.2,\"r\":0.36,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[{\"x\":0.0,\"z\":-1.0,\"w\":6,\"d\":6,\"h\":3.0}],\"doors\":[{\"id\":\"boat_door\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[3.12,-0.26],\"kind\":\"plank\"}],\"lights\":[\"light0\"],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":0.0,\"w\":6,\"d\":8},\"name\":\"Boathouse\"}"
+    },
+    "radio_shack": {
+     "tris": 4142,
+     "parts": [
+      "door0",
+      "roof",
+      "upper_e",
+      "upper_n",
+      "upper_s",
+      "upper_w"
+     ],
+     "points": [
+      "light0"
+     ],
+     "footprint": 3.0,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6,
+     "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-2.0,\"az\":2.0,\"bx\":-1.8,\"bz\":2.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.2,\"az\":2.0,\"bx\":0.45,\"bz\":2.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":1.55,\"az\":2.0,\"bx\":2.0,\"bz\":2.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-1.74,\"az\":2.1,\"bx\":-0.26,\"bz\":2.1,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"radio_door\"},{\"t\":\"seg\",\"ax\":0.45,\"az\":2.0,\"bx\":1.55,\"bz\":2.0,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":2.0,\"az\":2.0,\"bx\":2.0,\"bz\":-2.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":2.0,\"az\":-2.0,\"bx\":-2.0,\"bz\":-2.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-2.0,\"az\":-2.0,\"bx\":-2.0,\"bz\":-1.55,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-2.0,\"az\":-0.45,\"bx\":-2.0,\"bz\":2.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-2.0,\"az\":-1.55,\"bx\":-2.0,\"bz\":-0.45,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":0.55,\"z\":-1.5,\"w\":1.5,\"d\":0.7,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-1.3,\"z\":-1.6,\"w\":0.9,\"d\":0.5,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":1.55,\"z\":0.6,\"w\":0.56,\"d\":0.62,\"move\":true,\"shot\":true,\"yaw\":-1.5708},{\"t\":\"box\",\"x\":-1.45,\"z\":-0.4,\"w\":0.6,\"d\":0.6,\"move\":true,\"shot\":false,\"yaw\":0.1745,\"low\":true},{\"t\":\"circle\",\"x\":-2.42,\"z\":-1.0,\"r\":0.33,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":-2.42,\"z\":-0.3,\"r\":0.33,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":2.51,\"z\":0.8,\"w\":1.5,\"d\":0.76,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"box\",\"x\":1.0,\"z\":2.31,\"w\":1.3,\"d\":0.36,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[{\"x\":0.0,\"z\":0.0,\"w\":4,\"d\":4,\"h\":3.0}],\"doors\":[{\"id\":\"radio_door\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-1.74,2.1],\"kind\":\"steel\",\"locked\":\"radio_key\"}],\"lights\":[\"light0\"],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":0.0,\"w\":4,\"d\":4},\"name\":\"Radio shack\"}"
+    }
+   }
+  },
+  "projectiles": {
+   "glb_bytes": 15272,
+   "tris": 344,
+   "assets": {
+    "rang": {
+     "tris": 344,
+     "parts": [
+      "body",
+      "core"
+     ],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 3.0
+    }
+   }
+  },
+  "ruins": {
+   "glb_bytes": 1038880,
+   "tris": 23028,
+   "assets": {
+    "ruin_floor_a": {
+     "tris": 1008,
+     "parts": [],
+     "points": [],
+     "footprint": 0.1,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "ruin_floor_b": {
+     "tris": 1428,
+     "parts": [],
+     "points": [],
+     "footprint": 0.1,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "ruin_floor_c": {
+     "tris": 608,
+     "parts": [],
+     "points": [],
+     "footprint": 0.1,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "ruin_steps": {
+     "tris": 440,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "pillar_a": {
+     "tris": 532,
+     "parts": [],
+     "points": [],
+     "footprint": 0.65,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "pillar_b": {
+     "tris": 412,
+     "parts": [],
+     "points": [],
+     "footprint": 0.65,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "pillar_c": {
+     "tris": 1052,
+     "parts": [],
+     "points": [],
+     "footprint": 0.65,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "ruin_wall_broken": {
+     "tris": 1384,
+     "parts": [],
+     "points": [],
+     "footprint": 0.6,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "ruin_arch": {
+     "tris": 1200,
+     "parts": [],
+     "points": [],
+     "footprint": 0.6,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "vine_door": {
+     "tris": 3214,
+     "parts": [
+      "leaf"
+     ],
+     "points": [
+      "keyhole"
+     ],
+     "footprint": 2.2,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.6
+    },
+    "vault": {
+     "tris": 7876,
+     "parts": [],
+     "points": [
+      "crate",
+      "light0",
+      "light1"
+     ],
+     "footprint": 4.5,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 2.2
+    },
+    "vault_plinth": {
+     "tris": 132,
+     "parts": [],
+     "points": [
+      "crate"
+     ],
+     "footprint": 1.1,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "fusebox": {
+     "tris": 1332,
+     "parts": [
+      "lever"
+     ],
+     "points": [
+      "spark"
+     ],
+     "footprint": 0.5,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 2.4
+    },
+    "statue": {
+     "tris": 2410,
+     "parts": [],
+     "points": [
+      "glint"
+     ],
+     "footprint": 0.9,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 2.0
+    }
+   }
+  },
+  "traversal": {
+   "glb_bytes": 980216,
+   "tris": 22335,
+   "assets": {
+    "zip_tower": {
+     "tris": 2940,
+     "parts": [],
+     "points": [
+      "anchor",
+      "start"
+     ],
+     "footprint": 1.3,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "zip_end": {
+     "tris": 1364,
+     "parts": [],
+     "points": [
+      "anchor",
+      "land"
+     ],
+     "footprint": 0.9,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "zip_handle": {
+     "tris": 372,
+     "parts": [
+      "handle"
+     ],
+     "points": [],
+     "footprint": 0.2,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "boardwalk_a": {
+     "tris": 1034,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "boardwalk_b": {
+     "tris": 964,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "boardwalk_ramp": {
+     "tris": 592,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "dock_a": {
+     "tris": 1520,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "dock_b": {
+     "tris": 1760,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "dock_broken": {
+     "tris": 1256,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "dock_piles": {
+     "tris": 266,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bridge": {
+     "tris": 1484,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "raft": {
+     "tris": 1356,
+     "parts": [
+      "flag"
+     ],
+     "points": [
+      "board"
+     ],
+     "footprint": 1.5,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "hatch": {
+     "tris": 1472,
+     "parts": [
+      "lid",
+      "scope"
+     ],
+     "points": [
+      "enter"
+     ],
+     "footprint": 1.0,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "supply_gondola": {
+     "tris": 1378,
+     "parts": [],
+     "points": [
+      "crate",
+      "smoke"
+     ],
+     "footprint": 1.2,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "portal_cave": {
+     "tris": 1551,
+     "parts": [
+      "dark"
+     ],
+     "points": [
+      "enter"
+     ],
+     "footprint": 1.6,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "portal_cave_dark": {
+     "tris": 1593,
+     "parts": [
+      "dark"
+     ],
+     "points": [
+      "enter"
+     ],
+     "footprint": 1.6,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "portal_roots": {
+     "tris": 1433,
+     "parts": [
+      "dark"
+     ],
+     "points": [
+      "enter"
+     ],
+     "footprint": 1.4,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    }
+   }
+  },
+  "vault": {
+   "glb_bytes": 1394028,
+   "tris": 29566,
+   "assets": {
+    "vault_pod": {
+     "tris": 3682,
+     "parts": [
+      "pod_door",
+      "pod_glass",
+      "pod_lamp",
+      "pod_needle"
+     ],
+     "points": [
+      "puff",
+      "stand"
+     ],
+     "footprint": 1.5,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 2.2
+    },
+    "vault_board": {
+     "tris": 776,
+     "parts": [
+      "board_face"
+     ],
+     "points": [
+      "light"
+     ],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.0
+    },
+    "vault_floor": {
+     "tris": 56,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "vault_floor_half": {
+     "tris": 26,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "vault_floor_cell": {
+     "tris": 16,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "vault_floor_border": {
+     "tris": 18,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "vault_floor_corner": {
+     "tris": 20,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "vault_kerb": {
+     "tris": 60,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "vault_kerb_post": {
+     "tris": 172,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "vault_wall": {
+     "tris": 242,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "vault_wall_corner": {
+     "tris": 104,
+     "parts": [],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "vault_pilaster": {
+     "tris": 384,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "vault_trim": {
+     "tris": 100,
+     "parts": [],
+     "points": [],
+     "footprint": 0.2,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "vault_wall_cap": {
+     "tris": 44,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "vault_door_round": {
+     "tris": 2592,
+     "parts": [
+      "door_wheel"
+     ],
+     "points": [],
+     "footprint": 2.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "vault_sconce": {
+     "tris": 260,
+     "parts": [
+      "sconce_bulb"
+     ],
+     "points": [
+      "light"
+     ],
+     "footprint": 0.2,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 2.2
+    },
+    "fac_fence": {
+     "tris": 2021,
+     "parts": [
+      "bell"
+     ],
+     "points": [
+      "counter"
+     ],
+     "footprint": 2.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 2.0
+    },
+    "fac_bench": {
+     "tris": 2481,
+     "parts": [
+      "fx_heart",
+      "fx_mag",
+      "fx_pack"
+     ],
+     "points": [
+      "light"
+     ],
+     "footprint": 1.5,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 2.0
+    },
+    "fac_sal": {
+     "tris": 2276,
+     "parts": [
+      "neon"
+     ],
+     "points": [
+      "light",
+      "sal"
+     ],
+     "footprint": 1.5,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 2.6
+    },
+    "fac_trophy": {
+     "tris": 919,
+     "parts": [],
+     "points": [
+      "slot0",
+      "slot1",
+      "slot2",
+      "slot3",
+      "slot4",
+      "slot5",
+      "slot6",
+      "slot7",
+      "slot8"
+     ],
+     "footprint": 1.5,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "fac_med": {
+     "tris": 2033,
+     "parts": [],
+     "points": [],
+     "footprint": 1.5,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "fac_stash": {
+     "tris": 1550,
+     "parts": [],
+     "points": [],
+     "footprint": 1.5,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "fac_generator": {
+     "tris": 2462,
+     "parts": [
+      "gen_lamp",
+      "gen_wheel"
+     ],
+     "points": [
+      "light"
+     ],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 2.2
+    },
+    "fac_press": {
+     "tris": 1966,
+     "parts": [
+      "press_wheel"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "fac_desk": {
+     "tris": 2385,
+     "parts": [],
+     "points": [
+      "light"
+     ],
+     "footprint": 2.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 2.0
+    },
+    "fac_plant": {
+     "tris": 1084,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "fac_locker": {
+     "tris": 1220,
+     "parts": [
+      "mirror_glass"
+     ],
+     "points": [],
+     "footprint": 1.5,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "fac_blueprint": {
+     "tris": 617,
+     "parts": [
+      "bp_sheet"
+     ],
+     "points": [],
+     "footprint": 1.0,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 2.0
+    }
+   }
+  },
+  "walls": {
+   "glb_bytes": 605896,
+   "tris": 12104,
+   "assets": {
+    "wall_palisade_a": {
+     "tris": 472,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "wall_palisade_b": {
+     "tris": 472,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "wall_palisade_post": {
+     "tris": 152,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "wall_palisade_weak": {
+     "tris": 936,
+     "parts": [],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.0
+    },
+    "wall_palisade_debris": {
+     "tris": 972,
+     "parts": [
+      "chunk_0",
+      "chunk_1",
+      "chunk_10",
+      "chunk_11",
+      "chunk_12",
+      "chunk_13",
+      "chunk_14",
+      "chunk_15",
+      "chunk_2",
+      "chunk_3",
+      "chunk_4",
+      "chunk_5",
+      "chunk_6",
+      "chunk_7",
+      "chunk_8",
+      "chunk_9",
+      "remains"
+     ],
+     "points": [],
+     "footprint": 0.5,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.0
+    },
+    "wall_stone_a": {
+     "tris": 596,
+     "parts": [],
+     "points": [],
+     "footprint": 0.55,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "wall_stone_b": {
+     "tris": 508,
+     "parts": [],
+     "points": [],
+     "footprint": 0.55,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "wall_stone_weak": {
+     "tris": 528,
+     "parts": [],
+     "points": [],
+     "footprint": 0.55,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.0
+    },
+    "wall_stone_debris": {
+     "tris": 956,
+     "parts": [
+      "chunk_0",
+      "chunk_1",
+      "chunk_2",
+      "chunk_3",
+      "chunk_4",
+      "chunk_5",
+      "chunk_6",
+      "chunk_7",
+      "chunk_8",
+      "chunk_9",
+      "remains"
+     ],
+     "points": [],
+     "footprint": 0.55,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.0
+    },
+    "wall_hull_a": {
+     "tris": 644,
+     "parts": [],
+     "points": [],
+     "footprint": 0.4,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.8
+    },
+    "wall_hull_weak": {
+     "tris": 616,
+     "parts": [],
+     "points": [],
+     "footprint": 0.4,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.0
+    },
+    "wall_hull_debris": {
+     "tris": 556,
+     "parts": [
+      "chunk_0",
+      "chunk_1",
+      "chunk_2",
+      "chunk_3",
+      "chunk_4",
+      "chunk_5",
+      "chunk_6",
+      "chunk_7",
+      "chunk_8",
+      "chunk_9",
+      "remains"
+     ],
+     "points": [],
+     "footprint": 0.4,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.0
+    },
+    "wall_rock_a": {
+     "tris": 734,
+     "parts": [],
+     "points": [],
+     "footprint": 0.8,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.0
+    },
+    "wall_rock_weak": {
+     "tris": 808,
+     "parts": [],
+     "points": [],
+     "footprint": 0.8,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": true,
+     "glow": 1.0
+    },
+    "wall_rock_debris": {
+     "tris": 1252,
+     "parts": [
+      "chunk_0",
+      "chunk_1",
+      "chunk_2",
+      "chunk_3",
+      "chunk_4",
+      "chunk_5",
+      "chunk_6",
+      "chunk_7",
+      "remains"
+     ],
+     "points": [],
+     "footprint": 0.8,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.0
+    },
+    "rubble_pile": {
+     "tris": 1008,
+     "parts": [],
+     "points": [],
+     "footprint": 0.8,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "rubble_pile_rock": {
+     "tris": 894,
+     "parts": [],
+     "points": [],
+     "footprint": 0.8,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    }
+   }
+  }
+ },
+ "total_tris": 245566,
+ "total_bytes": 12290412
+}

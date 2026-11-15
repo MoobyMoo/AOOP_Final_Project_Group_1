@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Banana Stand: feel test</title>
+    <link rel="stylesheet" href="/src/hud.css" />
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div id="hud">
+      <div class="top">
+        <div class="pill money">🍌 <b id="money">0</b></div>
+        <div class="pill">Carrying <b id="carry">0</b></div>
+        <div class="pill">On stand <b id="stock">0</b></div>
+        <div class="pill price">Price <button id="pdown">−</button><b id="price">3</b><button id="pup">+</button></div>
+        <div class="pill day">Day <b id="day">1</b> <span class="clock"><span id="clockfill"></span></span></div>
+      </div>
+      <button id="upgrade" class="upgrade">Upgrade stand</button>
+      <div class="help">WASD / arrows to walk · <b>E</b> near a tree to pick bananas · walk to the stand to stock it · set the price · customers do the rest</div>
+      <div id="toasts"></div>
+      <div id="summary" class="summary hidden"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

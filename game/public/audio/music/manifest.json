@@ -1,0 +1,22 @@
+{
+ "beachBed": "beachBed.ogg",
+ "beachTheme": "beachTheme.ogg",
+ "bossTheme": "bossTheme.ogg",
+ "bunkerBed": "bunkerBed.ogg",
+ "bunkerTheme": "bunkerTheme.ogg",
+ "combat": "combat.ogg",
+ "grottoBed": "grottoBed.ogg",
+ "grottoTheme": "grottoTheme.ogg",
+ "mangroveBed": "mangroveBed.ogg",
+ "mangroveTheme": "mangroveTheme.ogg",
+ "plantationBed": "plantationBed.ogg",
+ "plantationTheme": "plantationTheme.ogg",
+ "stingBonk": "stingBonk.ogg",
+ "stingBossDown": "stingBossDown.ogg",
+ "stingBossIntro": "stingBossIntro.ogg",
+ "stingExtract": "stingExtract.ogg",
+ "stingLose": "stingLose.ogg",
+ "stingRare": "stingRare.ogg",
+ "stingReview": "stingReview.ogg",
+ "stingWin": "stingWin.ogg"
+}

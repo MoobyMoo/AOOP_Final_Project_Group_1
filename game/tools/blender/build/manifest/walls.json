@@ -1,0 +1,228 @@
+{
+ "group": "walls",
+ "glb_bytes": 605896,
+ "assets": {
+  "wall_palisade_a": {
+   "tris": 472,
+   "parts": [],
+   "points": [],
+   "footprint": 0.5,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.8
+  },
+  "wall_palisade_b": {
+   "tris": 472,
+   "parts": [],
+   "points": [],
+   "footprint": 0.5,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.8
+  },
+  "wall_palisade_post": {
+   "tris": 152,
+   "parts": [],
+   "points": [],
+   "footprint": 0.3,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.8
+  },
+  "wall_palisade_weak": {
+   "tris": 936,
+   "parts": [],
+   "points": [],
+   "footprint": 0.5,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.0
+  },
+  "wall_palisade_debris": {
+   "tris": 972,
+   "parts": [
+    "chunk_0",
+    "chunk_1",
+    "chunk_10",
+    "chunk_11",
+    "chunk_12",
+    "chunk_13",
+    "chunk_14",
+    "chunk_15",
+    "chunk_2",
+    "chunk_3",
+    "chunk_4",
+    "chunk_5",
+    "chunk_6",
+    "chunk_7",
+    "chunk_8",
+    "chunk_9",
+    "remains"
+   ],
+   "points": [],
+   "footprint": 0.5,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.0
+  },
+  "wall_stone_a": {
+   "tris": 596,
+   "parts": [],
+   "points": [],
+   "footprint": 0.55,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.8
+  },
+  "wall_stone_b": {
+   "tris": 508,
+   "parts": [],
+   "points": [],
+   "footprint": 0.55,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.8
+  },
+  "wall_stone_weak": {
+   "tris": 528,
+   "parts": [],
+   "points": [],
+   "footprint": 0.55,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.0
+  },
+  "wall_stone_debris": {
+   "tris": 956,
+   "parts": [
+    "chunk_0",
+    "chunk_1",
+    "chunk_2",
+    "chunk_3",
+    "chunk_4",
+    "chunk_5",
+    "chunk_6",
+    "chunk_7",
+    "chunk_8",
+    "chunk_9",
+    "remains"
+   ],
+   "points": [],
+   "footprint": 0.55,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.0
+  },
+  "wall_hull_a": {
+   "tris": 644,
+   "parts": [],
+   "points": [],
+   "footprint": 0.4,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.8
+  },
+  "wall_hull_weak": {
+   "tris": 616,
+   "parts": [],
+   "points": [],
+   "footprint": 0.4,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.0
+  },
+  "wall_hull_debris": {
+   "tris": 556,
+   "parts": [
+    "chunk_0",
+    "chunk_1",
+    "chunk_2",
+    "chunk_3",
+    "chunk_4",
+    "chunk_5",
+    "chunk_6",
+    "chunk_7",
+    "chunk_8",
+    "chunk_9",
+    "remains"
+   ],
+   "points": [],
+   "footprint": 0.4,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.0
+  },
+  "wall_rock_a": {
+   "tris": 734,
+   "parts": [],
+   "points": [],
+   "footprint": 0.8,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.0
+  },
+  "wall_rock_weak": {
+   "tris": 808,
+   "parts": [],
+   "points": [],
+   "footprint": 0.8,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.0
+  },
+  "wall_rock_debris": {
+   "tris": 1252,
+   "parts": [
+    "chunk_0",
+    "chunk_1",
+    "chunk_2",
+    "chunk_3",
+    "chunk_4",
+    "chunk_5",
+    "chunk_6",
+    "chunk_7",
+    "remains"
+   ],
+   "points": [],
+   "footprint": 0.8,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.0
+  },
+  "rubble_pile": {
+   "tris": 1008,
+   "parts": [],
+   "points": [],
+   "footprint": 0.8,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "rubble_pile_rock": {
+   "tris": 894,
+   "parts": [],
+   "points": [],
+   "footprint": 0.8,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  }
+ }
+}

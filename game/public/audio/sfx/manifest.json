@@ -1,0 +1,382 @@
+{
+ "boltCycle": [
+  "boltCycle_1.mp3"
+ ],
+ "bonk": [
+  "bonk_1.mp3",
+  "bonk_2.mp3",
+  "bonk_3.mp3",
+  "bonk_4.mp3"
+ ],
+ "breakClunk": [
+  "breakClunk_1.mp3"
+ ],
+ "buy": [
+  "buy_1.mp3"
+ ],
+ "cash": [
+  "cash_1.mp3",
+  "cash_2.mp3",
+  "cash_3.mp3",
+  "cash_4.mp3"
+ ],
+ "coinFlip": [
+  "coinFlip_1.mp3",
+  "coinFlip_2.mp3"
+ ],
+ "coinLand": [
+  "coinLand_1.mp3",
+  "coinLand_2.mp3"
+ ],
+ "crate": [
+  "crate_1.mp3"
+ ],
+ "crateTick": [
+  "crateTick_1.mp3",
+  "crateTick_2.mp3",
+  "crateTick_3.mp3",
+  "crateTick_4.mp3"
+ ],
+ "dash": [
+  "dash_1.mp3"
+ ],
+ "door": [
+  "door_1.mp3"
+ ],
+ "dry": [
+  "dry_1.mp3",
+  "dry_2.mp3",
+  "dry_3.mp3",
+  "dry_4.mp3"
+ ],
+ "dryHeavy": [
+  "dryHeavy_1.mp3"
+ ],
+ "dryLight": [
+  "dryLight_1.mp3"
+ ],
+ "extract": [
+  "extract_1.mp3"
+ ],
+ "facBottler": [
+  "facBottler_1.ogg"
+ ],
+ "facCoupon": [
+  "facCoupon_1.ogg"
+ ],
+ "facRipen": [
+  "facRipen_1.ogg"
+ ],
+ "facScrappress": [
+  "facScrappress_1.ogg"
+ ],
+ "grunt": [
+  "grunt_1.mp3",
+  "grunt_2.mp3"
+ ],
+ "heal": [
+  "heal_1.mp3"
+ ],
+ "hit": [
+  "hit_1.mp3",
+  "hit_2.mp3",
+  "hit_3.mp3"
+ ],
+ "hitCrit": [
+  "hitCrit_1.mp3",
+  "hitCrit_2.mp3"
+ ],
+ "hurt": [
+  "hurt_1.mp3"
+ ],
+ "impactDirt": [
+  "impactDirt_1.mp3",
+  "impactDirt_2.mp3",
+  "impactDirt_3.mp3",
+  "impactDirt_4.mp3"
+ ],
+ "impactFoliage": [
+  "impactFoliage_1.mp3",
+  "impactFoliage_2.mp3",
+  "impactFoliage_3.mp3",
+  "impactFoliage_4.mp3"
+ ],
+ "impactMetal": [
+  "impactMetal_1.mp3",
+  "impactMetal_2.mp3",
+  "impactMetal_3.mp3",
+  "impactMetal_4.mp3"
+ ],
+ "impactStone": [
+  "impactStone_1.mp3",
+  "impactStone_2.mp3",
+  "impactStone_3.mp3",
+  "impactStone_4.mp3"
+ ],
+ "impactWood": [
+  "impactWood_1.mp3",
+  "impactWood_2.mp3",
+  "impactWood_3.mp3",
+  "impactWood_4.mp3"
+ ],
+ "kill": [
+  "kill_1.mp3"
+ ],
+ "killCrit": [
+  "killCrit_1.mp3"
+ ],
+ "ko": [
+  "ko_1.mp3"
+ ],
+ "lmgBelt": [
+  "lmgBelt_1.mp3"
+ ],
+ "lmgBoxIn": [
+  "lmgBoxIn_1.mp3"
+ ],
+ "lmgBoxOut": [
+  "lmgBoxOut_1.mp3"
+ ],
+ "lmgCore": [
+  "lmgCore_1.mp3",
+  "lmgCore_2.mp3",
+  "lmgCore_3.mp3",
+  "lmgCore_4.mp3"
+ ],
+ "lmgTail": [
+  "lmgTail_1.mp3"
+ ],
+ "lockboxOpen": [
+  "lockboxOpen_1.mp3"
+ ],
+ "nope": [
+  "nope_1.mp3"
+ ],
+ "notice": [
+  "notice_1.mp3"
+ ],
+ "pick": [
+  "pick_1.mp3",
+  "pick_2.mp3",
+  "pick_3.mp3",
+  "pick_4.mp3"
+ ],
+ "pop": [
+  "pop_1.mp3",
+  "pop_2.mp3",
+  "pop_3.mp3"
+ ],
+ "pumpRack": [
+  "pumpRack_1.mp3"
+ ],
+ "rare": [
+  "rare_1.mp3"
+ ],
+ "reloadIn": [
+  "reloadIn_1.mp3"
+ ],
+ "reloadOut": [
+  "reloadOut_1.mp3"
+ ],
+ "reloadRound": [
+  "reloadRound_1.mp3"
+ ],
+ "rifleCore": [
+  "rifleCore_1.mp3",
+  "rifleCore_2.mp3",
+  "rifleCore_3.mp3",
+  "rifleCore_4.mp3"
+ ],
+ "rifleMagIn": [
+  "rifleMagIn_1.mp3"
+ ],
+ "rifleMagOut": [
+  "rifleMagOut_1.mp3"
+ ],
+ "rifleMech": [
+  "rifleMech_1.mp3"
+ ],
+ "rifleTail": [
+  "rifleTail_1.mp3"
+ ],
+ "roar": [
+  "roar_1.mp3",
+  "roar_2.mp3",
+  "roar_3.mp3",
+  "roar_4.mp3"
+ ],
+ "rouletteSpin": [
+  "rouletteSpin_1.mp3"
+ ],
+ "scuttle": [
+  "scuttle_1.mp3"
+ ],
+ "shell": [
+  "shell_1.mp3",
+  "shell_2.mp3",
+  "shell_3.mp3",
+  "shell_4.mp3"
+ ],
+ "shellInsert": [
+  "shellInsert_1.mp3"
+ ],
+ "shotCore": [
+  "shotCore_1.mp3",
+  "shotCore_2.mp3",
+  "shotCore_3.mp3"
+ ],
+ "shotMech": [
+  "shotMech_1.mp3",
+  "shotMech_2.mp3",
+  "shotMech_3.mp3",
+  "shotMech_4.mp3"
+ ],
+ "shotTail": [
+  "shotTail_1.mp3",
+  "shotTail_2.mp3",
+  "shotTail_3.mp3",
+  "shotTail_4.mp3"
+ ],
+ "shotgunCore": [
+  "shotgunCore_1.mp3",
+  "shotgunCore_2.mp3",
+  "shotgunCore_3.mp3"
+ ],
+ "shotgunTail": [
+  "shotgunTail_1.mp3"
+ ],
+ "slam": [
+  "slam_1.mp3"
+ ],
+ "slide": [
+  "slide_1.mp3"
+ ],
+ "smgCore": [
+  "smgCore_1.mp3",
+  "smgCore_2.mp3",
+  "smgCore_3.mp3",
+  "smgCore_4.mp3"
+ ],
+ "smgMagIn": [
+  "smgMagIn_1.mp3"
+ ],
+ "smgMagOut": [
+  "smgMagOut_1.mp3"
+ ],
+ "smgMech": [
+  "smgMech_1.mp3"
+ ],
+ "smgTail": [
+  "smgTail_1.mp3"
+ ],
+ "snatch": [
+  "snatch_1.mp3"
+ ],
+ "sniperCore": [
+  "sniperCore_1.mp3",
+  "sniperCore_2.mp3",
+  "sniperCore_3.mp3"
+ ],
+ "sniperTail": [
+  "sniperTail_1.mp3"
+ ],
+ "splash": [
+  "splash_1.mp3"
+ ],
+ "squawk": [
+  "squawk_1.mp3",
+  "squawk_2.mp3"
+ ],
+ "squeal": [
+  "squeal_1.mp3"
+ ],
+ "stepCave": [
+  "stepCave_1.mp3",
+  "stepCave_2.mp3",
+  "stepCave_3.mp3",
+  "stepCave_4.mp3",
+  "stepCave_5.mp3",
+  "stepCave_6.mp3",
+  "stepCave_7.mp3",
+  "stepCave_8.mp3"
+ ],
+ "stepDirt": [
+  "stepDirt_1.mp3",
+  "stepDirt_2.mp3",
+  "stepDirt_3.mp3",
+  "stepDirt_4.mp3"
+ ],
+ "stepGrass": [
+  "stepGrass_1.mp3",
+  "stepGrass_2.mp3",
+  "stepGrass_3.mp3",
+  "stepGrass_4.mp3"
+ ],
+ "stepMud": [
+  "stepMud_1.mp3",
+  "stepMud_2.mp3",
+  "stepMud_3.mp3",
+  "stepMud_4.mp3",
+  "stepMud_5.mp3",
+  "stepMud_6.mp3",
+  "stepMud_7.mp3",
+  "stepMud_8.mp3"
+ ],
+ "stepPlank": [
+  "stepPlank_1.mp3",
+  "stepPlank_2.mp3",
+  "stepPlank_3.mp3",
+  "stepPlank_4.mp3",
+  "stepPlank_5.mp3",
+  "stepPlank_6.mp3",
+  "stepPlank_7.mp3",
+  "stepPlank_8.mp3"
+ ],
+ "stepSand": [
+  "stepSand_1.mp3",
+  "stepSand_2.mp3",
+  "stepSand_3.mp3"
+ ],
+ "stepStone": [
+  "stepStone_1.mp3",
+  "stepStone_2.mp3",
+  "stepStone_3.mp3",
+  "stepStone_4.mp3",
+  "stepStone_5.mp3",
+  "stepStone_6.mp3",
+  "stepStone_7.mp3",
+  "stepStone_8.mp3"
+ ],
+ "swing": [
+  "swing_1.mp3",
+  "swing_2.mp3",
+  "swing_3.mp3",
+  "swing_4.mp3"
+ ],
+ "throw": [
+  "throw_1.mp3"
+ ],
+ "thunk": [
+  "thunk_1.mp3"
+ ],
+ "tick": [
+  "tick_1.mp3"
+ ],
+ "ui": [
+  "ui_1.mp3",
+  "ui_2.mp3",
+  "ui_3.mp3",
+  "ui_4.mp3"
+ ],
+ "whirr": [
+  "whirr_1.mp3"
+ ],
+ "windup": [
+  "windup_1.mp3"
+ ],
+ "zapperCore": [
+  "zapperCore_1.mp3",
+  "zapperCore_2.mp3",
+  "zapperCore_3.mp3"
+ ]
+}

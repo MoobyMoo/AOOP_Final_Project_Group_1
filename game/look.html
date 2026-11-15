@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Bananaville: look target L1</title>
+    <style>
+html,body{margin:0;height:100%;overflow:hidden;background:#d9cfa8;font-family:"Trebuchet MS",system-ui,sans-serif}canvas{display:block;width:100vw;height:100vh}
+#hud{position:fixed;inset:0;pointer-events:none;color:#fff8ec;text-shadow:0 2px 3px #0008}
+.tl{position:absolute;top:16px;left:18px}.tl b{font-size:30px;letter-spacing:1px}.tl small{display:block;font-size:14px;opacity:.9}
+.hp{position:absolute;left:18px;bottom:22px;display:flex;align-items:center;gap:10px}
+.bar{width:180px;height:14px;border-radius:8px;background:#0006;border:2px solid #fff3;overflow:hidden}.bar i{display:block;height:100%;width:72%;background:linear-gradient(#ff7a6a,#d9493a)}
+.hot{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:7px}
+.hot div{width:48px;height:48px;border-radius:10px;background:#1d1a2299;border:2px solid #fff2;display:flex;align-items:center;justify-content:center;font-size:24px;position:relative}
+.hot div.sel{border-color:#ffd84a;box-shadow:0 0 10px #ffd84a88}.hot div span{position:absolute;bottom:1px;right:4px;font-size:11px;opacity:.7}
+.money{position:absolute;top:16px;right:18px;font-size:22px;font-weight:bold;background:#1d1a2288;border-radius:999px;padding:4px 14px}
+</style>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div id="hud">
+      <div class="tl"><b>10:24</b> <small>Banana Grove · Sunny</small></div>
+      <div class="money">🍌 1,240</div>
+      <div class="hp">❤️<div class="bar"><i></i></div></div>
+      <div class="hot"><div class="sel">💼<span>1</span></div><div>🪃<span>2</span></div><div>🥤<span>3</span></div><div>🍌<span>4</span></div><div>🧭<span>5</span></div><div><span>6</span></div></div>
+    </div>
+    <script type="module" src="/src/look/main.ts"></script>
+  </body>
+</html>

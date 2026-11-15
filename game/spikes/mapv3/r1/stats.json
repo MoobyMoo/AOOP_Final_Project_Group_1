@@ -1,0 +1,488 @@
+{
+ "world": {
+  "seed": 4242,
+  "placed": 821,
+  "scattered": 3487,
+  "edge": 944,
+  "chunkMeshes": 905,
+  "kitTris": 3227669,
+  "grass": 35284,
+  "lint": {
+   "errors": [],
+   "warnings": [
+    "a crate sits 22 u from the start (nothing worth having next to spawn)"
+   ],
+   "stats": {
+    "raft": 218,
+    "keyCrate": 121,
+    "sleeper": 154,
+    "nearestCrate": 22,
+    "worstRoadGap": 20,
+    "colliders": 1713,
+    "gates": 21,
+    "placed": 821,
+    "scattered": 3487,
+    "openCells": 36403
+   }
+  },
+  "ms": 4004
+ },
+ "views": {
+  "beach": {
+   "calls": 154,
+   "tris": 468335,
+   "all": 48,
+   "readable": 38,
+   "kinds": 14,
+   "pp": [
+    -4,
+    99
+   ],
+   "area": "beach"
+  },
+  "ferry": {
+   "calls": 157,
+   "tris": 533240,
+   "all": 50,
+   "readable": 45,
+   "kinds": 18,
+   "pp": [
+    60.7,
+    100.5
+   ],
+   "area": "wreck"
+  },
+  "ferry_in": {
+   "calls": 151,
+   "tris": 500506,
+   "all": 46,
+   "readable": 40,
+   "kinds": 19,
+   "pp": [
+    64,
+    101
+   ],
+   "area": "wreck"
+  },
+  "cove": {
+   "calls": 145,
+   "tris": 459390,
+   "all": 49,
+   "readable": 47,
+   "kinds": 18,
+   "pp": [
+    -82.1,
+    95.9
+   ],
+   "area": "cove"
+  },
+  "checkpoint": {
+   "calls": 187,
+   "tris": 710147,
+   "all": 56,
+   "readable": 52,
+   "kinds": 27,
+   "pp": [
+    1,
+    82
+   ],
+   "area": "palms"
+  },
+  "fork": {
+   "calls": 182,
+   "tris": 727024,
+   "all": 51,
+   "readable": 49,
+   "kinds": 17,
+   "pp": [
+    0,
+    65
+   ],
+   "area": "palms"
+  },
+  "lookout": {
+   "calls": 188,
+   "tris": 755469,
+   "all": 61,
+   "readable": 54,
+   "kinds": 20,
+   "pp": [
+    -38,
+    61.3
+   ],
+   "area": "westbend"
+  },
+  "camp": {
+   "calls": 204,
+   "tris": 733038,
+   "all": 43,
+   "readable": 38,
+   "kinds": 23,
+   "pp": [
+    -60,
+    28
+   ],
+   "area": "camp"
+  },
+  "camp_tower": {
+   "calls": 197,
+   "tris": 818080,
+   "all": 54,
+   "readable": 49,
+   "kinds": 24,
+   "pp": [
+    -70,
+    19
+   ],
+   "area": "camp"
+  },
+  "camp_gate": {
+   "calls": 193,
+   "tris": 817725,
+   "all": 68,
+   "readable": 61,
+   "kinds": 30,
+   "pp": [
+    -60,
+    42
+   ],
+   "area": "camp"
+  },
+  "plantation": {
+   "calls": 208,
+   "tris": 670421,
+   "all": 51,
+   "readable": 46,
+   "kinds": 20,
+   "pp": [
+    2,
+    22
+   ],
+   "area": "plantation"
+  },
+  "farmhouse_in": {
+   "calls": 190,
+   "tris": 621375,
+   "all": 46,
+   "readable": 44,
+   "kinds": 17,
+   "pp": [
+    -4.5,
+    13.5
+   ],
+   "area": "plantation"
+  },
+  "barn_in": {
+   "calls": 191,
+   "tris": 776288,
+   "all": 55,
+   "readable": 51,
+   "kinds": 15,
+   "pp": [
+    16.5,
+    24.5
+   ],
+   "area": "plantation"
+  },
+  "vat": {
+   "calls": 197,
+   "tris": 625235,
+   "all": 68,
+   "readable": 59,
+   "kinds": 19,
+   "pp": [
+    -6,
+    32
+   ],
+   "area": "plantation"
+  },
+  "mangrove": {
+   "calls": 186,
+   "tris": 814805,
+   "all": 61,
+   "readable": 61,
+   "kinds": 14,
+   "pp": [
+    49,
+    54
+   ],
+   "area": "mangrove"
+  },
+  "colony": {
+   "calls": 193,
+   "tris": 641881,
+   "all": 61,
+   "readable": 51,
+   "kinds": 19,
+   "pp": [
+    66,
+    5
+   ],
+   "area": "ruin"
+  },
+  "cellblock_in": {
+   "calls": 192,
+   "tris": 643633,
+   "all": 56,
+   "readable": 45,
+   "kinds": 16,
+   "pp": [
+    66.5,
+    -5.5
+   ],
+   "area": "ruin"
+  },
+  "cellblock_cell": {
+   "calls": 193,
+   "tris": 633996,
+   "all": 48,
+   "readable": 40,
+   "kinds": 15,
+   "pp": [
+    64.5,
+    -9.4
+   ],
+   "area": "ruin"
+  },
+  "shrine": {
+   "calls": 195,
+   "tris": 656275,
+   "all": 72,
+   "readable": 66,
+   "kinds": 17,
+   "pp": [
+    44,
+    -16
+   ],
+   "area": "shrine"
+  },
+  "vault_door": {
+   "calls": 193,
+   "tris": 671713,
+   "all": 66,
+   "readable": 57,
+   "kinds": 21,
+   "pp": [
+    80,
+    -19.5
+   ],
+   "area": "ruin"
+  },
+  "vault": {
+   "calls": 192,
+   "tris": 662360,
+   "all": 61,
+   "readable": 50,
+   "kinds": 16,
+   "pp": [
+    81,
+    -27
+   ],
+   "area": "vault"
+  },
+  "radio": {
+   "calls": 187,
+   "tris": 683676,
+   "all": 48,
+   "readable": 46,
+   "kinds": 20,
+   "pp": [
+    -27.5,
+    -11.8
+   ],
+   "area": "radio"
+  },
+  "bomber": {
+   "calls": 172,
+   "tris": 566978,
+   "all": 44,
+   "readable": 37,
+   "kinds": 17,
+   "pp": [
+    -62.7,
+    -42.2
+   ],
+   "area": "planecrash"
+  },
+  "hollow": {
+   "calls": 180,
+   "tris": 618390,
+   "all": 61,
+   "readable": 51,
+   "kinds": 17,
+   "pp": [
+    3,
+    -54
+   ],
+   "area": "hollow"
+  },
+  "falls": {
+   "calls": 179,
+   "tris": 632887,
+   "all": 46,
+   "readable": 43,
+   "kinds": 13,
+   "pp": [
+    66,
+    -62
+   ],
+   "area": "waterfall"
+  },
+  "nook": {
+   "calls": 156,
+   "tris": 461248,
+   "all": 19,
+   "readable": 18,
+   "kinds": 14,
+   "pp": [
+    66,
+    -81
+   ],
+   "area": "falls-nook"
+  },
+  "checkpoint_n": {
+   "calls": 176,
+   "tris": 515635,
+   "all": 53,
+   "readable": 50,
+   "kinds": 23,
+   "pp": [
+    8,
+    -82
+   ],
+   "area": "falls-nook"
+  },
+  "landing": {
+   "calls": 148,
+   "tris": 320165,
+   "all": 48,
+   "readable": 39,
+   "kinds": 15,
+   "pp": [
+    12,
+    -103
+   ],
+   "area": "riverbank"
+  },
+  "boathouse_in": {
+   "calls": 141,
+   "tris": 289364,
+   "all": 41,
+   "readable": 37,
+   "kinds": 16,
+   "pp": [
+    -6.5,
+    -103.5
+   ],
+   "area": "riverbank"
+  },
+  "road_n": {
+   "calls": 202,
+   "tris": 800587,
+   "all": 77,
+   "readable": 67,
+   "kinds": 14,
+   "pp": [
+    0,
+    50
+   ],
+   "area": "riverbank"
+  },
+  "road_ridge": {
+   "calls": 179,
+   "tris": 665504,
+   "all": 71,
+   "readable": 66,
+   "kinds": 13,
+   "pp": [
+    -1,
+    -20
+   ],
+   "area": "riverbank"
+  },
+  "road_west": {
+   "calls": 175,
+   "tris": 664255,
+   "all": 51,
+   "readable": 46,
+   "kinds": 12,
+   "pp": [
+    -66,
+    -16
+   ],
+   "area": "riverbank"
+  },
+  "open_east": {
+   "calls": 194,
+   "tris": 910860,
+   "all": 104,
+   "readable": 97,
+   "kinds": 10,
+   "pp": [
+    40,
+    30
+   ],
+   "area": "riverbank"
+  },
+  "open_west": {
+   "calls": 187,
+   "tris": 756632,
+   "all": 63,
+   "readable": 54,
+   "kinds": 14,
+   "pp": [
+    -30,
+    40
+   ],
+   "area": "riverbank"
+  },
+  "grotto_mouth": {
+   "calls": 78,
+   "tris": 137058,
+   "all": 19,
+   "readable": 18,
+   "kinds": 8,
+   "pp": [
+    150,
+    62
+   ],
+   "area": "grotto-a"
+  },
+  "grotto_hall": {
+   "calls": 85,
+   "tris": 165129,
+   "all": 33,
+   "readable": 30,
+   "kinds": 15,
+   "pp": [
+    168,
+    26
+   ],
+   "area": "grotto-b"
+  },
+  "grotto_roots": {
+   "calls": 73,
+   "tris": 121742,
+   "all": 28,
+   "readable": 28,
+   "kinds": 9,
+   "pp": [
+    154,
+    -24
+   ],
+   "area": "grotto-c"
+  },
+  "tunnel": {
+   "calls": 71,
+   "tris": 129147,
+   "all": 9,
+   "readable": 9,
+   "kinds": 6,
+   "pp": [
+    190,
+    43
+   ],
+   "area": "tunnel"
+  }
+ }
+}

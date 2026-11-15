@@ -1,0 +1,260 @@
+{
+ "glb_bytes": 1021924,
+ "fps": 30,
+ "animals": {
+  "crab": {
+   "root": "fauna_crab",
+   "mesh": "crab_mesh",
+   "tris": 782,
+   "budget": 800,
+   "bones": [
+    "crab_root",
+    "crab_body",
+    "crab_eye_L",
+    "crab_claw_L",
+    "crab_pincer_L",
+    "crab_leg_L1",
+    "crab_leg_L2",
+    "crab_leg_L3",
+    "crab_eye_R",
+    "crab_claw_R",
+    "crab_pincer_R",
+    "crab_leg_R1",
+    "crab_leg_R2",
+    "crab_leg_R3"
+   ],
+   "clips": {
+    "crab_idle": {
+     "frames": 60,
+     "seconds": 2.0,
+     "loop": true
+    },
+    "crab_scuttle": {
+     "frames": 12,
+     "seconds": 0.4,
+     "loop": true
+    },
+    "crab_flee": {
+     "frames": 10,
+     "seconds": 0.3333,
+     "loop": true
+    },
+    "crab_burrow": {
+     "frames": 36,
+     "seconds": 1.2,
+     "loop": false
+    }
+   },
+   "notes": {
+    "travel": "scuttle and flee read as moving toward local +x (the crab's left)",
+    "burrow": "fully under y = 0 on the last frame; only the eyes show from 0.6 to 0.8 of the clip"
+   }
+  },
+  "parrot": {
+   "root": "fauna_parrot",
+   "mesh": "parrot_mesh",
+   "tris": 1094,
+   "budget": 1200,
+   "bones": [
+    "parrot_root",
+    "parrot_body",
+    "parrot_head",
+    "parrot_tail",
+    "parrot_legs",
+    "parrot_wing_L",
+    "parrot_wingtip_L",
+    "parrot_wing_R",
+    "parrot_wingtip_R"
+   ],
+   "clips": {
+    "parrot_perch_idle": {
+     "frames": 72,
+     "seconds": 2.4,
+     "loop": true
+    },
+    "parrot_takeoff": {
+     "frames": 18,
+     "seconds": 0.6,
+     "loop": false
+    },
+    "parrot_fly": {
+     "frames": 12,
+     "seconds": 0.4,
+     "loop": true
+    },
+    "parrot_land": {
+     "frames": 20,
+     "seconds": 0.6667,
+     "loop": false
+    }
+   },
+   "notes": {
+    "origin": "the perch point under the feet, in every clip (the body sits about 0.35 m above it)",
+    "chain": "takeoff ends on fly's first frame; land starts there and ends on perch_idle's first frame"
+   }
+  },
+  "frog": {
+   "root": "fauna_frog",
+   "mesh": "frog_mesh",
+   "tris": 558,
+   "budget": 600,
+   "bones": [
+    "frog_root",
+    "frog_body",
+    "frog_throat",
+    "frog_arm_L",
+    "frog_thigh_L",
+    "frog_shin_L",
+    "frog_foot_L",
+    "frog_arm_R",
+    "frog_thigh_R",
+    "frog_shin_R",
+    "frog_foot_R"
+   ],
+   "clips": {
+    "frog_idle": {
+     "frames": 60,
+     "seconds": 2.0,
+     "loop": true
+    },
+    "frog_hop": {
+     "frames": 24,
+     "seconds": 0.8,
+     "loop": false
+    }
+   },
+   "notes": {
+    "hop": "apex 0.42 m, baked on the body bone; airborne from 0.24 to 0.78 of the clip: move the frog along the ground only then"
+   }
+  },
+  "boar": {
+   "root": "fauna_boar",
+   "mesh": "boar_mesh",
+   "tris": 1312,
+   "budget": 2500,
+   "bones": [
+    "boar_root",
+    "boar_hips",
+    "boar_chest",
+    "boar_head",
+    "boar_ear_L",
+    "boar_ear_R",
+    "boar_fleg_up_L",
+    "boar_fleg_lo_L",
+    "boar_fleg_up_R",
+    "boar_fleg_lo_R",
+    "boar_tail",
+    "boar_hleg_up_L",
+    "boar_hleg_lo_L",
+    "boar_hleg_up_R",
+    "boar_hleg_lo_R"
+   ],
+   "clips": {
+    "boar_idle": {
+     "frames": 60,
+     "seconds": 2.0,
+     "loop": true
+    },
+    "boar_walk": {
+     "frames": 24,
+     "seconds": 0.8,
+     "loop": true
+    },
+    "boar_run": {
+     "frames": 12,
+     "seconds": 0.4,
+     "loop": true
+    },
+    "boar_charge_windup": {
+     "frames": 30,
+     "seconds": 1.0,
+     "loop": true
+    },
+    "boar_charge": {
+     "frames": 10,
+     "seconds": 0.3333,
+     "loop": true
+    },
+    "boar_hit": {
+     "frames": 12,
+     "seconds": 0.4,
+     "loop": false
+    },
+    "boar_death": {
+     "frames": 36,
+     "seconds": 1.2,
+     "loop": false
+    }
+   },
+   "notes": {
+    "stride": {
+     "walk": 0.7,
+     "run": 1.3,
+     "charge": 1.8
+    },
+    "stride_note": "metres one loop covers with planted hooves: speed = stride / clip seconds",
+    "charge_windup": "a loop (two paws of the right fore hoof per cycle); hold it for the telegraph",
+    "death": "ends lying on its right side"
+   }
+  },
+  "croc": {
+   "root": "fauna_croc",
+   "mesh": "croc_mesh",
+   "tris": 1720,
+   "budget": 3000,
+   "bones": [
+    "croc_root",
+    "croc_body",
+    "croc_chest",
+    "croc_head",
+    "croc_jaw",
+    "croc_leg_F_L",
+    "croc_leg_F_R",
+    "croc_tail1",
+    "croc_tail2",
+    "croc_tail3",
+    "croc_tail4",
+    "croc_leg_H_L",
+    "croc_leg_H_R"
+   ],
+   "clips": {
+    "croc_lurk": {
+     "frames": 90,
+     "seconds": 3.0,
+     "loop": true
+    },
+    "croc_surface": {
+     "frames": 24,
+     "seconds": 0.8,
+     "loop": false
+    },
+    "croc_bite": {
+     "frames": 18,
+     "seconds": 0.6,
+     "loop": false
+    },
+    "croc_swim": {
+     "frames": 30,
+     "seconds": 1.0,
+     "loop": true
+    },
+    "croc_retreat": {
+     "frames": 30,
+     "seconds": 1.0,
+     "loop": false
+    },
+    "croc_death": {
+     "frames": 45,
+     "seconds": 1.5,
+     "loop": false
+    }
+   },
+   "notes": {
+    "waterline": "the origin (y = 0) is the water line; the bind pose is surfaced, lurk hangs 0.15 m lower, swim 0.10 m lower",
+    "bite": "starts and ends on the surfaced pose; the jaws snap shut 0.95 m ahead of the origin at 0.47 of the clip",
+    "retreat": "backs off 0.7 m and ends fully under the water line",
+    "death": "ends belly-up, floating at the water line"
+   }
+  }
+ }
+}

@@ -1,0 +1,256 @@
+{
+ "group": "camp",
+ "glb_bytes": 998888,
+ "assets": {
+  "tent_a": {
+   "tris": 684,
+   "parts": [],
+   "points": [],
+   "footprint": 1.7,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.8
+  },
+  "tent_b": {
+   "tris": 800,
+   "parts": [],
+   "points": [],
+   "footprint": 1.5,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": false,
+   "glow": 1.8
+  },
+  "tarp": {
+   "tris": 1144,
+   "parts": [],
+   "points": [],
+   "footprint": 1.5,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "bedroll_a": {
+   "tris": 288,
+   "parts": [],
+   "points": [],
+   "footprint": 0.5,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "bedroll_b": {
+   "tris": 312,
+   "parts": [],
+   "points": [],
+   "footprint": 0.5,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "campfire": {
+   "tris": 1418,
+   "parts": [
+    "flame"
+   ],
+   "points": [
+    "light"
+   ],
+   "footprint": 0.8,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 2.2
+  },
+  "lantern": {
+   "tris": 352,
+   "parts": [],
+   "points": [
+    "light"
+   ],
+   "footprint": 0.3,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 2.4
+  },
+  "lantern_post": {
+   "tris": 788,
+   "parts": [],
+   "points": [
+    "light"
+   ],
+   "footprint": 0.3,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 2.4
+  },
+  "fence_a": {
+   "tris": 800,
+   "parts": [],
+   "points": [],
+   "footprint": 0.4,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "fence_b": {
+   "tris": 848,
+   "parts": [],
+   "points": [],
+   "footprint": 0.4,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "gate": {
+   "tris": 956,
+   "parts": [
+    "leaf"
+   ],
+   "points": [],
+   "footprint": 0.4,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  },
+  "watchtower": {
+   "tris": 2288,
+   "parts": [
+    "flag"
+   ],
+   "points": [
+    "crate",
+    "lookout"
+   ],
+   "footprint": 1.7,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  },
+  "well": {
+   "tris": 1913,
+   "parts": [
+    "bucket",
+    "dark"
+   ],
+   "points": [
+    "drop"
+   ],
+   "footprint": 1.25,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  },
+  "log_bench": {
+   "tris": 260,
+   "parts": [],
+   "points": [],
+   "footprint": 0.7,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "log_bench_b": {
+   "tris": 260,
+   "parts": [],
+   "points": [],
+   "footprint": 0.7,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "signpost_a": {
+   "tris": 552,
+   "parts": [],
+   "points": [],
+   "footprint": 0.3,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  },
+  "signpost_raft": {
+   "tris": 525,
+   "parts": [],
+   "points": [],
+   "footprint": 0.3,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  },
+  "signpost_key": {
+   "tris": 446,
+   "parts": [],
+   "points": [],
+   "footprint": 0.3,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  },
+  "sandbags": {
+   "tris": 1372,
+   "parts": [],
+   "points": [],
+   "footprint": 1.2,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "crate_stack": {
+   "tris": 1578,
+   "parts": [],
+   "points": [],
+   "footprint": 1.2,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": false,
+   "glow": 1.8
+  },
+  "washing_line": {
+   "tris": 1754,
+   "parts": [],
+   "points": [],
+   "footprint": 0.3,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  },
+  "lean_to": {
+   "tris": 1272,
+   "parts": [],
+   "points": [],
+   "footprint": 1.5,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "dummy_seated": {
+   "tris": 872,
+   "parts": [],
+   "points": [],
+   "footprint": 0.6,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  }
+ }
+}

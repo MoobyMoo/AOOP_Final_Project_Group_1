@@ -1,0 +1,20 @@
+/* Base layer. The M map and minimap are ui/map.css (map v3). Everything else, the raid HUD, the loot and
+   Tab screen, bunker panels, the payout slip and the creator, is UI v3 in ui/ui3.css (direction A, "Corner office"). */
+:root{
+  --ink:#241820; --panel:rgba(30,22,28,.72); --panel-solid:rgba(30,22,28,.92); --line:rgba(255,246,214,.14); --line-2:rgba(255,246,214,.28);
+  --text:#fff6e4; --dim:rgba(255,246,228,.62);
+  --banana:#ffd23f; --banana-d:#c9971a; --leaf:#62c46a; --coral:#ff6b57; --lagoon:#3fb7b0; --wood:#8a5a34; --wood-d:#5a3a20;
+  --r-common:rgba(255,246,228,.10); --r-uncommon:rgba(98,196,106,.22); --r-rare:rgba(74,168,255,.24); --r-epic:rgba(199,125,255,.26);
+  --r-s:8px; --r-m:12px; --shadow:0 6px 20px rgba(0,0,0,.28);
+  --body:"Nunito",system-ui,sans-serif; --sign:"Lilita One",system-ui,sans-serif;
+}
+html,body{margin:0;height:100%;overflow:hidden;background:#1d1714;font-family:var(--body);font-weight:700;user-select:none;color:var(--text)}
+canvas{display:block;width:100vw;height:100vh;cursor:none}
+#ui{position:fixed;inset:0;pointer-events:none;color:var(--text);text-shadow:0 1px 2px rgba(0,0,0,.55);font-variant-numeric:tabular-nums}
+kbd{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 4px;margin:0 2px;border-radius:5px;background:rgba(255,246,228,.9);color:var(--ink);font:800 11px/1 var(--body);text-shadow:none;vertical-align:1px}
+.emo{line-height:1}.ico{display:block;object-fit:contain}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+.floater{position:fixed;transform:translate(-50%,-50%);font:800 18px/1 var(--body);pointer-events:none;-webkit-text-stroke:4px rgba(20,14,18,.85);paint-order:stroke fill;white-space:nowrap;z-index:5}
+.fade{position:fixed;inset:0;background:#120c08;opacity:0;pointer-events:none;transition:opacity .35s;z-index:20}.fade.on{opacity:1}
+/* the HUD layer sits above world-anchored text: the floaters (fx.ts, body, z 5) drew over the open pack and the bunker panels */
+#ui{z-index:6}

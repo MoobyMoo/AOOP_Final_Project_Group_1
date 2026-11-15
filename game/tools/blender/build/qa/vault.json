@@ -1,0 +1,286 @@
+{
+ "group": "vault",
+ "assets": {
+  "fac_bench": {
+   "pass": true,
+   "tris": 2481,
+   "errors": [],
+   "warnings": [
+    "fac_bench__matte: duplicate verts=4 loose verts=0",
+    "hidden back-to-back faces: fac_bench__matte (73 pairs) - delete to save tris",
+    "hidden back-to-back faces: fx_mag (36 pairs) - delete to save tris",
+    "hidden back-to-back faces: fx_heart (31 pairs) - delete to save tris",
+    "hidden back-to-back faces: fac_bench__matte<->fx_heart (9 pairs) - delete to save tris",
+    "hidden back-to-back faces: fac_bench__gloss<->fac_bench__matte (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: fx_pack (4 pairs) - delete to save tris",
+    "hidden back-to-back faces: fac_bench__matte<->fx_mag (3 pairs) - delete to save tris",
+    "hidden back-to-back faces: fac_bench__emissive<->fac_bench__matte (2 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "fac_blueprint": {
+   "pass": true,
+   "tris": 617,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: fac_blueprint__matte (10 pairs) - delete to save tris",
+    "hidden back-to-back faces: bp_sheet<->fac_blueprint__matte (6 pairs) - delete to save tris",
+    "hidden back-to-back faces: fac_blueprint__emissive<->fac_blueprint__matte (4 pairs) - delete to save tris"
+   ],
+   "ground_z": -0.0093
+  },
+  "fac_desk": {
+   "pass": true,
+   "tris": 2385,
+   "errors": [],
+   "warnings": [
+    "fac_desk__gloss: duplicate verts=1 loose verts=0",
+    "fac_desk__matte: duplicate verts=2 loose verts=0",
+    "hidden back-to-back faces: fac_desk__matte (66 pairs) - delete to save tris",
+    "hidden back-to-back faces: fac_desk__gloss<->fac_desk__matte (30 pairs) - delete to save tris",
+    "hidden back-to-back faces: fac_desk__emissive<->fac_desk__matte (4 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "fac_fence": {
+   "pass": true,
+   "tris": 2021,
+   "errors": [],
+   "warnings": [
+    "fac_fence__gloss: duplicate verts=2 loose verts=0",
+    "hidden back-to-back faces: fac_fence__matte (44 pairs) - delete to save tris",
+    "hidden back-to-back faces: fac_fence__gloss<->fac_fence__matte (17 pairs) - delete to save tris",
+    "hidden back-to-back faces: bell<->fac_fence__matte (14 pairs) - delete to save tris",
+    "hidden back-to-back faces: fac_fence__emissive<->fac_fence__matte (2 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "fac_generator": {
+   "pass": true,
+   "tris": 2462,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: fac_generator__gloss<->fac_generator__matte (9 pairs) - delete to save tris",
+    "hidden back-to-back faces: fac_generator__matte (6 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "fac_locker": {
+   "pass": true,
+   "tris": 1220,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: fac_locker__matte (15 pairs) - delete to save tris",
+    "hidden back-to-back faces: fac_locker__gloss<->mirror_glass (8 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "fac_med": {
+   "pass": true,
+   "tris": 2033,
+   "errors": [],
+   "warnings": [
+    "fac_med__matte: duplicate verts=33 loose verts=0",
+    "hidden back-to-back faces: fac_med__matte (68 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "fac_plant": {
+   "pass": true,
+   "tris": 1084,
+   "errors": [],
+   "warnings": [],
+   "ground_z": -0.015
+  },
+  "fac_press": {
+   "pass": true,
+   "tris": 1966,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: fac_press__matte (36 pairs) - delete to save tris",
+    "hidden back-to-back faces: fac_press__gloss<->fac_press__matte (16 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "fac_sal": {
+   "pass": true,
+   "tris": 2276,
+   "errors": [],
+   "warnings": [
+    "fac_sal__matte: duplicate verts=8 loose verts=0",
+    "hidden back-to-back faces: fac_sal__matte (64 pairs) - delete to save tris",
+    "hidden back-to-back faces: fac_sal__emissive<->fac_sal__matte (7 pairs) - delete to save tris",
+    "hidden back-to-back faces: fac_sal__matte<->neon (4 pairs) - delete to save tris",
+    "hidden back-to-back faces: fac_sal__gloss<->fac_sal__matte (2 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "fac_stash": {
+   "pass": true,
+   "tris": 1550,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: fac_stash__matte (4 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "fac_trophy": {
+   "pass": true,
+   "tris": 919,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: fac_trophy__gloss<->fac_trophy__matte (19 pairs) - delete to save tris",
+    "hidden back-to-back faces: fac_trophy__matte (8 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "vault_board": {
+   "pass": true,
+   "tris": 776,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: vault_board__gloss (8 pairs) - delete to save tris",
+    "hidden back-to-back faces: board_face<->vault_board__matte (4 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "vault_door_round": {
+   "pass": true,
+   "tris": 2592,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: vault_door_round__gloss<->vault_door_round__matte (24 pairs) - delete to save tris",
+    "hidden back-to-back faces: vault_door_round__matte (2 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "vault_floor": {
+   "pass": true,
+   "tris": 56,
+   "errors": [],
+   "warnings": [
+    "vault_floor__matte: duplicate verts=6 loose verts=0"
+   ],
+   "ground_z": -0.018
+  },
+  "vault_floor_border": {
+   "pass": true,
+   "tris": 18,
+   "errors": [],
+   "warnings": [],
+   "ground_z": -0.018
+  },
+  "vault_floor_cell": {
+   "pass": true,
+   "tris": 16,
+   "errors": [],
+   "warnings": [],
+   "ground_z": -0.018
+  },
+  "vault_floor_corner": {
+   "pass": true,
+   "tris": 20,
+   "errors": [],
+   "warnings": [],
+   "ground_z": -0.018
+  },
+  "vault_floor_half": {
+   "pass": true,
+   "tris": 26,
+   "errors": [],
+   "warnings": [
+    "vault_floor_half__matte: duplicate verts=2 loose verts=0"
+   ],
+   "ground_z": -0.018
+  },
+  "vault_kerb": {
+   "pass": true,
+   "tris": 60,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: vault_kerb__gloss<->vault_kerb__matte (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.5 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.5
+  },
+  "vault_kerb_post": {
+   "pass": true,
+   "tris": 172,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.5 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.5
+  },
+  "vault_pilaster": {
+   "pass": true,
+   "tris": 384,
+   "errors": [],
+   "warnings": [
+    "vault_pilaster__matte: duplicate verts=2 loose verts=0",
+    "hidden back-to-back faces: vault_pilaster__gloss<->vault_pilaster__matte (16 pairs) - delete to save tris",
+    "hidden back-to-back faces: vault_pilaster__matte (15 pairs) - delete to save tris",
+    "hidden back-to-back faces: vault_pilaster__gloss (10 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "vault_pod": {
+   "pass": true,
+   "tris": 3682,
+   "errors": [],
+   "warnings": [],
+   "ground_z": 0.0
+  },
+  "vault_sconce": {
+   "pass": true,
+   "tris": 260,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.1427 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.1427
+  },
+  "vault_trim": {
+   "pass": true,
+   "tris": 100,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=3.1691 (not resting on ground plane z=0)"
+   ],
+   "ground_z": 3.1691
+  },
+  "vault_wall": {
+   "pass": true,
+   "tris": 242,
+   "errors": [],
+   "warnings": [
+    "vault_wall__matte: duplicate verts=2 loose verts=0",
+    "hidden back-to-back faces: vault_wall__gloss<->vault_wall__matte (12 pairs) - delete to save tris",
+    "hidden back-to-back faces: vault_wall__matte (3 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "vault_wall_cap": {
+   "pass": true,
+   "tris": 44,
+   "errors": [],
+   "warnings": [
+    "vault_wall_cap__matte: duplicate verts=2 loose verts=0",
+    "hidden back-to-back faces: vault_wall_cap__matte (8 pairs) - delete to save tris",
+    "asset lowest point z=3.5 (not resting on ground plane z=0)"
+   ],
+   "ground_z": 3.5
+  },
+  "vault_wall_corner": {
+   "pass": true,
+   "tris": 104,
+   "errors": [],
+   "warnings": [
+    "vault_wall_corner__matte: duplicate verts=2 loose verts=0",
+    "hidden back-to-back faces: vault_wall_corner__gloss<->vault_wall_corner__matte (6 pairs) - delete to save tris",
+    "hidden back-to-back faces: vault_wall_corner__matte (3 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  }
+ }
+}

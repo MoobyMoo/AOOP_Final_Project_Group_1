@@ -1,0 +1,1010 @@
+{
+ "bunch": {
+  "name": "Banana Bunch",
+  "kind": "item",
+  "tris": 1100,
+  "materials": 2,
+  "dims_m": [
+   0.401,
+   0.238,
+   0.184
+  ],
+  "glb_bytes": 30340
+ },
+ "coconut": {
+  "name": "Coconut",
+  "kind": "item",
+  "tris": 792,
+  "materials": 2,
+  "dims_m": [
+   0.367,
+   0.207,
+   0.204
+  ],
+  "glb_bytes": 22876
+ },
+ "rope": {
+  "name": "Vine Rope",
+  "kind": "item",
+  "tris": 1176,
+  "materials": 2,
+  "dims_m": [
+   0.449,
+   0.32,
+   0.137
+  ],
+  "glb_bytes": 43748
+ },
+ "plank": {
+  "name": "Plank",
+  "kind": "item",
+  "tris": 648,
+  "materials": 2,
+  "dims_m": [
+   0.614,
+   0.344,
+   0.088
+  ],
+  "glb_bytes": 32800
+ },
+ "golden": {
+  "name": "Golden Banana",
+  "kind": "item",
+  "tris": 300,
+  "materials": 1,
+  "dims_m": [
+   0.124,
+   0.324,
+   0.094
+  ],
+  "glb_bytes": 8400
+ },
+ "honey": {
+  "name": "Honey Pot",
+  "kind": "item",
+  "tris": 1368,
+  "materials": 3,
+  "dims_m": [
+   0.214,
+   0.208,
+   0.295
+  ],
+  "glb_bytes": 45444
+ },
+ "gear": {
+  "name": "Old Gear",
+  "kind": "item",
+  "tris": 792,
+  "materials": 1,
+  "dims_m": [
+   0.208,
+   0.208,
+   0.042
+  ],
+  "glb_bytes": 38716
+ },
+ "spring": {
+  "name": "Spring",
+  "kind": "item",
+  "tris": 996,
+  "materials": 1,
+  "dims_m": [
+   0.116,
+   0.115,
+   0.168
+  ],
+  "glb_bytes": 32668
+ },
+ "boomerang": {
+  "name": "Banana Boomerang",
+  "kind": "item",
+  "tris": 272,
+  "materials": 1,
+  "dims_m": [
+   0.426,
+   0.183,
+   0.026
+  ],
+  "glb_bytes": 8816
+ },
+ "mango": {
+  "name": "Sunset Mango",
+  "kind": "item",
+  "tris": 408,
+  "materials": 3,
+  "dims_m": [
+   0.179,
+   0.13,
+   0.237
+  ],
+  "glb_bytes": 15872
+ },
+ "compass": {
+  "name": "Brass Compass",
+  "kind": "item",
+  "tris": 1064,
+  "materials": 3,
+  "dims_m": [
+   0.151,
+   0.156,
+   0.133
+  ],
+  "glb_bytes": 47824
+ },
+ "idol": {
+  "name": "Banana Idol",
+  "kind": "item",
+  "tris": 1258,
+  "materials": 2,
+  "dims_m": [
+   0.234,
+   0.274,
+   0.297
+  ],
+  "glb_bytes": 36676
+ },
+ "smoothie": {
+  "name": "Banana Smoothie",
+  "kind": "item",
+  "tris": 950,
+  "materials": 2,
+  "dims_m": [
+   0.135,
+   0.126,
+   0.277
+  ],
+  "glb_bytes": 35636
+ },
+ "bandage": {
+  "name": "Banana-Leaf Bandage",
+  "kind": "item",
+  "tris": 832,
+  "materials": 2,
+  "dims_m": [
+   0.166,
+   0.116,
+   0.07
+  ],
+  "glb_bytes": 34096
+ },
+ "firstaid": {
+  "name": "Jungle First-Aid Kit",
+  "kind": "item",
+  "tris": 552,
+  "materials": 3,
+  "dims_m": [
+   0.268,
+   0.123,
+   0.208
+  ],
+  "glb_bytes": 29700
+ },
+ "ammo": {
+  "name": ".45 Rounds",
+  "kind": "item",
+  "tris": 924,
+  "materials": 3,
+  "dims_m": [
+   0.139,
+   0.123,
+   0.088
+  ],
+  "glb_bytes": 41200
+ },
+ "key": {
+  "name": "Vine Key",
+  "kind": "item",
+  "tris": 1054,
+  "materials": 2,
+  "dims_m": [
+   0.317,
+   0.113,
+   0.058
+  ],
+  "glb_bytes": 48712
+ },
+ "extmag": {
+  "name": "Kingpin Extended Mag",
+  "kind": "item",
+  "tris": 736,
+  "materials": 3,
+  "dims_m": [
+   0.11,
+   0.046,
+   0.234
+  ],
+  "glb_bytes": 34976
+ },
+ "radio_key": {
+  "name": "Radio Shack Key",
+  "kind": "item",
+  "tris": 1272,
+  "materials": 2,
+  "dims_m": [
+   0.385,
+   0.175,
+   0.04
+  ],
+  "glb_bytes": 56564
+ },
+ "bowler": {
+  "name": "Bowler Hat",
+  "kind": "wearable",
+  "tris": 972,
+  "materials": 1,
+  "dims_m": [
+   0.316,
+   0.335,
+   0.14
+  ],
+  "glb_bytes": 29356
+ },
+ "tophat": {
+  "name": "Top Hat",
+  "kind": "wearable",
+  "tris": 912,
+  "materials": 2,
+  "dims_m": [
+   0.306,
+   0.306,
+   0.189
+  ],
+  "glb_bytes": 32432
+ },
+ "fedora": {
+  "name": "Fedora",
+  "kind": "wearable",
+  "tris": 836,
+  "materials": 2,
+  "dims_m": [
+   0.36,
+   0.36,
+   0.148
+  ],
+  "glb_bytes": 26948
+ },
+ "cap": {
+  "name": "Cap",
+  "kind": "wearable",
+  "tris": 570,
+  "materials": 2,
+  "dims_m": [
+   0.2,
+   0.295,
+   0.145
+  ],
+  "glb_bytes": 20564
+ },
+ "hardhat": {
+  "name": "Hard Hat",
+  "kind": "wearable",
+  "tris": 896,
+  "materials": 3,
+  "dims_m": [
+   0.246,
+   0.3,
+   0.139
+  ],
+  "glb_bytes": 30908
+ },
+ "pith": {
+  "name": "Pith Helmet",
+  "kind": "wearable",
+  "tris": 1098,
+  "materials": 3,
+  "dims_m": [
+   0.352,
+   0.426,
+   0.19
+  ],
+  "glb_bytes": 38756
+ },
+ "beanie": {
+  "name": "Beanie",
+  "kind": "wearable",
+  "tris": 420,
+  "materials": 1,
+  "dims_m": [
+   0.232,
+   0.232,
+   0.206
+  ],
+  "glb_bytes": 12596
+ },
+ "crown": {
+  "name": "Crown",
+  "kind": "wearable",
+  "tris": 1216,
+  "materials": 3,
+  "dims_m": [
+   0.243,
+   0.232,
+   0.13
+  ],
+  "glb_bytes": 39732
+ },
+ "shades": {
+  "name": "Shades",
+  "kind": "wearable",
+  "tris": 764,
+  "materials": 2,
+  "dims_m": [
+   0.156,
+   0.141,
+   0.052
+  ],
+  "glb_bytes": 38832
+ },
+ "aviators": {
+  "name": "Aviators",
+  "kind": "wearable",
+  "tris": 586,
+  "materials": 3,
+  "dims_m": [
+   0.166,
+   0.141,
+   0.066
+  ],
+  "glb_bytes": 27092
+ },
+ "monocle": {
+  "name": "Monocle",
+  "kind": "wearable",
+  "tris": 968,
+  "materials": 2,
+  "dims_m": [
+   0.232,
+   0.015,
+   0.161
+  ],
+  "glb_bytes": 34084
+ },
+ "eyepatch": {
+  "name": "Eyepatch",
+  "kind": "wearable",
+  "tris": 590,
+  "materials": 2,
+  "dims_m": [
+   0.166,
+   0.174,
+   0.117
+  ],
+  "glb_bytes": 17716
+ },
+ "goggles": {
+  "name": "Ski Goggles",
+  "kind": "wearable",
+  "tris": 888,
+  "materials": 2,
+  "dims_m": [
+   0.219,
+   0.227,
+   0.094
+  ],
+  "glb_bytes": 37564
+ },
+ "heartglasses": {
+  "name": "Heart Glasses",
+  "kind": "wearable",
+  "tris": 844,
+  "materials": 1,
+  "dims_m": [
+   0.156,
+   0.138,
+   0.068
+  ],
+  "glb_bytes": 43240
+ },
+ "banditmask": {
+  "name": "Bandit Mask",
+  "kind": "wearable",
+  "tris": 832,
+  "materials": 1,
+  "dims_m": [
+   0.268,
+   0.177,
+   0.131
+  ],
+  "glb_bytes": 34000
+ },
+ "satchel": {
+  "name": "Satchel",
+  "kind": "wearable",
+  "tris": 820,
+  "materials": 2,
+  "dims_m": [
+   0.278,
+   0.119,
+   0.281
+  ],
+  "glb_bytes": 36128
+ },
+ "bigpack": {
+  "name": "Big Backpack",
+  "kind": "wearable",
+  "tris": 1288,
+  "materials": 3,
+  "dims_m": [
+   0.335,
+   0.303,
+   0.515
+  ],
+  "glb_bytes": 54700
+ },
+ "cratepack": {
+  "name": "Banana Crate Pack",
+  "kind": "wearable",
+  "tris": 1292,
+  "materials": 2,
+  "dims_m": [
+   0.318,
+   0.302,
+   0.333
+  ],
+  "glb_bytes": 51656
+ },
+ "suit": {
+  "name": "Businessman's Suit",
+  "kind": "wearable",
+  "tris": 1168,
+  "materials": 2,
+  "dims_m": [
+   0.64,
+   0.098,
+   0.593
+  ],
+  "glb_bytes": 50964
+ },
+ "pot_helmet": {
+  "name": "Cooking Pot",
+  "kind": "wearable",
+  "tris": 588,
+  "materials": 2,
+  "dims_m": [
+   1.451,
+   1.237,
+   0.515
+  ]
+ },
+ "coconut_helmet": {
+  "name": "Coconut Helmet",
+  "kind": "wearable",
+  "tris": 704,
+  "materials": 1,
+  "dims_m": [
+   1.154,
+   1.069,
+   1.185
+  ]
+ },
+ "warden_helmet": {
+  "name": "Warden's Riot Helmet",
+  "kind": "wearable",
+  "tris": 886,
+  "materials": 2,
+  "dims_m": [
+   1.117,
+   1.178,
+   0.556
+  ]
+ },
+ "snorkel": {
+  "name": "Snorkel Mask",
+  "kind": "wearable",
+  "tris": 556,
+  "materials": 2,
+  "dims_m": [
+   1.294,
+   1.095,
+   0.965
+  ]
+ },
+ "leaf_vest": {
+  "name": "Banana-Leaf Vest",
+  "kind": "wearable",
+  "tris": 784,
+  "materials": 1,
+  "dims_m": [
+   0.848,
+   0.8,
+   0.433
+  ]
+ },
+ "life_jacket": {
+  "name": "Ferry Life Jacket",
+  "kind": "wearable",
+  "tris": 1178,
+  "materials": 1,
+  "dims_m": [
+   0.834,
+   0.795,
+   0.415
+  ]
+ },
+ "peel_jacket": {
+  "name": "Peel Gang Padded Jacket",
+  "kind": "wearable",
+  "tris": 736,
+  "materials": 1,
+  "dims_m": [
+   0.781,
+   0.757,
+   0.403
+  ]
+ },
+ "bamboo_plate": {
+  "name": "Bamboo Plate Vest",
+  "kind": "wearable",
+  "tris": 1280,
+  "materials": 1,
+  "dims_m": [
+   0.889,
+   0.805,
+   0.444
+  ]
+ },
+ "coconut_cuirass": {
+  "name": "Coconut Cuirass",
+  "kind": "wearable",
+  "tris": 1460,
+  "materials": 1,
+  "dims_m": [
+   0.726,
+   0.77,
+   0.387
+  ]
+ },
+ "warden_vest": {
+  "name": "Warden's Kevlar",
+  "kind": "wearable",
+  "tris": 1324,
+  "materials": 1,
+  "dims_m": [
+   0.764,
+   0.809,
+   0.428
+  ]
+ },
+ "sack": {
+  "name": "Loot Sack",
+  "kind": "wearable",
+  "tris": 212,
+  "materials": 1,
+  "dims_m": [
+   0.598,
+   0.94,
+   0.68
+  ]
+ },
+ "walkman": {
+  "name": "Walkman Headphones",
+  "kind": "wearable",
+  "tris": 840,
+  "materials": 1,
+  "dims_m": [
+   1.466,
+   0.256,
+   0.623
+  ]
+ },
+ "radio_headset": {
+  "name": "Radio Headset",
+  "kind": "wearable",
+  "tris": 952,
+  "materials": 1,
+  "dims_m": [
+   1.484,
+   0.757,
+   0.783
+  ]
+ },
+ "guard_helmet": {
+  "name": "Guard's Horned Band",
+  "kind": "wearable",
+  "tris": 708,
+  "materials": 1,
+  "dims_m": [
+   1.237,
+   0.955,
+   0.554
+  ]
+ },
+ "guard_plate": {
+  "name": "Guard's Plate",
+  "kind": "wearable",
+  "tris": 712,
+  "materials": 1,
+  "dims_m": [
+   0.763,
+   0.735,
+   0.373
+  ]
+ },
+ "kingpin": {
+  "name": "Kingpin .45",
+  "kind": "weapon",
+  "tris": 3792,
+  "materials": 1,
+  "dims_m": [
+   0.237,
+   1.152,
+   0.831
+  ]
+ },
+ "cont_weapon": {
+  "name": "Weapon Crate",
+  "kind": "container",
+  "tris": 1616,
+  "materials": 1,
+  "dims_m": [
+   2.275,
+   0.941,
+   0.713
+  ]
+ },
+ "cont_food": {
+  "name": "Food Basket",
+  "kind": "container",
+  "tris": 1632,
+  "materials": 1,
+  "dims_m": [
+   1.478,
+   1.22,
+   1.118
+  ]
+ },
+ "cont_ammo": {
+  "name": "Ammo Tin",
+  "kind": "container",
+  "tris": 1286,
+  "materials": 1,
+  "dims_m": [
+   1.242,
+   0.82,
+   0.743
+  ]
+ },
+ "cont_parts": {
+  "name": "Parts Bin",
+  "kind": "container",
+  "tris": 1756,
+  "materials": 1,
+  "dims_m": [
+   1.321,
+   1.429,
+   0.953
+  ]
+ },
+ "cont_medical": {
+  "name": "Medical Case",
+  "kind": "container",
+  "tris": 1314,
+  "materials": 1,
+  "dims_m": [
+   1.055,
+   0.855,
+   0.535
+  ]
+ },
+ "att_sight_holo": {
+  "name": "Reflex Sight",
+  "kind": "attachment",
+  "tris": 488,
+  "materials": 2,
+  "dims_m": [
+   0.178,
+   0.23,
+   0.206
+  ]
+ },
+ "att_sight_2x": {
+  "name": "2x Scope",
+  "kind": "attachment",
+  "tris": 860,
+  "materials": 1,
+  "dims_m": [
+   0.178,
+   0.436,
+   0.23
+  ]
+ },
+ "att_muzzle_comp": {
+  "name": "Compensator",
+  "kind": "attachment",
+  "tris": 338,
+  "materials": 1,
+  "dims_m": [
+   0.176,
+   0.234,
+   0.162
+  ]
+ },
+ "att_muzzle_supp": {
+  "name": "Suppressor",
+  "kind": "attachment",
+  "tris": 808,
+  "materials": 1,
+  "dims_m": [
+   0.21,
+   0.499,
+   0.21
+  ]
+ },
+ "att_mag_ext": {
+  "name": "Extended Magazine",
+  "kind": "attachment",
+  "tris": 604,
+  "materials": 2,
+  "dims_m": [
+   0.2,
+   0.368,
+   0.718
+  ]
+ },
+ "att_laser": {
+  "name": "Laser Module",
+  "kind": "attachment",
+  "tris": 408,
+  "materials": 2,
+  "dims_m": [
+   0.202,
+   0.275,
+   0.166
+  ]
+ },
+ "cont_lunchbox": {
+  "name": "Lunchbox",
+  "kind": "container",
+  "tris": 928,
+  "materials": 1,
+  "dims_m": [
+   0.84,
+   0.586,
+   0.74
+  ]
+ },
+ "cont_toolbox": {
+  "name": "Toolbox",
+  "kind": "container",
+  "tris": 1184,
+  "materials": 1,
+  "dims_m": [
+   1.28,
+   0.662,
+   0.751
+  ]
+ },
+ "cont_medcabinet": {
+  "name": "Medicine Cabinet",
+  "kind": "container",
+  "tris": 1160,
+  "materials": 1,
+  "dims_m": [
+   1.08,
+   0.46,
+   0.98
+  ]
+ },
+ "cont_safe": {
+  "name": "Safe",
+  "kind": "container",
+  "tris": 1158,
+  "materials": 1,
+  "dims_m": [
+   0.97,
+   0.94,
+   0.973
+  ]
+ },
+ "cont_trash": {
+  "name": "Junk Heap",
+  "kind": "container",
+  "tris": 1187,
+  "materials": 1,
+  "dims_m": [
+   1.749,
+   1.566,
+   0.863
+  ]
+ },
+ "cont_sack": {
+  "name": "Supply Sack",
+  "kind": "container",
+  "tris": 858,
+  "materials": 1,
+  "dims_m": [
+   1.012,
+   0.838,
+   1.429
+  ]
+ },
+ "meat": {
+  "name": "Boar Meat",
+  "kind": "item",
+  "tris": 716,
+  "materials": 2,
+  "dims_m": [
+   0.37,
+   0.207,
+   0.246
+  ],
+  "glb_bytes": 23704
+ },
+ "hide": {
+  "name": "Animal Hide",
+  "kind": "item",
+  "tris": 1378,
+  "materials": 1,
+  "dims_m": [
+   0.376,
+   0.316,
+   0.141
+  ],
+  "glb_bytes": 43612
+ },
+ "cont_jacket": {
+  "name": "Hanging Jacket",
+  "kind": "container",
+  "tris": 960,
+  "materials": 1,
+  "dims_m": [
+   1.218,
+   0.3,
+   0.963
+  ]
+ },
+ "contraband_carbine": {
+  "name": "Contraband Carbine",
+  "kind": "weapon",
+  "tris": 2312,
+  "materials": 1,
+  "dims_m": [
+   0.256,
+   2.377,
+   0.883
+  ]
+ },
+ "cash_flow": {
+  "name": "Cash Flow",
+  "kind": "weapon",
+  "tris": 1952,
+  "materials": 1,
+  "dims_m": [
+   0.263,
+   1.835,
+   0.965
+  ]
+ },
+ "coconut_cracker": {
+  "name": "Coconut Cracker",
+  "kind": "weapon",
+  "tris": 2072,
+  "materials": 1,
+  "dims_m": [
+   0.31,
+   2.525,
+   0.732
+  ]
+ },
+ "bean_counter": {
+  "name": "Bean Counter",
+  "kind": "weapon",
+  "tris": 2308,
+  "materials": 1,
+  "dims_m": [
+   0.34,
+   2.943,
+   0.855
+  ]
+ },
+ "hostile_takeover": {
+  "name": "Hostile Takeover",
+  "kind": "weapon",
+  "tris": 2972,
+  "materials": 1,
+  "dims_m": [
+   0.301,
+   2.83,
+   1.033
+  ]
+ },
+ "pocket_change": {
+  "name": "Pocket Change",
+  "kind": "weapon",
+  "tris": 988,
+  "materials": 1,
+  "dims_m": [
+   0.19,
+   0.801,
+   0.688
+  ]
+ },
+ "golden_parachute": {
+  "name": "Golden Parachute",
+  "kind": "weapon",
+  "tris": 2324,
+  "materials": 1,
+  "dims_m": [
+   0.237,
+   1.444,
+   0.876
+  ]
+ },
+ "peel_sprayer": {
+  "name": "Peel Sprayer",
+  "kind": "weapon",
+  "tris": 1236,
+  "materials": 1,
+  "dims_m": [
+   0.209,
+   1.846,
+   0.857
+  ]
+ },
+ "insider_trader": {
+  "name": "Insider Trader",
+  "kind": "weapon",
+  "tris": 1924,
+  "materials": 1,
+  "dims_m": [
+   0.235,
+   2.12,
+   1.03
+  ]
+ },
+ "bootleg_rifle": {
+  "name": "Bootleg Rifle",
+  "kind": "weapon",
+  "tris": 1636,
+  "materials": 1,
+  "dims_m": [
+   0.326,
+   2.325,
+   0.95
+  ]
+ },
+ "board_meeting": {
+  "name": "Board Meeting",
+  "kind": "weapon",
+  "tris": 2300,
+  "materials": 1,
+  "dims_m": [
+   0.305,
+   2.604,
+   0.823
+  ]
+ },
+ "pipe_dream": {
+  "name": "Pipe Dream",
+  "kind": "weapon",
+  "tris": 1384,
+  "materials": 1,
+  "dims_m": [
+   0.249,
+   2.437,
+   0.728
+  ]
+ },
+ "the_audit": {
+  "name": "The Audit",
+  "kind": "weapon",
+  "tris": 1732,
+  "materials": 1,
+  "dims_m": [
+   0.243,
+   2.583,
+   0.746
+  ]
+ },
+ "long_ledger": {
+  "name": "Long Ledger",
+  "kind": "weapon",
+  "tris": 2368,
+  "materials": 1,
+  "dims_m": [
+   0.303,
+   3.243,
+   0.871
+  ]
+ }
+}

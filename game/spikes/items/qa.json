@@ -1,0 +1,340 @@
+{
+ "ammo": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 924,
+  "islands": 17,
+  "ground_z": 0.0
+ },
+ "aviators": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 586,
+  "islands": 10,
+  "ground_z": 0.0
+ },
+ "bandage": {
+  "pass": true,
+  "errors": [],
+  "warnings": [
+   "hidden back-to-back faces: bandage (10 pairs) - delete to save tris"
+  ],
+  "tris": 832,
+  "islands": 4,
+  "ground_z": 0.0
+ },
+ "banditmask": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 832,
+  "islands": 5,
+  "ground_z": 0.0
+ },
+ "beanie": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 420,
+  "islands": 3,
+  "ground_z": 0.0
+ },
+ "bigpack": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 1288,
+  "islands": 14,
+  "ground_z": 0.0
+ },
+ "boomerang": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 272,
+  "islands": 1,
+  "ground_z": 0.0
+ },
+ "bowler": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 972,
+  "islands": 4,
+  "ground_z": 0.0
+ },
+ "bunch": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 1100,
+  "islands": 11,
+  "ground_z": 0.0
+ },
+ "cap": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 570,
+  "islands": 5,
+  "ground_z": 0.0
+ },
+ "coconut": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 792,
+  "islands": 5,
+  "ground_z": 0.0
+ },
+ "compass": {
+  "pass": true,
+  "errors": [],
+  "warnings": [
+   "hidden back-to-back faces: compass (20 pairs) - delete to save tris"
+  ],
+  "tris": 1064,
+  "islands": 17,
+  "ground_z": 0.0
+ },
+ "cratepack": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 1292,
+  "islands": 25,
+  "ground_z": 0.0
+ },
+ "crown": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 1216,
+  "islands": 13,
+  "ground_z": 0.0
+ },
+ "extmag": {
+  "pass": true,
+  "errors": [],
+  "warnings": [
+   "hidden back-to-back faces: extmag (2 pairs) - delete to save tris"
+  ],
+  "tris": 736,
+  "islands": 13,
+  "ground_z": 0.0
+ },
+ "eyepatch": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 590,
+  "islands": 3,
+  "ground_z": 0.0
+ },
+ "fedora": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 836,
+  "islands": 4,
+  "ground_z": 0.0
+ },
+ "firstaid": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 552,
+  "islands": 9,
+  "ground_z": 0.0
+ },
+ "gear": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 792,
+  "islands": 2,
+  "ground_z": 0.0
+ },
+ "goggles": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 888,
+  "islands": 3,
+  "ground_z": 0.0
+ },
+ "golden": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 300,
+  "islands": 1,
+  "ground_z": 0.0
+ },
+ "hardhat": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 896,
+  "islands": 7,
+  "ground_z": 0.0
+ },
+ "heartglasses": {
+  "pass": true,
+  "errors": [],
+  "warnings": [
+   "hidden back-to-back faces: heartglasses (28 pairs) - delete to save tris"
+  ],
+  "tris": 844,
+  "islands": 7,
+  "ground_z": 0.0
+ },
+ "honey": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 1368,
+  "islands": 9,
+  "ground_z": 0.0
+ },
+ "idol": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 1258,
+  "islands": 18,
+  "ground_z": 0.0
+ },
+ "key": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 1054,
+  "islands": 10,
+  "ground_z": 0.0
+ },
+ "mango": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 408,
+  "islands": 3,
+  "ground_z": 0.0
+ },
+ "monocle": {
+  "pass": true,
+  "errors": [],
+  "warnings": [
+   "hidden back-to-back faces: monocle (2 pairs) - delete to save tris"
+  ],
+  "tris": 968,
+  "islands": 17,
+  "ground_z": 0.0
+ },
+ "pith": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 1098,
+  "islands": 6,
+  "ground_z": 0.0
+ },
+ "plank": {
+  "pass": true,
+  "errors": [],
+  "warnings": [
+   "hidden back-to-back faces: plank (22 pairs) - delete to save tris"
+  ],
+  "tris": 648,
+  "islands": 12,
+  "ground_z": 0.0
+ },
+ "radio_key": {
+  "pass": true,
+  "errors": [],
+  "warnings": [
+   "hidden back-to-back faces: radio_key (10 pairs) - delete to save tris"
+  ],
+  "tris": 1272,
+  "islands": 11,
+  "ground_z": 0.0
+ },
+ "rope": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 1176,
+  "islands": 10,
+  "ground_z": 0.0
+ },
+ "satchel": {
+  "pass": true,
+  "errors": [],
+  "warnings": [
+   "hidden back-to-back faces: satchel (2 pairs) - delete to save tris"
+  ],
+  "tris": 820,
+  "islands": 8,
+  "ground_z": 0.0
+ },
+ "shades": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 764,
+  "islands": 9,
+  "ground_z": 0.0
+ },
+ "smoothie": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 950,
+  "islands": 7,
+  "ground_z": 0.0
+ },
+ "spring": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 996,
+  "islands": 3,
+  "ground_z": 0.0
+ },
+ "suit": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 1168,
+  "islands": 17,
+  "ground_z": 0.0
+ },
+ "tophat": {
+  "pass": true,
+  "errors": [],
+  "warnings": [
+   "hidden back-to-back faces: tophat (4 pairs) - delete to save tris"
+  ],
+  "tris": 912,
+  "islands": 4,
+  "ground_z": 0.0
+ },
+ "hide": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 1378,
+  "islands": 14,
+  "ground_z": 0.0
+ },
+ "meat": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 716,
+  "islands": 8,
+  "ground_z": 0.0
+ }
+}

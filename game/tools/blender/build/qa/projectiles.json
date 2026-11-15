@@ -1,0 +1,14 @@
+{
+ "group": "projectiles",
+ "assets": {
+  "rang": {
+   "pass": true,
+   "tris": 344,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.1 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.1
+  }
+ }
+}

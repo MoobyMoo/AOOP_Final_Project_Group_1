@@ -1,0 +1,173 @@
+{
+ "group": "traversal",
+ "assets": {
+  "boardwalk_a": {
+   "pass": true,
+   "tris": 1034,
+   "errors": [],
+   "warnings": [
+    "boardwalk_a__matte: duplicate verts=32 loose verts=0",
+    "hidden back-to-back faces: boardwalk_a__matte (3 pairs) - delete to save tris",
+    "asset lowest point z=-0.9019 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.9019
+  },
+  "boardwalk_b": {
+   "pass": true,
+   "tris": 964,
+   "errors": [],
+   "warnings": [
+    "boardwalk_b__matte: duplicate verts=32 loose verts=0",
+    "asset lowest point z=-0.901 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.901
+  },
+  "boardwalk_ramp": {
+   "pass": true,
+   "tris": 592,
+   "errors": [],
+   "warnings": [
+    "boardwalk_ramp__matte: duplicate verts=16 loose verts=0",
+    "asset lowest point z=-0.902 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.902
+  },
+  "bridge": {
+   "pass": true,
+   "tris": 1484,
+   "errors": [],
+   "warnings": [
+    "bridge__matte: duplicate verts=32 loose verts=0",
+    "asset lowest point z=-0.7 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.7
+  },
+  "dock_a": {
+   "pass": true,
+   "tris": 1520,
+   "errors": [],
+   "warnings": [
+    "dock_a__matte: duplicate verts=32 loose verts=0",
+    "hidden back-to-back faces: dock_a__matte (21 pairs) - delete to save tris",
+    "asset lowest point z=-2.4 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -2.4
+  },
+  "dock_b": {
+   "pass": true,
+   "tris": 1760,
+   "errors": [],
+   "warnings": [
+    "dock_b__matte: duplicate verts=32 loose verts=0",
+    "hidden back-to-back faces: dock_b__matte (23 pairs) - delete to save tris",
+    "asset lowest point z=-2.4 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -2.4
+  },
+  "dock_broken": {
+   "pass": true,
+   "tris": 1256,
+   "errors": [],
+   "warnings": [
+    "dock_broken__matte: duplicate verts=19 loose verts=0",
+    "hidden back-to-back faces: dock_broken__matte (14 pairs) - delete to save tris",
+    "asset lowest point z=-2.4283 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -2.4283
+  },
+  "dock_piles": {
+   "pass": true,
+   "tris": 266,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-2.4165 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -2.4165
+  },
+  "hatch": {
+   "pass": true,
+   "tris": 1472,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: hatch__lid<->hatch__matte (28 pairs) - delete to save tris",
+    "asset lowest point z=-0.03 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.03
+  },
+  "portal_cave": {
+   "pass": true,
+   "tris": 1551,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.2 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.2
+  },
+  "portal_cave_dark": {
+   "pass": true,
+   "tris": 1593,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.2 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.2
+  },
+  "portal_roots": {
+   "pass": true,
+   "tris": 1433,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.3 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.3
+  },
+  "raft": {
+   "pass": true,
+   "tris": 1356,
+   "errors": [],
+   "warnings": [
+    "raft__matte: duplicate verts=3 loose verts=0"
+   ],
+   "ground_z": -0.0167
+  },
+  "supply_gondola": {
+   "pass": true,
+   "tris": 1378,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.3278 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.3278
+  },
+  "zip_end": {
+   "pass": true,
+   "tris": 1364,
+   "errors": [],
+   "warnings": [
+    "zip_end__matte: duplicate verts=24 loose verts=0",
+    "hidden back-to-back faces: zip_end__matte (1 pairs) - delete to save tris",
+    "asset lowest point z=-0.1223 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.1223
+  },
+  "zip_handle": {
+   "pass": true,
+   "tris": 372,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.595 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.595
+  },
+  "zip_tower": {
+   "pass": true,
+   "tris": 2940,
+   "errors": [],
+   "warnings": [
+    "zip_tower__matte: duplicate verts=18 loose verts=0",
+    "asset lowest point z=-0.1129 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.1129
+  }
+ }
+}

@@ -1,0 +1,342 @@
+{
+ "group": "vault",
+ "glb_bytes": 1394028,
+ "assets": {
+  "vault_pod": {
+   "tris": 3682,
+   "parts": [
+    "pod_door",
+    "pod_glass",
+    "pod_lamp",
+    "pod_needle"
+   ],
+   "points": [
+    "puff",
+    "stand"
+   ],
+   "footprint": 1.5,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 2.2
+  },
+  "vault_board": {
+   "tris": 776,
+   "parts": [
+    "board_face"
+   ],
+   "points": [
+    "light"
+   ],
+   "footprint": 1.0,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.0
+  },
+  "vault_floor": {
+   "tris": 56,
+   "parts": [],
+   "points": [],
+   "footprint": 1.0,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "vault_floor_half": {
+   "tris": 26,
+   "parts": [],
+   "points": [],
+   "footprint": 1.0,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "vault_floor_cell": {
+   "tris": 16,
+   "parts": [],
+   "points": [],
+   "footprint": 1.0,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "vault_floor_border": {
+   "tris": 18,
+   "parts": [],
+   "points": [],
+   "footprint": 0.5,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "vault_floor_corner": {
+   "tris": 20,
+   "parts": [],
+   "points": [],
+   "footprint": 0.5,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "vault_kerb": {
+   "tris": 60,
+   "parts": [],
+   "points": [],
+   "footprint": 0.3,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "vault_kerb_post": {
+   "tris": 172,
+   "parts": [],
+   "points": [],
+   "footprint": 0.3,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "vault_wall": {
+   "tris": 242,
+   "parts": [],
+   "points": [],
+   "footprint": 1.0,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  },
+  "vault_wall_corner": {
+   "tris": 104,
+   "parts": [],
+   "points": [],
+   "footprint": 1.0,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  },
+  "vault_pilaster": {
+   "tris": 384,
+   "parts": [],
+   "points": [],
+   "footprint": 0.5,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  },
+  "vault_trim": {
+   "tris": 100,
+   "parts": [],
+   "points": [],
+   "footprint": 0.2,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "vault_wall_cap": {
+   "tris": 44,
+   "parts": [],
+   "points": [],
+   "footprint": 0.5,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "vault_door_round": {
+   "tris": 2592,
+   "parts": [
+    "door_wheel"
+   ],
+   "points": [],
+   "footprint": 2.0,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  },
+  "vault_sconce": {
+   "tris": 260,
+   "parts": [
+    "sconce_bulb"
+   ],
+   "points": [
+    "light"
+   ],
+   "footprint": 0.2,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 2.2
+  },
+  "fac_fence": {
+   "tris": 2021,
+   "parts": [
+    "bell"
+   ],
+   "points": [
+    "counter"
+   ],
+   "footprint": 2.0,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 2.0
+  },
+  "fac_bench": {
+   "tris": 2481,
+   "parts": [
+    "fx_heart",
+    "fx_mag",
+    "fx_pack"
+   ],
+   "points": [
+    "light"
+   ],
+   "footprint": 1.5,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 2.0
+  },
+  "fac_sal": {
+   "tris": 2276,
+   "parts": [
+    "neon"
+   ],
+   "points": [
+    "light",
+    "sal"
+   ],
+   "footprint": 1.5,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 2.6
+  },
+  "fac_trophy": {
+   "tris": 919,
+   "parts": [],
+   "points": [
+    "slot0",
+    "slot1",
+    "slot2",
+    "slot3",
+    "slot4",
+    "slot5",
+    "slot6",
+    "slot7",
+    "slot8"
+   ],
+   "footprint": 1.5,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "fac_med": {
+   "tris": 2033,
+   "parts": [],
+   "points": [],
+   "footprint": 1.5,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "fac_stash": {
+   "tris": 1550,
+   "parts": [],
+   "points": [],
+   "footprint": 1.5,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "fac_generator": {
+   "tris": 2462,
+   "parts": [
+    "gen_lamp",
+    "gen_wheel"
+   ],
+   "points": [
+    "light"
+   ],
+   "footprint": 1.0,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 2.2
+  },
+  "fac_press": {
+   "tris": 1966,
+   "parts": [
+    "press_wheel"
+   ],
+   "points": [],
+   "footprint": 1.0,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  },
+  "fac_desk": {
+   "tris": 2385,
+   "parts": [],
+   "points": [
+    "light"
+   ],
+   "footprint": 2.0,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 2.0
+  },
+  "fac_plant": {
+   "tris": 1084,
+   "parts": [],
+   "points": [],
+   "footprint": 0.5,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "fac_locker": {
+   "tris": 1220,
+   "parts": [
+    "mirror_glass"
+   ],
+   "points": [],
+   "footprint": 1.5,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "fac_blueprint": {
+   "tris": 617,
+   "parts": [
+    "bp_sheet"
+   ],
+   "points": [],
+   "footprint": 1.0,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 2.0
+  }
+ }
+}

@@ -1,0 +1,136 @@
+{
+ "group": "ruins",
+ "assets": {
+  "fusebox": {
+   "pass": true,
+   "tris": 1332,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: fusebox__matte (11 pairs) - delete to save tris",
+    "asset lowest point z=-0.04 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.04
+  },
+  "pillar_a": {
+   "pass": true,
+   "tris": 532,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.04 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.04
+  },
+  "pillar_b": {
+   "pass": true,
+   "tris": 412,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.04 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.04
+  },
+  "pillar_c": {
+   "pass": true,
+   "tris": 1052,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.0454 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0454
+  },
+  "ruin_arch": {
+   "pass": true,
+   "tris": 1200,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.0951 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0951
+  },
+  "ruin_floor_a": {
+   "pass": true,
+   "tris": 1008,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.0606 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0606
+  },
+  "ruin_floor_b": {
+   "pass": true,
+   "tris": 1428,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.056 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.056
+  },
+  "ruin_floor_c": {
+   "pass": true,
+   "tris": 608,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: ruin_floor_c__matte (2 pairs) - delete to save tris",
+    "asset lowest point z=-0.0528 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0528
+  },
+  "ruin_steps": {
+   "pass": true,
+   "tris": 440,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: ruin_steps__matte (4 pairs) - delete to save tris",
+    "asset lowest point z=-0.0466 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0466
+  },
+  "ruin_wall_broken": {
+   "pass": true,
+   "tris": 1384,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.0617 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0617
+  },
+  "statue": {
+   "pass": true,
+   "tris": 2410,
+   "errors": [],
+   "warnings": [
+    "statue__matte: duplicate verts=12 loose verts=0",
+    "asset lowest point z=-0.04 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.04
+  },
+  "vault": {
+   "pass": true,
+   "tris": 7876,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: vault__matte (109 pairs) - delete to save tris",
+    "asset lowest point z=-0.0924 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0924
+  },
+  "vault_plinth": {
+   "pass": true,
+   "tris": 132,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.04 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.04
+  },
+  "vine_door": {
+   "pass": true,
+   "tris": 3214,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.06 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.06
+  }
+ }
+}

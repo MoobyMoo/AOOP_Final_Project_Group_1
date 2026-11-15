@@ -1,0 +1,152 @@
+{
+ "group": "prefab",
+ "glb_bytes": 2551580,
+ "assets": {
+  "guard_hut": {
+   "tris": 4620,
+   "parts": [
+    "door0",
+    "roof",
+    "upper_e",
+    "upper_n",
+    "upper_s",
+    "upper_w"
+   ],
+   "points": [
+    "light0"
+   ],
+   "footprint": 3.0,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.6,
+   "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-2.0,\"az\":2.0,\"bx\":-1.8,\"bz\":2.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.2,\"az\":2.0,\"bx\":0.45,\"bz\":2.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":1.55,\"az\":2.0,\"bx\":2.0,\"bz\":2.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-1.74,\"az\":2.17,\"bx\":-0.26,\"bz\":2.17,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"hut_door\"},{\"t\":\"seg\",\"ax\":0.45,\"az\":2.0,\"bx\":1.55,\"bz\":2.0,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":2.0,\"az\":2.0,\"bx\":2.0,\"bz\":-0.45,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":2.0,\"az\":-1.55,\"bx\":2.0,\"bz\":-2.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":2.0,\"az\":-0.45,\"bx\":2.0,\"bz\":-1.55,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":2.0,\"az\":-2.0,\"bx\":-2.0,\"bz\":-2.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-2.0,\"az\":-2.0,\"bx\":-2.0,\"bz\":-1.55,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-2.0,\"az\":-0.45,\"bx\":-2.0,\"bz\":2.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-2.0,\"az\":-1.55,\"bx\":-2.0,\"bz\":-0.45,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":1.05,\"z\":2.34,\"w\":1.1,\"d\":0.2,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":0.75,\"z\":-1.3,\"w\":1.7,\"d\":0.85,\"move\":true,\"shot\":false,\"yaw\":3.1416,\"low\":true},{\"t\":\"box\",\"x\":-1.1,\"z\":-1.58,\"w\":1.2,\"d\":0.42,\"move\":true,\"shot\":true},{\"t\":\"box\",\"x\":1.33,\"z\":0.75,\"w\":1.95,\"d\":0.92,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"circle\",\"x\":-2.5,\"z\":-1.2,\"r\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":2.58,\"z\":-0.6,\"w\":1.5,\"d\":0.76,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"circle\",\"x\":-2.44,\"z\":1.3,\"r\":0.26,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[{\"x\":0.0,\"z\":0.0,\"w\":4,\"d\":4,\"h\":3.0}],\"doors\":[{\"id\":\"hut_door\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-1.74,2.17],\"kind\":\"plank\",\"breakable\":true}],\"lights\":[\"light0\"],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":0.0,\"w\":4,\"d\":4},\"name\":\"Guard hut\"}"
+  },
+  "cellblock": {
+   "tris": 11080,
+   "parts": [
+    "brk0_c0",
+    "brk0_c1",
+    "brk0_c2",
+    "brk0_c3",
+    "brk0_c4",
+    "brk0_c5",
+    "brk0_c6",
+    "brk0_c7",
+    "brk0_c8",
+    "brk0_c9",
+    "brk0_marks",
+    "brk0_remains",
+    "door0",
+    "door1",
+    "door2",
+    "door3",
+    "door4",
+    "door5",
+    "roof",
+    "upper_e",
+    "upper_i",
+    "upper_n",
+    "upper_s",
+    "upper_w"
+   ],
+   "points": [
+    "light0",
+    "light1"
+   ],
+   "footprint": 3.0,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.6,
+   "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-8.0,\"az\":4.0,\"bx\":-5.55,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-4.45,\"az\":4.0,\"bx\":-3.8,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-2.2,\"az\":4.0,\"bx\":-1.55,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.45,\"az\":4.0,\"bx\":2.45,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":3.55,\"az\":4.0,\"bx\":6.45,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":7.55,\"az\":4.0,\"bx\":8.0,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-5.55,\"az\":4.0,\"bx\":-4.45,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":-3.74,\"az\":4.17,\"bx\":-2.26,\"bz\":4.17,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"block_door\"},{\"t\":\"seg\",\"ax\":-1.55,\"az\":4.0,\"bx\":-0.45,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":2.45,\"az\":4.0,\"bx\":3.55,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":6.45,\"az\":4.0,\"bx\":7.55,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":8.0,\"az\":4.0,\"bx\":8.0,\"bz\":1.55,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":8.0,\"az\":0.45,\"bx\":8.0,\"bz\":-0.45,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":8.0,\"az\":-1.55,\"bx\":8.0,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":8.0,\"az\":1.55,\"bx\":8.0,\"bz\":0.45,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":8.0,\"az\":-0.45,\"bx\":8.0,\"bz\":-1.55,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":8.0,\"az\":-4.0,\"bx\":5.55,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":4.45,\"az\":-4.0,\"bx\":3.42,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":2.58,\"az\":-4.0,\"bx\":-2.58,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-3.42,\"az\":-4.0,\"bx\":-4.0,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-6.0,\"az\":-4.0,\"bx\":-6.58,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-7.42,\"az\":-4.0,\"bx\":-8.0,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":5.55,\"az\":-4.0,\"bx\":4.45,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":3.42,\"az\":-4.0,\"bx\":2.58,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-2.58,\"az\":-4.0,\"bx\":-3.42,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-4.0,\"az\":-4.0,\"bx\":-6.0,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true,\"id\":\"brk0\"},{\"t\":\"seg\",\"ax\":-6.58,\"az\":-4.0,\"bx\":-7.42,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-8.0,\"az\":-4.0,\"bx\":-8.0,\"bz\":0.2,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-8.0,\"az\":1.8,\"bx\":-8.0,\"bz\":4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-8.17,\"az\":0.26,\"bx\":-8.17,\"bz\":1.74,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"block_side\"},{\"t\":\"seg\",\"ax\":-8.0,\"az\":-0.0,\"bx\":-6.0,\"bz\":-0.0,\"thick\":0.2,\"move\":true,\"shot\":false},{\"t\":\"seg\",\"ax\":-5.9,\"az\":-0.0,\"bx\":-4.1,\"bz\":-0.0,\"thick\":0.2,\"move\":true,\"shot\":false,\"id\":\"cell1\"},{\"t\":\"seg\",\"ax\":-4.0,\"az\":-0.0,\"bx\":-2.0,\"bz\":-0.0,\"thick\":0.2,\"move\":true,\"shot\":false},{\"t\":\"seg\",\"ax\":-1.9,\"az\":-0.0,\"bx\":-0.1,\"bz\":-0.0,\"thick\":0.2,\"move\":true,\"shot\":false,\"id\":\"cell2\"},{\"t\":\"seg\",\"ax\":1.9,\"az\":-0.0,\"bx\":0.1,\"bz\":-0.0,\"thick\":0.2,\"move\":true,\"shot\":false,\"id\":\"cell3\"},{\"t\":\"seg\",\"ax\":2.0,\"az\":-0.0,\"bx\":4.0,\"bz\":-0.0,\"thick\":0.2,\"move\":true,\"shot\":false},{\"t\":\"seg\",\"ax\":-4.0,\"az\":-0.0,\"bx\":-4.0,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":0.0,\"az\":-0.0,\"bx\":-0.0,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":4.0,\"az\":4.0,\"bx\":4.0,\"bz\":3.55,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":4.0,\"az\":2.45,\"bx\":4.0,\"bz\":1.8,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":4.0,\"az\":0.2,\"bx\":4.0,\"bz\":-4.0,\"thick\":0.34,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":4.0,\"az\":3.55,\"bx\":4.0,\"bz\":2.45,\"thick\":0.34,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":3.83,\"az\":1.74,\"bx\":3.83,\"bz\":0.26,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"warden_door\"},{\"t\":\"box\",\"x\":-7.28,\"z\":-2.45,\"w\":1.95,\"d\":0.92,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"box\",\"x\":-3.28,\"z\":-2.45,\"w\":1.95,\"d\":0.92,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"box\",\"x\":0.72,\"z\":-2.45,\"w\":1.95,\"d\":0.92,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"box\",\"x\":0.2,\"z\":2.3,\"w\":1.3,\"d\":0.9,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":1.9,\"z\":3.52,\"w\":1.6,\"d\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-7.1,\"z\":3.2,\"w\":0.72,\"d\":0.72,\"move\":true,\"shot\":false,\"yaw\":0.1396,\"low\":true},{\"t\":\"circle\",\"x\":-5.6,\"z\":3.3,\"r\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-1.0,\"z\":3.6,\"w\":1.1,\"d\":0.2,\"move\":true,\"shot\":false,\"yaw\":3.1416,\"low\":true},{\"t\":\"box\",\"x\":6.1,\"z\":-1.0,\"w\":1.7,\"d\":0.85,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":4.75,\"z\":-3.42,\"w\":0.56,\"d\":0.62,\"move\":true,\"shot\":true},{\"t\":\"box\",\"x\":5.4,\"z\":-3.32,\"w\":0.56,\"d\":0.82,\"move\":true,\"shot\":true},{\"t\":\"box\",\"x\":7.55,\"z\":1.7,\"w\":1.7,\"d\":0.42,\"move\":true,\"shot\":true,\"yaw\":-1.5708},{\"t\":\"box\",\"x\":7.3,\"z\":3.25,\"w\":0.7,\"d\":0.7,\"move\":true,\"shot\":false,\"yaw\":0.2094,\"low\":true},{\"t\":\"circle\",\"x\":5.2,\"z\":4.5,\"r\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":6.0,\"z\":4.5,\"r\":0.33,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-6.0,\"z\":4.39,\"w\":1.6,\"d\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":8.58,\"z\":1.0,\"w\":1.5,\"d\":0.76,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true}],\"interiors\":[{\"x\":-2.0,\"z\":2.0,\"w\":12,\"d\":4,\"h\":3.0},{\"x\":-6.0,\"z\":-2.0,\"w\":4,\"d\":4,\"h\":3.0},{\"x\":-2.0,\"z\":-2.0,\"w\":4,\"d\":4,\"h\":3.0},{\"x\":2.0,\"z\":-2.0,\"w\":4,\"d\":4,\"h\":3.0},{\"x\":6.0,\"z\":0.0,\"w\":4,\"d\":8,\"h\":3.0}],\"doors\":[{\"id\":\"block_door\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-3.74,4.17],\"kind\":\"plank\"},{\"id\":\"block_side\",\"leaf\":\"door1\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-8.17,0.26],\"kind\":\"plank\",\"breakable\":true},{\"id\":\"cell1\",\"leaf\":\"door2\",\"axis\":\"y\",\"open\":-1.5,\"w\":1.8,\"hinge\":[-5.9,-0.0],\"kind\":\"bars\"},{\"id\":\"cell2\",\"leaf\":\"door3\",\"axis\":\"y\",\"open\":-1.5,\"w\":1.8,\"hinge\":[-1.9,-0.0],\"kind\":\"bars\"},{\"id\":\"cell3\",\"leaf\":\"door4\",\"axis\":\"y\",\"open\":1.5,\"w\":1.8,\"hinge\":[1.9,-0.0],\"kind\":\"bars\"},{\"id\":\"warden_door\",\"leaf\":\"door5\",\"axis\":\"y\",\"open\":1.6,\"w\":1.48,\"hinge\":[3.83,1.74],\"kind\":\"plank\"}],\"lights\":[\"light0\",\"light1\"],\"breakables\":[{\"id\":\"brk0\",\"chunks\":10,\"marks\":\"brk0_marks\",\"remains\":\"brk0_remains\"}],\"size\":{\"x\":0.0,\"z\":0.0,\"w\":16,\"d\":8},\"name\":\"Cellblock\"}"
+  },
+  "farmhouse": {
+   "tris": 9578,
+   "parts": [
+    "door0",
+    "door1",
+    "door2",
+    "roof",
+    "upper_e",
+    "upper_i",
+    "upper_n",
+    "upper_s",
+    "upper_w"
+   ],
+   "points": [
+    "light0",
+    "light1"
+   ],
+   "footprint": 3.0,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.6,
+   "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-6.0,\"az\":3.0,\"bx\":-5.55,\"bz\":3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-4.45,\"az\":3.0,\"bx\":-1.8,\"bz\":3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.2,\"az\":3.0,\"bx\":0.45,\"bz\":3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":1.55,\"az\":3.0,\"bx\":4.45,\"bz\":3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":5.55,\"az\":3.0,\"bx\":6.0,\"bz\":3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-5.55,\"az\":3.0,\"bx\":-4.45,\"bz\":3.0,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":-1.74,\"az\":3.13,\"bx\":-0.26,\"bz\":3.13,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"farm_front\"},{\"t\":\"seg\",\"ax\":0.45,\"az\":3.0,\"bx\":1.55,\"bz\":3.0,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":4.45,\"az\":3.0,\"bx\":5.55,\"bz\":3.0,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":6.0,\"az\":3.0,\"bx\":6.0,\"bz\":0.55,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":6.0,\"az\":-0.55,\"bx\":6.0,\"bz\":-3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":6.0,\"az\":0.55,\"bx\":6.0,\"bz\":-0.55,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":6.0,\"az\":-3.0,\"bx\":3.55,\"bz\":-3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":2.45,\"az\":-3.0,\"bx\":-2.45,\"bz\":-3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-3.55,\"az\":-3.0,\"bx\":-6.0,\"bz\":-3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":3.55,\"az\":-3.0,\"bx\":2.45,\"bz\":-3.0,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":-2.45,\"az\":-3.0,\"bx\":-3.55,\"bz\":-3.0,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":-6.0,\"az\":-3.0,\"bx\":-6.0,\"bz\":-0.8,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-6.0,\"az\":0.8,\"bx\":-6.0,\"bz\":3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-6.13,\"az\":-0.74,\"bx\":-6.13,\"bz\":0.74,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"farm_side\"},{\"t\":\"seg\",\"ax\":2.0,\"az\":3.0,\"bx\":2.0,\"bz\":0.8,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":2.0,\"az\":-0.8,\"bx\":2.0,\"bz\":-3.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":1.87,\"az\":0.74,\"bx\":1.87,\"bz\":-0.74,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"farm_bed\"},{\"t\":\"seg\",\"ax\":-3.88,\"az\":4.88,\"bx\":-1.96,\"bz\":4.88,\"thick\":0.2,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":-0.04,\"az\":4.88,\"bx\":1.88,\"bz\":4.88,\"thick\":0.2,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":-3.88,\"az\":4.88,\"bx\":-3.88,\"bz\":3.2,\"thick\":0.2,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":1.88,\"az\":4.88,\"bx\":1.88,\"bz\":3.2,\"thick\":0.2,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":-1.0,\"z\":-2.3,\"r\":0.42,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-0.38,\"z\":-2.38,\"w\":0.36,\"d\":0.7,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-3.1,\"z\":-0.3,\"w\":1.6,\"d\":0.95,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-4.9,\"z\":-2.62,\"w\":1.5,\"d\":0.42,\"move\":true,\"shot\":true},{\"t\":\"circle\",\"x\":-5.35,\"z\":2.3,\"r\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":1.167,\"z\":-2.153,\"w\":1.25,\"d\":0.8,\"move\":true,\"shot\":false,\"yaw\":0.3491,\"low\":true},{\"t\":\"box\",\"x\":1.35,\"z\":2.3,\"w\":0.7,\"d\":0.7,\"move\":true,\"shot\":false,\"yaw\":0.1396,\"low\":true},{\"t\":\"box\",\"x\":5.3,\"z\":-1.75,\"w\":2.0,\"d\":1.1,\"move\":true,\"shot\":false,\"yaw\":-1.5708,\"low\":true},{\"t\":\"box\",\"x\":3.55,\"z\":-1.75,\"w\":2.0,\"d\":1.1,\"move\":true,\"shot\":false,\"yaw\":-1.5708,\"low\":true},{\"t\":\"box\",\"x\":4.42,\"z\":-2.45,\"w\":0.5,\"d\":0.5,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":5.6,\"z\":1.9,\"w\":1.3,\"d\":0.42,\"move\":true,\"shot\":true,\"yaw\":-1.5708},{\"t\":\"box\",\"x\":0.9,\"z\":3.6,\"w\":1.4,\"d\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":-3.5,\"z\":3.55,\"r\":0.26,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":-6.52,\"z\":-2.0,\"r\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":6.52,\"z\":1.2,\"w\":1.3,\"d\":0.6,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"box\",\"x\":-2.975,\"z\":4.393,\"w\":1.25,\"d\":0.8,\"move\":true,\"shot\":false,\"yaw\":0.5236,\"low\":true},{\"t\":\"box\",\"x\":4.4,\"z\":3.61,\"w\":1.5,\"d\":0.76,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[{\"x\":-2.0,\"z\":0.0,\"w\":8,\"d\":6,\"h\":3.0},{\"x\":4.0,\"z\":0.0,\"w\":4,\"d\":6,\"h\":3.0},{\"x\":-1.0,\"z\":4.0,\"w\":6,\"d\":2,\"h\":2.6}],\"doors\":[{\"id\":\"farm_front\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-1.74,3.13],\"kind\":\"plank\"},{\"id\":\"farm_side\",\"leaf\":\"door1\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-6.13,-0.74],\"kind\":\"plank\",\"breakable\":true},{\"id\":\"farm_bed\",\"leaf\":\"door2\",\"axis\":\"y\",\"open\":1.6,\"w\":1.48,\"hinge\":[1.87,0.74],\"kind\":\"plank\"}],\"lights\":[\"light0\",\"light1\"],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":1.0,\"w\":12,\"d\":8},\"name\":\"Farmhouse\"}"
+  },
+  "barn": {
+   "tris": 7984,
+   "parts": [
+    "door0",
+    "door1",
+    "door2",
+    "roof",
+    "upper_e",
+    "upper_n",
+    "upper_s",
+    "upper_w"
+   ],
+   "points": [
+    "light0",
+    "light1"
+   ],
+   "footprint": 3.0,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.6,
+   "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-4.0,\"az\":5.0,\"bx\":-1.6,\"bz\":5.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":1.6,\"az\":5.0,\"bx\":4.0,\"bz\":5.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-1.54,\"az\":5.13,\"bx\":-0.015,\"bz\":5.13,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"barn_doora\"},{\"t\":\"seg\",\"ax\":1.54,\"az\":5.13,\"bx\":0.015,\"bz\":5.13,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"barn_doorb\"},{\"t\":\"seg\",\"ax\":4.0,\"az\":5.0,\"bx\":4.0,\"bz\":2.55,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":4.0,\"az\":1.45,\"bx\":4.0,\"bz\":-1.45,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":4.0,\"az\":-2.55,\"bx\":4.0,\"bz\":-5.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":4.0,\"az\":2.55,\"bx\":4.0,\"bz\":1.45,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":4.0,\"az\":-1.45,\"bx\":4.0,\"bz\":-2.55,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":4.0,\"az\":-5.0,\"bx\":-4.0,\"bz\":-5.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-4.0,\"az\":-5.0,\"bx\":-4.0,\"bz\":-2.55,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-4.0,\"az\":-1.45,\"bx\":-4.0,\"bz\":1.2,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-4.0,\"az\":2.8,\"bx\":-4.0,\"bz\":5.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-4.0,\"az\":-2.55,\"bx\":-4.0,\"bz\":-1.45,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":-4.13,\"az\":1.26,\"bx\":-4.13,\"bz\":2.74,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"barn_side\"},{\"t\":\"box\",\"x\":2.45,\"z\":-3.42,\"w\":1.15,\"d\":1.2,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"box\",\"x\":1.2,\"z\":-4.25,\"w\":1.1,\"d\":0.56,\"move\":true,\"shot\":false,\"yaw\":0.0698,\"low\":true},{\"t\":\"box\",\"x\":2.9,\"z\":-1.9,\"w\":1.1,\"d\":0.56,\"move\":true,\"shot\":false,\"yaw\":1.3963,\"low\":true},{\"t\":\"box\",\"x\":2.95,\"z\":-0.4,\"w\":1.9,\"d\":0.2,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":2.944,\"z\":2.0,\"w\":1.9,\"d\":0.2,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":3.35,\"z\":0.8,\"w\":1.4,\"d\":0.5,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"box\",\"x\":-1.5,\"z\":-4.4,\"w\":2.2,\"d\":0.7,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":0.35,\"z\":-4.48,\"w\":0.6,\"d\":0.55,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-3.057,\"z\":-2.375,\"w\":1.25,\"d\":0.8,\"move\":true,\"shot\":false,\"yaw\":1.0472,\"low\":true},{\"t\":\"box\",\"x\":-3.05,\"z\":-0.1,\"w\":1.5,\"d\":0.76,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"circle\",\"x\":-3.25,\"z\":3.9,\"r\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":-2.5,\"z\":4.3,\"r\":0.36,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":3.3,\"z\":4.2,\"r\":0.33,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":4.38,\"z\":3.6,\"w\":1.1,\"d\":0.56,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"circle\",\"x\":-4.4,\"z\":-3.8,\"r\":0.33,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":-4.4,\"z\":-3.1,\"r\":0.33,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":3.1,\"z\":5.49,\"w\":1.5,\"d\":0.76,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-4.41,\"z\":3.9,\"w\":1.3,\"d\":0.6,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true}],\"interiors\":[{\"x\":0.0,\"z\":0.0,\"w\":8,\"d\":10,\"h\":5.4}],\"doors\":[{\"id\":\"barn_doora\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.525,\"hinge\":[-1.54,5.13],\"kind\":\"barn\"},{\"id\":\"barn_doorb\",\"leaf\":\"door1\",\"axis\":\"y\",\"open\":1.6,\"w\":1.525,\"hinge\":[1.54,5.13],\"kind\":\"barn\"},{\"id\":\"barn_side\",\"leaf\":\"door2\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-4.13,1.26],\"kind\":\"plank\",\"breakable\":true}],\"lights\":[\"light0\",\"light1\"],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":0.0,\"w\":8,\"d\":10},\"name\":\"Barn\"}"
+  },
+  "boathouse": {
+   "tris": 5942,
+   "parts": [
+    "door0",
+    "roof",
+    "upper_e",
+    "upper_n",
+    "upper_s",
+    "upper_w"
+   ],
+   "points": [
+    "light0"
+   ],
+   "footprint": 3.0,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.6,
+   "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":3.0,\"az\":2.0,\"bx\":3.0,\"bz\":-0.2,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":3.0,\"az\":-1.8,\"bx\":3.0,\"bz\":-4.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":3.12,\"az\":-0.26,\"bx\":3.12,\"bz\":-1.74,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"boat_door\"},{\"t\":\"seg\",\"ax\":3.0,\"az\":-4.0,\"bx\":0.55,\"bz\":-4.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.55,\"az\":-4.0,\"bx\":-3.0,\"bz\":-4.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":0.55,\"az\":-4.0,\"bx\":-0.55,\"bz\":-4.0,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":-3.0,\"az\":-4.0,\"bx\":-3.0,\"bz\":-1.55,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-3.0,\"az\":-0.45,\"bx\":-3.0,\"bz\":2.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-3.0,\"az\":-1.55,\"bx\":-3.0,\"bz\":-0.45,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-0.95,\"z\":-0.9,\"w\":3.0,\"d\":1.2,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"box\",\"x\":1.25,\"z\":-3.5,\"w\":2.0,\"d\":0.7,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-1.85,\"z\":-3.6,\"w\":1.9,\"d\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":2.3,\"z\":1.3,\"w\":1.26,\"d\":0.45,\"move\":true,\"shot\":false,\"yaw\":0.3491,\"low\":true},{\"t\":\"circle\",\"x\":2.5,\"z\":-2.55,\"r\":0.33,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":0.9,\"z\":-2.5,\"w\":0.6,\"d\":0.6,\"move\":true,\"shot\":false,\"yaw\":0.3491,\"low\":true},{\"t\":\"circle\",\"x\":-2.85,\"z\":3.85,\"r\":0.16,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":2.85,\"z\":3.85,\"r\":0.16,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":-0.85,\"z\":6.45,\"r\":0.16,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":0.85,\"z\":6.45,\"r\":0.16,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":1.9,\"z\":3.1,\"w\":1.5,\"d\":0.76,\"move\":true,\"shot\":false,\"yaw\":0.1745,\"low\":true},{\"t\":\"circle\",\"x\":3.42,\"z\":-3.2,\"r\":0.33,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-3.33,\"z\":-2.9,\"w\":1.26,\"d\":0.45,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"circle\",\"x\":3.42,\"z\":1.2,\"r\":0.36,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[{\"x\":0.0,\"z\":-1.0,\"w\":6,\"d\":6,\"h\":3.0}],\"doors\":[{\"id\":\"boat_door\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[3.12,-0.26],\"kind\":\"plank\"}],\"lights\":[\"light0\"],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":0.0,\"w\":6,\"d\":8},\"name\":\"Boathouse\"}"
+  },
+  "radio_shack": {
+   "tris": 4142,
+   "parts": [
+    "door0",
+    "roof",
+    "upper_e",
+    "upper_n",
+    "upper_s",
+    "upper_w"
+   ],
+   "points": [
+    "light0"
+   ],
+   "footprint": 3.0,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": true,
+   "glow": 1.6,
+   "def": "{\"colliders\":[{\"t\":\"seg\",\"ax\":-2.0,\"az\":2.0,\"bx\":-1.8,\"bz\":2.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-0.2,\"az\":2.0,\"bx\":0.45,\"bz\":2.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":1.55,\"az\":2.0,\"bx\":2.0,\"bz\":2.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-1.74,\"az\":2.1,\"bx\":-0.26,\"bz\":2.1,\"thick\":0.2,\"move\":true,\"shot\":true,\"id\":\"radio_door\"},{\"t\":\"seg\",\"ax\":0.45,\"az\":2.0,\"bx\":1.55,\"bz\":2.0,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"seg\",\"ax\":2.0,\"az\":2.0,\"bx\":2.0,\"bz\":-2.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":2.0,\"az\":-2.0,\"bx\":-2.0,\"bz\":-2.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-2.0,\"az\":-2.0,\"bx\":-2.0,\"bz\":-1.55,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-2.0,\"az\":-0.45,\"bx\":-2.0,\"bz\":2.0,\"thick\":0.3,\"move\":true,\"shot\":true},{\"t\":\"seg\",\"ax\":-2.0,\"az\":-1.55,\"bx\":-2.0,\"bz\":-0.45,\"thick\":0.3,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":0.55,\"z\":-1.5,\"w\":1.5,\"d\":0.7,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":-1.3,\"z\":-1.6,\"w\":0.9,\"d\":0.5,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":1.55,\"z\":0.6,\"w\":0.56,\"d\":0.62,\"move\":true,\"shot\":true,\"yaw\":-1.5708},{\"t\":\"box\",\"x\":-1.45,\"z\":-0.4,\"w\":0.6,\"d\":0.6,\"move\":true,\"shot\":false,\"yaw\":0.1745,\"low\":true},{\"t\":\"circle\",\"x\":-2.42,\"z\":-1.0,\"r\":0.33,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"circle\",\"x\":-2.42,\"z\":-0.3,\"r\":0.33,\"move\":true,\"shot\":false,\"low\":true},{\"t\":\"box\",\"x\":2.51,\"z\":0.8,\"w\":1.5,\"d\":0.76,\"move\":true,\"shot\":false,\"yaw\":1.5708,\"low\":true},{\"t\":\"box\",\"x\":1.0,\"z\":2.31,\"w\":1.3,\"d\":0.36,\"move\":true,\"shot\":false,\"low\":true}],\"interiors\":[{\"x\":0.0,\"z\":0.0,\"w\":4,\"d\":4,\"h\":3.0}],\"doors\":[{\"id\":\"radio_door\",\"leaf\":\"door0\",\"axis\":\"y\",\"open\":-1.6,\"w\":1.48,\"hinge\":[-1.74,2.1],\"kind\":\"steel\",\"locked\":\"radio_key\"}],\"lights\":[\"light0\"],\"breakables\":[],\"size\":{\"x\":0.0,\"z\":0.0,\"w\":4,\"d\":4},\"name\":\"Radio shack\"}"
+  }
+ }
+}

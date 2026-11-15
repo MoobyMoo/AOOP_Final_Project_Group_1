@@ -1,0 +1,116 @@
+{
+ "group": "landmarks",
+ "assets": {
+  "audit": {
+   "pass": true,
+   "tris": 458,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: audit__matte (6 pairs) - delete to save tris",
+    "asset lowest point z=1.15 (not resting on ground plane z=0)"
+   ],
+   "ground_z": 1.15
+  },
+  "bomber": {
+   "pass": true,
+   "tris": 3900,
+   "errors": [],
+   "warnings": [
+    "bomber__matte: duplicate verts=11 loose verts=0",
+    "hidden back-to-back faces: bomber__matte (8 pairs) - delete to save tris",
+    "4 parts fully enclosed, not touching (eyes/internals?): ['bomber__matte', 'bomber__matte', 'bomber__matte', 'bomber__matte']",
+    "asset lowest point z=-0.516 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.516
+  },
+  "bomber_debris_a": {
+   "pass": true,
+   "tris": 313,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.2143 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.2143
+  },
+  "bomber_debris_b": {
+   "pass": true,
+   "tris": 380,
+   "errors": [],
+   "warnings": [
+    "bomber_debris_b__matte: duplicate verts=12 loose verts=0",
+    "asset lowest point z=-0.025 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.025
+  },
+  "bomber_debris_c": {
+   "pass": true,
+   "tris": 288,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.5087 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.5087
+  },
+  "bottle": {
+   "pass": true,
+   "tris": 296,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.025 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.025
+  },
+  "falls": {
+   "pass": true,
+   "tris": 3138,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.3 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.3
+  },
+  "ferry": {
+   "pass": true,
+   "tris": 6218,
+   "errors": [],
+   "warnings": [
+    "ferry__matte: duplicate verts=67 loose verts=0",
+    "hidden back-to-back faces: ferry__matte (51 pairs) - delete to save tris",
+    "asset lowest point z=-0.123 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.123
+  },
+  "lemon_stand": {
+   "pass": true,
+   "tris": 1199,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: lemon_stand__matte (17 pairs) - delete to save tris",
+    "asset lowest point z=-0.04 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.04
+  },
+  "tractor": {
+   "pass": true,
+   "tris": 3718,
+   "errors": [],
+   "warnings": [
+    "tractor__matte: duplicate verts=2 loose verts=0",
+    "hidden back-to-back faces: tractor__matte (9 pairs) - delete to save tris",
+    "1 parts fully enclosed, not touching (eyes/internals?): ['tractor__matte']",
+    "asset lowest point z=-0.148 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.148
+  },
+  "vat": {
+   "pass": true,
+   "tris": 3674,
+   "errors": [],
+   "warnings": [
+    "1 parts fully enclosed, not touching (eyes/internals?): ['vat__matte']",
+    "asset lowest point z=-0.5418 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.5418
+  }
+ }
+}

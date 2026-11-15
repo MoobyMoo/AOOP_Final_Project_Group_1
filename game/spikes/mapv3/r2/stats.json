@@ -1,0 +1,200 @@
+{
+ "world": {
+  "seed": 4242,
+  "placed": 821,
+  "scattered": 3234,
+  "edge": 974,
+  "chunkMeshes": 906,
+  "kitTris": 2903347,
+  "grass": 35225,
+  "lint": {
+   "errors": [],
+   "warnings": [
+    "a crate sits 23 u from the start (nothing worth having next to spawn)"
+   ],
+   "stats": {
+    "raft": 218,
+    "keyCrate": 121,
+    "sleeper": 154,
+    "nearestCrate": 23,
+    "worstRoadGap": 20,
+    "colliders": 1498,
+    "gates": 21,
+    "placed": 821,
+    "scattered": 3234,
+    "openCells": 36623
+   }
+  },
+  "ms": 2820
+ },
+ "views": {
+  "plantation": {
+   "calls": 227,
+   "tris": 565930,
+   "all": 72,
+   "readable": 67,
+   "kinds": 20,
+   "pp": [
+    2,
+    22
+   ],
+   "area": "plantation"
+  },
+  "farmhouse_in": {
+   "calls": 205,
+   "tris": 580806,
+   "all": 67,
+   "readable": 64,
+   "kinds": 19,
+   "pp": [
+    -8.3,
+    11.5
+   ],
+   "area": "plantation"
+  },
+  "barn_in": {
+   "calls": 209,
+   "tris": 739303,
+   "all": 67,
+   "readable": 63,
+   "kinds": 15,
+   "pp": [
+    16.5,
+    24.5
+   ],
+   "area": "plantation"
+  },
+  "colony": {
+   "calls": 210,
+   "tris": 692100,
+   "all": 72,
+   "readable": 62,
+   "kinds": 20,
+   "pp": [
+    66,
+    5
+   ],
+   "area": "ruin"
+  },
+  "cellblock_in": {
+   "calls": 202,
+   "tris": 655546,
+   "all": 77,
+   "readable": 70,
+   "kinds": 18,
+   "pp": [
+    64.5,
+    -5.5
+   ],
+   "area": "ruin"
+  },
+  "cellblock_cell": {
+   "calls": 205,
+   "tris": 640087,
+   "all": 85,
+   "readable": 79,
+   "kinds": 17,
+   "pp": [
+    60.5,
+    -9.5
+   ],
+   "area": "ruin"
+  },
+  "warden": {
+   "calls": 199,
+   "tris": 654497,
+   "all": 82,
+   "readable": 76,
+   "kinds": 21,
+   "pp": [
+    72.5,
+    -7.5
+   ],
+   "area": "ruin"
+  },
+  "shrine": {
+   "calls": 210,
+   "tris": 647835,
+   "all": 86,
+   "readable": 83,
+   "kinds": 20,
+   "pp": [
+    61.5,
+    -15.5
+   ],
+   "area": "shrine"
+  },
+  "radio": {
+   "calls": 200,
+   "tris": 611018,
+   "all": 53,
+   "readable": 50,
+   "kinds": 20,
+   "pp": [
+    -27.5,
+    -11.8
+   ],
+   "area": "radio"
+  },
+  "radio_in": {
+   "calls": 185,
+   "tris": 593593,
+   "all": 61,
+   "readable": 56,
+   "kinds": 20,
+   "pp": [
+    -28.1,
+    -15.9
+   ],
+   "area": "radio"
+  },
+  "hut_in": {
+   "calls": 186,
+   "tris": 630352,
+   "all": 60,
+   "readable": 57,
+   "kinds": 27,
+   "pp": [
+    6.5,
+    78.5
+   ],
+   "area": "palms"
+  },
+  "checkpoint": {
+   "calls": 195,
+   "tris": 661903,
+   "all": 61,
+   "readable": 57,
+   "kinds": 28,
+   "pp": [
+    1,
+    82
+   ],
+   "area": "palms"
+  },
+  "landing": {
+   "calls": 159,
+   "tris": 321847,
+   "all": 50,
+   "readable": 41,
+   "kinds": 16,
+   "pp": [
+    12,
+    -103
+   ],
+   "area": "riverbank"
+  },
+  "boathouse_in": {
+   "calls": 138,
+   "tris": 244524,
+   "all": 52,
+   "readable": 47,
+   "kinds": 16,
+   "pp": [
+    -6.6,
+    -109.5
+   ],
+   "area": "riverbank"
+  }
+ }
+}
