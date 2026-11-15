@@ -223,3 +223,6 @@ button.cell{border:0;padding:0;color:inherit;font:inherit;cursor:pointer}button.
 .mfoot{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);z-index:2;background:var(--panel-solid);padding:7px 14px;border-radius:8px;margin:0}
 .c-body{mask-image:linear-gradient(to bottom,transparent 0,#000 14px,#000 calc(100% - 14px),transparent 100%)}
 .hud-ehp i{position:absolute;width:44px;height:6px;margin-left:-22px;border-radius:3px;background:rgba(20,14,12,.7);box-shadow:0 0 0 1px rgba(0,0,0,.35);overflow:hidden}.hud-ehp b{display:block;height:100%;background:var(--coral);transition:width .12s}
+/* stamina is green, as in Duckov (Moo); coral when low */
+.gauge{--c:#5fd36a}.gauge.low{--c:var(--coral)}
+.hud-stam i{background:#5fd36a}.hud-stam.low i{background:var(--coral)}
