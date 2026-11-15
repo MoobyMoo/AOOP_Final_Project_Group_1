@@ -257,7 +257,7 @@ void main() {
     float t = atan(p.y, p.x) / 6.2831853 * 8.0, m = abs(fract(t + 0.5) - 0.5) * 2.0, id = floor(t + 0.5);
     float len = 0.62 + 0.38 * fract(sin(id * 12.9898 + 4.1) * 43758.5453);
     float rb = mix(0.2, len, pow(1.0 - m, 2.6)), d = r - rb, w = fwidth(d);
-    a = 1.0 - smoothstep(-w, w, d); core = 1.0 - smoothstep(0.08, 0.5, r);
+    a = 1.0 - smoothstep(-w, w, d); core = 1.0 - smoothstep(0.05, 0.3, r);
   }
   else if (sh == 3) { a = 1.0 - smoothstep(0.8, 1.0, r); }
   else if (sh == 4) { a = 1.0; }
@@ -301,7 +301,7 @@ export function createGunFx(scene: THREE.Scene): KingpinFx {
   const rr = (a: number, b: number) => a + (b - a) * rnd();
   const col = (hex: string, boost = 1) => new THREE.Color(hex).multiplyScalar(boost);
   const C = { // linear working colours; boosts above 1 are what the bloom pass picks up
-    flash: col("#ffb347", 5), flashCore: col("#fff1c2", 7), tracer: col("#ffd76a", 5.5), light: new THREE.Color("#ffc170"),
+    flash: col("#ffb347", 5), flashCore: col("#ffc35c", 3.4), tracer: col("#ffd76a", 5.5), light: new THREE.Color("#ffc170"),
     starHot: col("#fffbe6", 2.6), starGold: col("#ffc81e", 1.5), starOrange: col("#ff9a1f", 1.15), spark: col("#ffe2a8", 4),
     dustA: col("#c9a468"), dustB: col("#9a7245"), dustC: col("#dcbf8a"), chipA: col("#6e4a28"), chipB: col("#b98f58"),
   };
@@ -396,11 +396,14 @@ export function createGunFx(scene: THREE.Scene): KingpinFx {
       muzzle.updateWorldMatrix(true, false); eject.updateWorldMatrix(true, false);
       const me = muzzle.matrixWorld.elements, ee = eject.matrixWorld.elements;
       m0.set(me[12], me[13], me[14]); dir.set(me[8], me[9], me[10]).normalize();
-      // ---- muzzle flash: soft glow + rolled star burst + a tongue along the barrel; ~3 frames
+      // ---- muzzle flash: soft glow + rolled star burst + a tongue along the barrel; ~3 frames.
+      // G1 council fix 5: the star was a 70 px white disc that hid the gun and the shot direction. It is now about half
+      // the size, orange with only a small hot centre, and sits ahead of the muzzle, so the barrel, the tongue and the
+      // tracer carry the direction.
       const roll = rnd() * 6.283, big = rr(0.9, 1.15);
-      emit(FREE, GLOW, m0.x, m0.y, m0.z, 0, 0, 0, 0.9 * big, 0.9 * big, 1.25, FLASH_T, C.flash, 0.45, 1, 0.2, 0, 0, 0, 0, 0.6);
-      emit(FREE, FLAME, m0.x - dir.x * 0.05, m0.y - dir.y * 0.05, m0.z - dir.z * 0.05, dir.x * 0.95 * big, dir.y * 0.95 * big, dir.z * 0.95 * big, 0.17 * big, 1, 1.3, FLASH_T, C.flash, 1, 1, 0.45, 0, 0, 0, 0, 0.6);
-      emit(FREE, BURST, m0.x + dir.x * 0.1, m0.y + dir.y * 0.1, m0.z + dir.z * 0.1, 0, 0, 0, 0.5 * big, 0.5 * big, 1.35, FLASH_T, C.flashCore, 1, 1, 0.45, 0, 0, roll, rr(-6, 6), 0.7);
+      emit(FREE, GLOW, m0.x + dir.x * 0.15, m0.y + dir.y * 0.15, m0.z + dir.z * 0.15, 0, 0, 0, 0.5 * big, 0.5 * big, 1.2, FLASH_T, C.flash, 0.3, 1, 0.2, 0, 0, 0, 0, 0.6);
+      emit(FREE, FLAME, m0.x, m0.y, m0.z, dir.x * 0.95 * big, dir.y * 0.95 * big, dir.z * 0.95 * big, 0.12 * big, 1, 1.3, FLASH_T, C.flash, 1, 1, 0.45, 0, 0, 0, 0, 0.6);
+      emit(FREE, BURST, m0.x + dir.x * 0.2, m0.y + dir.y * 0.2, m0.z + dir.z * 0.2, 0, 0, 0, 0.26 * big, 0.26 * big, 1.3, FLASH_T, C.flashCore, 1, 1, 0.45, 0, 0, roll, rr(-6, 6), 0.7);
       light.position.copy(m0).addScaledVector(dir, 0.35); light.position.y += 0.35; lightT = 0; light.intensity = LIGHT_I;
       // ---- tracer
       t1.copy(to).sub(m0); const dist = t1.length();
