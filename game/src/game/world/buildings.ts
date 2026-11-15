@@ -16,7 +16,7 @@ import type { Footprint } from "./map/scatter";
 import { groundHeight } from "./terrain";
 import { addPieces, objects } from "./dress";
 import { kitMaterial } from "./kitutil";
-import { fadeMaterial } from "../render/fade";
+import { fadeMaterial, stepFade } from "../render/fade";
 import { addLamp } from "./lights";
 import { gate, setGate } from "./grid";
 import { itemDef } from "../loot/tables";
@@ -118,7 +118,6 @@ export function resetHouses() {
   darkK = 0;
 }
 const dq = new THREE.Quaternion(), ev = new THREE.Euler();
-const ease = (v: { value: number }, to: number, dt: number) => { v.value += (to - v.value) * Math.min(1, dt * 7); if (Math.abs(to - v.value) < 0.01) v.value = to; };
 /** per render frame: roof/wall fade, dark-room tint, door swing, flying debris */
 export function updateHouses(dt: number, under = false) {
   const st = G.stage; base ??= { sun: st.sun.intensity, hemi: st.hemi.intensity, bounce: st.bounce.intensity };
@@ -129,8 +128,9 @@ export function updateHouses(dt: number, under = false) {
     let inn = false, occ = false;
     if (d < 44) { inn = insideHouse(h, G.pp, 0.2); occ = !inn && occludes(h, st.camera.position, chest); inside ||= inn; }
     h.inside = inn; h.want = inn || occ ? 1 : 0;
-    ease(h.near, h.want, dt); ease(h.far, occ ? 1 : 0, dt);
-    for (const o of h.nearParts) o.visible = h.near.value < 0.985; for (const o of h.farParts) o.visible = h.far.value < 0.985;
+    // 0 -> 1 in FADE_T at a constant rate, landing exactly on the ends: the dither never holds mid-range (G1 council fix 3)
+    stepFade(h.near, h.want, dt); stepFade(h.far, occ ? 1 : 0, dt);
+    for (const o of h.nearParts) o.visible = h.near.value < 1; for (const o of h.farParts) o.visible = h.far.value < 1;
     for (const dr of h.doors) { const g = gate(dr.gateId), to = g?.open ? 1 : 0; if (dr.k !== to) { dr.k += Math.sign(to - dr.k) * Math.min(Math.abs(to - dr.k), dt * 4.5); dr.leaf.rotation.y = dr.closed + (dr.open - dr.closed) * (dr.k * dr.k * (3 - 2 * dr.k)); } }
     for (const c of h.cracks) {
       if (c.t < 0) continue; c.t += dt;
