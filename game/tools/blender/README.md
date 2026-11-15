@@ -232,6 +232,8 @@ of the structures kit, so it builds, exports and loads the same way (`lib.py`, v
 B=/home/moo/.local/bin/blender
 $B -b --factory-startup --python-exit-code 1 --python tools/blender/build/build.py -- --group vault    # -> public/models/build/vault.glb + blend/vault.blend
 $B -b tools/blender/build/blend/vault.blend --python tools/blender/build/qa.py                          # QA gate, every piece
+$B -b tools/blender/build/blend/vault.blend --python-exit-code 1 --python tools/blender/build/coplanar_check.py           # the game's z-fight rule, every piece
+$B -b tools/blender/build/blend/vault.blend --python-exit-code 1 --python tools/blender/build/coplanar_check.py -- --shell   # ... and between the placed pieces of the room
 python3 tools/blender/build/merge_manifest.py && $B -b --factory-startup --python tools/blender/build/verify_glb.py
 node tools/blender/build/check_vault.mjs                                                               # pieces, named nodes, lamp_emit
 $B -b tools/blender/build/blend/vault.blend --python-exit-code 1 -P tools/blender/build/vault_review.py -- /tmp/vault_shots all 560
@@ -263,6 +265,16 @@ that is hidden until bought: it is lit against everything, but the piece it sits
 **Budget rule.** Under 2,500 triangles a facility, 4,000 for the pod. In this group a box thinner than 7.5 cm or a
 rod thinner than 6 cm gets no bevel (`g_vault.py` wraps `Geo.box` and `Geo.cyl`): the bevel is under a pixel at the
 bunker camera and costs 32 triangles a box.
+
+**The z-fight gate is stricter than the QA gate.** `tools/glitchcheck.mjs` (src/game/dev/glitch.ts) fails a model for
+two same-facing faces within 2 mm that overlap by 2 cm2, hidden or not; `qa.py` uses 1 mm and passed pieces that the
+game then flagged. `coplanar_check.py` is that rule in Blender, with the position of every pair, so run it after
+`qa.py` and before the browser. `--shell` places the whole room from `vault_layout.py` (the same list as
+`vaultkit.ts` `shellLayout()`, which the review mock also uses) and tests neighbours against each other. What it
+caught: bars that cross (flywheel spokes: use spokes that start at the hub), two plinths that overlap by 2 cm (use one),
+frame strips 2 mm apart (use 5), stacked paint 1.5 mm apart (this group's `Geo.LIFT_STEP` is 2.6 mm), a nearly flat
+dish over a tray (the rule compares plane offsets, so make it steeper than 6 degrees or truly flat), a three-sided
+tube bent sharply (cut it at the corner), and the cornice's top lying on the wall's top under the cap.
 
 **QA habits that bit here.** Two unbevelled boxes that share a face plane z-fight in the gate even when the faces are
 hidden, so let trims stop a few millimetres short or stand on the surface instead of sinking into it. Strokes of one

@@ -88,8 +88,10 @@ export function shellLayout(): Placed[] {
   for (let k = 0; k < X1 - X0 + 1; k++) {
     const cx = X0 + k + 0.5;
     if (door.some(([a, b]) => cx > a && cx < b)) continue;
-    put("vault_trim", cx, Z0); put("vault_wall_cap", cx, Z0);
+    if (cx < X1) put("vault_trim", cx, Z0);
+    put("vault_wall_cap", cx, Z0);
   }
+  put("vault_trim", X1 + 0.06, Z0, 0, 0.12); // past the corner the cornice only reaches the side wall's face
   for (let k = 0; k < Z1 - Z0; k++) {
     const cz = Z0 + k + 0.5;
     if (k === 0) put("vault_trim", X1, cz + 0.06, -1, 0.88); else put("vault_trim", X1, cz, -1); // the first one stops short of the back wall's cornice

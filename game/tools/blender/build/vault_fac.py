@@ -162,22 +162,21 @@ def blueprint(name, seed):
         g.box(1.42, 0.05, 0.02, (0.0, 0.36, 0.062), (0, 0, 2), col=PEG, b=0.005)         # T-square
         g.box(0.06, 0.3, 0.026, (-0.72, 0.36, 0.06), (0, 0, 2), col=MAHOG[1], b=0.008)
         g.pole((0.3, 0.07, 0.065), (0.46, 0.07, 0.065), 0.012, BANANA, n=4, b=0)
-        lamp_banker(g, em, (0.58, 0.76, 0.05), 20, 0.9)
+        lamp_banker(g, em, (0.63, 0.75, 0.05), 20, 0.9)
     sh = a.part("bp_sheet", tuple(S @ Vector((0, 0.45, 0.052))))
     with sh.at(S):
         sh.box(1.18, 0.62, 0.007, (-0.08, 0.45, 0.0515), col="#2f66a8", b=0.0, jit=0)
-        M = TOP(-0.08, 0.45, 0.058)
+        M = TOP(-0.08, 0.45, 0.0585)
         ink = "#e4efff"
-        sh.paint_line([(-0.48, -0.22), (0.3, -0.22), (0.3, 0.22), (-0.48, 0.22)], 0.016, M, ink, closed=True, lift=0.005)      # the vault
+        sh.paint_line([(-0.48, -0.22), (0.3, -0.22), (0.3, 0.22), (-0.48, 0.22)], 0.016, M, ink, closed=True, lift=0.0082)      # the vault
         for k in range(1, 5):
-            sh.paint_line([(-0.48 + k * 0.156, -0.22), (-0.48 + k * 0.156, 0.22)], 0.006, M, "#8fb4e4", lift=0.002)
+            sh.paint_line([(-0.48 + k * 0.156, -0.22), (-0.48 + k * 0.156, 0.22)], 0.006, M, "#8fb4e4", lift=0.003)
         for k in range(1, 3):
-            sh.paint_line([(-0.48, -0.22 + k * 0.147), (0.3, -0.22 + k * 0.147)], 0.006, M, "#8fb4e4", lift=0.0035)
-        sh.paint_line(circle(0.055, 8, cx=-0.09, cy=0.15), 0.012, M, ink, closed=True, lift=0.0065)                           # the pod
-        sh.paint_line([(0.12, 0.24), (0.2, 0.285), (0.28, 0.24)], 0.012, M, ink, lift=0.0065)                                   # the door
-        sh.paint_line([(0.36, -0.22), (0.5, -0.22)], 0.01, M, ink, lift=0.003)
-        sh.paint_line([(0.43, -0.2), (0.43, 0.2)], 0.008, M, ink, lift=0.005)
-        sh.paint_line([(0.36, 0.22), (0.5, 0.22)], 0.01, M, ink, lift=0.003)
+            sh.paint_line([(-0.48, -0.22 + k * 0.147), (0.3, -0.22 + k * 0.147)], 0.006, M, "#8fb4e4", lift=0.0056)
+        sh.paint_line(circle(0.055, 8, cx=-0.09, cy=0.15), 0.012, M, ink, closed=True, lift=0.0108)                           # the pod
+        sh.paint_line([(0.12, 0.24), (0.2, 0.285), (0.28, 0.24)], 0.012, M, ink, lift=0.0108)                                   # the door
+        sh.paint_line([(0.36, -0.22), (0.5, -0.22)], 0.01, M, ink, lift=0.0082)
+        sh.paint_line([(0.36, 0.22), (0.5, 0.22)], 0.01, M, ink, lift=0.0082)
         icon_banana(sh, M @ T(0.42, -0.01, 0), 0.1, ink)
     b.lathe([(0.13, 0.0), (0.15, 0.03), (0.16, 0.5), (0.14, 0.5), (0.13, 0.06)], (0.8, 0.26, 0), col=BRASS, n=9, cap1=False, smooth=40)
     for k, (dx, dy, col) in enumerate(((0.0, 0.03, "#2f66a8"), (-0.05, -0.04, PAPER), (0.06, -0.03, "#3b78bd"))):
@@ -193,16 +192,16 @@ def locker(name, seed):
     g, b = a.mesh(), a.mesh("gloss")
     for i, x in enumerate((-1.03, -0.27)):
         g.box(0.74, 0.64, 1.9, (x, 0.12, 0.06), col=MAHOG[i], b=0.03, grad=(0.86, 1.04))
-        g.box(0.78, 0.68, 0.07, (x, 0.12, 0.0), col=MAHOG_D, b=0.02)
-        g.box(0.8, 0.7, 0.07, (x, 0.12, 1.94), col=MAHOG_D, b=0.025)
         g.box(0.62, 0.035, 1.72, (x, -0.205, 0.14), col=shade(MAHOG[i], 1.08), b=0.015, jit=0.03)
         for k in range(4):                                   # vent
             b.box(0.36, 0.02, 0.028, (x, -0.228, 1.56 + k * 0.06), col=BRASS_D, b=0.0)
-        b.emit(p_lathe([(0.085, 0.0), (0.085, 0.012), (0.0, 0.016)], 9, cap0=False), BRASS, T(x, -0.223, 1.36, 90, 0, 0), jit=0.02)
-        g.paint_text(("07", "12")[i], 0.075, FRONT(x, -0.24, 1.323), MAHOG_D, w=0.017)
+        b.emit(p_lathe([(0.085, 0.0), (0.085, 0.014), (0.07, 0.018), (0.0, 0.018)], 9, cap0=False), BRASS, T(x, -0.223, 1.36, 90, 0, 0), jit=0.02)
+        g.paint_text(("07", "12")[i], 0.075, FRONT(x, -0.241, 1.323), MAHOG_D, w=0.017)
         banana_handle(b, (x + 0.2, -0.223, 0.98), (0, 90, 0), 1.0)
         for sx in (-1, 1):
             b.ball(0.045, (x + sx * 0.3, -0.2, 0.045), col=BRASS_D, n=6, m=3)
+    g.box(1.54, 0.68, 0.07, (-0.65, 0.12, 0.0), col=MAHOG_D, b=0.02)          # one plinth and one cap for the pair
+    g.box(1.56, 0.7, 0.07, (-0.65, 0.12, 1.94), col=MAHOG_D, b=0.025)
     # a bowler hat and a briefcase on top
     g.lathe([(0.26, 0.0), (0.27, 0.025), (0.16, 0.04), (0.17, 0.16), (0.1, 0.23), (0.0, 0.24)], (-1.03, 0.1, 2.01), col="#2c2a33", n=10, smooth=50)
     g.emit(p_lathe([(0.168, 0.05), (0.175, 0.1)], 10, cap0=False, cap1=False), "#ffb02a", T(-1.03, 0.1, 2.01), jit=0)
@@ -237,7 +236,7 @@ def plant(name, seed):
     b.lathe([(0.2, 0.07), (0.3, 0.2), (0.33, 0.5), (0.36, 0.54), (0.34, 0.58), (0.29, 0.58), (0.27, 0.5)], col=BRASS, n=12, smooth=40, cap1=False)
     band(b, 0.31, 0.3, 0.38, 0.025, BRASS_L, n=12)
     g.cyl(0.285, 0.04, (0, 0, 0.5), col="#4a3828", n=12, b=0.0, jit=0.02)
-    g.tube([(0, 0, 0.5), (0.03, 0.0, 0.85), (0.0, 0.02, 1.2), (-0.02, 0, 1.52)], [0.09, 0.075, 0.062, 0.05], "#8a6a44", n=6, jit=0.04)
+    g.tube([(0, 0, 0.515), (0.03, 0.0, 0.85), (0.0, 0.02, 1.2), (-0.02, 0, 1.52)], [0.09, 0.075, 0.062, 0.05], "#8a6a44", n=6, jit=0.04)
     for k in range(3):
         band(g, 0.078 - k * 0.012, 0.0, 0.05, 0.016, "#6e5234", n=6, at=(0.02 - k * 0.012, 0.004 * k, 0.74 + k * 0.27))
     n = 8
@@ -287,16 +286,17 @@ def generator(name, seed):
     # dynamo: copper windings between two green end bells, on a cradle
     g.box(0.7, 0.5, 0.2, (0.5, 0.1, 0.13), col=CAST, b=0.04)
     g.emit(p_lathe([(0.2, 0.0), (0.31, 0.04), (0.31, 0.16), (0.27, 0.18), (0.27, 0.5), (0.31, 0.52), (0.31, 0.62), (0.2, 0.66)], 12), lambda c, t: COPPER if 0.17 < c.z < 0.51 else ENAMEL, T(0.17, 0.1, 0.6, 0, 90, 0), jit=0.02, smooth=40)
-    for k in range(3):
-        g.emit(p_lathe([(0.268, 0.0), (0.29, 0.025), (0.268, 0.05)], 12, cap0=False, cap1=False), shade(COPPER, 0.8), T(0.385 + k * 0.1, 0.1, 0.6, 0, 90, 0), jit=0.03)
+    for k in range(2):
+        g.emit(p_lathe([(0.268, 0.0), (0.29, 0.03), (0.268, 0.06)], 12, cap0=False, cap1=False), shade(COPPER, 0.8), T(0.4 + k * 0.14, 0.1, 0.6, 0, 90, 0), jit=0.03)
     g.pole((0.0, 0.1, 0.6), (0.2, 0.1, 0.6), 0.06, STEELB_L, n=6, b=0)
     b.box(0.2, 0.2, 0.12, (0.5, 0.1, 0.9), col=BRASS_D, b=0.03)                                        # terminal box
     # the belt and the flywheel on the engine's front
     g.pole((-0.42, -0.26, 0.56), (-0.42, -0.47, 0.56), 0.05, STEELB_L, n=6, b=0)
     wh = a.part("gen_wheel", (-0.42, -0.4, 0.56), "gloss")
     ring(wh, 0.4, 0.05, (-0.42, -0.4, 0.56), (90, 0, 0), BRASS, n=16, m=5)
-    for k in range(3):
-        wh.beam((-0.42 + cos(k * pi / 3) * 0.39, -0.4, 0.56 + sin(k * pi / 3) * 0.39), (-0.42 - cos(k * pi / 3) * 0.39, -0.4, 0.56 - sin(k * pi / 3) * 0.39), 0.07, 0.035, BRASS_D, b=0.0)
+    for k in range(6):                                      # spokes run from the hub out: crossing bars would share a face plane
+        ck, sk = cos(k * pi / 3), sin(k * pi / 3)
+        wh.beam((-0.42 + ck * 0.085, -0.4, 0.56 + sk * 0.085), (-0.42 + ck * 0.39, -0.4, 0.56 + sk * 0.39), 0.07, 0.035, BRASS_D, b=0.0)
     wh.emit(p_lathe([(0.1, 0.0), (0.1, 0.07), (0.05, 0.1), (0.0, 0.1)], 8, cap0=True), BRASS_L, T(-0.42, -0.36, 0.56, 90, 0, 0), jit=0.02)
     wh.box(0.12, 0.05, 0.12, (-0.42, -0.4, 0.8), col=BANANA, b=0.02)                                   # counterweight
     # fuel drum on a frame over the dynamo
@@ -326,9 +326,9 @@ def generator(name, seed):
     lamp.ball(0.1, tuple(S @ Vector((0.16, 0, 0.63))), col="#ffd27a", n=8, m=5, s=(1, 1, 1.15), jit=0)
     # two fat cables from the terminal box, down and out along the floor to a junction box
     for k, (y1, col) in enumerate(((0.62, "#2a2622"), (0.78, RED_D))):
-        g.tube([(0.56 + k * 0.08, 0.2, 0.98), (0.7 + k * 0.06, 0.4, 0.8), (0.78, 0.6 + k * 0.05, 0.2), (0.74, y1, 0.045), (0.4, y1 + 0.06, 0.045), (0.12, y1 + 0.02, 0.045)], 0.04, col, n=5, jit=0.03)
-    g.box(0.34, 0.3, 0.2, (-0.06, 0.72, 0), col=CAST, b=0.035)
-    b.box(0.12, 0.02, 0.07, (-0.06, 0.568, 0.07), col=BRASS, b=0.006)
+        g.tube([(0.56 + k * 0.08, 0.2, 0.98), (0.7 + k * 0.06, 0.4, 0.8), (0.78, 0.6 + k * 0.05, 0.2), (0.74, y1 + 0.1, 0.045), (0.4, y1 + 0.14, 0.045), (0.1, y1 + 0.1, 0.045)], 0.04, col, n=5, jit=0.03)
+    g.box(0.34, 0.3, 0.2, (-0.06, 0.82, 0.004), col=CAST, b=0.035)
+    b.box(0.12, 0.02, 0.07, (-0.06, 0.668, 0.08), col=BRASS, b=0.006)
     g.box(1.1, 1.5, 0.022, (-0.42, -0.14, 0.003), col="#2a2622", b=0.0, jit=0)                         # drip tray
     g.lathe([(0.07, 0.0), (0.08, 0.1), (0.025, 0.15), (0.015, 0.25), (0.0, 0.25)], (-0.76, -0.72, 0.024), col=RED, n=7, smooth=40)   # oil can
     a.point("light", tuple(S @ Vector((0.16, -0.3, 0.7))))
@@ -360,9 +360,9 @@ def press(name, seed):
     g.box(0.16, 0.3, 0.34, (0.5, 0.26, 1.23), col=ENAMEL, b=0.04)
     wh = a.part("press_wheel", (0.8, 0.26, 1.4), "gloss")
     ring(wh, 0.5, 0.06, (0.8, 0.26, 1.4), (0, 90, 0), BRASS, n=18, m=5)
-    for k in range(3):
-        cy, sz = cos(k * pi / 3) * 0.49, sin(k * pi / 3) * 0.49
-        wh.beam((0.8, 0.26 + cy, 1.4 + sz), (0.8, 0.26 - cy, 1.4 - sz), 0.04, 0.08, BRASS_D, b=0.0)
+    for k in range(6):                                      # six spokes from the hub: three crossing bars shared a face plane at the centre
+        cy, sz = cos(k * pi / 3), sin(k * pi / 3)
+        wh.beam((0.8, 0.26 + cy * 0.105, 1.4 + sz * 0.105), (0.8, 0.26 + cy * 0.49, 1.4 + sz * 0.49), 0.04, 0.08, BRASS_D, b=0.0)
     wh.emit(p_lathe([(0.12, 0.0), (0.12, 0.08), (0.06, 0.12), (0.0, 0.12)], 8, cap0=True), BRASS_L, T(0.76, 0.26, 1.4, 0, 90, 0), jit=0.02)
     wh.box(0.06, 0.16, 0.16, (0.8, 0.26, 1.7), col=BANANA, b=0.0)
     # hopper on the crosshead, with what goes in: a gear and a spring
@@ -386,7 +386,7 @@ def press(name, seed):
     for (dx, dy) in ((-0.31, 0), (0.31, 0)):
         g.box(0.04, 0.33, 0.1, (-0.1 + dx, -0.6, 0.304), col=MAHOG_D, b=0.0)
     g.box(0.57, 0.04, 0.1, (-0.1, -0.772, 0.306), col=MAHOG_D, b=0.0)
-    g.box(0.5, 0.06, 0.3, (-0.1, -0.45, 0.004), col=CAST, b=0.0)
+    g.box(0.5, 0.06, 0.3, (-0.1, -0.47, 0.004), col=CAST, b=0.0)
     r = a.rng
     for k in range(9):
         g.pole((-0.32 + (k % 5) * 0.11 + r.uniform(-0.02, 0.02), -0.7 + (k // 5) * 0.12, 0.372), (-0.3 + (k % 5) * 0.11, -0.58 + (k // 5) * 0.12, 0.372), 0.03, GOLD, n=5, b=0.0, cap=COPPER)

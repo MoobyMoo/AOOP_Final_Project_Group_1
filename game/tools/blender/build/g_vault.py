@@ -60,6 +60,9 @@ def _lean_cyl(self, r, h, at=(0, 0, 0), rot=(0, 0, 0), col="#888888", n=12, r2=N
 
 
 Geo.box, Geo.cyl = _lean_box, _lean_cyl
+# The game's z-fight gate (src/game/dev/glitch.ts, tools/blender/build/coplanar_check.py) counts two same-facing faces
+# within 2 mm as one plane. Stacked paint in this group therefore steps 2.6 mm, not the kit's 1.5 mm.
+Geo.LIFT_STEP = 0.0026
 
 
 # ---------------------------------------------------------------- extra primitives
@@ -282,7 +285,7 @@ def pilaster(name, seed):
     for sx in (-1, 1):                    # the wainscot and the rail stop against the shaft
         g.emit(p_extrude_x(DADO, sx * 0.5, sx * 0.4), _dado_col, jit=0.03, smooth=30)
         b.tube([(sx * 0.5, 0.05, 1.42), (sx * 0.33, 0.05, 1.42)], 0.026, BRASS, n=6, jit=0.02)
-    g.box(0.8, 0.15, 0.42, (0, 0.075, 0), col=MARBLE_G, b=0.025, grad=(0.85, 1.05))
+    g.box(0.8, 0.118, 0.42, (0, 0.059, 0.004), col=MARBLE_G, b=0.025, grad=(0.85, 1.05))
     g.box(0.72, 0.035, 0.06, (0, 0.02, 0.42), col=BRASS_D, b=0.012)
     g.box(0.66, 0.11, 2.42, (0, 0.085, 0.44), col=shade(PLASTER, 0.9), b=0.0, jit=0.02, grad=(0.92, 1.03))
     for k in range(4):
@@ -297,7 +300,7 @@ def trim(name, seed):
     """vault_trim: 1 m of the cornice that runs along the top of the wall (cream cove, dentils, a brass bead)"""
     a = A(name, seed, footprint=0.2, ground=False, wall=FACE)
     g, b = a.mesh(), a.mesh("gloss")
-    prof = [(0.13, 3.2), (0.13, 3.5), (-0.1, 3.5), (-0.1, 3.43), (-0.06, 3.4), (-0.03, 3.33), (0.04, 3.28), (0.1, 3.25), (0.1, 3.2)]
+    prof = [(FACE, 3.2), (FACE, 3.5), (-0.1, 3.5), (-0.1, 3.43), (-0.06, 3.4), (-0.03, 3.33), (0.04, 3.28), (0.1, 3.25), (0.1, 3.2)]
     g.emit(p_extrude_x(prof, -0.5, 0.5), PLASTER, jit=0.02, smooth=30)
     for k in range(4):
         g.box(0.13, 0.07, 0.075, (-0.375 + k * 0.25, -0.015, 3.33), col=shade(PLASTER, 0.93), b=0.0, jit=0.02)
@@ -416,7 +419,7 @@ def pod(name, seed):
         for sz in (0.0, 0.305):
             b.box(1.79, 0.07, 0.04, (0, -0.005, sz - 0.003), col=BRASS, b=0.0)
         for sx in (-1, 1):
-            b.box(0.035, 0.066, 0.335, (sx * 0.885, -0.005, 0.003), col=BRASS, b=0.0)
+            b.box(0.035, 0.08, 0.318, (sx * 0.885, -0.005, 0.012), col=BRASS, b=0.0)
             b.pole((sx * 0.6, 0.02, 0.17), (sx * 0.6, 0.3, 0.3), 0.022, BRASS_D, n=4, b=0)
         g.paint_text("BANANA EXPRESS", 0.125, FRONT(0, -0.026, 0.106), BRASS_L, w=0.026)
     # ready lamp over the marquee
@@ -438,7 +441,7 @@ def pod(name, seed):
         b.pole((hx * 1.035, hy * 1.035, z - 0.09), (hx * 1.035, hy * 1.035, z + 0.09), 0.055, BRASS_L, n=6, b=0.012)
     # the pressure gauge on its own stand, front right: a cream dial, a red zone, the needle on its own node
     gx, gy, gz = 1.14, -1.04, 1.52
-    g.cyl(0.17, 0.05, (gx, gy + 0.06, 0), col=CAST, n=10, b=0.015)
+    g.cyl(0.17, 0.05, (gx, gy + 0.06, 0.004), col=CAST, n=10, b=0.015)
     b.pole((gx, gy + 0.06, 0.04), (gx, gy + 0.06, gz - 0.2), 0.045, BRASS_D, n=7, b=0)
     band(b, 0.045, 0.6, 0.68, 0.025, BRASS, n=7, at=(gx, gy + 0.06, 0))
     b.emit(p_lathe([(0.2, 0.0), (0.285, 0.0), (0.285, 0.1), (0.25, 0.14), (0.225, 0.14), (0.225, 0.1), (0.0, 0.1)], 16, cap0=False), lambda c, t: PAPER if c.x * c.x + c.y * c.y < 0.045 and c.z > 0.09 else BRASS, T(gx, gy + 0.12, gz, 90, 0, 0), jit=0.02, smooth=40)
@@ -446,7 +449,7 @@ def pod(name, seed):
     for k in range(9):                                             # ticks from low (left) over the top to high (right)
         ph = radians(118 - k * 27)
         g.paint_line([(-sin(ph) * 0.15, cos(ph) * 0.15), (-sin(ph) * 0.2, cos(ph) * 0.2)], 0.018, D, INK, lift=0.004)
-    g.paint_line([(-sin(radians(t)) * 0.175, cos(radians(t)) * 0.175) for t in (-44, -62, -80, -98)], 0.05, D, RED, lift=0.006)
+    g.paint_line([(-sin(radians(t)) * 0.175, cos(radians(t)) * 0.175) for t in (-44, -62, -80, -98)], 0.05, D, RED, lift=0.008)
     needle = a.part("pod_needle", (gx, gy + 0.005, gz))
     needle.emit(p_prism([(-0.02, -0.05), (0.02, -0.05), (0.012, 0.17), (0.0, 0.2), (-0.012, 0.17)], 0.012), RED_D, T(gx, gy + 0.008, gz, 90, 0, 0), jit=0)
     needle.emit(p_lathe([(0.035, 0.0), (0.035, 0.018), (0.0, 0.024)], 8, cap0=False), BRASS_D, T(gx, gy + 0.012, gz, 90, 0, 0), jit=0)

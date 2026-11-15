@@ -658,10 +658,12 @@ class Geo:
 
     # --- flat painted details. M places the local xy plane (facing local +z) on the surface; each call is lifted a
     #     little more than the previous one so stacked paint never z-fights.
+    LIFT_STEP = 0.0015
+
     def _lift(self, lift):
         """lift=None: automatic (6 mm, stepped 1.5 mm per call). A number is used exactly."""
         self.decal_n += 1
-        return T(0, 0, 0.006 + 0.0015 * (self.decal_n % 5) if lift is None else lift)
+        return T(0, 0, 0.006 + self.LIFT_STEP * (self.decal_n % 5) if lift is None else lift)
 
     def decal(self, prim, M, col, lift=None, **kw):
         kw.setdefault("jit", 0.0)
