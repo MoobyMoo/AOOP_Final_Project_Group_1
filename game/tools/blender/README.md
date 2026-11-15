@@ -198,8 +198,30 @@ Six more typed containers in the `containers` kit group, built and gated like th
 | `cont_safe` | 1,158 | the small dial door, on top of a squat floor safe, hinged at its back edge |
 | `cont_trash` | 1,187 | the loose top layer of the junk heap (a dented bin lid over the pocket with the finds). It has no hinge; the standard open tosses it back off the heap. |
 | `cont_sack` | 858 | the gathered neck of the sack, hinged at the back of the mouth: it flops back |
+| `cont_jacket` | 960 | the left front flap of a field jacket hung on a coat rack (board, three pegs, a short hat shelf with a bowler), hinged along its shoulder: the standard open throws it up and out, showing the lining and the inside pocket. Wall-mounted like the cabinet: origin on the wall plane at the foot of the wall, hem `mountZ` (0.8) above it, 0.30 proud. Extras `wallMount: true`, `mountZ`. |
 
 Icons: `tools/items/icon_containers.py`, then `tools/items/render.py` and `tools/items/compose.py` with `--only`.
+
+A rebuild leaves every container's triangles as they were. `cont_trash` is the one node whose bytes change: about 30
+corner colours on the heap move by under 1 % from build to build (ray-cast AO on the convex-hull rocks).
+
+## Animal drops (`tools/items/models_loot.py`)
+
+`meat` (Boar Meat, 716 tris) and `hide` (Animal Hide, 1,378 tris) are item models like the other loot:
+`public/models/items/<id>.glb`, one mesh, colour in `COLOR_0`, the `MAT_Item_*` materials, origin at the bottom centre.
+The ids are the loot-table ids, so no alias is needed, but an item GLB only loads if its name is in `GLBS` in
+`src/game/loot/ground.ts`, and an icon only shows if its id is in `ICON_IDS` in `src/game/ui/icons.ts`; both are listed.
+
+```
+$B -b --factory-startup --python-exit-code 1 --python tools/items/build.py -- --only meat,hide     # GLBs, items_preview.blend, their stats.json entries
+$B -b spikes/items/items_preview.blend --python-exit-code 1 --python tools/items/qa.py -- --skill-dir ~/.agents/skills/blender-asset-qa/scripts
+$B -b --factory-startup --python-exit-code 1 --python tools/items/check_glb.py                     # fresh import of every item GLB
+$B -b spikes/items/items_preview.blend --python-exit-code 1 --python tools/items/render.py && python3 tools/items/compose.py --only meat,hide
+$B -b tools/blender/build/blend/containers.blend --python-exit-code 1 -P tools/blender/fauna/render_drops.py -- /tmp/drops 480
+python3 tools/blender/fauna/sheet_drops.py /tmp/drops research/look/fauna/drops.png
+```
+`build.py` and `qa.py` now update their own entries in `stats.json` and `qa.json` and keep the rest, so a partial
+build no longer drops the models staged only for icons. `check_glb.py` checks every entry that has an item GLB.
 
 ## The Vault kit (`tools/blender/build/g_vault.py`, `vault_fac.py`, `vault_fac2.py`)
 

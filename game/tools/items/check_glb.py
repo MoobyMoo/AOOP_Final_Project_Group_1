@@ -17,8 +17,15 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 stats = json.load(open(os.path.join(ROOT, "spikes", "items", "stats.json")))
 bad = []
+GLB_DIR = os.path.join(ROOT, "public", "models", "items")
+# stats.json also lists the models staged only for icons (rig gear, the gun, attachments, containers): they have no
+# item GLB. Every GLB in the folder must have a stats entry, and every entry with a GLB is checked.
+orphans = sorted(f[:-4] for f in os.listdir(GLB_DIR) if f.endswith(".glb") and f[:-4] not in stats)
+if orphans:
+    sys.exit(f"item GLBs with no stats.json entry: {orphans}")
+stats = {k: v for k, v in stats.items() if os.path.exists(os.path.join(GLB_DIR, k + ".glb"))}
 for ident, st in stats.items():
-    path = os.path.join(ROOT, "public", "models", "items", ident + ".glb")
+    path = os.path.join(GLB_DIR, ident + ".glb")
     with open(path, "rb") as f:
         magic, _ver, _len = struct.unpack("<4sII", f.read(12))
         jlen, _jtype = struct.unpack("<I4s", f.read(8))

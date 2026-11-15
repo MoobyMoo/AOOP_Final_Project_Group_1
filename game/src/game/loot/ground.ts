@@ -5,7 +5,7 @@
 //    Procedural loot skips the throw: it is placed at rest with a random yaw. Pickup is manual (E), one selected item.
 //  - POLISH_FINDINGS 13: our own dark 1.5-2 px silhouette for readability, a warm rim (1, 0.85, 0.25) on the selected
 //    one, a small contact shade, the item itself lit like the world. No rarity beams.
-// Models: the 37 Blender item GLBs (public/models/items, the icon set's meshes), the wearable meshes (actors/wearables.ts)
+// Models: the 40 Blender item GLBs (public/models/items, the icon set's meshes), the wearable meshes (actors/wearables.ts)
 // for gear that has no item GLB, the gun GLB for a gun. Small items are shown larger than life (longest side at least
 // 0.42 u) so a 14 cm ammo box still reads from the gameplay camera. Every model is pooled: one merged item mesh, one
 // outline hull and one shade per pickup (3 draw calls), reused when picked up.
@@ -21,7 +21,7 @@ import { MODEL_LIKE } from "./attachments";
 
 /** loot ids -> item GLB names (the icon set's short names; ui/itemicon.ts uses the same) */
 const ALIAS: Record<string, string> = { banana: "bunch", vine_rope: "rope", golden_banana: "golden", honey_pot: "honey", old_gear: "gear", sunset_mango: "mango", brass_compass: "compass", banana_idol: "idol", vine_key: "key", ammo45: "ammo", plantation_seal: "radio_key", oar: "plank", ...MODEL_LIKE };
-const GLBS = ["ammo", "aviators", "bandage", "banditmask", "beanie", "bigpack", "boomerang", "bowler", "bunch", "cap", "coconut", "compass", "cratepack", "crown", "extmag", "eyepatch", "fedora", "firstaid", "gear", "goggles", "golden", "hardhat", "heartglasses", "honey", "idol", "key", "mango", "monocle", "pith", "plank", "radio_key", "rope", "satchel", "shades", "smoothie", "spring", "suit", "tophat"];
+const GLBS = ["ammo", "aviators", "bandage", "banditmask", "beanie", "bigpack", "boomerang", "bowler", "bunch", "cap", "coconut", "compass", "cratepack", "crown", "extmag", "eyepatch", "fedora", "firstaid", "gear", "goggles", "golden", "hardhat", "heartglasses", "hide", "honey", "idol", "key", "mango", "meat", "monocle", "pith", "plank", "radio_key", "rope", "satchel", "shades", "smoothie", "spring", "suit", "tophat"];
 /** flat things stood upright in their GLB (a jacket, a magazine, a monocle): they lie on their back on the ground */
 const LIE = new Set(["suit", "extmag", "monocle", "satchel", "firstaid", "att_mag_ext"]);
 const MIN_SIDE = 0.42, MAX_SIDE = 0.78, MAX_SCALE = 3.2, MIN_SCALE = 1.25;

@@ -2,7 +2,8 @@
 
   blender -b --factory-startup --python-exit-code 1 --python tools/items/build.py -- [--only id,id] [--no-export]
 
-Outputs: public/models/items/<id>.glb, spikes/items/items.blend, spikes/items/stats.json
+Outputs: public/models/items/<id>.glb, spikes/items/items.blend (items_preview.blend with --only) and the built ids'
+entries in spikes/items/stats.json.
 """
 import json
 import os
@@ -58,8 +59,12 @@ for kind, fns in (("item", models_loot.ALL), ("wearable", models_wear.ALL)):
         stats[model.id] = entry
         print(f"@@ {model.id:14s} {tris:5d} tris  {entry['dims_m']}")
 
-if not only:
-    with open(os.path.join(out_dir, "stats.json"), "w") as f:
-        json.dump(stats, f, indent=1)
+# stats.json also holds the staged icon models (gear, gun, attachments, containers): update the built ids, keep the rest
+sp = os.path.join(out_dir, "stats.json")
+if do_export:
+    merged = json.load(open(sp)) if os.path.exists(sp) else {}
+    merged.update(stats)
+    with open(sp, "w") as f:
+        json.dump(merged, f, indent=1)
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(out_dir, "items_preview.blend" if only else "items.blend"))
 print("@@ built", len(stats), "models; max tris", max(s["tris"] for s in stats.values()))

@@ -1,4 +1,4 @@
-"""The 19 loot items (ids match src/game/loot/tables.ts; itemicon.ts maps the long table ids to these short ones). Units are metres, front faces -Y, Z up."""
+"""The 21 loot items (ids match src/game/loot/tables.ts; itemicon.ts maps the long table ids to these short ones). Units are metres, front faces -Y, Z up."""
 import math
 
 from kit import (Model, arc_pts, ball, banana, bullet, circle_pts, helix_pts, lathe, leaf, lin, mix,
@@ -506,5 +506,89 @@ def extmag():
     return m
 
 
+def meat():
+    """Boar Meat: a raw leg on the bone, cut end showing, a loop of twine round the shank."""
+    m = Model("meat", "Boar Meat")
+    red, red_lo, pink, fat, bone = "#c9463b", "#9c2f2a", "#e9776b", "#f6e2c6", "#f4ecd8"
+    prof = [(0, 0), (0.024, 0), (0.028, 0), (0.07, 0), (0.075, 0.001), (0.094, 0.004), (0.104, 0.022), (0.112, 0.06), (0.108, 0.105), (0.09, 0.15),
+            (0.064, 0.19), (0.042, 0.218), (0.034, 0.235), (0, 0.235)]
+
+    def col(p):
+        r = math.hypot(p.x, p.y)
+        if p.z < 0.0015:                                    # the cut face: marrow bone, meat, a rind of fat
+            return bone if r < 0.026 else fat if r > 0.072 else mix(pink, red, r / 0.07 * 0.6 + 0.25 * _h(round(p.x, 2), round(p.y, 2)))
+        if p.z < 0.03:
+            return fat
+        k = (p.z - 0.03) / 0.2
+        return mix(mix(red, pink, 0.35 * max(0.0, math.sin(math.atan2(p.y, p.x)))), red_lo, k * 0.8)
+    ham = lathe(prof, 14, sharp=50).paint(col)
+    ham.sc(1.0, 0.86, 1.0)
+    shank = lathe([(0, 0.2), (0.021, 0.2), (0.019, 0.3), (0.024, 0.325), (0, 0.33)], 8, sharp=60)
+    shank.grad(bone, "#fffaf0", axis=2)
+    knob = [ball(0.031, 8, 5).sc(1, 0.9, 0.9).at(sx * 0.021, 0, 0.335) for sx in (-1, 1)]
+    twine = torus(0.043, 0.0085, 12, 5).sc(1, 0.86, 1).at(0, 0, 0.214)
+    knot = ball(0.014, 6, 4).at(0.045, -0.012, 0.214)
+    tails = [tube([(0.045, -0.012, 0.214), (0.066 - 0.012 * k, -0.03 - 0.014 * k, 0.2 + 0.006 * k), (0.07 + 0.022 * k, -0.045 - 0.02 * k, 0.165 + 0.014 * k)], 0.006, 4) for k in (0, 1)]
+    parts = [(ham, None, "satin"), (shank, None, "satin")] + [(k, bone, "satin") for k in knob] + [(twine, "#c9a15a", "matte"), (knot, "#a57c3c", "matte")] + [(t, "#c9a15a", "matte") for t in tails]
+    for part, c, mat in parts:                               # lay it down: cut end low on the left, bone up to the right
+        m.add(part.rot(ry=72).rot(rz=18), c, mat)
+    m.icon_rot = (0, 0, 24)
+    return m
+
+
+def hide():
+    """Animal Hide: a tanned boar pelt folded in three (bristle stripe on top, leg flaps at the corners, the pale flesh
+    side at the edges), tied crosswise with a cord."""
+    m = Model("hide", "Animal Hide")
+    top, top_lo, flesh, flesh_lo, cord, bristle = "#82502c", "#59331b", "#cda476", "#a87f55", "#efe0b8", "#38210f"
+    w, d, t = 0.34, 0.24, 0.03
+
+    def outline(ww, dd, k):
+        out = []
+        n = 28
+        for i in range(n):                                   # a wobbly rounded slab, never a ruled rectangle
+            a = math.tau * i / n
+            cx, cy = math.cos(a), math.sin(a)
+            rx = (abs(cx) ** 6 + abs(cy) ** 6) ** (-1 / 6)
+            wob = 1 + 0.03 * math.sin(a * 5 + k * 1.7) + 0.018 * math.sin(a * 9 + k)
+            out.append((cx * rx * ww / 2 * wob, cy * rx * dd / 2 * wob))
+        return out
+
+    def skin(p, k):
+        return p.paint(lambda v: mix(flesh_lo, flesh, 0.3 + 0.6 * _h(round(v.x, 2), round(v.y, 2))) if v.z < 0
+                       else mix(top_lo, top, 0.5 + 0.5 * math.sin(v.x * 9 + v.y * 7 + k) ** 2))
+
+    def sag(v, k=0):
+        return (v.x, v.y, v.z + 0.005 * math.sin(v.x * 26 + k) + 0.004 * math.sin(v.y * 31 + 2 * k) - 0.014 * (abs(v.x) / (w / 2)) ** 3)
+    step = t - 0.006
+    for k in range(3):
+        p = skin(plate(outline(w - 0.016 * k, d - 0.012 * k, k), h=t, bevel=0.008, sharp=50).warp(lambda v, k=k: sag(v, k)), k)
+        m.add(p.rot(rz=(-2, 3, -1)[k]).at((0.0, 0.006, -0.004)[k], (0.0, -0.004, 0.004)[k], t / 2 + k * step))
+    zt = t + 2 * step                                        # top of the bundle
+    fold = tube([(-w / 2 + 0.03, d / 2 - 0.012, zt / 2), (0, d / 2 - 0.004, zt / 2 + 0.003), (w / 2 - 0.03, d / 2 - 0.012, zt / 2)], zt / 2 + 0.004, 8, squash=(1.0, 0.55))
+    fold.paint(lambda v: mix(top_lo, top, 0.5 + 0.5 * math.sin(v.x * 9) ** 2))
+    m.add(fold)                                              # the folded edge at the back joins the three layers
+    for sx in (-1, 1):                                       # the pelt's legs: flaps hanging off the front corners of the top fold
+        leg = plate([(0, 0.035), (0.03, 0.045), (0.085, 0.02), (0.1, -0.012), (0.075, -0.04), (0.02, -0.035), (-0.012, -0.01)], h=t * 0.7, bevel=0.006, sharp=50)
+        leg.warp(lambda v: (v.x, v.y, v.z - 0.55 * max(0.0, v.x - 0.02)))
+        skin(leg, 5)
+        m.add(leg.rot(rz=-52).sc(sx, 1, 1).at(sx * (w / 2 - 0.05), -d / 2 + 0.03, zt - t * 0.42))
+    n = 9                                                    # the bristle stripe down the spine of the pelt
+    zig = [(-0.13 + 0.26 * i / n, 0.022 + (0.012 if i % 2 else 0.0)) for i in range(n + 1)] + [(0.13 - 0.26 * i / n, -0.022 - (0.012 if i % 2 else 0.0)) for i in range(n + 1)]
+    m.add(plate(zig, h=0.012, bevel=0.003, sharp=50).warp(lambda v: (v.x, v.y, v.z - 0.014 * (abs(v.x) / (w / 2)) ** 3)).at(0, 0.035, zt + 0.003), bristle)
+    for (a, rz, off) in ((w / 2 * 0.74, 0, (0.0, -0.035)), (d / 2 * 0.94, 90, (0.03, 0.0))):       # the cord, both ways round the bundle
+        b = zt + 0.004
+        loop = [(-a, 0, 0.003), (-a - 0.014, 0, b * 0.5), (-a, 0, b), (-a * 0.5, 0, b + 0.006), (0, 0, b + 0.008), (a * 0.5, 0, b + 0.006), (a, 0, b), (a + 0.014, 0, b * 0.5), (a, 0, 0.003),
+                (a * 0.5, 0, -0.002), (0, 0, -0.003), (-a * 0.5, 0, -0.002)]
+        m.add(tube(loop, 0.0075, 5, closed=True, up=(0, 1, 0)).rot(rz=rz).at(off[0], off[1], 0), cord)
+    kx, ky, kz = 0.03, -0.035, zt + 0.016
+    m.add(ball(0.017, 7, 4).sc(1.2, 1, 0.8).at(kx, ky, kz), "#d9c693")                             # the knot, a bow and two tails
+    for sx in (-1, 1):
+        m.add(tube([(kx, ky, kz), (kx + sx * 0.04, ky - 0.02, kz + 0.02), (kx + sx * 0.064, ky - 0.004, kz + 0.01), (kx + sx * 0.03, ky + 0.008, kz + 0.002)], 0.0065, 5), cord)
+        m.add(tube([(kx, ky, kz), (kx + sx * 0.028, ky - 0.04, kz - 0.004), (kx + sx * 0.046, ky - 0.075, kz - 0.016)], 0.006, 4), cord)
+    m.icon_rot = (0, 0, 14)
+    return m
+
+
 ALL = [bunch, coconut, rope, plank, golden, honey, gear, spring, boomerang, mango, compass, idol, smoothie,
-       bandage, firstaid, ammo, key, extmag, radio_key]
+       bandage, firstaid, ammo, key, extmag, radio_key, meat, hide]

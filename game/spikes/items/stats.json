@@ -817,5 +817,40 @@
    0.838,
    1.429
   ]
+ },
+ "meat": {
+  "name": "Boar Meat",
+  "kind": "item",
+  "tris": 716,
+  "materials": 2,
+  "dims_m": [
+   0.37,
+   0.207,
+   0.246
+  ],
+  "glb_bytes": 23704
+ },
+ "hide": {
+  "name": "Animal Hide",
+  "kind": "item",
+  "tris": 1378,
+  "materials": 1,
+  "dims_m": [
+   0.376,
+   0.316,
+   0.141
+  ],
+  "glb_bytes": 43612
+ },
+ "cont_jacket": {
+  "name": "Hanging Jacket",
+  "kind": "container",
+  "tris": 960,
+  "materials": 1,
+  "dims_m": [
+   1.218,
+   0.3,
+   0.963
+  ]
  }
 }

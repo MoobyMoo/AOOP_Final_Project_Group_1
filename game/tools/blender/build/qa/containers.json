@@ -15,6 +15,18 @@
    "warnings": [],
    "ground_z": 0.0
   },
+  "cont_jacket": {
+   "pass": true,
+   "tris": 960,
+   "errors": [],
+   "warnings": [
+    "cont_jacket__matte: duplicate verts=3 loose verts=0",
+    "hidden back-to-back faces: cont_jacket__matte (40 pairs) - delete to save tris",
+    "hidden back-to-back faces: cont_jacket__lid<->cont_jacket__matte (8 pairs) - delete to save tris",
+    "asset lowest point z=0.8 (not resting on ground plane z=0)"
+   ],
+   "ground_z": 0.8
+  },
   "cont_lunchbox": {
    "pass": true,
    "tris": 928,

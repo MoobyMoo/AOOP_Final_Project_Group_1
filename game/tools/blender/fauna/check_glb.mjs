@@ -6,6 +6,7 @@
 // tools/blender/fauna/manifest.json resolves, every clip track binds to a bone of its own animal, and an
 // AnimationMixer on a clone of the root actually moves the skeleton. containers.glb: the five old containers are
 // still there, and each new `cont_<type>` has the `lid` part, the `mark` point and the static mesh kit_build.ts reads.
+// Drops: items/meat.glb and items/hide.glb load, sit on y = 0, and their ids are in the lists ground.ts and icons.ts use.
 // Exits non-zero on the first failure.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -92,7 +93,8 @@ for (const [id, clip, frac, what, test] of [
 
 // ---------------------------------------------------------------- containers.glb
 const cont = await load("build/containers.glb");
-const OLD = ["cont_weapon", "cont_food", "cont_ammo", "cont_parts", "cont_medical"], NEW = ["cont_lunchbox", "cont_toolbox", "cont_medcabinet", "cont_safe", "cont_trash", "cont_sack"];
+const OLD = ["cont_weapon", "cont_food", "cont_ammo", "cont_parts", "cont_medical"], NEW = ["cont_lunchbox", "cont_toolbox", "cont_medcabinet", "cont_safe", "cont_trash", "cont_sack", "cont_jacket"];
+const WALL = ["cont_medcabinet", "cont_jacket"];
 console.log(`containers.glb ok  ${cont.scene.children.length} roots`);
 cont.scene.updateMatrixWorld(true);
 for (const name of [...OLD, ...NEW]) {
@@ -107,6 +109,11 @@ for (const name of [...OLD, ...NEW]) {
   const n = tris(root);
   if (NEW.includes(name) && n >= 1200) fail(`${name}: ${n} tris`);
   if (n !== root.userData.tris) fail(`${name}: ${n} tris, extras say ${root.userData.tris}`);
+  if (WALL.includes(name) !== !!root.userData.wallMount) fail(`${name}: wallMount is ${root.userData.wallMount}`);
+  if (WALL.includes(name)) {                               // hangs on the wall plane z = 0, in front of it, mountZ above the origin
+    const b = new THREE.Box3().setFromObject(root);
+    if (!(root.userData.mountZ > 0) || Math.abs(b.min.z) > 1e-3 || b.min.y < root.userData.mountZ - 0.15) fail(`${name}: mountZ ${root.userData.mountZ}, box ${b.min.toArray()} .. ${b.max.toArray()}`);
+  }
   // open it the way kit_build does and make sure the lid really leaves its closed place
   const closed = new THREE.Box3().setFromObject(lid).getCenter(new THREE.Vector3());
   lid.rotation.x = -1.9; cont.scene.updateMatrixWorld(true);
@@ -116,4 +123,23 @@ for (const name of [...OLD, ...NEW]) {
   const box = new THREE.Box3().setFromObject(root), r2 = (v) => v.toArray().map((x) => +x.toFixed(2));
   console.log(`  ${name.padEnd(16)} ${String(n).padStart(4)} tris  hinge ${JSON.stringify(r2(lid.position))}  mark ${JSON.stringify(r2(mark.position))}  box ${JSON.stringify(r2(box.min))} .. ${JSON.stringify(r2(box.max))}${root.userData.wallMount ? "  wall-mounted, mountZ " + root.userData.mountZ : ""}`);
 }
-console.log(`all good: 5 animals, ${fauna.animations.length} clips, 11 containers`);
+
+// ---------------------------------------------------------------- the animal drops: item GLBs, icons, and the lists that resolve an id
+const groundTs = readFileSync(ROOT + "src/game/loot/ground.ts", "utf8"), iconsTs = readFileSync(ROOT + "src/game/ui/icons.ts", "utf8");
+const listed = (src, key) => [...src.slice(src.indexOf(key), src.indexOf("];", src.indexOf(key))).matchAll(/"([a-z0-9_]+)"/g)].map((m) => m[1]);
+const GLBS = listed(groundTs, "const GLBS"), ICONS = listed(iconsTs, "ICON_IDS");
+for (const id of ["meat", "hide"]) {
+  const g = await load(`items/${id}.glb`);
+  const meshes = []; g.scene.traverse((o) => { if (o.isMesh) meshes.push(o); });
+  if (!meshes.length || g.scene.children.length !== 1 || g.scene.children[0].name !== id) fail(`items/${id}.glb: root nodes ${g.scene.children.map((c) => c.name)}`);
+  for (const m of meshes) { if (!m.geometry.attributes.color) fail(`items/${id}.glb: no COLOR_0`); if (!m.material.name.startsWith("MAT_Item_")) fail(`items/${id}.glb: material ${m.material.name}`); }
+  g.scene.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(g.scene), n = tris(g.scene), s = b.getSize(new THREE.Vector3());
+  if (Math.abs(b.min.y) > 1e-3 || n > 1500) fail(`items/${id}.glb: min y ${b.min.y}, ${n} tris`);
+  if (!GLBS.includes(id)) fail(`loot/ground.ts GLBS does not list "${id}": the ground would show the fallback model`);
+  if (!ICONS.includes(id)) fail(`ui/icons.ts ICON_IDS does not list "${id}"`);
+  readFileSync(ROOT + `public/icons/${id}.png`);
+  console.log(`  items/${id}.glb`.padEnd(18) + ` ${String(n).padStart(4)} tris  ${meshes.length} primitive(s)  ${s.x.toFixed(2)} x ${s.y.toFixed(2)} x ${s.z.toFixed(2)} m  listed in ground.ts GLBS and icons.ts ICON_IDS, icon present`);
+}
+for (const name of NEW) { if (!ICONS.includes(name)) fail(`ui/icons.ts ICON_IDS does not list "${name}"`); readFileSync(ROOT + `public/icons/${name}.png`); }
+console.log(`all good: 5 animals, ${fauna.animations.length} clips, ${OLD.length + NEW.length} containers, 2 drops`);
