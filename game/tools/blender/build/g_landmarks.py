@@ -222,10 +222,10 @@ def bullet_holes(g, pts, z_of):
         m = on_surface(z_of, x, y) @ T(rz=rr.uniform(0, 360))
         R = 0.105 * s
         rim = [(cos(radians(k * 40)) * R * rr.uniform(1.25, 1.6), sin(radians(k * 40)) * R * rr.uniform(1.25, 1.6)) for k in range(6)]
-        g.paint_poly(rim, m, "#b3b89f", lift=0.007)
+        g.paint_poly(rim, m, "#b3b89f", lift=0.0135)       # rim, tear, hole: 3 mm apart and above any scorch patch (level-ish faces under 2 mm apart count as one plane)
         hole = [(cos(radians(k * 51.4 + 10)) * R * rr.uniform(0.75, 1.15), sin(radians(k * 51.4 + 10)) * R * rr.uniform(0.75, 1.15)) for k in range(7)]
-        g.paint_poly(hole, m, "#15110f", lift=0.011)
-        g.paint_line([(R * 0.9, 0.0), (R * 1.9, R * 0.35), (R * 2.6, R * 0.2)], 0.022 * s, m, "#1f1a16", taper=(1.0, 0.2), lift=0.009)
+        g.paint_poly(hole, m, "#15110f", lift=0.0195)
+        g.paint_line([(R * 0.9, 0.0), (R * 1.9, R * 0.35), (R * 2.6, R * 0.2)], 0.022 * s, m, "#1f1a16", taper=(1.0, 0.2), lift=0.0165)
 
 
 def scorch(g, z_of, pts, col="#3a3b31"):
@@ -233,7 +233,7 @@ def scorch(g, z_of, pts, col="#3a3b31"):
     rr = random.Random(int(pts[0][0] * 1000) + 17)
     for i, (x, y, s) in enumerate(pts):
         m = on_surface(z_of, x, y) @ T(rz=rr.uniform(0, 360))
-        g.paint_poly([(cos(radians(k * 45)) * s * rr.uniform(0.7, 1.15), sin(radians(k * 45)) * s * 0.7 * rr.uniform(0.7, 1.15)) for k in range(8)], m, shade(col, rr.uniform(0.9, 1.12)), lift=0.0045 + 0.0012 * (i % 3))
+        g.paint_poly([(cos(radians(k * 45)) * s * rr.uniform(0.7, 1.15), sin(radians(k * 45)) * s * 0.7 * rr.uniform(0.7, 1.15)) for k in range(8)], m, shade(col, rr.uniform(0.9, 1.12)), lift=0.0045 + 0.003 * (i % 3))
 
 
 def propeller(a, name, hub, axis=(-1, 0, 0), bent=False):

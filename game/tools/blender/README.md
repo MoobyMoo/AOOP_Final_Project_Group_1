@@ -280,3 +280,44 @@ tube bent sharply (cut it at the corner), and the cornice's top lying on the wal
 hidden, so let trims stop a few millimetres short or stand on the surface instead of sinking into it. Strokes of one
 painted letter must not share a plane: leave `paint_text`'s lift on automatic. A loose prop on the floor counts as a
 floating part unless it stands on something that belongs to the piece (a rug, a drip tray).
+
+## Z-fight gate for kit GLBs (`tools/blender/build/coplanar_*`, `glb_diff.py`, `glb_graft.py`)
+
+`tools/glitchcheck.mjs` fails an asset whose same-facing faces lie on one plane and overlap (src/game/dev/glitch.ts).
+Three tools find and fix those without a browser:
+
+```
+B=/home/moo/.local/bin/blender
+$B -b tools/blender/build/blend/<group>.blend --python-exit-code 1 --python tools/blender/build/coplanar_check.py -- --list 20   # per asset, pairs with positions (Blender axes)
+$B -b --factory-startup --python-exit-code 1 --python tools/blender/build/coplanar_check.py -- --glb public/models/build/<group>.glb
+node tools/blender/build/coplanar_glb.mjs public/models/build/<group>.glb [asset]     # the game's code, ported line for line; three.js axes
+python3 tools/blender/build/glb_diff.py HEAD:public/models/build/<group>.glb public/models/build/<group>.glb                 # what a rebuild changed
+```
+`coplanar_check.py` matches the game's verdict by default. `--strict` also counts wall-like faces up to 2 mm apart,
+which the game's bounding-box pre-test lets through (only the vertical axis gets the 2 mm there). The vault kit is
+clean under both; the older kits are clean under the default.
+
+**Which groups rebuild byte-identical.** `house`, `prefab`, `loot` and `projectiles` do. Any asset with a rock, rubble
+or debris hull (`Geo.rock`, `p_hull`) does not: its mesh differs from run to run, with or without a fixed
+`PYTHONHASHSEED` (measured on `ruins`: four pieces changed shape between three runs at seed 0). That covers pieces in
+`ruins`, `landmarks` and `bunker`, and the paper balls in the vault's `fac_desk`. `containers` has no hulls and its
+meshes come out identical, but the file's bytes still vary with the hash seed. So the committed files of those groups
+cannot be reproduced, and a plain rebuild reshapes pieces nobody meant to touch. To fix one asset in such a group,
+change its builder so that no other asset's output moves, rebuild, then graft only that asset into the committed file:
+
+```
+PYTHONHASHSEED=0 $B -b --factory-startup --python-exit-code 1 --python tools/blender/build/build.py -- --group landmarks
+cp public/models/build/landmarks.glb /tmp/landmarks_new.glb
+python3 tools/blender/build/glb_graft.py HEAD:public/models/build/landmarks.glb /tmp/landmarks_new.glb public/models/build/landmarks.glb bomber --manifest tools/blender/build/manifest/landmarks.json
+python3 tools/blender/build/glb_diff.py HEAD:public/models/build/landmarks.glb public/models/build/landmarks.glb     # only bomber may differ
+```
+`glb_diff.py` separates meshes whose shape changed from those whose baked colour alone changed. Baked AO reaches about
+1.5 m, so a mesh next to a changed one legitimately shifts in `COLOR_0`.
+
+**In the house kit (`hkit.py`), keep the random stream.** Every `House` draws its jitter from one generator, so a fix
+must make the same calls in the same order, or everything built after it in that asset changes colour and size. Move
+things by constants. The fixes of the z-fight pass, as a pattern list: each roof plane and its barge boards sit on
+their own station along the ridge, 4 mm apart, so the two slopes never share a face plane where they cross; crossing
+braces lie flat on planes 4 mm apart (a leaning one still counts as coplanar); parts that overlap by design (stoop
+treads, a partition under a header, a rail into a post) differ by 4 to 5 mm in the shared plane; paint on a level face
+steps at least 3 mm.

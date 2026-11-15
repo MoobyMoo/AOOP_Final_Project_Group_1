@@ -170,7 +170,7 @@ def desk(h, g, em, w=1.7, d=0.85, lamp=True):
         for k in range(3):
             g.paint_poly([(-0.19, 0.0), (0.19, 0.0), (0.19, 0.2), (-0.19, 0.2)], BACK(x, (d - 0.1) / 2, 0.06 + k * 0.23), shade(wood, 1.18))
             g.box(0.1, 0.04, 0.035, (x, (d - 0.1) / 2 + 0.015, 0.15 + k * 0.23), col=GOLD_D, b=0)
-    g.box(w - 0.9, 0.04, 0.5, (0, -(d - 0.1) / 2 + 0.02, 0.22), col=shade(wood, 0.85), b=0)
+    g.box(w - 0.9, 0.04, 0.5, (0, -(d - 0.1) / 2 + 0.03, 0.22), col=shade(wood, 0.85), b=0)      # modesty panel, 1 cm behind the pedestals' fronts
     for i, (x, y, a) in enumerate(((-0.3, 0.05, 8), (-0.18, -0.12, -14), (0.1, 0.12, 30))):
         g.paint_poly([(-0.11, -0.15), (0.11, -0.15), (0.11, 0.15), (-0.11, 0.15)], TOP(x, y, z) @ T(rz=a), pick(r, [PAPER, "#e6dcc0", CREAM]), lift=0.006 + 0.003 * i)
     g.box(0.34, 0.26, 0.06, (0.32, 0.12, z - 0.005), (0, 0, 12), col=RED_D, b=0.012)                  # ledger
@@ -521,6 +521,6 @@ def wheel(h, g, em):
     with g.at(T(0, 0, 0.5, 78, 0, 0)):
         g.lathe([(0.42, -0.04), (0.5, -0.05), (0.5, 0.05), (0.42, 0.04)], (0, 0, 0), col=WOOD_D[0], n=10, cap="#2e2219")
         g.cyl(0.1, 0.16, (0, 0, -0.08), col=WOOD_D[1], n=7, b=0.01)
-        for k in range(3):
-            g.box(0.9, 0.06, 0.11, (0, 0, -0.055), (0, 0, 60 * k), col=WOOD[0], b=0)
+        for k in range(3):                    # three bars cross at the hub: each 8 mm slimmer than the last, so no two faces share a plane
+            g.box(0.9, 0.06, 0.11 - 0.008 * k, (0, 0, -0.055 + 0.004 * k), (0, 0, 60 * k), col=WOOD[0], b=0)
     return []

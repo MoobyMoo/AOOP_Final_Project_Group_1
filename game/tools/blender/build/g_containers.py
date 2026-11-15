@@ -65,12 +65,15 @@ def icon_gear(g, M, s=1.0, col=CREAM, hole=SLATE_D):
     g.paint_poly(circle(0.15 * s, 10), M, hole)
 
 
-def icon_leafcross(g, M, s=1.0, col=LEAFMARK, disc=CASE):
-    g.paint_poly(circle(0.5 * s, 14), M, disc)
+def icon_leafcross(g, M, s=1.0, col=LEAFMARK, disc=CASE, flat=False):
+    """flat=True is for a face that lies level (a lid top): the game's z-fight gate counts level faces under 2 mm apart
+    as one plane, and the automatic paint lifts step 1.5 mm. The disc then sits at 6 mm and the four leaves, which do
+    not overlap each other, share 9.5 mm."""
+    g.paint_poly(circle(0.5 * s, 14), M, disc, **({"lift": 0.006} if flat else {}))
     leaf = [(0, 0.05), (0.09, 0.15), (0.13, 0.27), (0.08, 0.37), (0, 0.44), (-0.08, 0.37), (-0.13, 0.27), (-0.09, 0.15)]
     for k in range(4):
         c, sn = cos(k * pi / 2), sin(k * pi / 2)
-        g.paint_poly([((x * c - y * sn) * s, (x * sn + y * c) * s) for x, y in leaf], M, col)
+        g.paint_poly([((x * c - y * sn) * s, (x * sn + y * c) * s) for x, y in leaf], M, col, **({"lift": 0.0095} if flat else {}))
     g.paint_poly(circle(0.07 * s, 8), M, col, lift=0.0135)      # above every leaf (auto lifts cycle through 5 steps)
 
 
@@ -302,7 +305,7 @@ def cont_medical(name, seed, w=1.0, d=0.66, h=0.52):
     for sx in (-1, 1):                                                                       # carry handle on the front edge
         lid.box(0.055, 0.09, 0.06, (sx * 0.13, -d / 2 - 0.06, zl + 0.065), col=STEEL_D, b=0.0)
     lid.beam((-0.17, -d / 2 - 0.11, zl + 0.095), (0.17, -d / 2 - 0.11, zl + 0.095), 0.055, 0.05, "#3a3438", b=0.018)
-    icon_leafcross(lid, TOP(0, 0.01, h + 0.001), 0.5)
+    icon_leafcross(lid, TOP(0, 0.01, h + 0.001), 0.5, flat=True)
     a.point("mark", (0, 0, h + 0.55))
     return a
 

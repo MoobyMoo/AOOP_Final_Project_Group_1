@@ -156,7 +156,7 @@ def barn():
     yf = -5 - th / 2
     g.box(1.3, 0.07, 1.25, (0, yf - 0.035, H + 0.25), col="#7a3a2c", b=0.02)
     for sgn in (-1, 1):
-        g.beam((sgn * 0.55, yf - 0.08, H + 0.35), (-sgn * 0.55, yf - 0.08, H + 1.4), 0.04, 0.12, CREAM, b=0)
+        g.beam((sgn * 0.55, yf - 0.08 - 0.002 * (sgn + 1), H + 0.35), (-sgn * 0.55, yf - 0.08 - 0.002 * (sgn + 1), H + 1.4), 0.04, 0.12, CREAM, b=0)      # the second brace 4 mm proud where they cross
     for x, w_, z in ((0, 1.5, H + 0.2), (0, 1.5, H + 1.5)):
         g.box(w_, 0.09, 0.12, (x, yf - 0.05, z - 0.06), col=CREAM, b=0)
     for x in (-0.72, 0.72):
@@ -170,7 +170,7 @@ def barn():
     h.put(haybale, 2.9, 1.9, 80)
     h.put(pitchfork, 1.85, 3.6, 30)
     h.put(stall, 2.95, 0.4, 0, w=1.9)
-    h.put(stall, 2.95, -2.0, 0, w=1.9)
+    h.put(stall, 2.944, -2.0, 0, w=1.9)        # its end post 6 mm clear of the window sill's inner face
     h.put(trough, 3.35, -0.8, 90)
     h.put(workbench, -1.5, 4.4, 0)
     h.put(ladder_lean, 0.35, 4.78, 0, hgt=2.9)
