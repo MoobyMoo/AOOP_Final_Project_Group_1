@@ -426,7 +426,7 @@ export const ROUTE_LOCKS: RouteLock[] = DEMO ? [
 /** points just past every sealing line: the lint checks a monkey can't reach any of them (grid.ts exactReach) */
 export const SEAL_PROBES: Pt[] = [];
 /** the cove boat: the second way home inside the slice (a smuggler's rowboat at the cove's waterline) */
-export const COVE_BOAT = { x: -89.5, z: 104.5, boat: { x: -91.4, z: 107.4, yaw: 0.62 } };
+export const COVE_BOAT = { x: -90, z: 104.5, boat: { x: -92.6, z: 108.8, yaw: 0.62 } };
 if (DEMO) {
   // a separate stream so the slice never shifts the look of anything authored above
   let ls = 151103; const lr = () => (ls = (ls * 16807) % 2147483647) / 2147483647, lrr = (a: number, b: number) => a + lr() * (b - a);
@@ -472,7 +472,7 @@ if (DEMO) {
   seal([[86.8, 14.8], [94, 15.4], [102.8, 14.4]], 1.9);
   // ---- the cove cave has fallen in; the camp well is boarded over (the grotto's two ways in)
   group(-96.2, 91, H, [["rubble_pile_rock", -1.2, 1.2, 0.4, 1.25], ["rubble_pile_rock", 1.3, 1.1, 2.6, 1.2], ["rockl", 0.1, 1.9, 0.9, 1.05], ["rocks", -0.8, 3.2, 0.3, 1.2], ["rocks", 1.6, 3.4, 1.7, 1.0]]);
-  put("dock_broken", -52, 22, 0.3, 0.42, { lift: 0.75 }); // planks nailed over the well mouth
+  // (the camp well's own model has boards over its shaft: the read says the gang nailed them down, props.ts)
   // ---- the cove boat: the smugglers' rowboat pulled up at the waterline, a lantern on a post, oars and a crate
   group(-88.6, 104.2, 0.62, [["lantern_post", 2.4, 1.6, 2.2], ["crate_wood_b", -2.6, 0.8, 0.4], ["barrel_wood", -3.2, -0.6], ["rocks", 2.6, -1.4, 0.4, 1.1], ["signpost_a", -2.0, 2.6, 0.9]]);
 }
@@ -515,7 +515,7 @@ export const PORTALS: Portal[] = [
 /** one-way zipline from the plantation lookout down to the beach: a fast way home from the middle of the map */
 export const ZIPLINES = [{ id: "lookout", from: { x: 21, z: 8, h: 6 }, to: { x: 20, z: 99, h: 1.2 } }];
 export const POI = {
-  hatch: { x: -8, z: 102 }, coveBoat: { x: -89.5, z: 104.5 }, boss: { x: 1, z: 48.5 }, raft: { x: 17, z: -113.4 }, tunnelExit: { x: 193.5, z: 44.5 },
+  hatch: { x: -8, z: 102 }, coveBoat: { x: -90, z: 104.5 }, boss: { x: 1, z: 48.5 }, raft: { x: 17, z: -113.4 }, tunnelExit: { x: 193.5, z: 44.5 },
   campfire: { x: -62, z: 27 }, watchtower: { x: -73, z: 17 }, ruinCenter: { x: 68, z: 4 }, raftSign: { x: 0.6, z: -11.4 },
   sleeperBed: { x: 2, z: -57.4 }, giantTree: { x: -6, z: -66 }, vat: { x: -9, z: 31 }, plane: { x: -66, z: -44 }, falls: { x: 66, z: -72 },
 };

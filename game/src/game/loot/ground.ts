@@ -16,14 +16,14 @@ import { G } from "../core/state";
 import { patch } from "../render/shading";
 import { groundHeight, meshHeightMax } from "../world/terrain";
 import { walkable } from "../world/grid";
-import { baseId, buildWearable, hasWearable } from "../actors/wearables";
+import { baseId, buildWearable, hasWearable, WEARABLES } from "../actors/wearables";
 
 /** loot ids -> item GLB names (the icon set's short names; ui/itemicon.ts uses the same) */
 const ALIAS: Record<string, string> = { banana: "bunch", vine_rope: "rope", golden_banana: "golden", honey_pot: "honey", old_gear: "gear", sunset_mango: "mango", brass_compass: "compass", banana_idol: "idol", vine_key: "key", extended_mag: "extmag", ammo45: "ammo", plantation_seal: "radio_key" };
 const GLBS = ["ammo", "aviators", "bandage", "banditmask", "beanie", "bigpack", "boomerang", "bowler", "bunch", "cap", "coconut", "compass", "cratepack", "crown", "extmag", "eyepatch", "fedora", "firstaid", "gear", "goggles", "golden", "hardhat", "heartglasses", "honey", "idol", "key", "mango", "monocle", "pith", "plank", "radio_key", "rope", "satchel", "shades", "smoothie", "spring", "suit", "tophat"];
 /** flat things stood upright in their GLB (a jacket, a magazine, a monocle): they lie on their back on the ground */
 const LIE = new Set(["suit", "extmag", "monocle", "satchel", "firstaid"]);
-const MIN_SIDE = 0.42, MAX_SCALE = 3.2, MIN_SCALE = 1.25;
+const MIN_SIDE = 0.42, MAX_SIDE = 0.78, MAX_SCALE = 3.2, MIN_SCALE = 1.25;
 /** POLISH_FINDINGS 1 / 13 numbers */
 export const THROW = { hMin: 1.5, hMax: 3, up: 2.5, spread: Math.PI / 8, gravity: 9.81, physicsOff: 3, recover: 6 };
 export const PICK_REACH = 1.35;
@@ -87,15 +87,24 @@ export function modelKey(item: string) {
   return "glb:bunch";
 }
 /** lay a template on the ground: lie flat things down, scale small ones up, base on y 0, centred on x/z */
-function ground(geos: THREE.BufferGeometry[], lie: boolean) {
+/** which way a model's outside faces: + when most of its surface looks up (a hat right side up), - when it looks down */
+function upness(geos: THREE.BufferGeometry[]) {
+  let up = 0; const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), n = new THREE.Vector3();
+  for (const g0 of geos) { const g = g0.index ? g0.toNonIndexed() : g0, p = g.getAttribute("position");
+    for (let i = 0; i + 2 < p.count; i += 3) { a.fromBufferAttribute(p, i); b.fromBufferAttribute(p, i + 1); c.fromBufferAttribute(p, i + 2); n.subVectors(c, b).cross(a.sub(b)); up += -n.y; } }
+  return up;
+}
+function ground(geos: THREE.BufferGeometry[], lie: boolean, wear = false) {
   const box = new THREE.Box3(); for (const g of geos) { g.computeBoundingBox(); box.union(g.boundingBox!); }
   const size = box.getSize(new THREE.Vector3()), m = new THREE.Matrix4();
   // a wearable built for a socket stands however it was worn: anything much taller than it is wide lies down
   const flat = lie || size.y > Math.max(size.x, size.z) * 1.35;
   if (flat) m.makeRotationX(-Math.PI / 2);
   for (const g of geos) g.applyMatrix4(m);
+  // a helmet authored hanging from the head socket can come out upside down: turn it so its outside faces up
+  if (wear && upness(geos) < 0) { const f = new THREE.Matrix4().makeRotationX(Math.PI); for (const g of geos) g.applyMatrix4(f); }
   const b2 = new THREE.Box3(); for (const g of geos) { g.computeBoundingBox(); b2.union(g.boundingBox!); }
-  const s2 = b2.getSize(new THREE.Vector3()), side = Math.max(s2.x, s2.z, 1e-3), k = Math.min(MAX_SCALE, Math.max(MIN_SCALE, MIN_SIDE / side));
+  const s2 = b2.getSize(new THREE.Vector3()), side = Math.max(s2.x, s2.z, 1e-3), k = Math.min(MAX_SCALE, MAX_SIDE / side, Math.max(MIN_SCALE, MIN_SIDE / side));
   const c = b2.getCenter(new THREE.Vector3()), t = new THREE.Matrix4().makeScale(k, k, k).multiply(new THREE.Matrix4().makeTranslation(-c.x, -b2.min.y, -c.z));
   for (const g of geos) { g.applyMatrix4(t); g.computeBoundingSphere(); }
   return { foot: Math.max(s2.x, s2.z) * k, h: s2.y * k };
@@ -126,7 +135,8 @@ function template(key: string): Tmpl {
     const src = buildWearable(name), meshes: { geo: THREE.BufferGeometry; mat: THREE.Material }[] = [];
     src.updateMatrixWorld(true);
     src.traverse((o) => { const mesh = o as THREE.Mesh; if (mesh.isMesh) meshes.push({ geo: mesh.geometry.clone().applyMatrix4(mesh.matrixWorld), mat: mesh.material as THREE.Material }); });
-    const f = ground(meshes.map((q) => q.geo), false);
+    // body armour and bags are tubes and shells round the torso: on the ground they lie on their back, front up
+    const slot = WEARABLES.find((w) => w.id === name)?.slot, f = ground(meshes.map((q) => q.geo), slot === "body" || slot === "back", true);
     t = { meshes, hull: hullOf(meshes.map((q) => q.geo)), ...f };
   }
   TMPL.set(key, t); return t;
