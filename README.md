@@ -31,7 +31,18 @@ AOOP 2026 Fall 第 1 組期末專題：一款俯視角的卡通撤離射擊遊�
 
 ## 專案狀態
 
-目前收錄提案、類別圖、簡報與組員資料，遊戲程式將依分工陸續加入。
+遊戲程式在 `game/`，提案、類別圖與簡報在 `docs/`。
+
+## 執行遊戲
+
+```bash
+cd game
+npm install
+npm run dev      # 開發伺服器，用瀏覽器開啟顯示的網址
+npm run build    # 型別檢查並建置到 game/dist
+npm run test:save
+npm run test:settlement
+```
 
 本專題只用於 AOOP 課程繳交。
 
