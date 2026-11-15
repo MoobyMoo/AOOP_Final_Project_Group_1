@@ -18,7 +18,7 @@ import * as THREE from "three";
 import { G } from "../core/state";
 import { CLEARINGS } from "../world/layout";
 import { bakeMap, type MapImage } from "./mapbake";
-import { SURFACE, UNDER, levelOf, areaLabels, marks, closedPoly, demoEdge, inDemo, devMarks, type Level, type Mark } from "./mapdata";
+import { SURFACE, UNDER, levelOf, areaLabels, marks, closedPoly, demoEdge, inDemo, underClosed, routeLocks, type Level, type Mark } from "./mapdata";
 import { ICON, LEGEND } from "./mapicons";
 
 const imgs: Partial<Record<Level, MapImage>> = {};
@@ -40,9 +40,10 @@ function drawClosed(x: CanvasRenderingContext2D, m: MapImage) {
 }
 export function buildMapShots(scene?: THREE.Scene) {
   const s = scene ?? G.stage.scene;
-  imgs.surface = bakeMap(s, "surface", SURFACE, 2048, { extra: drawClosed, closed: { edge: demoEdge(), poly: closedPoly() } });
-  imgs.under = bakeMap(s, "under", UNDER, 1024);
-  if (new URLSearchParams(location.search).has("dev")) (window as unknown as { __map: unknown }).__map = { imgs, dev: devMarks, open: (l?: Level) => { if (!el) open(l); }, setLevel: (l: Level) => setLevel(l) };
+  const poly = closedPoly();
+  imgs.surface = bakeMap(s, "surface", SURFACE, 2048, poly ? { extra: drawClosed, closed: { edge: demoEdge(), poly } } : {});
+  imgs.under = bakeMap(s, "under", UNDER, 1024, { dim: underClosed });
+  if (new URLSearchParams(location.search).has("dev")) (window as unknown as { __map: unknown }).__map = { imgs, open: (l?: Level) => { if (!el) open(l); }, setLevel: (l: Level) => setLevel(l) };
 }
 
 // ---------------------------------------------------------------- explored trail (research/duckov-map rule 4)
@@ -97,7 +98,7 @@ function open(start?: Level) {
       </div>
       <aside class="mv3-side">
         <h3>Legend</h3>
-        <ul>${LEGEND.map(([k, t]) => `<li><span class="ic">${ICON[k]}</span>${t}</li>`).join("")}<li><span class="ic trail-k"></span>Your route this raid</li><li class="closed-row"><span class="ic closed-k"></span><span>Closed until the full game<small>Old Colony, the Vault, the Hollow and Raft Landing open after the demo</small></span></li></ul>
+        <ul>${LEGEND.map(([k, t]) => `<li><span class="ic">${ICON[k]}</span>${t}</li>`).join("")}<li><span class="ic trail-k"></span>Your route this raid</li><li class="closed-row"><span class="ic closed-k"></span><span>Closed until the full game<small>Old Colony, the Vault, the Hollow, Raft Landing and the grotto open after the demo</small></span></li></ul>
         <h3>Raid</h3>
         <dl><dt>Areas found</dt><dd class="num">${[...G.discovered].filter((id) => inDemo(CLEARINGS.find((c) => c.id === id)?.x ?? 0, CLEARINGS.find((c) => c.id === id)?.z ?? 0)).length} / ${areaLabels("surface").length + areaLabels("under").length}</dd><dt>Pins</dt><dd class="num pins">${pins.length}</dd></dl>
       </aside>
@@ -153,6 +154,11 @@ function setLevel(l: Level, opening = false) {
   for (const a of areaLabels(l)) {
     const d = document.createElement("span"); d.className = "lab" + (a.id === G.area ? " cur" : "") + (G.discovered.has(a.id) ? "" : " new"); d.textContent = a.name; over.appendChild(d); labelEls.push({ el: d, x: a.x, z: a.z });
   }
+  if (l === "under" && underClosed) {
+    // the grotto is shut for the demo: one caption over it instead of its area names (the cave-in lock sits at its mouth)
+    const d = document.createElement("span"), k = routeLocks("under")[0];
+    d.className = "lab closed"; d.innerHTML = `Grotto closed<small>${k?.note ?? "Opens after the demo"}</small>`; over.appendChild(d); labelEls.push({ el: d, x: 168, z: 26 });
+  }
   const me = document.createElement("b"); me.className = "me"; me.innerHTML = ICON.me; over.appendChild(me); markEls.set("me", me);
   lastMarks = 0; trailKey = -1; update(); void opening;
 }
@@ -186,15 +192,20 @@ function place() {
     const p = toScreen(G.pp.x, G.pp.z), e = markEls.get("me")!, hs = Math.max(14, (e.offsetWidth || 30) * 0.62);
     boxes.push({ l: p.x - hs, t: p.y - hs, r: p.x + hs, b: p.y + hs });
   }
+  // each label takes the first clear spot from a short list near its place (on it, above, below, beside, farther out);
+  // when none is clear, the one that covers the least
+  const hit = (l: number, t: number, r: number, b: number) => { let o = 0; for (const q of boxes) { const ox = Math.min(r, q.r) - Math.max(l, q.l), oy = Math.min(b, q.b) - Math.max(t, q.t); if (ox > 0 && oy > 0) o += ox * oy; } return o; };
   for (const q of labelEls) {
-    const p = toScreen(q.x, q.z), w = q.el.offsetWidth / 2, h = q.el.offsetHeight / 2; let dy = 0;
-    for (let n = 0; n < 4; n++) {
-      const o = boxes.find((b) => p.x - w < b.r && b.l < p.x + w && p.y + dy - h < b.b && b.t < p.y + dy + h); if (!o) break;
-      dy = (o.t + o.b) / 2 >= p.y + dy ? o.t - h - 2 - p.y : o.b + h + 2 - p.y;
+    const p = toScreen(q.x, q.z), w = q.el.offsetWidth / 2, h = q.el.offsetHeight / 2, sy = h * 2 + 4, sx = w + 22;
+    let best = { dx: 0, dy: 0 }, bestO = Infinity;
+    for (const [dx, dy] of [[0, 0], [0, -sy], [0, sy], [sx, 0], [-sx, 0], [0, -2 * sy], [0, 2 * sy], [sx, -sy], [-sx, -sy], [sx, sy], [-sx, sy]]) {
+      const o = hit(p.x + dx - w, p.y + dy - h, p.x + dx + w, p.y + dy + h);
+      if (o < bestO) { bestO = o; best = { dx, dy }; } if (o === 0) break;
     }
-    const out = p.x < -80 || p.y < -40 || p.x > vw + 80 || p.y > vh + 40; q.el.style.display = out ? "none" : "";
-    q.el.style.transform = `translate(${p.x.toFixed(1)}px,${(p.y + dy).toFixed(1)}px) translate(-50%,-50%)`;
-    if (!out) boxes.push({ l: p.x - w, t: p.y + dy - h, r: p.x + w, b: p.y + dy + h }); // later labels step off this one
+    const x = p.x + best.dx, y = p.y + best.dy;
+    const out = x < -80 || y < -40 || x > vw + 80 || y > vh + 40; q.el.style.display = out ? "none" : "";
+    q.el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) translate(-50%,-50%)`;
+    if (!out) boxes.push({ l: x - w, t: y - h, r: x + w, b: y + h }); // later labels step off this one
   }
   const me = markEls.get("me")!; me.style.visibility = levelOf(G.pp.x) === level ? "visible" : "hidden";
   me.dataset.rot = deg(G.stage.cam.yaw - G.moveYaw + Math.PI).toFixed(1); put(me, G.pp.x, G.pp.z);
@@ -260,7 +271,7 @@ export function updateMinimap() {
   for (const k of miniMarks) {
     const e = miniEls.get(k.id); if (!e) continue;
     const q = M.transformPoint(new DOMPoint((k.x - m.minX) * m.ppu, (k.z - m.minZ) * m.ppu)); let dx = q.x - MINI_PX / 2, dy = q.y - MINI_PX / 2; const d = Math.hypot(dx, dy);
-    const rim = k.kind === "exit" || k.kind === "boss";
+    const rim = k.kind === "exit" || k.kind === "boat" || k.kind === "boss";
     if (d > R) { if (!rim) { e.style.display = "none"; continue; } dx *= R / d; dy *= R / d; e.classList.add("rim"); } else e.classList.remove("rim");
     e.style.display = ""; e.style.transform = `translate(${(MINI_PX / 2 + dx).toFixed(1)}px,${(MINI_PX / 2 + dy).toFixed(1)}px) translate(-50%,-50%)`;
   }

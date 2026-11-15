@@ -29,6 +29,7 @@ const CAVE_RIM = 1.2;        // rock kept around the grotto
 const ROUGH = 0.85;          // edge irregularity, world units
 const TORN = 12.5;           // the torn edge, this far north of the demo edge
 const FADE = 9.0;            // the print has faded out by here
+const DIM = 0.5;             // how far a closed level (the demo's grotto) is washed out
 const FOG = [70, 77, 85] as const;              // the closed north: the board's tone (map.css --board #313840), a shade lighter
 const TORN_LIP = [118, 124, 128] as const;      // the torn paper's pale fibre lip
 const SHADOW = [8, 10, 16] as const;
@@ -126,7 +127,8 @@ function fieldAt(F: Field, x: number, z: number) {
 }
 
 /** cut the baked image to the level's shape, in place. Returns the shape for the map view */
-export function cutout(cv: HTMLCanvasElement, f: MapFrame, under: boolean, closed?: Closed): MapShape {
+/** `dim`: the whole level is closed (the grotto in the demo): washed toward the fog tone like the closed north */
+export function cutout(cv: HTMLCanvasElement, f: MapFrame, under: boolean, closed?: Closed, dim = false): MapShape {
   const F = buildField(f, under, closed), w = cv.width, h = cv.height, ppu = w / (f.maxX - f.minX);
   const x = cv.getContext("2d", { willReadFrequently: true })!, img = x.getImageData(0, 0, w, h), D = img.data;
   // the drop shadow falls down-screen and a little right once the map is turned by the camera yaw (mapview matrix)
@@ -173,8 +175,8 @@ export function cutout(cv: HTMLCanvasElement, f: MapFrame, under: boolean, close
         }
         // the closed north: the print loses its colour, then fades into the fog tone
         let fade = 0;
-        if (c > 0.4) {
-          fade = sstep(0.4, FADE, c);
+        if (c > 0.4 || dim) {
+          fade = dim ? DIM : sstep(0.4, FADE, c);
           const L = 0.3 * r + 0.59 * g + 0.11 * b, d1 = Math.min(1, fade * 1.4) * 0.75;
           r += (L - r) * d1; g += (L - g) * d1; b += (L - b) * d1;
           const fib = (hash(col >> 1, row >> 1, 31) - 0.5) * 6, d2 = Math.pow(fade, 0.85) * 0.93;

@@ -8,6 +8,8 @@ const svg = (body: string, s = 28) => `<svg width="${s}" height="${s}" viewBox="
 export const ICON: Record<MarkKind | "me", string> = {
   // extract: a green ring with an arrow climbing out
   exit: svg(`<circle cx="16" cy="16" r="13" fill="${INK}" stroke="#5fd36a" stroke-width="3"/><path d="M16 23V10M10.5 15.5 16 10l5.5 5.5" fill="none" stroke="#5fd36a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>`),
+  // the cove boat: the extract's green ring around a small rowboat (hull, oar and a ripple), a second way home
+  boat: svg(`<circle cx="16" cy="16" r="13" fill="${INK}" stroke="#5fd36a" stroke-width="3"/><path d="M8.5 16.5h15l-2.6 4.6h-9.8z" fill="#5fd36a" stroke="#f3ead6" stroke-width="1.4" stroke-linejoin="round"/><path d="M12.5 10.5l7.5 8.5" stroke="#f3ead6" stroke-width="2" stroke-linecap="round"/><path d="M9 24.4c1.6-1 3.2 1 4.8 0s3.2 1 4.8 0 3.2 1 4.6 0" fill="none" stroke="#5fd36a" stroke-width="1.5" stroke-linecap="round"/>`),
   // a way between levels: a brass plate with stair steps
   link: svg(`<rect x="4" y="4" width="24" height="24" rx="3" fill="${INK}" stroke="#c29a5b" stroke-width="2.5"/><path d="M9 23h5v-5h5v-5h5" fill="none" stroke="#f3ead6" stroke-width="2.6" stroke-linejoin="round"/>`, 24),
   zip: svg(`<rect x="4" y="4" width="24" height="24" rx="3" fill="${INK}" stroke="#c29a5b" stroke-width="2.5"/><path d="M8 10 24 22" stroke="#f3ead6" stroke-width="2.2"/><path d="M15 15.3v4.2M13 19.5h4" stroke="#f3ead6" stroke-width="2" stroke-linecap="round"/>`, 24),
@@ -24,6 +26,6 @@ export const ICON: Record<MarkKind | "me", string> = {
 };
 /** legend rows for the side panel: [icon, label] */
 export const LEGEND: [MarkKind | "me", string][] = [
-  ["me", "You"], ["exit", "Extract"], ["link", "Way down / up"], ["zip", "Zipline"], ["lock", "Route closed"],
+  ["me", "You"], ["exit", "Extract"], ["boat", "Cove boat (extract)"], ["link", "Way down / up"], ["zip", "Zipline"], ["lock", "Route closed"],
   ["danger", "Boss territory"], ["boss", "Boss sighted"], ["pin", "Your pin"],
 ];

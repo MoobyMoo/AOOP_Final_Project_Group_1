@@ -201,14 +201,14 @@ function overlay(c: HTMLCanvasElement, f: MapFrame, under: boolean) {
 }
 
 /** bake one level's map image: capture + map pass + vector layer + cut-out. `extra` draws before the cut (the demo edge) */
-export function bakeMap(scene: THREE.Scene, id: MapImage["id"], f: MapFrame, longSide: number, opts: { extra?: (x: CanvasRenderingContext2D, img: MapImage) => void; closed?: Closed } = {}): MapImage {
+export function bakeMap(scene: THREE.Scene, id: MapImage["id"], f: MapFrame, longSide: number, opts: { extra?: (x: CanvasRenderingContext2D, img: MapImage) => void; closed?: Closed; dim?: boolean } = {}): MapImage {
   const t0 = performance.now(), W = f.maxX - f.minX, H = f.maxZ - f.minZ;
   const w = Math.round(W >= H ? longSide : (longSide * W) / H), h = Math.round(W >= H ? (longSide * H) / W : longSide);
   const under = id === "under", c = capture(scene, f, w, h, under), t1 = performance.now();
   overlay(c, f, under); const t2 = performance.now();
   const img = { ...f, id, w, h, canvas: c, url: "", ppu: w / W } as MapImage;
   opts.extra?.(c.getContext("2d")!, img);
-  img.shape = cutout(c, f, under, opts.closed); const t3 = performance.now();
+  img.shape = cutout(c, f, under, opts.closed, opts.dim); const t3 = performance.now();
   // encoded off the main thread; until it lands the map reads the canvas through a data URL on demand (never in play)
   c.toBlob((b) => { if (b) img.url = URL.createObjectURL(b); else img.url = c.toDataURL("image/png"); }, "image/webp", 0.93);
   console.info(`map bake ${id}: ${w}x${h} in ${Math.round(performance.now() - t0)} ms (capture ${Math.round(t1 - t0)}, overlay ${Math.round(t2 - t1)}, cut-out ${Math.round(t3 - t2)})`);
