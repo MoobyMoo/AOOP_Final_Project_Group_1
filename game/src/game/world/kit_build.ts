@@ -15,6 +15,12 @@
 //        Rotations below are three.js axes on the part itself (x = hinge running east-west, y = vertical hinge).
 //   crate(tier)          lid      hinge on the back top edge, axis x. Closed rotation.x = 0, open = CRATE_LID_OPEN (-1.9)
 //                        glint    (gold only) point above the treasure for a sparkle
+//   container(type)      lid      typed loot containers (weapon | food | ammo | parts | medical): hinge on the back top edge,
+//                                 axis x, same as crate(): closed 0, open = CRATE_LID_OPEN. The contents only show once
+//                                 the lid is up.  mark: point above the lid for the interaction marker / label
+//   boomerang()          body     the thrown banana boomerang (lit). It lies flat, origin on its centroid: spin rotation.y
+//                        core     the strip down the middle of both faces, on the shared emissive material: give it your
+//                                 own unlit yellow-white material (intensity 3-6) to light it
 //   campfire()           flame    emissive flame, origin in the log pile: scale / flicker it.  light: point for a PointLight
 //   lantern(post?)       light    point inside the glass for a PointLight
 //   gate()               leaf     hinge on the -x post, axis y. Closed 0, open = rotation.y -1.5
@@ -67,7 +73,7 @@ export type Built = { pieces: KitPiece[]; parts: Record<string, THREE.Object3D> 
 type Meta = { footprint: number; blocksMove: boolean; blocksShot: boolean; tall: boolean; glow: number; tris: number };
 type Src = { name: string; meta: Meta; statics: { geo: THREE.BufferGeometry; mat: MatId }[]; nodes: THREE.Object3D[] };
 
-export const BUILD_GROUPS = ["loot", "camp", "walls", "ruins", "landmarks", "traversal", "bunker"] as const;
+export const BUILD_GROUPS = ["loot", "camp", "walls", "ruins", "landmarks", "traversal", "bunker", "containers", "projectiles"] as const;
 const LIB = new Map<string, Src>();
 let loading: Promise<void> | null = null;
 
@@ -165,6 +171,20 @@ export const bananaStash = () => asset("banana_stash");
 export const ammoBox = () => asset("ammo_box");
 /** the player's bag, dropped on a bonk-out */
 export const satchel = () => asset("satchel");
+/** Typed loot containers (G1.5 row 27), told apart before they are opened: weapon = long slate-blue case with yellow
+ *  chevrons, food = round straw basket under a husk dome with bananas on top, ammo = olive tin on a pallet, parts =
+ *  teal steel bin with a rusty cog leaning on it, medical = flat cream case with a coral lid and a leaf cross.
+ *  parts.lid hinges like crate()'s (rotation.x 0 → CRATE_LID_OPEN); parts.mark is a point above the lid. */
+export type ContainerType = "weapon" | "food" | "ammo" | "parts" | "medical";
+export const CONTAINER_TYPES: readonly ContainerType[] = ["weapon", "food", "ammo", "parts", "medical"];
+export function container(type: ContainerType, o: { open?: boolean } = {}): Built {
+  const b = asset(`cont_${type}`);
+  if (o.open) b.parts.lid.rotation.x = CRATE_LID_OPEN;
+  return b;
+}
+/** The thrown banana boomerang (G1.5 row 19): parts.body (lit) and parts.core (the emissive strip; swap in your own
+ *  material to light it). No static pieces. It lies flat with the origin on its centroid: spin parts.root.rotation.y. */
+export const boomerang = () => asset("rang");
 
 // ---------------------------------------------------------------- camp
 export const tent = (variant = 0) => asset(nth(["tent_a", "tent_b"], variant));

@@ -4,7 +4,7 @@
   "ok": true
  },
  "coconut": {
-  "fill": 0.844,
+  "fill": 0.842,
   "ok": true
  },
  "rope": {
@@ -32,7 +32,7 @@
   "ok": true
  },
  "boomerang": {
-  "fill": 0.863,
+  "fill": 0.861,
   "ok": true
  },
  "mango": {
@@ -71,12 +71,16 @@
   "fill": 0.781,
   "ok": true
  },
+ "radio_key": {
+  "fill": 0.848,
+  "ok": true
+ },
  "bowler": {
-  "fill": 0.832,
+  "fill": 0.828,
   "ok": true
  },
  "tophat": {
-  "fill": 0.818,
+  "fill": 0.816,
   "ok": true
  },
  "fedora": {
@@ -108,7 +112,7 @@
   "ok": true
  },
  "aviators": {
-  "fill": 0.801,
+  "fill": 0.803,
   "ok": true
  },
  "monocle": {
@@ -145,10 +149,6 @@
  },
  "suit": {
   "fill": 0.883,
-  "ok": true
- },
- "kingpin": {
-  "fill": 0.863,
   "ok": true
  },
  "pot_helmet": {
@@ -201,6 +201,38 @@
  },
  "radio_headset": {
   "fill": 0.863,
+  "ok": true
+ },
+ "guard_helmet": {
+  "fill": 0.863,
+  "ok": true
+ },
+ "guard_plate": {
+  "fill": 0.844,
+  "ok": true
+ },
+ "kingpin": {
+  "fill": 0.863,
+  "ok": true
+ },
+ "cont_weapon": {
+  "fill": 0.883,
+  "ok": true
+ },
+ "cont_food": {
+  "fill": 0.844,
+  "ok": true
+ },
+ "cont_ammo": {
+  "fill": 0.844,
+  "ok": true
+ },
+ "cont_parts": {
+  "fill": 0.863,
+  "ok": true
+ },
+ "cont_medical": {
+  "fill": 0.844,
   "ok": true
  }
 }

@@ -1,9 +1,13 @@
-"""Render the icon passes for every model in the library .blend (same camera and lights for all).
+"""Render the icon pass for every model in the library .blend (same camera and lights for all).
 
-  blender -b spikes/items/items.blend --python-exit-code 1 --python tools/items/render.py -- [--only id,id] [--res 512] [--samples 128]
+  blender -b spikes/items/items.blend --python-exit-code 1 --python tools/items/render.py -- [--only id,id] [--res 512] [--samples 128] [--shadow]
 
-Writes spikes/items/raw/<id>_obj.png (model, transparent) and <id>_shadow.png (contact shadow alpha).
-tools/items/compose.py turns those into public/icons and the review sheets.
+Icon spec (G1.5 row 08, POLISH_FINDINGS 6): one orthographic camera for every icon, 30 degrees down and 35 degrees
+off the front, a soft key light, a transparent background and nothing but the object in the frame. The pass is
+rendered at 512 and compose.py reduces it to the 256 x 256 icon.
+Writes spikes/items/raw/<id>_obj.png (model, transparent). --shadow also writes <id>_shadow.png (a contact shadow
+alpha); it is off by default, because the UI puts its own rarity shadow under an icon and a baked ground shadow
+would become part of that shape.
 """
 import math
 import os
@@ -24,11 +28,12 @@ def arg(name, default):
 ONLY = set(arg("--only", "").split(",")) - {""}
 RES = int(arg("--res", 512))
 SAMPLES = int(arg("--samples", 128))
+SHADOW = "--shadow" in argv
 RAW = os.path.join(ROOT, "spikes", "items", "raw")
 os.makedirs(RAW, exist_ok=True)
 
-# ---- the one camera: orthographic 3/4 view, 30 degrees down, 28 degrees off the front
-CAM_AZ, CAM_EL, CAM_DIST = math.radians(28), math.radians(30), 6.0
+# ---- the one camera: orthographic 3/4 view, 30 degrees down, 35 degrees off the front
+CAM_AZ, CAM_EL, CAM_DIST = math.radians(35), math.radians(30), 6.0
 FILL_MIN, FILL_MAX = 0.68, 0.88          # share of the frame the longest side takes (small -> big items)
 SIZE_MIN, SIZE_MAX = 0.11, 0.50          # metres mapped onto that range (log scale)
 
@@ -161,14 +166,14 @@ for ob in models:
     top.hide_render = True
     scene.render.filepath = os.path.join(RAW, ob.name + "_obj.png")
     bpy.ops.render.render(write_still=True)
-    # pass 2: contact shadow only (soft top light + sky on a shadow catcher)
-    plane.hide_render = False
-    ob.visible_camera = False
-    for l in (key, fill, rim):
-        l.hide_render = True
-    top.hide_render = False
-    scene.render.filepath = os.path.join(RAW, ob.name + "_shadow.png")
-    bpy.ops.render.render(write_still=True)
+    if SHADOW:      # pass 2: contact shadow only (soft top light + sky on a shadow catcher)
+        plane.hide_render = False
+        ob.visible_camera = False
+        for l in (key, fill, rim):
+            l.hide_render = True
+        top.hide_render = False
+        scene.render.filepath = os.path.join(RAW, ob.name + "_shadow.png")
+        bpy.ops.render.render(write_still=True)
     ob.hide_render = True
     ob.visible_camera = True
     ob.rotation_euler = (0, 0, 0)

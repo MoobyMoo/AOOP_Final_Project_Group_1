@@ -251,6 +251,16 @@
   "islands": 12,
   "ground_z": 0.0
  },
+ "radio_key": {
+  "pass": true,
+  "errors": [],
+  "warnings": [
+   "hidden back-to-back faces: radio_key (10 pairs) - delete to save tris"
+  ],
+  "tris": 1272,
+  "islands": 11,
+  "ground_z": 0.0
+ },
  "rope": {
   "pass": true,
   "errors": [],
@@ -291,6 +301,14 @@
   "warnings": [],
   "tris": 996,
   "islands": 3,
+  "ground_z": 0.0
+ },
+ "suit": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 1168,
+  "islands": 17,
   "ground_z": 0.0
  },
  "tophat": {

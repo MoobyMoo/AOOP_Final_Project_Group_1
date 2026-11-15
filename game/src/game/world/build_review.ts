@@ -1,4 +1,4 @@
-// Review page for the structures + landmarks kit: build.html?view=lineup|camp|ruin|landmarks|bunker
+// Review page for the structures + landmarks kit: build.html?view=lineup|camp|ruin|landmarks|bunker|containers
 // Same Stage as the game (pitch 55, yaw -30, FOV 24, dist 40; sun elevation 50). Extra params: group=<glb group>,
 // names=a,b,c, page=N (lineup), dist=N, fx/fz = focus, open=1 (lids/doors/gates open), broken=1 (walls broken).
 import * as THREE from "three";
@@ -6,7 +6,7 @@ import { Stage } from "../render/stage";
 import { mat, U } from "../render/shading";
 import { mergePieces } from "./kitutil";
 import type { KitPiece } from "../contracts";
-import { createRig } from "../actors/rig";
+import { createRig, preloadCharacters } from "../actors/rig";
 import { DEFAULT_LOOK } from "../actors/look";
 import * as K from "./kit_build";
 
@@ -160,6 +160,29 @@ function bunker() {
   if (QS.has("fx") && !QS.has("fz")) focus.set(Number(QS.get("fx")) || 0, 0.5, -1.2);
   monkey(0, 2.4, Math.PI);
 }
+/** G1.5 rows 27 + 19: the five typed containers closed (front row) and open (back row) on sand and on grass, beside the
+ *  old crates and a monkey for scale, and the thrown boomerang at flight height with its core lit.
+ *  ground=sand|grass|split (default split), yaw=<deg> turns every container, core=<intensity> (default 4) */
+function containers() {
+  const gk = QS.get("ground") ?? "split", SAND = "#d8c08c", GRASS = "#86a85a";
+  ground(gk === "grass" ? GRASS : SAND);
+  if (gk === "split") { const g = ground(GRASS, 80); g.position.copy(cam(40, 0)).setY(0.004); g.rotation.z = stage.cam.yaw; }
+  const yaw = THREE.MathUtils.degToRad(Number(QS.get("yaw") ?? 0)) + stage.cam.yaw;
+  K.CONTAINER_TYPES.forEach((t, i) => {
+    for (const side of [-1, 1]) {
+      const r = side * (1.5 + i * 2.6);
+      putc(K.container(t), r, -2.2, yaw); putc(K.container(t, { open: true }), r, 2.4, yaw);
+    }
+  });
+  putc(K.crate("wood"), -14.3, -2.2, yaw); putc(K.crate("green"), -14.3, 2.4, yaw); putc(K.crate("gold"), 14.3, -2.2, yaw); putc(K.barrel(0), 14.3, 2.4);
+  const lit = new THREE.MeshBasicMaterial({ color: new THREE.Color("#fff3b8").multiplyScalar(Number(QS.get("core") ?? 4)), toneMapped: false });
+  [-11, -6.5, -2.2, 2.2, 6.5, 11].forEach((r, i) => {
+    const b = putc(K.boomerang(), r, -6.2, i * 1.1, 1.1); (b.parts.core as THREE.Mesh).material = lit;
+    b.parts.root.traverse((o) => { o.castShadow = true; });
+  });
+  const p0 = cam(-0.2, -4.2), p1 = cam(0.4, 0.2); monkey(p0.x, p0.z, 2.6); monkey(p1.x, p1.z, 0.4);
+  label = "typed containers (closed / open) · thrown boomerang"; if (!QS.has("dist")) stage.cam.dist = 40;
+}
 /** call every builder once and report what came back (window.selftest; used by the scripted check) */
 function selftest() {
   ground("#c9b384");
@@ -173,6 +196,8 @@ function selftest() {
   for (const [n, f] of Object.entries({ barrel: K.barrel, sack: K.sack, bananaStash: K.bananaStash, ammoBox: K.ammoBox, satchel: K.satchel, tent: K.tent, tarp: K.tarp, bedroll: K.bedroll, campfire: K.campfire, lantern: K.lantern, fence: K.fence, gate: K.gate, watchtower: K.watchtower, well: K.well, logBench: K.logBench, signpost: K.signpost,
     rubblePile: K.rubblePile, ruinFloor: K.ruinFloor, ruinSteps: K.ruinSteps, pillar: K.pillar, brokenWall: K.brokenWall, arch: K.arch, door: K.door, vault: K.vault, plinth: K.plinth, fusebox: K.fusebox, statue: K.statue,
     ferry: K.ferry, bomber: K.bomber, vat: K.vat, tractor: K.tractor, audit: K.audit, falls: K.falls, bottle: K.bottle, lemon: K.lemon, boardwalk: K.boardwalk, bridge: K.bridge, raft: K.raft, hatch: K.hatch, supplyDrop: K.supplyDrop, bunkerRoom: K.bunkerRoom })) run(n, f as () => K.Built);
+  for (const t of K.CONTAINER_TYPES) run(`container(${t})`, () => K.container(t, { open: true }));
+  run("boomerang", K.boomerang);
   for (const k of ["palisade", "stone", "hull", "rock", "fence"] as const) { run(`wallSection(${k})`, () => K.wallSection(k, { length: 6 })); if (k !== "fence") run(`wallSection(${k}, breakable)`, () => K.wallSection(k, { length: 6, breakable: true })); }
   for (const k of ["camp-well", "cove-cave", "hollow-roots", "back"]) run(`portal(${k})`, () => K.portal(k));
   run("zipline", () => K.zipline(new THREE.Vector3(9, 0, 6), new THREE.Vector3(15, 0, 61)));
@@ -191,12 +216,13 @@ function one() {
 async function main() {
   const groups = (QS.get("groups") ?? "").split(",").filter(Boolean);
   await K.preloadBuild(undefined, groups.length ? groups : undefined);
+  if (view === "containers") await preloadCharacters().catch(() => undefined);   // real monkeys for scale
   try { const man = await (await fetch("/models/build/manifest.json")).json(); for (const g of Object.keys(man.groups ?? {})) for (const n of Object.keys(man.groups[g].assets)) GROUP_OF.set(n, g); } catch { /* optional */ }
-  ({ lineup, camp, ruin, landmarks, traversal, bunker, one, selftest } as Record<string, () => void>)[view]?.();
+  ({ lineup, camp, ruin, landmarks, traversal, bunker, containers, one, selftest } as Record<string, () => void>)[view]?.();
   scene.add(mergePieces(pieces));
   let tris = 0; scene.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh && m.geometry) tris += (m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3; });
   document.getElementById("tag")!.innerHTML = `<b>${view}</b> ${label} · ${Math.round(tris)} tris`;
-  document.getElementById("nav")!.innerHTML = ["lineup", "camp", "ruin", "landmarks", "traversal", "bunker"].map((v) => `<a href="?view=${v}">${v}</a>`).join("");
+  document.getElementById("nav")!.innerHTML = ["lineup", "camp", "ruin", "landmarks", "traversal", "bunker", "containers"].map((v) => `<a href="?view=${v}">${v}</a>`).join("");
   let t = 0;
   const loop = () => { t += 1 / 60; stage.place(focus, 1 / 60, t); stage.render(1 / 60); (window as unknown as { calls: number }).calls = stage.renderer.info.render.calls; requestAnimationFrame(loop); };
   loop();

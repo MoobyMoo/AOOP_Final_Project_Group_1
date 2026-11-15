@@ -24,8 +24,10 @@ run monkey "monkey: wild" $H p_ears_round p_eyes_beady p_lids_beady p_brows_bush
 run monkey "monkey: bandit" $H p_ears_round p_eyes_round p_lids_round p_brows_bold p_mouth_smirk p_torso_tee p_feet_round
 run gorilla "gorilla: brute" p_body p_face
 run gorilla "gorilla: sleeper" p_body p_face p_vest p_sleepmask p_chain
+run gorilla "gorilla: boss" p_body p_face p_boss_plates p_boss_helmet
 for w in bowler tophat fedora cap hardhat pith beanie crown shades aviators monocle eyepatch goggles heartglasses banditmask satchel bigpack cratepack prop_briefcase prop_boomerang prop_sack prop_bandana \
-  pot_helmet coconut_helmet warden_helmet snorkel leaf_vest life_jacket peel_jacket bamboo_plate coconut_cuirass warden_vest sack walkman walkman_nb radio_headset radio_headset_nb; do
+  pot_helmet coconut_helmet warden_helmet snorkel leaf_vest life_jacket peel_jacket bamboo_plate coconut_cuirass warden_vest sack walkman walkman_nb radio_headset radio_headset_nb \
+  guard_helmet guard_plate; do
   run wearables "wearable: $w" "$w"
 done
 exit $FAIL

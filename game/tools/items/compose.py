@@ -2,9 +2,10 @@
 
   python3 tools/items/compose.py [--only id,id] [--no-icons]
 
-Reads spikes/items/raw/<id>_obj.png + <id>_shadow.png (from render.py) and spikes/items/stats.json.
-Writes public/icons/<id>.png (256), <id>@2x.png (512), spikes/items/sheet.png (dark UI),
-spikes/items/sheet_light.png and spikes/items/icon_report.json (frame fill per icon).
+Reads spikes/items/raw/<id>_obj.png (from render.py; <id>_shadow.png too when it was rendered with --shadow) and
+spikes/items/stats.json. Writes public/icons/<id>.png, one 256 x 256 transparent PNG per icon (G1.5 row 08: the icon
+spec in POLISH_FINDINGS 6), spikes/items/sheet.png (dark UI), spikes/items/sheet_light.png and
+spikes/items/icon_report.json (frame fill per icon). The sheets show each icon large and in a 90 px inventory cell.
 """
 import json
 import os
@@ -32,11 +33,16 @@ ids = [i for i in stats if os.path.exists(os.path.join(RAW, i + "_obj.png")) and
 
 
 def composite(ident):
-    obj = np.asarray(Image.open(os.path.join(RAW, ident + "_obj.png")).convert("RGBA"), dtype=np.float32) / 255
-    sh_img = Image.open(os.path.join(RAW, ident + "_shadow.png")).convert("RGBA")
-    sh_a = np.asarray(sh_img.getchannel("A").filter(ImageFilter.GaussianBlur(sh_img.width / 256)), dtype=np.float32) / 255
-    sh_a = np.clip(sh_a, 0, 1) ** SHADOW_GAMMA * SHADOW_STRENGTH
-    px = sh_img.width / 256
+    obj_img = Image.open(os.path.join(RAW, ident + "_obj.png")).convert("RGBA")
+    obj = np.asarray(obj_img, dtype=np.float32) / 255
+    px = obj_img.width / 256
+    sh_path = os.path.join(RAW, ident + "_shadow.png")
+    if os.path.exists(sh_path):       # optional contact shadow (render.py --shadow)
+        sh_img = Image.open(sh_path).convert("RGBA")
+        sh_a = np.asarray(sh_img.getchannel("A").filter(ImageFilter.GaussianBlur(px)), dtype=np.float32) / 255
+        sh_a = np.clip(sh_a, 0, 1) ** SHADOW_GAMMA * SHADOW_STRENGTH
+    else:
+        sh_a = np.zeros(obj.shape[:2], dtype=np.float32)
     edge = Image.fromarray((obj[..., 3] * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(2 * round(px) + 1))
     edge = np.asarray(edge.filter(ImageFilter.GaussianBlur(px * 0.9)), dtype=np.float32) / 255
     sh_a = np.maximum(sh_a, edge * EDGE_STRENGTH)
@@ -64,7 +70,7 @@ def font(size, bold=False):
 
 
 def sheet(icons, path, bg, slot, edge, ink, sub, title):
-    cols, big, small, pad = 6, 168, 48, 18
+    cols, big, small, pad = 6, 168, 90, 18
     cw, ch = big + small + pad * 3 + 6, big + 62
     rows = (len(icons) + cols - 1) // cols
     W, H = cols * cw + pad, rows * ch + pad + 54
@@ -78,8 +84,8 @@ def sheet(icons, path, bg, slot, edge, ink, sub, title):
         im.alpha_composite(down(hi, big - 12), (x0 + 6, y0 + 6))
         sx, sy = x0 + big + 10, y0 + big - small - 8
         d.rounded_rectangle((sx - 4, sy - 4, sx + small + 4, sy + small + 4), 8, fill=slot, outline=edge, width=1)
-        im.alpha_composite(down(hi, small), (sx, sy))        # the hotbar size: does the silhouette still read?
-        d.text((sx - 4, sy - 22), "48 px", font=f2, fill=sub)
+        im.alpha_composite(down(hi, small), (sx, sy))        # the inventory cell at 1080p: does the silhouette still read?
+        d.text((sx - 4, sy - 22), "90 px cell", font=f2, fill=sub)
         d.text((x0 + 2, y0 + big + 6), ident, font=f1, fill=ink)
         d.text((x0 + 2, y0 + big + 26), f"{stats[ident]['name']}  ·  {stats[ident]['tris']} tris", font=f2, fill=sub)
     im.convert("RGB").save(path, optimize=True)
@@ -92,7 +98,6 @@ for ident in ids:
     icons.append((ident, hi))
     report[ident] = {"fill": round(fill, 3), "ok": fill >= MIN_FILL}
     if "--no-icons" not in argv:
-        (hi if hi.width == 512 else down(hi, 512)).save(os.path.join(ICONS, ident + "@2x.png"), optimize=True)
         down(hi, 256).save(os.path.join(ICONS, ident + ".png"), optimize=True)
 tag = "_preview" if only or "--no-icons" in argv else ""
 sheet(icons, os.path.join(OUT, f"sheet{tag}.png"), "#14161b", "#262a33", "#3b414d", "#f2ede0", "#8e96a3",

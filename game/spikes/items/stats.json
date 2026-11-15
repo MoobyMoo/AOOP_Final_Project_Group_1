@@ -215,6 +215,18 @@
   ],
   "glb_bytes": 34976
  },
+ "radio_key": {
+  "name": "Radio Shack Key",
+  "kind": "item",
+  "tris": 1272,
+  "materials": 2,
+  "dims_m": [
+   0.385,
+   0.175,
+   0.04
+  ],
+  "glb_bytes": 56564
+ },
  "bowler": {
   "name": "Bowler Hat",
   "kind": "wearable",
@@ -443,17 +455,6 @@
   ],
   "glb_bytes": 50964
  },
- "kingpin": {
-  "name": "Kingpin .45",
-  "kind": "weapon",
-  "tris": 3792,
-  "materials": 1,
-  "dims_m": [
-   0.237,
-   1.152,
-   0.831
-  ]
- },
  "pot_helmet": {
   "name": "Cooking Pot",
   "kind": "wearable",
@@ -595,6 +596,94 @@
    1.484,
    0.757,
    0.783
+  ]
+ },
+ "guard_helmet": {
+  "name": "Guard's Horned Band",
+  "kind": "wearable",
+  "tris": 708,
+  "materials": 1,
+  "dims_m": [
+   1.237,
+   0.955,
+   0.554
+  ]
+ },
+ "guard_plate": {
+  "name": "Guard's Plate",
+  "kind": "wearable",
+  "tris": 712,
+  "materials": 1,
+  "dims_m": [
+   0.763,
+   0.735,
+   0.373
+  ]
+ },
+ "kingpin": {
+  "name": "Kingpin .45",
+  "kind": "weapon",
+  "tris": 3792,
+  "materials": 1,
+  "dims_m": [
+   0.237,
+   1.152,
+   0.831
+  ]
+ },
+ "cont_weapon": {
+  "name": "Weapon Crate",
+  "kind": "container",
+  "tris": 1616,
+  "materials": 1,
+  "dims_m": [
+   2.275,
+   0.941,
+   0.713
+  ]
+ },
+ "cont_food": {
+  "name": "Food Basket",
+  "kind": "container",
+  "tris": 1632,
+  "materials": 1,
+  "dims_m": [
+   1.478,
+   1.22,
+   1.118
+  ]
+ },
+ "cont_ammo": {
+  "name": "Ammo Tin",
+  "kind": "container",
+  "tris": 1286,
+  "materials": 1,
+  "dims_m": [
+   1.242,
+   0.82,
+   0.743
+  ]
+ },
+ "cont_parts": {
+  "name": "Parts Bin",
+  "kind": "container",
+  "tris": 1756,
+  "materials": 1,
+  "dims_m": [
+   1.321,
+   1.429,
+   0.953
+  ]
+ },
+ "cont_medical": {
+  "name": "Medical Case",
+  "kind": "container",
+  "tris": 1314,
+  "materials": 1,
+  "dims_m": [
+   1.055,
+   0.855,
+   0.535
   ]
  }
 }

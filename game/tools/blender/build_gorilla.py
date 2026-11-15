@@ -3,6 +3,10 @@
 Original design: a chunky toy gorilla in a knuckle stance (bind pose), barrel chest, huge forearms, small head
 with a crest and a heavy brow. The Sleeper adds a pinstripe waistcoat, a sleep mask pushed up on the forehead and
 a pocket-watch chain, and is scaled up at runtime.
+The boss (G1.5 row 26) is the same body and skeleton in cartoon plate armour: p_boss_plates (breastplate, back
+plates with a row of spikes, dome pauldrons, forearm bracers, belt) and p_boss_helmet (an open-top banded helmet
+with two banana horns). The armour covers the body and leaves the head bare, so the head reads as the place to
+shoot; every existing gorilla clip plays on it.
 Run: blender -b --factory-startup --python tools/blender/build_gorilla.py -- [--sheet out.png] [--poses dir clip:n,...]
 """
 import os
@@ -10,7 +14,7 @@ import sys
 import math
 import json
 import bpy
-from mathutils import Vector
+from mathutils import Vector, Matrix
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -236,6 +240,110 @@ ch.add(ell(3, p1 + n1 * 0.06 + Vector((0, 0, -0.05)), (0.09, 0.035, 0.09), "chai
 ch.add(C.rbox(p1 + n1 * 0.03 + Vector((0.01, 0, -0.1)), (0.14, 0.03, 0.07), 0.02, "vest2", 2))
 assemble("chain", [(ch, 0, w_torso)])
 
+# ---- the boss's armour (G1.5 row 26). Zones: metal = plate, yellow = hazard trim, nail = spikes / studs / edges,
+# leather + gold = belt and buckle, banana + prop2 = the horns. Torso plates follow the torso's own weights (so they
+# never part from the body); pauldrons ride the clavicle and half the upper arm; bracers, helmet and horns are rigid
+# on one bone each.
+def trimmed(m, cx, cz, rfn, lo=0.7, hi=0.92):
+    """plate colouring by ring: flat middle = metal, outer band = yellow trim, the wall that drops to the body = nail"""
+    for i, f in enumerate(m.f):
+        c = sum((m.v[k] for k in f), Vector()) / len(f)
+        rho = math.hypot(c.x - cx, c.z - cz) / rfn(math.atan2(c.z - cz, c.x - cx))
+        m.r[i] = C.REG["nail" if rho > hi else "yellow" if rho > lo else "metal"]
+    return m
+
+
+def stud(surf, x, z, lift, r, reg="nail", n=2):
+    p, nn = surf.at(x, z)
+    return ell(n, p + nn * lift, (r, r, r), reg)
+
+
+ROWS = [0, 0.35, 0.7, 0.9, 1.0]
+breast_r = lambda th: 0.5 * (1 + 0.24 * abs(math.cos(th))) * (1 - 0.06 * max(0.0, -math.sin(th)))  # noqa: E731
+breast = trimmed(disc_plate(surfT, 0, 1.64, breast_r, 8, lambda x, z, rr: 0.09, "metal", sink=0.02, rows=ROWS), 0, 1.64, breast_r)
+# a dark keel down the middle and four rivets. No bright stud: the chest must not read as a bullseye, the head is the target
+breast_bits = tube([surfT.at(0, z)[0] + surfT.at(0, z)[1] * 0.085 for z in (1.94, 1.8, 1.64, 1.48, 1.34)], [0.03, 0.055, 0.06, 0.055, 0.03], 4, "nail", up=Vector((1, 0, 0)), flat=0.7)
+for sx in (1, -1):
+    for z in (1.88, 1.4):
+        breast_bits.add(stud(surfT, sx * 0.36, z, 0.09, 0.05))
+back_r = lambda th: 0.54 * (1 + 0.26 * abs(math.cos(th))) * (1 - 0.1 * max(0.0, -math.sin(th)))   # noqa: E731
+backp = trimmed(disc_plate(surfB, 0, 1.74, back_r, 8, lambda x, z, rr: 0.095, "metal", sink=0.02, rows=ROWS), 0, 1.74, back_r)
+low_r = lambda th: 0.46 * (1 + 0.22 * abs(math.cos(th)))                                           # noqa: E731
+lowp = trimmed(disc_plate(surfB, 0, 1.2, low_r, 6, lambda x, z, rr: 0.07, "metal", sink=0.02, rows=[0, 0.5, 0.9, 1.0]), 0, 1.2, low_r)
+spikes = M()
+for z, k in ((2.0, 0.85), (1.74, 1.0), (1.48, 0.9), (1.2, 0.7)):
+    p, nn = surfB.at(0, z)
+    base = p + nn * (0.05 if z > 1.3 else 0.03)
+    spikes.add(tube([base, base + nn * 0.13 * k, base + nn * 0.3 * k], [0.105 * k, 0.07 * k, 0.014], 6, "nail", up=Vector((1, 0, 0))))
+belt_c, belt_t = V(0, -0.42, 1.03), (V(0, -0.22, 1.36) - V(0, -0.5, 0.86)).normalized()
+belt_v = belt_t.cross(Vector((1, 0, 0)))
+bpts = [belt_c + Vector((1, 0, 0)) * (0.635 * 1.07 * C_(TAU * k / 16)) + belt_v * (0.635 * 0.74 * 1.09 * S_(TAU * k / 16)) for k in range(16)]
+beltm = tube(bpts + [bpts[0]], [0.095] * 17, 5, "leather", up=belt_t, cap0=False, cap1=False)
+bfront = min(bpts, key=lambda q: q.y)
+buckle = C.rbox(bfront + Vector((0, -0.06, 0.0)), (0.17, 0.05, 0.13), 0.03, "gold", 2)
+w_pauldron = lr(lambda co: {"shoulder_L": 0.5, "upperarm_L": 0.35, "chest": 0.15})   # a shrug lifts it only part of the way, so it never reaches the head
+
+
+def w_plate(co):
+    """chest and back plates: the torso's weights, with the neck and head share handed to the chest, so the top edge
+    of a plate stays one rigid piece when the head nods"""
+    w = dict(w_torso(co))
+    w["chest"] = w.get("chest", 0.0) + w.pop("neck", 0.0) + w.pop("head", 0.0)
+    return w
+
+w_bracer = lr(lambda co: {"forearm_L": 1.0})
+pc = J["shoulder"] + V(0.19, 0.0, 0.08)               # outboard of the joint: clear of the head and horns when the arms fling up
+ptilt = Matrix.Rotation(math.radians(24), 3, "Y")
+paul = qsphere(3, "metal")
+paul.reg_where("yellow", lambda q: q.z < 0.3)
+paul.reg_where("nail", lambda q: q.z < -0.5)
+paul.xf(lambda q: pc + ptilt @ Vector((q.x * 0.4, q.y * 0.43, max(q.z, -0.32) * 0.36)))
+for dx, dy in ((0.1, 0.0), (0.1, -0.22), (0.1, 0.22)):                           # a ridge of three studs on the outer half, clear of the head
+    top = pc + ptilt @ Vector((dx, dy, 0.31 if dy == 0 else 0.27))
+    paul.add(tube([top, top + ptilt @ Vector((0.03, 0, 0.09)), top + ptilt @ Vector((0.06, 0, 0.17 if dy == 0 else 0.13))], [0.085, 0.05, 0.012], 5, "nail", up=Vector((0, 1, 0))))
+E_, W_ = J["elbow"], J["wrist"]
+bpath = [lerp(E_, W_, 0.2), lerp(E_, W_, 0.52), lerp(E_, W_, 0.86)]
+brac = tube(bpath, [0.385, 0.4, 0.345], 8, "metal", up=Vector((0, -1, 0)), cap0=False, cap1=False)
+rims = M()
+for i0, rr in ((0, 0.05), (16, 0.045)):                                              # rolled rims close the open ends
+    rp = brac.v[i0:i0 + 8]
+    rims.add(tube(rp + [rp[0]], [rr] * 9, 4, "yellow", up=(bpath[-1] - bpath[0]).normalized(), cap0=False, cap1=False))
+assemble("boss_plates", [(breast, 0, w_plate), (breast_bits, 0, w_plate), (backp, 0, w_plate), (lowp, 0, w_torso), (spikes, 0, w_plate),
+                         (beltm, 0, w_torso), (buckle, 0, w_torso), (paul.both(), 0, w_pauldron), (brac.both(), 0, w_bracer), (rims.both(), 0, w_bracer)], True)
+
+# open-top helmet: a plate band round the brow and the back of the skull, rolled rims, banana horns. The scalp and
+# the crest stay bare fur and the face is open, so from the game camera the head still reads as unarmoured.
+hbvh = C.bvh_of([head_ob])
+
+
+def head_ring(z, off, n=16):
+    out = []
+    for i in range(n):
+        a = TAU * i / n
+        d = Vector((S_(a), -C_(a), 0))
+        loc, _n, _i, _d = hbvh.ray_cast(Vector((0, HC.y, z)) + d * 3, -d)
+        out.append(loc + d * off)
+    return out
+
+
+HZ0, HZ1 = HC.z + 0.25, HC.z + 0.42
+hrings = [head_ring(lerp(HZ0, HZ1, t), 0.06 + 0.012 * math.sin(math.pi * t)) for t in (0, 0.33, 0.67, 1)]   # mid rings stay clear of the rims' AO
+h_lo, h_hi = hrings[0], hrings[-1]
+hband = C._orient(loft(hrings, "metal"), lambda c: Vector((c.x, c.y - HC.y, 0)))
+hrims = M()
+for ringp, reg, rr in ((h_lo, "yellow", 0.06), (h_hi, "nail", 0.05)):
+    hrims.add(tube(ringp + [ringp[0]], [rr] * 17, 4, reg, up=Vector((0, 0, 1)), cap0=False, cap1=False))
+hbits = M()
+for a in (0.55, -0.55, math.pi - 0.6, math.pi + 0.6):                                 # four rivets on the band
+    d = Vector((S_(a), -C_(a), 0))
+    loc, _n, _i, _d = hbvh.ray_cast(Vector((0, HC.y, HC.z + 0.335)) + d * 3, -d)
+    hbits.add(ell(2, loc + d * 0.075, (0.045, 0.045, 0.045), "nail"))
+horn = M()
+hp = head_ring(HC.z + 0.45, 0.0, 4)[1]                                                # the character's left side of the head
+hpath = [hp + Vector((-0.04, 0, -0.02)), hp + Vector((0.1, -0.01, 0.04)), hp + Vector((0.3, -0.03, 0.2)), hp + Vector((0.37, -0.05, 0.46)), hp + Vector((0.31, -0.07, 0.7))]
+horn.add(tube(hpath, [0.135, 0.135, 0.115, 0.078, 0.022], 6, "banana", up=Vector((0, -1, 0)), regs=["nail", "banana", "banana", "prop2"]))   # dark socket, yellow horn, brown tip
+assemble("boss_helmet", [(hband, 0, w_head), (hrims, 0, w_head), (hbits, 0, w_head), (horn.both(), 0, w_head)], True)
+
 for o in (head_ob, muz_ob, fp_ob, torso_ob):
     bpy.data.objects.remove(o)
 
@@ -405,16 +513,25 @@ bpy.context.scene.render.fps = A.FPS
 if "--sheet" in ARGS or "--poses" in ARGS:
     C.setup_studio()
     arm_ob.hide_render = True
+SETS = {"sleeper": ("vest", "sleepmask", "chain"), "brute": (), "boss": ("boss_plates", "boss_helmet")}
+
+
+def wear(kind):
+    for n, o in PARTS.items():
+        o.hide_render = n not in ("body", "face") and n not in SETS[kind]
+
+
 if "--sheet" in ARGS:
     out = ARGS[ARGS.index("--sheet") + 1]
+    wear("sleeper")
     C.render_views(out, (0, 0.2, 1.5), 13, C.TURN, res=(520, 520))
-    for n in ("vest", "sleepmask", "chain"):
-        PARTS[n].hide_render = True
+    wear("brute")
     C.render_views(out.replace(".png", "_brute.png"), (0, 0.2, 1.5), 13, C.TURN[:2], res=(520, 520))
-    for n in ("vest", "sleepmask", "chain"):
-        PARTS[n].hide_render = False
+    wear("boss")
+    C.render_views(out.replace(".png", "_boss.png"), (0, 0.2, 1.6), 14, C.TURN + [("game", 150, 55), ("game_front", 20, 55)], res=(520, 520))
 if "--poses" in ARGS:
     out = ARGS[ARGS.index("--poses") + 1]
+    wear(ARGS[ARGS.index("--wear") + 1] if "--wear" in ARGS else "sleeper")
     for spec in ARGS[ARGS.index("--poses") + 2].split(","):
         clip, n = spec.split(":")
         fr, lp = CLIPS[clip][0], CLIPS[clip][1]
@@ -422,6 +539,7 @@ if "--poses" in ARGS:
         C.render_strip(os.path.join(out, "gpose_%s.png" % clip), (0, 0.3, 1.6), 17, 40, 22, [round(i * fr / (int(n) - (0 if lp else 1))) for i in range(int(n))], res=(330, 330))
 A.unmute(arm_ob)
 for n, o in PARTS.items():
+    o.hide_render = False
     o.name = o.data.name = "p_" + n
 os.makedirs(os.path.join(HERE, "build"), exist_ok=True)
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, "build", "gorilla.blend"))

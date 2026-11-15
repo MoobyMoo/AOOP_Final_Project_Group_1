@@ -197,6 +197,38 @@ def roll(solver):
     return fn
 
 
+def dash(base):
+    """ninja dash (G1.5 row 14, replaces the roll): a low forward lunge held as one clean silhouette for the afterimage
+    trails. Body pitched far forward with the chin up, both arms swept straight back, the left knee driving forward and
+    the right leg trailing, tail and ears streaming. 0-0.2 drop into the lunge, 0.2-0.74 hold (a moving hold: it sinks
+    and stretches a little, never freezes), 0.74-1 feet come back under the body. The first and last frames are the
+    same ready stance with zero velocity, so it starts and ends clean against locomotion."""
+    ready = {**relaxed_arms(), "hips": (0, 0, -0.02), "spine": (10, 0, 0), "chest": (8, 0, 0),
+             "foot_L": (ANKLE[0], 0.0, ANKLE[2]), "foot_R": (-ANKLE[0], 0.0, ANKLE[2])}
+
+    def lunge(k):
+        """k = 0 at the start of the hold, 1 at its deepest"""
+        return {"hips": (0, 0.1 + 0.03 * k, -0.14 - 0.03 * k), "hips_rot": (36 + 4 * k, 0, 0), "spine": (15, 0, 0), "chest": (13 + 2 * k, 0, 0),
+                "neck": (-20, 0, 0), "head": (-28 - 3 * k, 0, 0), "shoulder_L": (-6, -22), "shoulder_R": (-6, -22),
+                "hand_L": (0.47 + 0.02 * k, -0.1 - 0.04 * k, 0.66 + 0.05 * k), "hand_R": (-0.47 - 0.02 * k, -0.1 - 0.04 * k, 0.66 + 0.05 * k),
+                # thumbs down, palms in: the hanging arm swings straight back about the shoulder, with no wrist roll on the way
+                "hand_L_dir": (0.3, -1, 0.1), "hand_R_dir": (-0.3, -1, 0.1), "hand_L_up": (-0.2, 0.1, -1), "hand_R_up": (0.2, 0.1, -1),
+                "elbow_L": (0.6, -0.2, 0.8), "elbow_R": (-0.6, -0.2, 0.8),
+                "foot_L": (0.14, 0.33 + 0.02 * k, 0.125), "foot_L_rot": (-10, 0), "knee_L": (0.12, 1, 0.5),
+                "foot_R": (-0.14, -0.22 - 0.04 * k, 0.27 + 0.03 * k), "foot_R_rot": (48, 0), "knee_R": (-0.12, 1, -0.1),
+                "ear_L": (-20 - 4 * k, -16), "ear_R": (-20 - 4 * k, -16), "tail": tail(lambda i: ((-36, -4, -18, -22, -24)[i] - 2 * k, 0))}      # uncurled (negative = down): it streams straight back
+    return spline([
+        (0.0, ready),
+        (0.09, {**ready, "hips": (0, 0.02, -0.07), "hips_rot": (10, 0, 0), "spine": (12, 0, 0), "shoulder_L": (0, -8), "shoulder_R": (0, -8),
+                "hand_L": (0.45, -0.02, 0.5), "hand_R": (-0.45, -0.02, 0.5), "foot_L": (0.15, 0.08, 0.14), "foot_L_rot": (-6, 0)}),
+        (0.2, lunge(0)), (0.47, lunge(1)), (0.74, lunge(0.25)),
+        (0.88, {**ready, "hips": (0, 0.03, -0.08), "hips_rot": (9, 0, 0), "spine": (13, 0, 0), "chest": (9, 0, 0), "head": (-8, 0, 0),
+                "hand_L": (0.45, -0.04, 0.5), "hand_R": (-0.45, -0.04, 0.5), "foot_L": (0.15, 0.1, 0.1), "foot_R": (-0.15, -0.05, 0.12), "foot_R_rot": (14, 0),
+                "ear_L": (6, 6), "ear_R": (6, 6), "tail": tail(lambda i: (6, 0))}),
+        (1.0, ready),
+    ], base)
+
+
 def hurt(base):
     return spline([
         (0.0, {**relaxed_arms()}),
@@ -297,7 +329,7 @@ def cheer(t):
 # name -> (frames, loop, real seconds for one play: the game maps actionT 0..1 over the clip)
 CLIPS = {"idle": (60, True, 2.0), "walk": (24, True, 0.5), "run": (24, True, 0.45), "runBack": (24, True, 0.4), "strafeL": (24, True, 0.35), "strafeR": (24, True, 0.35),
          "aim": (2, True, 1.0), "carry": (2, True, 1.0), "fire": (12, False, 0.25),
-         "reload": (36, False, 1.2), "melee": (27, False, 0.45), "roll": (20, False, 0.34), "hurt": (12, False, 0.35),
+         "reload": (36, False, 1.2), "melee": (27, False, 0.45), "roll": (20, False, 0.34), "dash": (20, False, 0.34), "hurt": (12, False, 0.35),
          "throw": (30, False, 0.75), "use": (40, False, 1.6), "defeat": (40, False, 0.9), "cheer": (30, True, 0.9)}
 
 
@@ -305,7 +337,7 @@ def make_clips(solver):
     b = solver.base
     fns = {"idle": idle, "walk": gait("walk"), "run": gait("run"), "runBack": gait("runBack"), "strafeL": gait("strafeL"), "strafeR": gait("strafeR"),
            "aim": aim, "carry": carry, "fire": fire(b), "reload": reload(b), "melee": melee(b),
-           "roll": roll(solver), "hurt": hurt(b), "throw": throw(b), "use": use(b), "defeat": defeat(solver), "cheer": cheer}
+           "roll": roll(solver), "dash": dash(b), "hurt": hurt(b), "throw": throw(b), "use": use(b), "defeat": defeat(solver), "cheer": cheer}
     spaces = {"roll": ("hips", "hips"), "defeat": ("hips", "hips")}
     acts = []
     for name, (frames, loop, _dur) in CLIPS.items():
