@@ -154,7 +154,7 @@ export type BotView = {
   enemies: { id: number; kind: EnemyStyle["kind"]; x: number; z: number; state: string; hp: number; windup: boolean; awake: boolean }[];
   crates: { id: number; x: number; z: number; tier: CrateTier; opened: boolean }[];
   pickups: { id: number; x: number; z: number; item: string }[];
-  exits: { id: "hatch" | "raft" | "tunnel"; x: number; z: number; open?: boolean }[]; // tunnel opens once the grotto rubble is broken
+  exits: { id: "hatch" | "raft" | "tunnel" | "boat"; x: number; z: number; open?: boolean }[]; // tunnel opens once the grotto rubble is broken
   stations: { id: "sell" | "bench" | "orders" | "ladder" | "mirror" | "sal"; x: number; z: number }[];
   walkable(x: number, z: number): boolean;
   path(fx: number, fz: number, tx: number, tz: number): { x: number; z: number }[];
