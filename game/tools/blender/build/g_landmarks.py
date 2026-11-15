@@ -377,7 +377,7 @@ def bomber_debris(name, seed, kind=0):
     2 = an engine cowl ring and bits of skin. Each is one connected clump, half sunk in the dirt."""
     a = Asset(name, G, footprint=0.8, blocksMove=False, seed=seed, ao_dist=1.0)
     g, r = a.mesh(), a.rng
-    sand_drift(g, 0.0, 0.0, 1.1, 0.9, 0.16, r.uniform(0, 90), col="#7a6248")
+    sand_drift(g, 0.0, 0.0, 1.0, 0.8, 0.13, r.uniform(0, 90), col="#a58a62")      # a low heap of the local dirt, not a dark disc
     if kind == 0:
         with g.at(T(0, 0, 0.05, 14, -9, 20)):
             g.emit(p_prism([(-0.9, -0.5), (0.75, -0.62), (1.0, 0.1), (0.35, 0.55), (-0.2, 0.34), (-0.8, 0.5)], 0.06, 0.015), OD, None, jit=0.03, grad=(0.9, 1.05))

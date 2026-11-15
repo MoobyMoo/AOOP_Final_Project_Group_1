@@ -28,6 +28,10 @@ const BUILD: Record<string, Collider[]> = {
   gate: [C(0.32, true, true, -1.5, 0), C(0.32, true, true, 1.5, 0)],
   watchtower: [C(0.3, true, false, -1.35, -1.35), C(0.3, true, false, 1.35, -1.35), C(0.3, true, false, -1.35, 1.35), C(0.3, true, false, 1.35, 1.35)],
   well: [C(1.25)], log_bench: [B(2.1, 0.6)], log_bench_b: [B(1.4, 0.6)], signpost_a: [C(0.22)], signpost_raft: [C(0.22)], signpost_key: [C(0.22)],
+  sandbags: [B(2.9, 0.8)], crate_stack: [B(2.4, 1.15, true), C(0.42, true, false, 1.42, -0.42)], dummy_seated: [C(0.45)],
+  washing_line: [C(0.16, true, false, -2.25, 0), C(0.16, true, false, 2.25, 0)],
+  lean_to: [C(0.18, true, false, -1.52, 1.23), C(0.18, true, false, 1.52, 1.23), B(3.0, 0.7, false, 0, -1.05)],
+  dock_piles: [C(0.22, true, false, 0, 1.3), C(0.22, true, false, 0.2, -1.3)],
   // loot dressing
   barrel_wood: [C(0.46, true, true)], barrel_rust: [C(0.44, true, true)], barrel_teal: [C(0.44, true, true)], sack_pile: [B(2.2, 1.0, false, 0.45, 0.2)], banana_stash: [B(1.3, 0.85)],
   crate_wood: [B(1.36, 1.02, true)], crate_wood_b: [B(1.1, 1.06, true)], crate_green: [B(1.7, 1.02, true)], crate_gold: [B(1.4, 1.0, true)],
@@ -52,7 +56,7 @@ const BUILD: Record<string, Collider[]> = {
 };
 /** build pieces that never block (floors, decals, walk-on decks, small dressing) */
 const OPEN_BUILD = new Set(["bedroll_a", "bedroll_b", "lantern", "sack", "ammo_box", "satchel", "ruin_floor_a", "ruin_floor_b", "ruin_floor_c", "ruin_steps", "audit", "bottle",
-  "boardwalk_a", "boardwalk_b", "boardwalk_ramp", "bridge", "raft", "zip_end", "falls"]);
+  "boardwalk_a", "boardwalk_b", "boardwalk_ramp", "bridge", "raft", "zip_end", "falls", "dock_a", "dock_b", "dock_broken", "bomber_debris_a", "bomber_debris_b", "bomber_debris_c"]);
 const WALL_THICK: Record<string, number> = { palisade: 0.55, stone: 0.65, hull: 0.4, rock: 1.1, fence: 0.32 };
 
 /** colliders of a placed piece, in its local space. Unknown kinds return null (the lint reports them). */

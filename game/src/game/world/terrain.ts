@@ -4,8 +4,8 @@
 // a berm under the jungle edge and a rock rise under the cliffs, a causeway where a road crosses the swamp.
 // Colours follow the L3 council re-grade (olive/teal greens, bright dirt, cool shade).
 import * as THREE from "three";
-import { ZONES, ROADS, PLACED, BOUNDS, UNDER_X, SEA_Z, RIVER_Z, SHAPES } from "./map/grove";
-import { polySigned, segDist, type Ground, type EdgeKind } from "./map/types";
+import { ZONES, ROADS, PLACED, BOUNDS, UNDER_X, SEA_Z, RIVER_Z, LAND, PIERS, PIER_Y } from "./map/grove";
+import { polySigned, segDist, inPoly, type Ground, type EdgeKind } from "./map/types";
 import { edgeDist, roadDist, zoneAt } from "./grid";
 import { fbm } from "./noise";
 import { patch } from "../render/shading";
@@ -24,9 +24,29 @@ function bbox(pts: [number, number][], pad: number) { const xs = pts.map((p) => 
 const inBB = (bb: number[], x: number, z: number) => x >= bb[0] && x <= bb[1] && z >= bb[2] && z <= bb[3];
 
 const info = { kind: "jungle" as EdgeKind | "cave" }, rinfo = { road: null as (typeof ROADS)[number] | null };
+// Pier decks are part of the walkable outline but they are not land: the river bed runs under them. Near a pier the
+// terrain measures its distance to the land outline instead, so the shore, the bed and the water line pass under the deck.
+const PIER_BB = [Math.min(...PIERS.map((q) => q.x0)) - 14, Math.max(...PIERS.map((q) => q.x1)) + 14, Math.min(...PIERS.map((q) => q.z0)) - 14, Math.max(...PIERS.map((q) => q.z1)) + 14];
+function landDist(x: number, z: number, out: { kind: EdgeKind | "cave" }) {
+  const d = edgeDist(x, z, out);
+  if (x < PIER_BB[0] || x > PIER_BB[1] || z < PIER_BB[2] || z > PIER_BB[3]) return d;
+  let q = 1e9, k: EdgeKind = "river";
+  for (let i = 0, j = LAND.length - 1; i < LAND.length; j = i++) { const e = segDist(x, z, LAND[j][0], LAND[j][1], LAND[i][0], LAND[i][1]); if (e < q) { q = e; k = LAND[j][2]; } }
+  out.kind = k; return inPoly(LAND, x, z) ? q : -q;
+}
+/** walk height of a pier deck at a point, or null off the decks. The main pier ramps down to the sand at its root */
+function deckAt(x: number, z: number, ground: number): number | null {
+  for (const p of PIERS) {
+    const root = p.id === "dock" ? 2.5 : 0;
+    if (x < p.x0 - 0.45 || x > p.x1 + 0.45 || z < p.z0 - 0.3 || z > p.z1 + root) continue;
+    const along = root ? 1 - sstep(z, p.z1, p.z1 + root) : 1, side = 1 - sstep(Math.max(p.x0 - x, x - p.x1), 0, 0.45);
+    return ground + (PIER_Y - ground) * along * side;
+  }
+  return null;
+}
 /** the authored height at a point (slow: the 1 u field below caches it) */
 function rawHeight(x: number, z: number) {
-  const d = edgeDist(x, z, info), kind = info.kind;
+  const d = landDist(x, z, info), kind = info.kind;
   if (x > UNDER_X) return d > 0 ? (fbm(x * 0.3, z * 0.3) - 0.5) * 0.16 : sstep(-d, 0, 2.6) * 3.4 + (fbm(x * 0.2, z * 0.2) - 0.5) * 0.8;
   let flat = 0;
   for (const f of FLAT) if (inBB(f.bb, x, z)) flat = Math.max(flat, sstep(polySigned(f.z.pts, x, z), -3.5, 0.5));
@@ -36,7 +56,10 @@ function rawHeight(x: number, z: number) {
   for (const w of WET) if (inBB(w.bb, x, z)) h -= 0.62 * sstep(polySigned(w.z.pts, x, z), -1, 4);
   for (const p of POOLS) { const r = Number(p.o?.r ?? 6), q = Math.hypot(x - p.x, z - p.z); if (q < r + 2) h -= 0.7 * (1 - sstep(q, r * 0.5, r + 1)); }
   if (road?.raise !== undefined) h = THREE.MathUtils.lerp(h, road.raise, 1 - sstep(rd, -0.2, 1.3));
-  if (kind === "coast" || kind === "river") return d > 0 ? h * sstep(d, 0, 9) + 0.02 : Math.max(-1.7, d * 0.22);
+  if (kind === "coast" || kind === "river") {
+    const p = PIERS[0], berm = 0.2 * (1 - sstep(Math.hypot(x - (p.x0 + p.x1) / 2, z - (p.z1 + 2.2)), 1.2, 4.6)); // sand heaped against the foot of the pier ramp
+    return d > 0 ? h * sstep(d, 0, 9) + 0.02 + berm * sstep(d, 0, 2) : Math.max(-1.7, d * 0.22);
+  }
   if (d > 0) return h;
   return h + (kind === "cliff" ? sstep(-d, 0.2, 3.2) * 4.4 + (fbm(x * 0.21, z * 0.21) - 0.5) * 1.2 * sstep(-d, 1, 4) : sstep(-d, 0, 7) * 2.4);
 }
@@ -48,7 +71,10 @@ function ensureField() {
   for (let r = 0; r < FH; r++) for (let c = 0; c < FW; c++) field[r * FW + c] = rawHeight(FX0 + c, FZ0 + r);
   return field;
 }
-export function groundHeight(x: number, z: number) {
+/** where things stand and walk: the terrain, or a pier deck over it */
+export function groundHeight(x: number, z: number) { const h = terrainHeight(x, z); return deckAt(x, z, h) ?? h; }
+/** the terrain surface itself (the mesh, decals, anything that lies on the ground under a deck) */
+export function terrainHeight(x: number, z: number) {
   const f = ensureField(), fx = Math.max(0, Math.min(FW - 1.001, x - FX0)), fz = Math.max(0, Math.min(FH - 1.001, z - FZ0)), c = Math.floor(fx), r = Math.floor(fz), u = fx - c, v = fz - r, i = r * FW + c;
   return (f[i] * (1 - u) + f[i + 1] * u) * (1 - v) + (f[i + FW] * (1 - u) + f[i + FW + 1] * u) * v;
 }
@@ -57,12 +83,11 @@ const tmp = new THREE.Color();
 // sand, stone, rock), the turf, and how much turf there is. The mask is a linear ramp across each edge (0.5 on the
 // edge itself), so the shader can cut a crisp, ragged turf line through it per pixel instead of the old half-metre
 // airbrushed blend between vertices. A second field carries the distance from the waterline for the shore bands.
-const OVER = (SHAPES.find((q) => q.t === "poly") as Extract<(typeof SHAPES)[number], { t: "poly" }>).pts;
 /** signed distance to the nearest sea or river edge of the outline (> 0 on land), 9 when none is near */
 function coastDist(x: number, z: number, d: number) {
   if (Math.abs(d) > 9) return 9;
   let q = 9;
-  for (let i = 0, j = OVER.length - 1; i < OVER.length; j = i++) { const k = OVER[j][2]; if (k !== "coast" && k !== "river") continue; q = Math.min(q, segDist(x, z, OVER[j][0], OVER[j][1], OVER[i][0], OVER[i][1])); }
+  for (let i = 0, j = LAND.length - 1; i < LAND.length; j = i++) { const k = LAND[j][2]; if (k !== "coast" && k !== "river") continue; q = Math.min(q, segDist(x, z, LAND[j][0], LAND[j][1], LAND[i][0], LAND[i][1])); }
   return q >= 9 ? 9 : d > 0 ? q : -q;
 }
 /** 0..1 across an edge: 0.5 on it, linear over 2r so the shader's threshold moves evenly */
@@ -73,7 +98,7 @@ const FINE: Record<Ground, number> = { grass: 1, sand: 1, dirt: 1, stone: 0.55, 
 /** the authored ground at a point: the bare colour, the turf colour and the masks */
 export function sampleGround(x: number, z: number, bare: THREE.Color, grass: THREE.Color, o: GroundMask = gm): GroundMask {
   const n = fbm(x * 0.06, z * 0.06), m = fbm(x * 0.45 + 9, z * 0.45), wob = (fbm(x * 0.21 + 40, z * 0.21) - 0.5) * 2.4;
-  const d = edgeDist(x, z, info), kind = info.kind;
+  const d = landDist(x, z, info), kind = info.kind;
   o.shore = 9; o.fine = 1; o.g = 0;
   if (x > UNDER_X) {
     bare.copy(GROUND_C.cave).lerp(G2.caveL, m * 0.6);
@@ -149,7 +174,7 @@ const GROUND_GLSL = /* glsl */ `
     float blot = smoothstep(0.32, 0.68, b1 * 0.62 + b2 * 0.38);
     // Sunlit dirt sits on the tone mapper's shoulder, where 8 percent of light is 2 percent on screen: the swing is
     // wider in light and biased down so it lands as about 8 percent of displayed value.
-    bare *= 1.0 + ((blot - 0.6) * 0.34 + (b3 - 0.5) * 0.07 + (n2 - 0.5) * 0.05) * vMask.z;
+    bare *= 1.0 + ((blot - 0.62) * 0.5 + (b3 - 0.5) * 0.09 + (n2 - 0.5) * 0.06) * vMask.z;
     // the soil shoulder: darker, damper earth in a narrow band under the turf edge
     float lip = smoothstep(0.31, 0.46, e) * (1.0 - gk);
     bare = mix(bare, bare * vec3(0.55, 0.58, 0.52), lip * 0.75);
@@ -188,13 +213,13 @@ function tile(x0: number, z0: number, mat: THREE.Material) {
   const n = Math.round(TILE / STEP), g = new THREE.PlaneGeometry(TILE, TILE, n, n); g.rotateX(-Math.PI / 2); g.translate(x0 + TILE / 2, 0, z0 + TILE / 2);
   const pos = g.attributes.position as THREE.BufferAttribute, col = new Float32Array(pos.count * 3), gra = new Float32Array(pos.count * 3), msk = new Float32Array(pos.count * 3), c = new THREE.Color(), cg = new THREE.Color(), o: GroundMask = { g: 0, shore: 9, fine: 1 };
   for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i), z = pos.getZ(i); pos.setY(i, groundHeight(x, z)); sampleGround(x, z, c, cg, o);
+    const x = pos.getX(i), z = pos.getZ(i); pos.setY(i, terrainHeight(x, z)); sampleGround(x, z, c, cg, o);
     col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; gra[i * 3] = cg.r; gra[i * 3 + 1] = cg.g; gra[i * 3 + 2] = cg.b; msk[i * 3] = o.g; msk[i * 3 + 1] = o.shore; msk[i * 3 + 2] = o.fine;
   }
   g.setAttribute("color", new THREE.BufferAttribute(col, 3)); g.setAttribute("aGrass", new THREE.BufferAttribute(gra, 3)); g.setAttribute("aMask", new THREE.BufferAttribute(msk, 3));
   // normals from the height field itself, so tile seams are invisible
   const nor = g.attributes.normal as THREE.BufferAttribute, e = 0.6;
-  for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), z = pos.getZ(i), nx = groundHeight(x - e, z) - groundHeight(x + e, z), nz = groundHeight(x, z - e) - groundHeight(x, z + e), l = Math.hypot(nx, 2 * e, nz); nor.setXYZ(i, nx / l, (2 * e) / l, nz / l); }
+  for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), z = pos.getZ(i), nx = terrainHeight(x - e, z) - terrainHeight(x + e, z), nz = terrainHeight(x, z - e) - terrainHeight(x, z + e), l = Math.hypot(nx, 2 * e, nz); nor.setXYZ(i, nx / l, (2 * e) / l, nz / l); }
   g.computeBoundingSphere(); g.computeBoundingBox();
   const m = new THREE.Mesh(g, mat); m.receiveShadow = true; m.name = "terrain"; return m;
 }
@@ -210,7 +235,7 @@ export function buildTerrain(scene: THREE.Scene) {
     const m = new THREE.Mesh(g, patch(new THREE.MeshStandardMaterial({ color, roughness: rough, transparent: true, opacity }), { rim: 0, water: true }));
     m.position.set(x, y, z); m.receiveShadow = true; m.name = "water"; scene.add(m); return m;
   };
-  water(420, 90, 0, -0.32, SEA_Z + 41, "#3a9bb0"); water(420, 90, 0, -0.32, RIVER_Z - 41, "#2f8296");
+  water(420, 90, 0, -0.32, SEA_Z + 41, "#3a9bb0"); water(420, 106, 0, -0.32, RIVER_Z - 37, "#2f8296"); // the river reaches south into the landing bay (z -98)
   for (const w of WET) { const b = w.bb; water(b[1] - b[0], b[3] - b[2], (b[0] + b[1]) / 2, w.z.water!, (b[2] + b[3]) / 2, "#4c8f84", 0.78, 0.95); }
   for (const p of POOLS) { // the waterfall pool: a disc that sits in the dip the terrain cut for it
     const r = Number(p.o?.r ?? 6) + 1.2, g = new THREE.CircleGeometry(r, 40); g.rotateX(-Math.PI / 2);

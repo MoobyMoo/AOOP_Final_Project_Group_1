@@ -7,7 +7,8 @@ import { G, V } from "../core/state";
 import { WALLS, DOOR, POI, PORTALS, ZIPLINES, PLACED, UNDER_X } from "./map/grove";
 import { groundHeight } from "./terrain";
 import { setGate, gate } from "./grid";
-import { addPieces, placedParts } from "./dress";
+import { addPieces, placedParts, contactShade } from "./dress";
+import { dynamicDecals } from "./decals";
 import { addLamp } from "./lights";
 import { mergePieces } from "./kitutil";
 import { breakDoorVisual } from "./buildings";
@@ -73,7 +74,7 @@ export function buildProps(scene: THREE.Scene) {
     if (p.k === "hatch" && parts) { scope = parts.scope ?? null; hatchLid = parts.lid ?? null; }
     if (p.k === "fusebox" && parts) lever = parts.lever ?? null;
     if (p.k === "well" && parts) bucket = parts.bucket ?? null;
-    if (p.k === "campfire") addLamp({ pos: new THREE.Vector3(p.x, groundHeight(p.x, p.z) + 1.0, p.z), color: "#ff9a4a", power: p.x > UNDER_X ? 26 : 14, range: 11, on: () => true });
+    if (p.k === "campfire") addLamp({ pos: new THREE.Vector3(p.x, groundHeight(p.x, p.z) + 1.0, p.z), color: "#ff9a4a", power: p.x > UNDER_X ? 26 : 7, range: 11, on: () => true }); // outdoors 14 -> 7 (F1): at 14 it washed the soot ring under the fire back to orange
     if ((p.k === "lantern" || p.k === "lantern_post") && p.x > UNDER_X) addLamp({ pos: new THREE.Vector3(p.x, groundHeight(p.x, p.z) + (p.k === "lantern" ? 0.7 : 2.2), p.z), color: "#ffd08a", power: 12, range: 9, on: () => true });
     if (p.k === "vault") for (const [lx, lz] of [[-3, -3], [3, -3]]) addLamp({ pos: new THREE.Vector3(p.x + lx, groundHeight(p.x, p.z) + 2.2, p.z + lz), color: "#ffb060", power: 14, range: 9, on: () => true });
   }
@@ -122,9 +123,20 @@ export function breakWallVisual(id: string) {
 }
 export function openDoorVisual() { setGate("vine", true); }
 const dq = new THREE.Quaternion(), ev = new THREE.Euler();
+// contact shades under the loot crates: they spawn per raid, so they get one small decal mesh of their own, rebuilt
+// when the crate list changes (one draw call for all of them)
+let crateShade: THREE.Mesh | null = null, crateKey = "";
+function shadeCrates() {
+  const list = G.crates, key = list.length ? `${list.length}:${list[0].id}:${list[list.length - 1].id}` : "";
+  if (key === crateKey) return; crateKey = key;
+  if (crateShade) { crateShade.removeFromParent(); crateShade.geometry.dispose(); crateShade = null; }
+  crateShade = dynamicDecals(() => { for (const c of list) { if (c.fixed === "satchel" || c.obj.position.y > groundHeight(c.x, c.z) + 0.2) continue; contactShade(c.x, c.z, c.tier === "green" ? 0.85 : 0.68, 0.5, c.obj.rotation.y, 4, 0.82); } });
+  if (crateShade) G.stage.scene.add(crateShade);
+}
 /** per render frame */
 export function updateProps(dt: number) {
   const t = G.time;
+  shadeCrates();
   for (const w of walls.values()) {
     if (w.t < 0) continue; w.t += dt;
     for (const c of w.chunks) {

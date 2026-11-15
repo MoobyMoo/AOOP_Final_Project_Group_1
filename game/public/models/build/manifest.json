@@ -1465,7 +1465,7 @@
    }
   },
   "landmarks": {
-   "glb_bytes": 1011504,
+   "glb_bytes": 1011500,
    "tris": 23582,
    "assets": {
     "ferry": {
@@ -2486,5 +2486,5 @@
   }
  },
  "total_tris": 201769,
- "total_bytes": 10182368
+ "total_bytes": 10182364
 }
