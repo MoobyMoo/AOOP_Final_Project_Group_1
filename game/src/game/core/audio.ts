@@ -65,7 +65,8 @@ export function unlockAudio() {
 export type Sfx = "shot" | "shell" | "dry" | "reloadOut" | "reloadIn" | "slide" | "reloadRound" | "swing" | "bonk" | "hit" | "hitCrit"
   | "kill" | "killCrit" | "impactDirt" | "impactWood" | "impactMetal" | "impactFoliage" | "impactStone" | "dash" | "ko" | "hurt" | "heal"
   | "step" | "crateTick" | "crate" | "pop" | "rare" | "pick" | "throw" | "whirr" | "windup" | "slam" | "roar" | "thunk" | "notice"
-  | "snatch" | "tick" | "extract" | "cash" | "buy" | "nope" | "ui" | "door";
+  | "snatch" | "tick" | "extract" | "cash" | "buy" | "nope" | "ui" | "door"
+  | "squawk" | "grunt" | "splash"; // G1.5 population pass: the wildlife (samples to come; silent until then)
 const combo: Record<string, { n: number; t: number }> = {}, warned = new Set<string>();
 /** play a sound; vol scales it (e.g. by distance) */
 export function sfx(kind: Sfx, vol = 1) {

@@ -18,14 +18,16 @@ import { hideCurtain } from "./home/dispatch";
 import { exits, exitStatus } from "./world/props";
 import { initSettings, settingsOpen } from "./ui/settings";
 import { lootOpen } from "./ui/lootview";
-import { path, walkable, los, lintReport, exactReach, clearance, gates, setGate, pathLength, collide } from "./world/grid";
+import { path, walkable, los, lintReport, exactReach, clearance, areaStats, gates, setGate, pathLength, collide } from "./world/grid";
 import { worldStats, countVisible, scattered } from "./world/world";
 import { blockoutSvg } from "./world/map/dump";
 import { preloadNature } from "./world/kit_nature";
 import { preloadHouse } from "./world/buildings";
 import { preloadGroundItems } from "./loot/ground";
+import { preloadFauna, faunaStats, faunaList } from "./ai/fauna";
 import { groundHeight } from "./world/terrain";
-import { houses } from "./world/buildings";
+import { houses, houseFootprints } from "./world/buildings";
+import { CONTAINER_SOCKETS } from "./world/map/grove";
 import { enterBunker, stepBunker, renderBunker, leaveBunker, bunkerScene, homeApi } from "./home/bunker";
 import { openCreator, renderCreator } from "./ui/creator";
 import { buildMapShots, toggleMap, mapOpen, toggleMinimap } from "./ui/mapview";
@@ -54,7 +56,7 @@ initSettings({ blocked: () => lootOpen() || mapOpen() || homeApi.panelOpen(), qu
 await preloadKingpin();
 await preloadBuild().catch((e) => console.warn("build kit missing, bunker uses the blockout", e)); // structures kit (bunker room, raid structures)
 await preloadCharacters(); // character GLBs (rig v2): createRig() is synchronous once this resolves
-await Promise.all([preloadNature(), preloadHouse(), preloadGroundItems()]); // nature + building kits (the structures kit is loaded above): the raid world builds from them
+await Promise.all([preloadNature(), preloadHouse(), preloadGroundItems(), preloadFauna()]); // nature + building kits (the structures kit is loaded above): the raid world builds from them
 buildRaidWorld(); G.stage.setScene(raidScene); buildMapShots(raidScene);
 if (QS.has("dev")) (window as unknown as { __ui: unknown }).__ui = await import("./ui/devhooks"); // UI captures and tools/uitest.mjs
 if (QS.has("tune")) (await import("./ui/tunepanel")).openTunePanel(); // live tuning panel (core/tune.ts)
@@ -124,7 +126,7 @@ function frame() {
 function neutral() { const i = G.intent; i.move = { x: 0, z: 0 }; i.fire = i.firePressed = i.melee = i.roll = i.interact = i.reload = i.heal = false; }
 (window as unknown as { __g: unknown }).__g = { G, path, walkable, los, collide, home: homeApi, info: () => ({ calls: G.stage.renderer.info.render.calls, tris: G.stage.renderer.info.render.triangles }),
   // map v3 checks: lint report, world build stats, objects in the current frame (G1-21), teleport, gates
-  lint: lintReport, exactReach, clearance, loot: { dropItem, placeItem }, world: () => worldStats, density: () => countVisible(G.stage.camera, [...G.crates, ...G.enemies.filter((e) => !e.down).map((e) => ({ x: e.p.x, z: e.p.z }))]),
+  lint: lintReport, exactReach, clearance, sockets: CONTAINER_SOCKETS, fauna: faunaStats, faunaList, areas: () => areaStats(houseFootprints()), feet: () => houseFootprints(), loot: { dropItem, placeItem }, world: () => worldStats, density: () => countVisible(G.stage.camera, [...G.crates, ...G.enemies.filter((e) => !e.down).map((e) => ({ x: e.p.x, z: e.p.z }))]),
   tp: (x: number, z: number) => { G.pp.set(x, groundHeight(x, z), z); G.vel.set(0, 0, 0); }, gates, setGate, pathLength, houses, svg: () => blockoutSvg(scattered),
   exits: () => exits.map((e) => ({ id: e.id, x: e.x, z: e.z, ...exitStatus(e) })), spawn: () => lastSpawn };
 
