@@ -1,12 +1,13 @@
-import type { MonkeyLook, SaveV1, Gear } from "../contracts";
+import type { MonkeyLook, SaveV1, Gear, GunSlots } from "../contracts";
 import { BOUND_KIT, SLOTS, equipDef, fmtInst, parseInst } from "../loot/equipment";
 import { DEFAULT_LOOK, sanitizeLook, type MonkeyLookX } from "../actors/look";
 import { KINGPIN } from "../combat/weapons";
 import { ITEMS, PRICES, itemDef } from "../loot/tables";
 import { EMPTY_GUN, isAttachment, sanitizeGun } from "../loot/attachments";
+import { CALIBER_IDS, GUNS, gunOf, noRounds, type Rounds } from "../combat/guns";
 import { emptyBase, legacyBase, sanitizeBase } from "../home/facilities";
 import { itemType } from "../loot/instances";
-import { claimDelivery, identifySave, settleRaid, validateOwnership } from "./settlement";
+import { claimDelivery, identifySave, isLockerItem, settleRaid, validateOwnership } from "./settlement";
 import { freshQuests, sanitizeQuests } from "./quests";
 
 export function retainKeys(save: SaveV1, kept: readonly string[]) {
@@ -25,10 +26,10 @@ const choice = <Value extends string>(value: unknown, fallback: Value, choices: 
 
 function fresh(): SaveV1 {
   return {
-    v: 1, createdAt: new Date().toISOString(), raids: 0, money: 0, ammo: KINGPIN.startAmmo,
+    v: 1, createdAt: new Date().toISOString(), raids: 0, money: 0, ammo: { ...noRounds(), ammo45: KINGPIN.startAmmo },
     look: structuredClone(DEFAULT_LOOK), lookDone: false, gear: { ...BOUND_KIT }, locker: [], satchel: null,
     upgrades: { mag: 0, pack: 0, heart: 0 }, keys: [], trophies: [], reserved: [], order: null,
-    fixtures: [], salMovedIn: false, gun: { ...EMPTY_GUN }, stats: { bonkOuts: 0, extracts: 0, best: 0 },
+    fixtures: [], salMovedIn: false, guns: [{ inst: "kingpin", atts: { ...EMPTY_GUN } }, null], stats: { bonkOuts: 0, extracts: 0, best: 0 },
     base: emptyBase(), // a new vault starts empty (G1.5 row 17)
     quests: freshQuests(), // no jobs yet; the intro hasn't played (core/quests.ts)
   };
@@ -66,15 +67,40 @@ function gear(value: unknown, legacy: boolean): Gear {
 }
 /** G1.5 row 36: the old one-off "extended_mag" item is the magazine attachment now */
 const renamed = (inst: string) => (inst === "extended_mag" ? "att_mag_ext" : inst);
-/** the locker: equipment instances and gun attachment ids */
+/** the locker: equipment instances, gun attachment ids and guns off the slots (never the bound Kingpin: it is boundWeapons) */
 const instances = (value: unknown): string[] => Array.isArray(value) ? value.flatMap(raw => {
   const inst = typeof raw === "string" ? renamed(raw) : null, parsed = inst ? parseInst(inst) : null;
-  return parsed ? [fmtInst(inst!, parsed.dur)] : inst && isAttachment(inst) ? [inst] : [];
+  return parsed ? [fmtInst(inst!, parsed.dur)] : inst && (isAttachment(inst) || (gunOf(inst) && !/^kingpin(@|$)/.test(inst))) ? [inst] : [];
 }) : [];
+/** per-caliber loose rounds. A save from before calibers holds one .45 count (number) */
+function rounds(value: unknown, fallback: Rounds): Rounds {
+  if (typeof value === "number") return { ...noRounds(), ammo45: integer(value, fallback.ammo45) };
+  const raw = object(value); if (!Object.keys(raw).length) return { ...fallback };
+  return Object.fromEntries(CALIBER_IDS.map(c => [c, integer(raw[c], 0)])) as Rounds;
+}
+/** the two gun slots. A save from before gun slots has the Kingpin's attachments in "gun": they stay on the Kingpin,
+ *  which goes into gun 1. Unknown guns are dropped; the Kingpin is never duplicated; attachments are re-checked
+ *  against the gun's own slots (one that no longer fits goes to the locker) */
+function guns(raw: RecordValue, kingpinInst: string, locker: string[]): GunSlots {
+  const out: GunSlots = [null, null];
+  if (!Object.hasOwn(raw, "guns")) { out[0] = { inst: kingpinInst, atts: sanitizeGun(raw.gun, GUNS.kingpin45.slots) }; return out; }
+  const list = Array.isArray(raw.guns) ? raw.guns : [];
+  let haveKingpin = false;
+  for (const k of [0, 1] as const) {
+    const slot = object(list[k]), inst = typeof slot.inst === "string" ? slot.inst : null, def = gunOf(inst);
+    if (!inst || !def) continue;
+    const isKingpin = def.id === "kingpin45"; if (isKingpin && haveKingpin) continue; haveKingpin ||= isKingpin;
+    const atts = sanitizeGun(slot.atts, def.slots), all = sanitizeGun(slot.atts);
+    for (const [s2, a] of Object.entries(all)) if (a && !atts[s2 as keyof typeof atts]) locker.push(a);
+    out[k] = { inst: isKingpin ? kingpinInst : inst, atts };
+  }
+  return out;
+}
 const loot = (value: unknown): string[] => Array.isArray(value) ? value.flatMap(raw => {
   if (typeof raw !== "string" || !raw) return [];
   const inst = renamed(raw), parsed = parseInst(inst);
-  return parsed ? [fmtInst(inst, parsed.dur)] : Object.hasOwn(ITEMS, itemType(inst)) && ITEMS[itemType(inst)].kind !== "wear" ? [inst] : [];
+  // the bound Kingpin ("kingpin@uuid") lives in boundWeapons / a gun slot, never as loose loot
+  return parsed ? [fmtInst(inst, parsed.dur)] : Object.hasOwn(ITEMS, itemType(inst)) && ITEMS[itemType(inst)].kind !== "wear" && itemType(inst) !== "kingpin" ? [inst] : [];
 }) : [];
 function satchel(value: unknown): SaveV1["satchel"] {
   const raw = object(value), items = loot(raw.items).filter(inst => !equipDef(inst)?.bound);
@@ -92,10 +118,11 @@ export function migrate(value: unknown): SaveV1 {
     const locker = instances(raw.locker ?? raw.wardrobe);
     if (legacy) for (const inst of Object.values(worn)) { const index = inst ? locker.indexOf(inst) : -1; if (index >= 0) locker.splice(index, 1); }
     locker.push(...instances(raw.reserved));
-    // the Kingpin's attachments. A save from before attachments has no "gun": its extended mag (found in the vault =
-    // the "extended_mag" fixture, or bought at the workbench = upgrades.mag) becomes the fitted magazine attachment.
-    const gun = sanitizeGun(raw.gun), fixtures = strings(raw.fixtures);
-    if (!Object.hasOwn(raw, "gun") && (fixtures.includes("extended_mag") || integer(upgrades.mag, 0) > 0) && !locker.includes("att_mag_ext")) gun.mag ??= "att_mag_ext";
+    // the gun slots. A save from before attachments has no "gun": its extended mag (found in the vault = the
+    // "extended_mag" fixture, or bought at the workbench = upgrades.mag) becomes the Kingpin's fitted magazine.
+    const bound = object(raw.boundWeapons), kingpinInst = typeof bound.kingpin === "string" && /^kingpin(@|$)/.test(bound.kingpin) ? bound.kingpin : "kingpin";
+    const slots = guns(raw, kingpinInst, locker), fixtures = strings(raw.fixtures);
+    if (!Object.hasOwn(raw, "gun") && !Object.hasOwn(raw, "guns") && (fixtures.includes("extended_mag") || integer(upgrades.mag, 0) > 0) && !locker.includes("att_mag_ext") && slots[0]) slots[0].atts.mag ??= "att_mag_ext";
     const fixturesOut = fixtures.filter(f => f !== "extended_mag");
     for (const slot of SLOTS) {
       const starter = BOUND_KIT[slot];
@@ -108,20 +135,20 @@ export function migrate(value: unknown): SaveV1 {
       ...(typeof object(raw.deployReceipt).id === "string" && integer(object(raw.deployReceipt).paid, -1) >= 0 ? { deployReceipt: { id: object(raw.deployReceipt).id as string, paid: object(raw.deployReceipt).paid as number } } : {}),
       v: 1,
       createdAt: typeof raw.createdAt === "string" && Number.isFinite(Date.parse(raw.createdAt)) ? raw.createdAt : defaults.createdAt,
-      raids: integer(raw.raids, defaults.raids), money: integer(raw.money, defaults.money), ammo: integer(raw.ammo, defaults.ammo),
+      raids: integer(raw.raids, defaults.raids), money: integer(raw.money, defaults.money), ammo: rounds(raw.ammo, defaults.ammo),
       look: look(raw.look), lookDone: boolean(raw.lookDone, defaults.lookDone), gear: worn, locker, satchel: satchel(raw.satchel),
       upgrades: {
         mag: integer(upgrades.mag, 0, PRICES.upgrades.mag.length),
         pack: integer(upgrades.pack, 0, PRICES.upgrades.pack.length),
         heart: integer(upgrades.heart, 0, PRICES.upgrades.heart.length),
       },
-      keys: strings(raw.keys), trophies: strings(raw.trophies), reserved: loot(raw.reserved).filter(inst => !equipDef(inst) && !isAttachment(inst)),
+      keys: strings(raw.keys), trophies: strings(raw.trophies), reserved: loot(raw.reserved).filter(inst => !isLockerItem(inst)),
       order: typeof order.id === "string" && order.id.length > 0 ? {
         id: order.id,
         progress: Object.fromEntries(Object.entries(object(order.progress)).filter((entry): entry is [string, number] => integer(entry[1], -1) >= 0)),
         done: boolean(order.done, false),
       } : null,
-      fixtures: fixturesOut, salMovedIn: boolean(raw.salMovedIn, defaults.salMovedIn), gun,
+      fixtures: fixturesOut, salMovedIn: boolean(raw.salMovedIn, defaults.salMovedIn), guns: slots,
       stats: { bonkOuts: integer(stats.bonkOuts, 0), extracts: integer(stats.extracts, 0), best: integer(stats.best, 0) },
       // a save from before the buildable vault had the fixed room's stations: they come along, already placed
       base: Object.hasOwn(raw, "base") ? sanitizeBase(raw.base) : Object.keys(raw).length ? legacyBase() : emptyBase(),

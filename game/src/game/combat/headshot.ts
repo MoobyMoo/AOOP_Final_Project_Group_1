@@ -8,7 +8,8 @@
 // head, about 1.45 u up on a scale-1 monkey) and scales with the rig. No allocation per call.
 import * as THREE from "three";
 import { G, flat, type Enemy } from "../core/state";
-import { HEAD, KINGPIN } from "./weapons";
+import { HEAD } from "./weapons";
+import { GUN } from "./gunstats";
 
 const ray = new THREE.Ray(), ndc = new THREE.Vector3(), a = new THREE.Vector3(), b = new THREE.Vector3(), sc = new THREE.Vector3(), hit = new THREE.Vector3();
 /** the head under the cursor this frame (null if none); `point` is its centre */
@@ -33,7 +34,7 @@ export function updateAimHead(cursor: { x: number; y: number } | null): Enemy | 
   ray.direction.copy(ndc.set(cursor.x, cursor.y, 0.5).unproject(cam)).sub(ray.origin).normalize();
   let best = Infinity;
   for (const e of G.enemies) {
-    if (e.down || !e.active || flat(e.p, G.pp) > KINGPIN.range + 2) continue;
+    if (e.down || !e.active || flat(e.p, G.pp) > GUN.range + 2) continue;
     const r = headCenter(e, b);
     const t = ray.distanceSqToPoint(b) <= r * r ? (ray.closestPointToPoint(b, hit), hit.distanceTo(ray.origin)) : Infinity;
     if (t < best) { best = t; aimHead.enemy = e; aimHead.point.copy(b); aimHead.radius = r; }

@@ -6,7 +6,7 @@
   --a-ink:#f3ead6; --a-dim:#b3a993; --a-faint:#7d7568; --a-wool:#26252a; --a-wool2:#1d1c20; --a-wool3:#19181c; --a-line:#3b3940; --a-edge:#4a4650;
   --a-brass:#c29a5b; --a-brass-hi:#e2bf82; --a-tie:#f46a10; --a-tie-d:#c4500a; --a-leather:#3a2a22; --a-leather-hi:#4a3529; --a-stitch:#9a7651;
   --a-hp:#ff5b4a; --a-stam:#5fd36a; --a-warn:#ffb648; --a-steel:#7d8a99;
-  --rar-common:#b9b1a2; --rar-uncommon:#62c46a; --rar-rare:#45a8e6; --rar-epic:#b27cff; --rar-legendary:#ffcf3a;
+  --rar-junk:#8a8172; --rar-common:#e6decd; --rar-fine:#86d23c; --rar-uncommon:#3db4ea; --rar-rare:#a862f2; --rar-epic:#ff8a3a; --rar-legendary:#ff4b4b; /* loot/tiers.ts: Duckov quality roles q0..q6 */
   --a-font:"Barlow Condensed","Arial Narrow",system-ui,sans-serif; --a-mono:"IBM Plex Mono",ui-monospace,monospace;
   --s:1; --rw:1920px; --rh:1080px;
 }
@@ -53,7 +53,7 @@ html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .h3-armor{left:calc(50% - 476px)}.h3-load{left:calc(50% - 380px)}
 .h3-load.light .v{color:var(--a-stam)}.h3-load.heavy .v{color:var(--a-warn)}.h3-load.over .v{color:var(--a-hp)}
 .h3-load.over{box-shadow:0 8px 24px rgba(0,0,0,.45),inset 0 0 0 2px var(--a-hp)}
-.h3-ammo{left:calc(50% - 252px);bottom:144px;width:230px;height:40px;display:flex;align-items:baseline;gap:8px;padding:0 12px;align-items:center}
+.h3-ammo{left:calc(50% - 296.25px);bottom:139.5px;width:210px;height:40px;transition:left .12s ease-out;display:flex;align-items:baseline;gap:8px;padding:0 12px;align-items:center}
 .h3-ammo .m{font:700 30px/1 var(--a-font);font-variant-numeric:tabular-nums}
 .h3-ammo .r{font:600 20px/1 var(--a-font);color:var(--a-dim);font-variant-numeric:tabular-nums}
 .h3-ammo .c{margin-left:auto;font:600 15px/1 var(--a-font);color:var(--a-brass);white-space:nowrap}
@@ -64,7 +64,16 @@ html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .h3-slot{position:relative;display:grid;place-items:center}
 .h3-slot .key{position:absolute;left:5px;top:4px;font:600 14px/1 var(--a-font);color:var(--a-dim)}
 .h3-slot.on{outline:2px solid var(--a-tie);outline-offset:-2px}
-.h3-slot.gun{width:96px;height:96px}.h3-slot.gun img{width:88px;height:88px;object-fit:contain}
+.h3-slot.gun{width:96px;height:96px}.h3-slot.gun img{width:80px;height:80px;object-fit:contain;margin-top:-6px;filter:drop-shadow(0 0 5px var(--rar,transparent)) drop-shadow(0 3px 2px rgba(0,0,0,.5))}
+.h3-slot.gun .emo{font-size:46px;margin-top:-8px;filter:drop-shadow(0 0 6px var(--rar,transparent))}
+/* tier rim along the top of a gun card (loot/tiers.ts colours; Duckov tints the icon's glow by display quality) */
+.h3-slot.gun::after{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--rar,transparent)}
+.h3-slot.gun.none{background:repeating-linear-gradient(135deg,#1b1a1e 0 6px,#201f24 6px 12px);opacity:.75}
+.h3-slot.gun .n{position:absolute;right:5px;bottom:4px;font:700 17px/1 var(--a-font);font-variant-numeric:tabular-nums;text-shadow:0 1px 2px #000}
+.h3-slot.gun .n small{font-size:13px;color:var(--a-dim)}.h3-slot.gun .n.out{color:var(--a-hp)}
+.h3-slot.gun .cal{position:absolute;left:5px;bottom:5px;font:600 10px/1 var(--a-font);letter-spacing:.06em;color:var(--a-brass)}
+.h3-slot.gun:not(.on){opacity:.82}
+.h3-slot .draw{position:absolute;inset:0;background:rgba(0,0,0,.45);transform-origin:50% 100%;transform:scaleY(calc(1 - var(--dr,1)));pointer-events:none}
 .h3-slot.case{width:60px;height:60px}.h3-slot.case img{width:48px;height:48px}
 .h3-slot .rl{position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--a-tie);transform-origin:0 50%;transform:scaleX(var(--rl,0))}
 .h3-quick{position:absolute;left:calc(50% + 56.25px);bottom:37.5px;display:flex;gap:15px}
@@ -200,6 +209,19 @@ html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .e3.busy::before{content:"";position:absolute;left:0;bottom:0;height:4px;width:calc(var(--k,0) * 100%);background:var(--a-tie)}
 .e3.drop-ok{border-color:var(--a-brass-hi);box-shadow:0 0 0 2px var(--a-brass-hi);background:#2e2a26}
 .e3.drop-no{opacity:.4}
+/* weapons (POLISH_FINDINGS 17): two gun rows, each a wide gun card and its own attachment row (only the slots that gun has) */
+.lv-guns{padding:0 16px;display:grid;gap:8px;margin-bottom:6px}
+.lv-gunrow{display:flex;gap:8px;align-items:flex-start}
+.e3.g3{width:118px;flex:none}.e3.g3 .ico{width:54px;height:54px;margin-top:-18px;filter:drop-shadow(0 0 5px var(--rar,transparent)) drop-shadow(0 3px 2px rgba(0,0,0,.45))}
+.e3.g3 .emo{font-size:34px;margin-top:-18px}
+.e3.g3 .nm{position:absolute;left:4px;right:4px;bottom:20px;text-align:center;font:600 12px/1 var(--a-font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.e3.g3 .key{position:absolute;left:5px;top:5px;font:600 13px/1 var(--a-font);color:var(--a-dim)}
+.e3.g3 .q{top:auto;bottom:4px;right:5px}.e3.g3 .q small{font-size:10px;color:var(--a-brass)}
+.e3.g3 .lock{top:5px;right:5px}.e3.g3 .pips{left:auto;right:6px;top:22px}
+.e3.g3.held{box-shadow:inset 0 0 0 2px var(--a-tie)}
+.e3.g3.empty .lab{bottom:auto;top:50%}
+.lv-gunrow .lv-att{display:flex;flex-wrap:wrap;gap:4px;padding:0}
+.lv-gunrow .a3{width:50px;height:62px}.lv-gunrow .a3 .lab{font-size:11px}
 /* gun attachment slots (G1.5 row 36): a shorter row of the same cells, and pips on the gun cell for what is fitted */
 .lv-att .a3{height:62px}.lv-att .a3 img{width:40px;height:40px;margin-top:-14px}.lv-att .a3 .emo{font-size:24px;margin-top:-14px}.lv-att .a3 .lab{font-size:12px;bottom:3px}
 .e3 .pips{position:absolute;left:5px;top:6px;display:flex;flex-direction:column;gap:3px;pointer-events:none}.e3 .pips i{width:5px;height:5px;background:#3a3631;transform:rotate(45deg)}.e3 .pips i.on{background:var(--a-brass-hi)}

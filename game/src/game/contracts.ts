@@ -33,7 +33,7 @@ export type FeetStyle = "round" | "shoes";
 export type Gear = { head: string | null; face: string | null; body: string | null; back: string | null; ears: string | null };
 export type WearSlot = keyof Gear;
 export type EquipSlot = WearSlot;
-export type Wearable = { id: string; slot: WearSlot; name: string; rarity: "common" | "uncommon" | "rare" | "epic"; hidesEars?: boolean; hidesBrows?: boolean; hidesTie?: boolean };
+export type Wearable = { id: string; slot: WearSlot; name: string; rarity: Rarity; hidesEars?: boolean; hidesBrows?: boolean; hidesTie?: boolean };
 /** equipment stats (our numbers; Duckov mechanisms in research/duckov-re: CODE_FINDINGS 2.2 armor, FINDINGS E2 ranges).
  *  headArmor is used for enemy critical hits, bodyArmor for the rest: damage x 2 / (max(0, A - pen) + 2).
  *  An armor piece loses durability on every hit it mitigates; at 0 it gives no armor (still worn) until repaired. */
@@ -60,8 +60,11 @@ export type RigState = {
   faceYaw: number;       // upper body + head + arms aim heading (twist up to ~75 deg from moveYaw, beyond that the hips turn)
   action: RigAction;
   actionT: number;       // 0..1 progress through timed actions (fire, reload, melee, roll, hurt, throw, windup, slam, defeat)
-  armed: "none" | "pistol" | "briefcase";
+  armed: "none" | "pistol" | "long" | "briefcase"; // "long": the two-handed long-gun hold (SMG, rifle, shotgun, sniper, LMG)
   flash: number;         // 0..1 hurt/hit flash, per instance (never mutate shared materials)
+  /** the long-gun hold (armed "long"): the off hand's point on the gun (gun space), how far the stock reaches behind
+   *  the grip and the bore's height above it (gun units), and the gun's scale in the hand */
+  hold?: { support: THREE.Vector3; reach: number; bore: number; scale: number } | null;
 };
 export interface Rig {
   root: THREE.Group;     // gameplay sets root.position and root.rotation.y = moveYaw; pose() never moves root.position
@@ -90,6 +93,13 @@ export interface GunView {
   /** the fitted laser's beam origin (null with no laser, or no laser model) */
   laser?: THREE.Object3D | null;
   pose(s: { fireT: number; reloadT: number }): void; // fireT: 0..1 after a shot (slide back/forward), reloadT: 0..1 (or -1 = not reloading)
+  /** how the monkey holds it: "one" = the pistol hold; "two" = a long gun, shouldered, the off hand on `support`
+   *  (actors/rig.ts long-gun hold). Absent = "one". */
+  hold?: "one" | "two";
+  /** the off hand's target on the gun (gun space, under the fore-end / handguard), for "two" */
+  support?: THREE.Object3D | null;
+  /** how far the stock reaches behind the grip (gun units, positive = toward -z), for "two"; 0 = no stock */
+  stockReach?: number;
 }
 export interface GunFx {   // pooled; no per-shot allocation
   fire(muzzle: THREE.Object3D, eject: THREE.Object3D, to: THREE.Vector3, hit: "enemy" | "wall" | "none"): void; // flash + light + shell + tracer + impact puff
@@ -131,8 +141,11 @@ export type BuildingDef = {
 //   hatch, driftwood/shells, plus the bunker room set. Lights/animated parts are returned separately as Object3D.
 
 // ---------------------------------------------------------------- loot/ (Codex Sol)
-export type Rarity = "common" | "uncommon" | "rare" | "epic";
-export type ItemKind = "sell" | "heal" | "key" | "ammo" | "attachment" | "part" | "wear" | "note"; // note = a readable lore note (loot/storyitems.ts)
+/** ITEM TIERS (Duckov's item quality, POLISH_FINDINGS 17 "Item quality"): seven levels, index = Duckov quality 0..6.
+ *  The keys are code names; loot/tiers.ts has our display names and colours. The four pre-tier names keep the
+ *  quality they always mapped to (common 1, uncommon 3, rare 4, epic 5), so no item changes worth by the extension. */
+export type Rarity = "junk" | "common" | "fine" | "uncommon" | "rare" | "epic" | "legendary";
+export type ItemKind = "sell" | "heal" | "key" | "ammo" | "attachment" | "part" | "wear" | "gun" | "note"; // note = a readable lore note (loot/storyitems.ts)
 export type ItemDef = { id: string; name: string; icon: string; rarity: Rarity; value: number; kind: ItemKind; stack?: number; weight?: number }; // weight in kg-ish units (Duckov-style weight states)
 export type CrateTier = "wood" | "green" | "gold";
 export type RaidLootCtx = { raid: number; cratesOpened: number; usefulFound: number; emptyStreak: number; ammoFound: number; orderNeeds: string[] };
@@ -142,8 +155,12 @@ export type RaidLootCtx = { raid: number; cratesOpened: number; usefulFound: num
 /** GUN ATTACHMENTS (G1.5 row 36; Duckov's gun SlotCollection, research/duckov-re/POLISH_FINDINGS.md "Attachments").
  *  The Kingpin is a pistol, so it has a pistol's slots. Each holds an attachment item id (loot/attachments.ts) or null.
  *  Attachments carry stat modifiers (add, percent, multiply, applied in that order) onto the gun's handling stats. */
-export type AttSlot = "sight" | "muzzle" | "mag" | "laser";
+export type AttSlot = "sight" | "muzzle" | "mag" | "laser" | "grip" | "stock";
 export type GunAtts = Record<AttSlot, string | null>;
+/** WEAPON SLOTS (Duckov's primary / secondary gun slots, POLISH_FINDINGS 17): a gun instance ("contraband_carbine@uuid")
+ *  and what is fitted on it. Index 0 = key 1, index 1 = key 2; the briefcase (V) is the melee slot and never leaves. */
+export type GunSlot = { inst: string; atts: GunAtts };
+export type GunSlots = [GunSlot | null, GunSlot | null];
 
 // ---------------------------------------------------------------- core/save.ts (Codex Sol)
 export type SaveV1 = {
@@ -152,14 +169,16 @@ export type SaveV1 = {
   delivery?: string[];
   deployReceipt?: { id: string; paid: number };
   boundWeapons?: { kingpin: string; briefcase: string };
-  v: 1; createdAt: string; raids: number; money: number; ammo: number;
+  v: 1; createdAt: string; raids: number; money: number;
+  /** loose rounds at home, per caliber (combat/guns.ts CALIBERS). Guns are unloaded at home: their rounds live here */
+  ammo: import("./combat/guns").Rounds;
   look: MonkeyLook; lookDone: boolean; gear: Gear; locker: string[]; // gear = worn instances; locker = equipment and gun attachments kept at home (instances / ids)
   satchel: { items: string[]; x: number; z: number } | null; // pack dropped on a bonk-out: recoverable once next raid (Duckov corpse rule)
   upgrades: { mag: number; pack: number; heart: number };
   keys: string[]; trophies: string[]; reserved: string[];   // keys auto-kept, trophies shown in the bunker, order items reserved
   order: { id: string; progress: Record<string, number>; done: boolean } | null;
   fixtures: string[]; salMovedIn: boolean;
-  gun: GunAtts;                                              // what is fitted on the Kingpin (kept through a bonk-out: the gun is yours for good)
+  guns: GunSlots;                                            // gun 1 / gun 2 with their attachments (the bound Kingpin starts in gun 1)
   stats: { bonkOuts: number; extracts: number; best: number };
   base: BaseLayout; // the vault's built facilities (home/facilities.ts; G1.5 row 17). Old saves migrate to the old room's stations
   quests?: import("./core/quests").QuestSave; // jobs, notes read, unlocks and the quest payout ledger (core/quests.ts; G1.5 row 40). core/save.ts always fills it
@@ -183,5 +202,5 @@ export type BotView = {
   los(ax: number, az: number, bx: number, bz: number): boolean;
   raidT: number; money: number; raids: number; doorOpen: boolean; hasKey: boolean;
 };
-export type BotInput = { move: [number, number]; aim?: [number, number]; fire?: boolean; melee?: boolean; roll?: boolean; interact?: boolean; reload?: boolean; heal?: boolean; buy?: "mag" | "pack" | "heart"; ui?: "start" | "leave" };
+export type BotInput = { move: [number, number]; aim?: [number, number]; fire?: boolean; melee?: boolean; roll?: boolean; interact?: boolean; reload?: boolean; heal?: boolean; buy?: "mag" | "pack" | "heart"; ui?: "start" | "leave"; /** draw gun 1 or 2 */ swap?: 1 | 2 };
 // core/bot.ts exports: createBot(opts: { greed: number; reactionLag: number; seed: number }): { tick(v: BotView, dt: number): BotInput; events: object[] }

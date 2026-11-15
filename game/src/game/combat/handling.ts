@@ -10,11 +10,12 @@
 //           yaw and the next shot all see it, then it settles back (InputManager.AddRecoil / ProcessMousePosViaRecoil).
 import { G } from "../core/state";
 import type { Intent } from "../core/input";
-import { KINGPIN, KINGPIN_HANDLING as H, PLAYER } from "./weapons";
+import { KINGPIN, KINGPIN_HANDLING, PLAYER } from "./weapons";
 import { tuneObject } from "../core/tune";
-import { GUN, refreshGun } from "./gunstats";
+import { GUN, H, refreshGun } from "./gunstats";
 
-tuneObject("gun", H, {
+// ?tune "gun" edits the Kingpin's handling row; every other gun reads its own row in guns.ts
+tuneObject("gun", KINGPIN_HANDLING, {
   rest: { min: 0, max: 30, step: 0.1, label: "hip scatter at rest (deg)" }, max: { min: 0, max: 60, step: 0.5, label: "hip scatter max" },
   grow: { min: 0, max: 30, step: 0.1, label: "hip grow per shot" }, recover: { min: 0, max: 3, step: 0.01, label: "hip recover (x grow x shots/s)" },
   restAds: { min: 0, max: 30, step: 0.1, label: "ADS scatter at rest" }, maxAds: { min: 0, max: 60, step: 0.5, label: "ADS scatter max" },
@@ -28,7 +29,7 @@ tuneObject("gun", H, {
   recoverSpeed: { min: 20, max: 3000, step: 10, label: "settle speed (px/s @1440)" }, recoilMul: { min: 0, max: 4, step: 0.05, label: "recoil multiplier" },
   adsTime: { min: 0.05, max: 1.5, step: 0.01, label: "ADS time (s)" }, adsWalk: { min: 0.1, max: 1, step: 0.01, label: "ADS walk multiplier" },
   adsDist: { min: 1, max: 4, step: 0.01, label: "ADS camera lead factor (bare gun)" }, adsFov: { min: 0.6, max: 1, step: 0.005, label: "ADS FOV scale" },
-}, { note: "Kingpin scatter / recoil / ADS (combat/handling.ts)" });
+}, { note: "Kingpin scatter / recoil / ADS (combat/handling.ts); other guns: combat/guns.ts" });
 tuneObject("kingpin", KINGPIN, {
   interval: { min: 0.05, max: 1, step: 0.01, label: "seconds between shots" }, damage: { min: 1, max: 80, step: 1 }, range: { min: 4, max: 40, step: 0.5 },
   reload: { min: 0.2, max: 4, step: 0.05, label: "reload (s)" }, magnet: { min: 0, max: 0.5, step: 0.005, label: "magnet hip (rad)" }, magnetAds: { min: 0, max: 0.5, step: 0.005, label: "magnet ADS (rad)" },
@@ -53,7 +54,7 @@ export const HS = {
   shots: 0,
 };
 let kickX = 0, kickY = 0, kickT = 1e9, kickDur = 0.06, mouseX = NaN, mouseY = NaN;
-export const shotsPerSecond = () => 1 / Math.max(0.01, KINGPIN.interval);
+export const shotsPerSecond = () => 1 / Math.max(0.01, GUN.interval);
 export const restScatter = () => lerp(GUN.rest, GUN.restAds, HS.ads);
 export const maxScatter = () => lerp(GUN.max, GUN.maxAds, HS.ads);
 export const growScatter = () => lerp(GUN.grow, GUN.growAds, HS.ads);
@@ -100,9 +101,11 @@ export function updateHandling(dt: number, i: Intent) {
 }
 /** the cursor with the recoil offset, in NDC (what the aim point is picked from) */
 export function kickedNdc(ndc: { x: number; y: number }) { return { x: ndc.x + HS.rx / (innerWidth * 0.5), y: ndc.y + HS.ry / (innerHeight * 0.5) }; }
+/** one more pellet's yaw deviation (rad) inside the current cone, without growing it (a shotgun's extra pellets) */
+export const scatterDev = () => (G.rng() - 0.5) * currentScatter() * Math.PI / 180;
 /** a shot leaves: returns its yaw deviation (rad) inside the current cone, then grows scatter and starts the kick */
 export function onShot(hero: { x: number; y: number } | null): number {
-  const dev = (G.rng() - 0.5) * currentScatter() * Math.PI / 180;
+  const dev = scatterDev();
   HS.scatter = Math.min(maxScatter(), Math.max(restScatter(), HS.scatter + growScatter()));
   HS.shots++;
   // kick direction: outward along hero -> cursor on screen (V) and across it (H, Duckov's -Perpendicular)

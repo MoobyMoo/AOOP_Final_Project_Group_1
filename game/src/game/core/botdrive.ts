@@ -3,6 +3,8 @@
 import { G } from "./state";
 import type { Intent } from "./input";
 import type { BotInput } from "../contracts";
+import { gunOf } from "../combat/guns";
+import { drawing } from "../combat/arsenal";
 import type { BotObservation } from "./bot";
 import { botTelemetry, BOT_POLICY } from "./bot";
 import { path, walkable, collide, los, gates, areaAt, state as gridState } from "../world/grid";
@@ -29,6 +31,11 @@ function botWalkable(x: number, z: number): boolean {
 export function setBot(b: Bot) { bot = b; }
 let deploying = false;
 const routeProfile = new URLSearchParams(location.search).get('botroute');
+/** the gun in hand and the other slot, for the bot (core/bot.ts fires at the gun's own interval and range) */
+function botGun() {
+  const o = G.slot === 0 ? 1 : 0, od = gunOf(G.save?.guns?.[o]?.inst);
+  return { slot: G.slot, interval: GUN.interval, range: GUN.range, drawing: drawing(), other: od ? { slot: o as 0 | 1, rounds: G.loaded[o] + G.reserve[od.caliber] } : null };
+}
 export function view(): BotObservation {
   return {
     t: G.time, scene: G.scene === "map" ? "raid" : G.scene, demo: DEMO, bossRoute: routeProfile === 'prepared' || routeProfile === 'unprepared' ? routeProfile : undefined,
@@ -37,7 +44,7 @@ export function view(): BotObservation {
     homePanelOpen: homeApi.panelOpen(), searching: !!currentSearch(), extracting: !!G.extract.id,
     packMinValue: Math.min(...G.pack.map(worth)),
     exitArmed: Object.fromEntries(exits.map(exit => [exit.id, exit.armed])),
-    player: { x: G.pp.x, z: G.pp.z, hearts: Math.ceil(G.hp / 34), maxHearts: Math.ceil(G.maxHp / 34), hp: G.hp, maxHp: G.maxHp, stamina: G.stamina, usingItem: !!G.useItem, ammo: G.ammo, mag: G.mag, reloading: G.reloadT >= 0, rolling: G.rollT >= 0, packFree: G.packSlots - G.pack.length, packValue: packValue(), healing: G.pack.reduce((sum, item) => sum + healingValue(item), 0), smoothies: G.pack.filter(inst => ["smoothie", "bandage", "firstaid"].includes(itemType(inst))).length, shotNoise: GUN.noise },
+    player: { x: G.pp.x, z: G.pp.z, hearts: Math.ceil(G.hp / 34), maxHearts: Math.ceil(G.maxHp / 34), hp: G.hp, maxHp: G.maxHp, stamina: G.stamina, usingItem: !!G.useItem, ammo: G.ammo, mag: G.mag, reloading: G.reloadT >= 0, gun: botGun(), rolling: G.rollT >= 0, packFree: G.packSlots - G.pack.length, packValue: packValue(), healing: G.pack.reduce((sum, item) => sum + healingValue(item), 0), smoothies: G.pack.filter(inst => ["smoothie", "bandage", "firstaid"].includes(itemType(inst))).length, shotNoise: GUN.noise },
     enemies: G.enemies.filter((e) => !e.down && (!e.fauna || ["windup", "charge", "bite"].includes(e.state))).map((e) => ({ id: e.id, kind: e.kind, x: e.p.x, z: e.p.z, state: e.state, hp: e.hp, boss: isBoss(e), escort: e.group === 'plantation-boss' && !isBoss(e), windup: e.state === "windup" || e.state === "aim" || e.state === "charge", awake: e.state !== "sleep" && e.state !== "patrol" })),
     crates: G.crates.filter(crate => crate.kind !== 'body').map((c) => { const area = areaAt(c.x, c.z); return { id: c.id, x: c.x, z: c.z, tier: c.tier, opened: c.opened, type: containerType(c), area: area === 'wreck' ? 'beach' : ['palms', 'westbend'].includes(area) ? 'checkpoint' : area }; }),
     bodies: G.crates.filter(crate => crate.kind === 'body' && !crate.opened).map(crate => ({ id: crate.id, x: crate.x, z: crate.z })),
@@ -87,5 +94,5 @@ export function botTick(dt: number): Intent {
   const mx = wx * c - wz * s, mz = wx * s + wz * c, l = Math.hypot(mx, mz) || 1;
   let aimNdc: { x: number; y: number } | null = null;
   if (b.aim) { const p = G.pp.clone().set(b.aim[0], G.pp.y + 1, b.aim[1]).project(G.stage.camera); aimNdc = { x: p.x, y: p.y }; }
-  return { move: { x: mx / Math.max(1, l), z: mz / Math.max(1, l) }, aimNdc, fire: !!b.fire, firePressed: !!b.fire, ads: false, sprint: false, melee: !!b.melee, roll: !!b.roll, interact: !!b.interact, interactHeld: !!b.interact, map: false, inv: false, mini: false, reload: !!b.reload && !b.melee && !b.roll && !b.heal, heal: !!b.heal, swap1: false, swap2: false, swap3: false, esc: false };
+  return { move: { x: mx / Math.max(1, l), z: mz / Math.max(1, l) }, aimNdc, fire: !!b.fire, firePressed: !!b.fire, ads: false, sprint: false, melee: !!b.melee, roll: !!b.roll, interact: !!b.interact, interactHeld: !!b.interact, map: false, inv: false, mini: false, reload: !!b.reload && !b.melee && !b.roll && !b.heal, heal: !!b.heal, swap1: b.swap === 1, swap2: b.swap === 2, swap3: false, esc: false, wheel: 0 };
 }

@@ -7,6 +7,8 @@ import type { LootTiming } from '../loot/search';
 
 type Point = { x: number; z: number };
 type Weapon = "pistol" | "melee" | "unknown";
+/** the range of the gun in hand (the Kingpin's when the view does not say) */
+const gunRange = (v: { player: { gun?: { range: number } } }) => v.player.gun?.range ?? KINGPIN.range;
 export type BotObservation = Omit<BotView, "exits" | 'enemies' | 'crates'> & {
   enemies: (BotView['enemies'][number] & { boss?: boolean; escort?: boolean })[];
   crates: (BotView['crates'][number] & { type?: ContainerType; area?: string })[];
@@ -19,7 +21,10 @@ export type BotObservation = Omit<BotView, "exits" | 'enemies' | 'crates'> & {
   gates?: (Point & { id: string; open: boolean; breakable: boolean; usable: boolean; nx: number; nz: number })[];
   safePath?: (fx: number, fz: number, tx: number, tz: number, allow: (x: number, z: number) => boolean) => Point[];
   packMinValue?: number;
-  player: BotView["player"] & { smoothies?: number; healing?: number; hp?: number; maxHp?: number; stamina?: number; usingItem?: boolean; shotNoise?: number };
+  player: BotView["player"] & { smoothies?: number; healing?: number; hp?: number; maxHp?: number; stamina?: number; usingItem?: boolean; shotNoise?: number;
+    /** the gun in hand (combat/gunstats.ts GUN) and the other slot (combat/arsenal.ts): the bot fires at the gun's
+     *  own interval and range, and draws the other gun when the one in hand is dry */
+    gun?: { slot: 0 | 1; interval: number; range: number; drawing: boolean; other: { slot: 0 | 1; rounds: number } | null } };
   raidId?: number;
   homePanelOpen?: boolean;
   searching?: boolean;
@@ -397,7 +402,7 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
 
   function combat(v: BotObservation, input: BotInput): boolean {
     const tactical = v.bossRoute === 'prepared';
-    const nearby = v.enemies.filter(enemy => !dead(enemy) && distance(v.player, enemy) <= Math.max(9, enemy.boss || tactical ? KINGPIN.range : enemy.kind === "sleeper" && enemy.awake ? ENEMY.sleeper.charge : 0))
+    const nearby = v.enemies.filter(enemy => !dead(enemy) && distance(v.player, enemy) <= Math.max(9, enemy.boss || tactical ? gunRange(v) : enemy.kind === "sleeper" && enemy.awake ? ENEMY.sleeper.charge : 0))
       .filter(enemy => !enemy.boss || greed >= BOT_POLICY.boss.minGreed)
       .filter(enemy => enemy.kind !== "sleeper" || enemy.awake || greed >= BOT_POLICY.boss.minGreed);
     for (const enemy of nearby) {
@@ -440,9 +445,9 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
       const sleeperVulnerable = enemy.kind !== "sleeper" || !enemy.awake || enemy.state === "stunned";
       const quiet = greed < BOT_POLICY.boss.minGreed && v.enemies.some(candidate => candidate.kind === "sleeper" && !candidate.awake && !dead(candidate) && distance(v.player, candidate) <= KINGPIN.noise);
       if (quiet) return false;
-      if (v.player.mag > 0 && !v.player.reloading && now >= nextShot && sleeperVulnerable && !quiet && range <= KINGPIN.range) {
+      if (v.player.mag > 0 && !v.player.reloading && !v.player.gun?.drawing && now >= nextShot && sleeperVulnerable && !quiet && range <= gunRange(v)) {
         input.fire = true;
-        nextShot = now + KINGPIN.interval;
+        nextShot = now + (v.player.gun?.interval ?? KINGPIN.interval);
         weapons.set(enemy.id, "pistol");
       }
     }
@@ -452,9 +457,9 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
   function raid(v: BotObservation, input: BotInput) {
     if (ended) return;
     const tactical = v.bossRoute === 'prepared';
-    const healingThreat = tactical ? v.enemies.filter(enemy => !dead(enemy) && distance(v.player, enemy) <= KINGPIN.range && v.los(v.player.x, v.player.z, enemy.x, enemy.z)).sort((left, right) => distance(v.player, left) - distance(v.player, right))[0] : undefined;
+    const healingThreat = tactical ? v.enemies.filter(enemy => !dead(enemy) && distance(v.player, enemy) <= gunRange(v) && v.los(v.player.x, v.player.z, enemy.x, enemy.z)).sort((left, right) => distance(v.player, left) - distance(v.player, right))[0] : undefined;
     const healingFraction = tactical ? healingThreat ? BOT_POLICY.boss.combatHealingFraction : BOT_POLICY.boss.healthFraction : 0.5;
-    if (!v.player.reloading && v.player.ammo > 0 && !v.player.usingItem && !v.player.rolling && (v.player.mag === 0 || v.player.mag <= 2 && !v.enemies.some(enemy => !dead(enemy) && distance(v.player, enemy) <= KINGPIN.range))) input.reload = true;
+    if (!v.player.reloading && v.player.ammo > 0 && !v.player.usingItem && !v.player.rolling && (v.player.mag === 0 || v.player.mag <= 2 && !v.enemies.some(enemy => !dead(enemy) && distance(v.player, enemy) <= gunRange(v)))) input.reload = true;
     if ((v.player.hp !== undefined ? v.player.hp <= v.player.maxHp! * healingFraction : v.player.hearts <= 1) && !v.player.usingItem && smoothies > 0 && now >= nextHeal) {
       input.heal = true;
       smoothies--;
@@ -542,6 +547,9 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
     }
     walk(v, input);
     if (!input.fire && !input.melee && !input.interact && v.player.mag === 0 && v.player.ammo > 0 && !v.player.reloading) input.reload = true;
+    // two gun slots: the gun in hand is dry (no loaded rounds, none of its caliber left) and the other has some: draw it
+    const other = v.player.gun?.other;
+    if (other && other.rounds > 0 && v.player.mag === 0 && v.player.ammo === 0 && !v.player.reloading && !input.melee && !v.player.rolling) { input.swap = other.slot === 0 ? 1 : 2; input.reload = false; }
   }
 
   function watchdog(v: BotObservation, input: BotInput) {

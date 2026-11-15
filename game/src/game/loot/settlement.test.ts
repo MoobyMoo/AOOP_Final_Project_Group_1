@@ -7,7 +7,8 @@ import { EXIT_DEFS, exitCondition, advanceExit, exitCosts } from "../world/extra
 import { G } from "../core/state";
 import { bindLootApi, lootHook } from "./lootables";
 import { createSearch, advanceSearch, take } from "./search";
-import { ATT_SLOTS, EMPTY_GUN, attachmentDef } from "./attachments";
+import { ATT_SLOTS, attachmentDef } from "./attachments";
+import { CALIBER_IDS, gunOf, noRounds, type Rounds } from "../combat/guns";
 import { craft, stashCapacity, stashUsed } from "../home/facilities";
 import { deploy, cancelDeploy, settleDeploy, destOf } from "../core/deployment";
 import { qs, accept, questStatus } from "../core/quests";
@@ -20,6 +21,11 @@ const data = new Map<string, string>();
 const storage = { getItem: (key: string) => data.get(key) ?? null, setItem: (key: string, value: string) => { data.set(key, value); } };
 Object.defineProperty(globalThis, "localStorage", { configurable: true, value: storage });
 const { fit, unfit, GUN } = await import("../combat/gunstats");
+const { placeGun, takeGun, swapSlots, switchTo, equipFound, heldRounds, drawing, DRAW_TIME } = await import("../combat/arsenal");
+const { startReload, updateReload, cancelReload } = await import("../combat/reload");
+const { GUN_DEF } = await import("../combat/gunstats");
+const g = () => G as typeof G; // read through a call so TS does not narrow to the literals just assigned
+const total = (r: Rounds) => CALIBER_IDS.reduce((a, c) => a + r[c], 0);
 
 const helmet = own("hardhat#38");
 const ammo = own("ammo45"), half = withCount(ammo, 4);
@@ -39,48 +45,109 @@ unworn.gear.body = null;
 const restoredRaid = beginRaid(unworn, "restored-bound-kit", [], restored);
 assert(settleRaid(restoredRaid, "hatch", 2).gear.body === restored.body, "deploy snapshot includes bound instances restored from their locker position");
 
+// THE PROPERTY TEST: 150 seeded raids x 100 random operations over the pack, the ground, worn gear, both gun slots
+// (pick up, slot, unslot, swap, draw), attachments on either gun, ammo stacks of every caliber, reloads and shots.
+// Every step checkpoints through the journal (it throws on an item vanishing or a round appearing without a source,
+// per caliber); every raid settles by extraction, quit or bonk and must conserve identities and rounds.
+const GUN_LOOT = ["peel_sprayer", "contraband_carbine", "coconut_cracker", "long_ledger", "hostile_takeover", "pocket_change"];
+const PARTS = ["att_mag_ext", "att_mag_quick", "att_laser", "att_sight_2x", "att_grip_steady", "att_stock_crate", "att_muzzle_supp"];
+const STACKS = ["ammo45", "ammo_rifle", "ammo_shell", "ammo_sniper"];
 for (let seed = 1; seed <= 150; seed++) {
   const random = mulberry32(seed), initial = load();
   initial.activeRaid = undefined; initial.settlements = [];
+  initial.ammo = { ammo45: 24, ammo_rifle: 30, ammo_shell: 6, ammo_sniper: 0 };
+  if (seed % 4 === 0) initial.guns[1] = { inst: own("bootleg_rifle"), atts: { sight: null, muzzle: null, mag: null, laser: null, grip: null, stock: own("att_stock_padded") } };
   const before = ownedItems(initial), pack: string[] = [], ground: string[] = [], consumed: string[] = [];
   let gear = { ...initial.gear };
   let current = beginRaid(initial, `property-${seed}`, pack, gear);
-  const minted: string[] = [];
+  const minted: string[] = [], pick = <T,>(list: T[]) => list[Math.floor(random() * list.length)];
+  G.save = current; G.scene = "raid"; G.alive = true; G.reloadT = -1; G.meleeT = -1; G.rollT = -1; G.useItem = null; G.equipping = null;
+  G.reserve = { ...current.ammo }; G.loaded = [0, 0]; G.slot = current.guns[0] ? 0 : 1;
   for (let step = 0; step < 100; step++) {
-    const choice = Math.floor(random() * 7);
-    if (choice === 0 && pack.length < 8) { const inst = own(["hardhat#38", "banana", "att_mag_ext", "att_mag_quick", "att_laser", "bandage"][Math.floor(random() * 6)]); minted.push(inst); pack.push(inst); }
+    G.save = current; // the journal hands back a fresh save each checkpoint; the arsenal reads through G.save
+    const choice = Math.floor(random() * 14), held = total(heldRounds());
+    if (choice === 0 && pack.length < 8) { const inst = own(pick(["hardhat#38", "banana", "bandage", ...PARTS, ...GUN_LOOT, ...STACKS])); minted.push(inst); pack.push(inst); }
     if (choice === 1 && pack.length) ground.push(pack.splice(Math.floor(random() * pack.length), 1)[0]);
     if (choice === 2 && ground.length && pack.length < 8) pack.push(ground.pop()!);
     if (choice === 3) { const index = pack.findIndex(inst => itemType(inst) === "bandage"); if (index >= 0) consumed.push(pack.splice(index, 1)[0]); }
     if (choice === 4) { const index = pack.findIndex(inst => itemType(inst) === "hardhat"); if (index >= 0) { const old = gear.head; gear.head = pack.splice(index, 1)[0]; if (old) { if (itemType(old) === "bowler") current.locker.push(old); else pack.push(old); } } }
-    G.save = current; G.scene = "raid"; G.alive = true; G.mag = Math.min(GUN.mag, 12); G.ammo = 12 - G.mag; G.reloadT = -1;
-    if (choice === 5) { const index = pack.findIndex(inst => !!attachmentDef(inst)); if (index >= 0) { const result = fit(pack.splice(index, 1)[0]); if (result.ok && result.old) pack.push(result.old); } }
-    if (choice === 6 && pack.length < 8) { const inst = unfit(ATT_SLOTS[Math.floor(random() * ATT_SLOTS.length)]); if (inst) pack.push(inst); }
-    assert(G.mag + G.ammo === 12, `fit/unfit preserves loaded plus reserve seed ${seed} step ${step}`);
-    current = checkpointRaid(current, { pack, gear, gun: G.save.gun, world: ground, consumed, x: 4, z: 5, ammo: 12, elapsed: step });
+    if (choice === 5) { const index = pack.findIndex(inst => !!attachmentDef(inst)); const k = pick([0, 1] as const); if (index >= 0 && gunOf(G.save.guns[k]?.inst)?.slots.includes(attachmentDef(pack[index])!.slot)) { const result = fit(pack.splice(index, 1)[0], k); if (result.ok && result.old) pack.push(result.old); } }
+    if (choice === 6 && pack.length < 8) { const k = pick([0, 1] as const); const inst = unfit(pick([...ATT_SLOTS]), k); if (inst) pack.push(inst); }
+    if (choice === 7) { const index = pack.findIndex(inst => !!gunOf(inst)); if (index >= 0) { const inst = pack[index]; if (equipFound(inst) >= 0) pack.splice(index, 1); } } // pickup / slot from the pack
+    if (choice === 8) { const k = pick([0, 1] as const), gs = G.save.guns[k]; if (gs && gs.inst !== G.save.boundWeapons?.kingpin) { const n = Object.values(gs.atts).filter(Boolean).length; if (pack.length + 1 + n <= 8) { const out = takeGun(k)!; pack.push(out.inst, ...out.atts); } } }
+    if (choice === 9) swapSlots();
+    if (choice === 10) switchTo(G.slot === 0 ? 1 : 0);
+    if (choice === 11 && GUN.armed) { if (startReload(GUN_DEF)) { if (random() < 0.3) { updateReload(G.reloadTime * 0.5); cancelReload(); } else for (let t = 0; t < 40 && G.reloadT >= 0; t++) updateReload(0.25); } }
+    if (choice === 12 && GUN.armed && G.mag > 0) G.mag -= 1 + Math.floor(random() * Math.min(G.mag, 3)); // shots fired: these rounds are spent
+    if (choice === 13) { const index = pack.findIndex(inst => itemDef(inst).kind === "ammo"); if (index >= 0) { const inst = pack.splice(index, 1)[0], cal = itemType(inst) as keyof Rounds; G.reserve[cal] += itemDef(inst).stack ?? 8; consumed.push(inst); } }
+    if (choice !== 12 && choice !== 13 && choice !== 0) assert(total(heldRounds()) === held, `seed ${seed} step ${step}: moving guns, parts and reloading never changes the rounds held`);
+    for (const k of [0, 1] as const) { const def = gunOf(G.save.guns[k]?.inst); if (def) for (const [slot, a] of Object.entries(G.save.guns[k]!.atts)) if (a) assert(def.slots.includes(slot as never), `seed ${seed}: a part only sits in a slot its gun has`); }
+    current = checkpointRaid(current, { pack, gear, guns: G.save.guns, world: ground, consumed, x: 4, z: 5, ammo: heldRounds(), elapsed: step });
     validateOwnership(current);
   }
   const reason = seed % 3 === 0 ? "quit" : seed % 3 === 1 ? "bonked" : "hatch";
   const result = settleRaid(current, reason, 2);
   const record = result.settlements!.at(-1)!;
-  assert(record.rounds.before === record.rounds.after + record.rounds.spent + record.rounds.abandoned, `round ledger seed ${seed}`);
-  const fitted = Object.values(current.activeRaid!.gun ?? EMPTY_GUN).filter((inst): inst is string => !!inst);
-  assert(reason === "hatch" ? fitted.every(inst => Object.values(result.gun).includes(inst)) : fitted.every(inst => result.satchel?.items.includes(inst)) && Object.values(result.gun).every(inst => !inst), `attachment stakes seed ${seed}`);
+  for (const c of CALIBER_IDS) assert(record.rounds.before[c] === record.rounds.after[c] + record.rounds.spent[c] + record.rounds.abandoned[c], `round ledger seed ${seed} ${c}`);
+  const kingpin = current.boundWeapons!.kingpin, slotted = current.activeRaid!.guns ?? current.guns;
+  const fittedParts = slotted.flatMap(gs => gs ? Object.values(gs.atts).filter((inst): inst is string => !!inst) : []);
+  const unboundGuns = slotted.flatMap(gs => gs && gs.inst !== kingpin ? [gs.inst] : []);
+  if (reason === "hatch") assert(fittedParts.every(inst => result.guns.some(gs => gs && Object.values(gs.atts).includes(inst))) && unboundGuns.every(inst => result.guns.some(gs => gs?.inst === inst)), `extraction keeps guns in their slots with their parts, seed ${seed}`);
+  else {
+    assert([...fittedParts, ...unboundGuns].every(inst => result.satchel?.items.includes(inst)), `bonk: unbound guns and every part go to the satchel, seed ${seed}`);
+    assert(result.guns.every(gs => !gs || (gs.inst === kingpin && Object.values(gs.atts).every(a => !a))), `bonk: only the bare Kingpin stays slotted, seed ${seed}`);
+    assert(result.guns.some(gs => gs?.inst === kingpin), `bonk: the Kingpin is in a slot afterwards, seed ${seed}`);
+  }
   assert(ids([...ownedItems(result), ...record.consumed, ...record.abandoned]) === ids([...before, ...minted]), `conservation seed ${seed}`);
   assert(JSON.stringify(settleRaid(result, reason, 2)) === JSON.stringify(result), `idempotent seed ${seed}`);
   commitSave(result);
   assert(ids(ownedItems(load())) === ids(ownedItems(result)), `settled reload seed ${seed}`);
 }
+{ // calibers, switching and the draw (POLISH_FINDINGS 17)
+  const home = commitSave(migrate(null)); home.ammo = { ammo45: 5, ammo_rifle: 40, ammo_shell: 7, ammo_sniper: 0 };
+  home.guns[1] = { inst: own("contraband_carbine"), atts: { sight: null, muzzle: null, mag: null, laser: null, grip: null, stock: null } };
+  G.save = beginRaid(home, "calibers", [], home.gear); G.scene = "raid"; G.alive = true; G.reloadT = -1; G.meleeT = -1; G.rollT = -1; G.useItem = null; G.equipping = null;
+  G.reserve = { ...G.save.ammo }; G.loaded = [0, 0]; G.slot = 0; GUN.armed = true;
+  assert(G.ammo === 5, "the Kingpin's reserve is the .45 count");
+  assert(switchTo(1) && g().slot === 1 && drawing() && g().ammo === 40, "drawing the carbine shows the rifle reserve, and the draw is on");
+  G.drawT = DRAW_TIME; assert(!drawing(), "after 0.15 s the gun is live");
+  assert(startReload(GUN_DEF), "the carbine reloads");
+  for (let t = 0; t < 20 && G.reloadT >= 0; t++) updateReload(0.25);
+  assert(G.loaded[1] === 30 && G.reserve.ammo_rifle === 10 && G.reserve.ammo45 === 5, "reload draws only rifle rounds (caliber matching)");
+  G.loaded[1] = 2; assert(startReload(GUN_DEF), "a top-up starts"); updateReload(1);
+  assert(switchTo(0) && G.reloadT < 0 && G.loaded[1] === 2 && G.reserve.ammo_rifle === 10, "switching cancels a full-mag reload: nothing went in, nothing lost");
+  assert(G.loaded[0] === 0 && G.mag === 0 && startReload(GUN_DEF), "each gun keeps its own magazine; the Kingpin reloads from .45");
+  for (let t = 0; t < 20 && G.reloadT >= 0; t++) updateReload(0.25);
+  assert(g().loaded[0] === 5 && g().reserve.ammo45 === 0 && g().reserve.ammo_rifle === 10, "five .45 rounds were all the .45 there was");
+  G.meleeT = 0; assert(!switchTo(1), "a swing blocks the switch (Duckov CanEditInventory)"); G.meleeT = -1;
+  const pump = own("coconut_cracker"); takeGun(1); assert(equipFound(pump) === 1, "a found gun takes the first empty slot");
+  assert(equipFound(own("pipe_dream")) === -1, "both full: the pickup goes to the pack");
+  switchTo(1); G.drawT = 1; assert(startReload(GUN_DEF), "the pump loads shell by shell");
+  updateReload(0.85); const shells = G.loaded[1];
+  assert(switchTo(0) && G.loaded[1] === shells && shells === 2 && G.reserve.ammo_shell === 5, "a switch keeps the shells already inserted (single-round mode)");
+}
+{ // death with two guns: the carbine and every part go to the satchel; the Kingpin stays, bare
+  const home = commitSave(migrate(null));
+  const carbine = own("contraband_carbine"), grip = own("att_grip_steady"), sight = own("att_sight_holo");
+  home.guns[0]!.atts.sight = sight; home.guns[1] = { inst: carbine, atts: { sight: null, muzzle: null, mag: null, laser: null, grip, stock: null } };
+  const dead = settleRaid(beginRaid(home, "two-gun-death", [], home.gear), "bonked", 2);
+  assert([carbine, grip, sight].every(i => dead.satchel?.items.includes(i)) && dead.guns[0]?.inst === home.boundWeapons!.kingpin && !dead.guns[0]!.atts.sight && dead.guns[1] === null, "bonk-out: unbound guns and all attachments to the satchel, the Kingpin bound");
+  const racked = commitSave(migrate(null)); racked.guns = [null, { inst: own("peel_sprayer"), atts: { sight: null, muzzle: null, mag: null, laser: null, grip: null, stock: null } }];
+  const back = settleRaid(beginRaid(racked, "racked-death", [], racked.gear), "bonked", 2);
+  assert(back.guns[0]?.inst === racked.boundWeapons!.kingpin && back.guns[1] === null, "with the Kingpin on the rack, a bonk-out hands it back into gun 1");
+  const kept = settleRaid(beginRaid(home, "two-gun-extract", [], home.gear), "hatch", 2);
+  assert(kept.guns[1]?.inst === carbine && kept.guns[1]!.atts.grip === grip && kept.guns[0]!.atts.sight === sight, "extraction keeps both guns, slotted, with their parts");
+}
 const full = beginRaid(load(), "full", Array.from({ length: 8 }, () => own("banana")), load().gear);
-const attachmentSave = commitSave(migrate(null)); attachmentSave.ammo = 19; attachmentSave.gun.mag = own("att_mag_ext");
-G.save = beginRaid(attachmentSave, "magazine-spill", [], attachmentSave.gear); G.scene = "raid"; G.alive = true; G.reloadT = -1; G.mag = 12; G.ammo = 7;
-const magazine = unfit("mag");
-assert(G.mag === 8 && G.ammo === 11 && magazine === attachmentSave.gun.mag, "smaller magazine returns four loaded rounds without changing the attachment id");
-G.save.gun.mag = magazine;
-const attachmentDeath = settleRaid(checkpointRaid(G.save, { pack: [], gun: G.save.gun, gear: G.save.gear, world: [], consumed: [], x: 1, z: 2, ammo: 19, elapsed: 1 }), "bonked", 2);
-assert(attachmentDeath.satchel?.items.includes(magazine!) && !attachmentDeath.gun.mag, "bonk detaches magazine into recoverable satchel even with an empty pack");
+const attachmentSave = commitSave(migrate(null)); attachmentSave.ammo = { ...noRounds(), ammo45: 19 }; attachmentSave.guns[0]!.atts.mag = own("att_mag_ext");
+G.save = beginRaid(attachmentSave, "magazine-spill", [], attachmentSave.gear); G.scene = "raid"; G.alive = true; G.reloadT = -1; G.slot = 0; G.reserve = noRounds(); G.loaded = [0, 0]; G.mag = 12; G.ammo = 7;
+const magazine = unfit("mag", 0);
+assert(G.mag === 8 && G.ammo === 11 && magazine === attachmentSave.guns[0]!.atts.mag, "smaller magazine returns four loaded rounds without changing the attachment id");
+G.save.guns[0]!.atts.mag = magazine;
+const attachmentDeath = settleRaid(checkpointRaid(G.save, { pack: [], guns: G.save.guns, gear: G.save.gear, world: [], consumed: [], x: 1, z: 2, ammo: { ...noRounds(), ammo45: 19 }, elapsed: 1 }), "bonked", 2);
+assert(attachmentDeath.satchel?.items.includes(magazine!) && !attachmentDeath.guns[0]!.atts.mag, "bonk detaches magazine into recoverable satchel even with an empty pack");
 const attachmentRetry = beginRaid(attachmentDeath, "attachment-recovery", [], attachmentDeath.gear);
-const attachmentRecovered = settleRaid(checkpointRaid({ ...attachmentRetry, satchel: null }, { pack: [magazine!], gun: attachmentRetry.gun, gear: attachmentRetry.gear, world: [], consumed: [], x: 1, z: 2, ammo: 19, elapsed: 1 }), "hatch", 2);
+const attachmentRecovered = settleRaid(checkpointRaid({ ...attachmentRetry, satchel: null }, { pack: [magazine!], guns: attachmentRetry.guns, gear: attachmentRetry.gear, world: [], consumed: [], x: 1, z: 2, ammo: { ...noRounds(), ammo45: 19 }, elapsed: 1 }), "hatch", 2);
 assert(attachmentRecovered.locker.filter(inst => inst === magazine).length === 1 && !attachmentRecovered.satchel, "attachment recovery retains the exact instance once in the locker");
 const { sellEquip } = await import("./equipment-actions");
 G.scene = "bunker"; G.save = structuredClone(attachmentRecovered);
@@ -88,7 +155,7 @@ const saleBefore = ownedItems(G.save), saleMoney = G.save.money, soldIndex = G.s
 assert(sellEquip(soldIndex) === itemDef(magazine!).value && G.save.money === saleMoney + itemDef(magazine!).value && ids(ownedItems(G.save)) === ids(saleBefore.filter(inst => inst !== magazine)), "explicit sale removes exactly one attachment identity and credits its value");
 const reloadGun = beginRaid(attachmentSave, "fitted-reload", [], attachmentSave.gear); commitSave(reloadGun);
 const reloadedGun = load();
-assert(!reloadedGun.gun.mag && reloadedGun.satchel?.items.includes(attachmentSave.gun.mag!), "reload detaches the same fitted attachment into a single satchel");
+assert(!reloadedGun.guns[0]!.atts.mag && reloadedGun.satchel?.items.includes(attachmentSave.guns[0]!.atts.mag!), "reload detaches the same fitted attachment into a single satchel");
 const settled = settleRaid(full, "hatch", 2);
 assert(ownedItems(settled).length === ownedItems(full).length, "full home storage keeps extraction overflow owned");
 const recovery = beginRaid(settled, "reload", [own("banana"), own("banana"), own("coconut")], settled.gear);
@@ -104,7 +171,7 @@ assert(corpse.items.every(inst => ownedItems(safe).includes(inst)) && !safe.satc
 const secondDeath = settleRaid(beginRaid(recovered, "second-death", [], recovered.gear), "bonked", 2);
 assert(corpse.items.every(inst => secondDeath.settlements!.at(-1)!.abandoned.includes(inst)), "second death explicitly records expiration of the previous corpse");
 let missingRejected = false;
-try { checkpointRaid(retry, { pack: [], world: [], consumed: [], x: 0, z: 0, ammo: 0, elapsed: 1, gear: { ...retry.activeRaid!.gear, head: null } }); } catch { missingRejected = true; }
+try { checkpointRaid(retry, { pack: [], world: [], consumed: [], x: 0, z: 0, ammo: noRounds(), elapsed: 1, gear: { ...retry.activeRaid!.gear, head: null } }); } catch { missingRejected = true; }
 assert(missingRejected, "a transfer that silently deletes an owned instance is rejected");
 G.save = safe; G.scene = "raid"; G.alive = true; G.pack = [];
 const session = createSearch(["banana", "banana"]); advanceSearch(session, 10);
@@ -160,9 +227,9 @@ assert(advanceExit(EXIT_DEFS.hatch, 2, 1, { inside: true, alive: false, open: tr
   const home = commitSave(migrate(null)); home.money = 100; home.raids = 10;
   home.reserved = [own("vine_rope"), own("spring"), own("banana"), own("banana")];
   home.base.items.push({ uid: 1, def: "med", x: 5, z: 2, r: 0 }, { uid: 2, def: "generator", x: -15, z: 2, r: 0 }, { uid: 3, def: "press", x: 12, z: 2, r: 0 });
-  const original = [...home.reserved], money = home.money, rounds = home.ammo;
+  const original = [...home.reserved], money = home.money, rounds = home.ammo.ammo45;
   assert(craft(home, "bandage") && craft(home, "smoothie") && craft(home, "rounds8"), "crafting resolves identified inputs");
-  assert(home.money === money && home.ammo === rounds + 8 && home.reserved.every(inst => !!instanceId(inst)), "craft outputs own identities and conserve currency and explicit ammunition output");
+  assert(home.money === money && home.ammo.ammo45 === rounds + 8 && home.reserved.every(inst => !!instanceId(inst)), "craft outputs own identities and conserve currency and explicit ammunition output");
   assert(!home.reserved.some(inst => original.includes(inst)) && home.reserved.length === 3, "crafting consumes each input identity once and mints exact outputs");
   const unchanged = JSON.stringify(home); assert(!craft(home, "rounds8") && JSON.stringify(home) === unchanged, "missing crafting inputs change nothing");
   home.stats.extracts = 1; qs(home).unlocks.push("dest:plantation"); // the road map job's unlock (core/quests.ts)
@@ -234,7 +301,7 @@ assert(advanceExit(EXIT_DEFS.hatch, 2, 1, { inside: true, alive: false, open: tr
   const kp = payQuest(raid, "keeper_lanterns", { pack, slots: 8 });
   assert(!!kp && kp.pack!.length === 2 && kp.pack!.some(inst => itemType(inst) === "keeper_carving") && !kp.pack!.some(inst => itemType(inst) === "honey_pot"), "the honey leaves the pack, the carving joins it");
   assert(kp!.save.activeRaid!.consumed.filter(inst => pots.includes(inst)).length === 2 && qs(kp!.save).unlocks.includes("secret:root-cellar"), "the consumed honey is in the raid ledger; the secret unlocks");
-  const cp = checkpointRaid(kp!.save, { pack: kp!.pack!, gear: kp!.save.activeRaid!.gear, gun: kp!.save.gun, world: [], consumed: kp!.save.activeRaid!.consumed, x: 0, z: 0, ammo: kp!.save.ammo, elapsed: 5 });
+  const cp = checkpointRaid(kp!.save, { pack: kp!.pack!, gear: kp!.save.activeRaid!.gear, guns: kp!.save.guns, world: [], consumed: kp!.save.activeRaid!.consumed, x: 0, z: 0, ammo: kp!.save.ammo, elapsed: 5 });
   const settled = settleRaid(cp, "hatch", 2);
   assert(settled.reserved.some(inst => itemType(inst) === "keeper_carving") && settled.trophies.includes("keeper_carving"), "the raid settlement brings the carving home (and onto the trophy wall)");
   assert(payQuest(settled, "keeper_lanterns", { pack: [], slots: 8 }) === null, "a paid raid job can't be paid again");

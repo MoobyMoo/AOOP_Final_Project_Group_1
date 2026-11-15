@@ -4,6 +4,13 @@ import type { Stage } from "../render/stage";
 import type { Rig, GunView, GunFx, Gear } from "../contracts";
 import type { Input, Intent } from "./input";
 import type { SaveV1 } from "../contracts";
+import { gunOf, noRounds, type Caliber } from "../combat/guns";
+
+/** the caliber of the gun in the active slot (null: empty slot or melee) */
+export function activeCaliber(): Caliber | null {
+  const inst = G.save?.guns?.[G.slot]?.inst; if (!inst) return null;
+  return gunOf(inst)?.caliber ?? null;
+}
 
 export type Enemy = {
   id: number; kind: "wild" | "bandit" | "brute" | "sleeper"; rig: Rig; p: THREE.Vector3; vel: THREE.Vector3; face: number;
@@ -39,7 +46,17 @@ export const G = {
   pp: new THREE.Vector3(), vel: new THREE.Vector3(), moveYaw: 0, aimYaw: 0, aimPoint: new THREE.Vector3(),
   hp: 100, maxHp: 100, stamina: 100, staminaDelay: 0, sprinting: false, painT: 0, armor: 0, weight: 0, iframes: 0, alive: true,
   useItem: null as null | { id: string; t: number; time: number }, ads: false,
-  mag: 8, magSize: 8, ammo: 16, fireCd: 0, fireT: 1, reloadT: -1, reloadPaused: false,
+  /** WEAPON SLOTS (combat/arsenal.ts; POLISH_FINDINGS 17). slot = the gun in hand (0 = key 1, 1 = key 2); each gun keeps
+   *  its own loaded rounds (loaded[slot], Duckov stores them on the gun item); reserve = loose rounds by caliber.
+   *  drawT = seconds since the last draw (Duckov holdStadyTime 0.15 s: no firing before it); burst = rounds left in a burst */
+  slot: 0 as 0 | 1, loaded: [0, 0] as [number, number], reserve: noRounds(), drawT: 9, burstLeft: 0,
+  /** loaded rounds in the gun in hand (the reload loop and the HUD read and write this) */
+  get mag(): number { return this.loaded[this.slot]; },
+  set mag(v: number) { this.loaded[this.slot] = v; },
+  /** reserve rounds that fit the gun in hand (Duckov shows and reloads only the matching type) */
+  get ammo(): number { const c = activeCaliber(); return c ? this.reserve[c] : 0; },
+  set ammo(v: number) { const c = activeCaliber(); if (c) this.reserve[c] = v; },
+  magSize: 8, fireCd: 0, fireT: 1, reloadT: -1, reloadPaused: false,
   reloadTime: 1.2, // seconds the current reload takes (combat/reload.ts); reloadT is its 0..1 progress, -1 = none
   meleeT: -1, meleeHit: false, meleeCd: 0,
   rollT: -1, rollDir: new THREE.Vector3(), rollCd: 0, skidT: 0, rollBuffer: 0, hurtT: -1,

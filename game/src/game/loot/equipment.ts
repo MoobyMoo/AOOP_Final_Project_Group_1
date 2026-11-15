@@ -6,6 +6,11 @@
  */
 import type { EnemyStyle, EquipDef, Gear, WearSlot } from "../contracts";
 
+/** TIERS (loot/tiers.ts; POLISH_FINDINGS 17): armour pieces are tiered by armour against Duckov's per-quality medians
+ *  (BALANCE_RANGES "Armor and gear", by quality: body 1.05 / 2 / 2.25 / 3.9 / 5.05 at q1..q5, head 0.9 / 0.5 / 1.5 / 4.3
+ *  / 5.05). Ours run 0..4 where Duckov's run to about 6, so ours x 1.5 is compared and the nearest quality wins: body 1
+ *  fine, 1.5-2 uncommon, 3 rare, 4 epic; head 0.2-0.5 common/fine, 1-1.5 uncommon, 2-3 rare. Pieces with no armour
+ *  are tiered by what their perk is worth (the crown is a trophy: epic). Values are unchanged by the re-tier. */
 export const EQUIP: Record<string, EquipDef> = {
   suit: { id: "suit", slot: "body", name: "Businessman's Suit", rarity: "common", value: 0, weight: 0, bodyArmor: 0, bound: true },
   bowler: { id: "bowler", slot: "head", name: "Bowler Hat", rarity: "common", value: 0, weight: 0, headArmor: 0, bound: true },
@@ -13,34 +18,34 @@ export const EQUIP: Record<string, EquipDef> = {
   satchel: { id: "satchel", slot: "back", name: "Satchel", rarity: "common", value: 0, weight: 0, packSlots: 0, bound: true },
   cap: { id: "cap", slot: "head", name: "Cap", rarity: "common", value: 15, weight: 0.2 },
   beanie: { id: "beanie", slot: "head", name: "Beanie", rarity: "common", value: 12, weight: 0.2 },
-  fedora: { id: "fedora", slot: "head", name: "Fedora", rarity: "uncommon", value: 40, weight: 0.3, headArmor: 0.5, dur: 100, perk: { notice: 0.92 } },
-  tophat: { id: "tophat", slot: "head", name: "Top Hat", rarity: "rare", value: 120, weight: 0.4, headArmor: 0.5, dur: 100 },
-  pot_helmet: { id: "pot_helmet", slot: "head", name: "Cooking Pot", rarity: "common", value: 25, weight: 0.9, headArmor: 1, dur: 100 },
+  fedora: { id: "fedora", slot: "head", name: "Fedora", rarity: "fine", value: 40, weight: 0.3, headArmor: 0.5, dur: 100, perk: { notice: 0.92 } },
+  tophat: { id: "tophat", slot: "head", name: "Top Hat", rarity: "fine", value: 120, weight: 0.4, headArmor: 0.5, dur: 100 },
+  pot_helmet: { id: "pot_helmet", slot: "head", name: "Cooking Pot", rarity: "uncommon", value: 25, weight: 0.9, headArmor: 1, dur: 100 },
   hardhat: { id: "hardhat", slot: "head", name: "Hard Hat", rarity: "uncommon", value: 60, weight: 0.6, headArmor: 1.5, dur: 100 },
-  pith: { id: "pith", slot: "head", name: "Pith Helmet", rarity: "rare", value: 80, weight: 0.5, headArmor: 1.5, dur: 100 },
-  coconut_helmet: { id: "coconut_helmet", slot: "head", name: "Coconut Helmet", rarity: "uncommon", value: 90, weight: 0.8, headArmor: 2, dur: 100 },
+  pith: { id: "pith", slot: "head", name: "Pith Helmet", rarity: "uncommon", value: 80, weight: 0.5, headArmor: 1.5, dur: 100 },
+  coconut_helmet: { id: "coconut_helmet", slot: "head", name: "Coconut Helmet", rarity: "rare", value: 90, weight: 0.8, headArmor: 2, dur: 100 },
   guard_helmet: { id: "guard_helmet", slot: "head", name: "Foreman's Guard Helmet", rarity: "uncommon", value: 70, weight: 0.9, headArmor: 1.5, dur: 100 },
   guard_plate: { id: "guard_plate", slot: "body", name: "Foreman's Guard Plate", rarity: "uncommon", value: 120, weight: 3.2, bodyArmor: 2, dur: 100, perk: { speed: 0.97 } },
-  warden_helmet: { id: "warden_helmet", slot: "head", name: "Warden's Riot Helmet", rarity: "epic", value: 260, weight: 1.2, headArmor: 3, dur: 100, perk: { speed: 0.97 } },
+  warden_helmet: { id: "warden_helmet", slot: "head", name: "Warden's Riot Helmet", rarity: "rare", value: 260, weight: 1.2, headArmor: 3, dur: 100, perk: { speed: 0.97 } },
   crown: { id: "crown", slot: "head", name: "Crown", rarity: "epic", value: 400, weight: 0.8, headArmor: 1, dur: 100 },
-  aviators: { id: "aviators", slot: "face", name: "Aviators", rarity: "uncommon", value: 70, weight: 0.2, perk: { aim: 2 } },
-  monocle: { id: "monocle", slot: "face", name: "Monocle", rarity: "rare", value: 90, weight: 0.1, perk: { search: 0.75 } },
-  eyepatch: { id: "eyepatch", slot: "face", name: "Eyepatch", rarity: "uncommon", value: 45, weight: 0.1, perk: { critDmg: 0.15 } },
-  goggles: { id: "goggles", slot: "face", name: "Ski Goggles", rarity: "uncommon", value: 40, weight: 0.3, headArmor: 0.3, dur: 100 },
-  heartglasses: { id: "heartglasses", slot: "face", name: "Heart Glasses", rarity: "rare", value: 110, weight: 0.2, perk: { heal: 1.2 } },
-  banditmask: { id: "banditmask", slot: "face", name: "Bandit Mask", rarity: "uncommon", value: 50, weight: 0.2, headArmor: 0.2, dur: 100, perk: { notice: 0.8 } },
+  aviators: { id: "aviators", slot: "face", name: "Aviators", rarity: "fine", value: 70, weight: 0.2, perk: { aim: 2 } },
+  monocle: { id: "monocle", slot: "face", name: "Monocle", rarity: "uncommon", value: 90, weight: 0.1, perk: { search: 0.75 } },
+  eyepatch: { id: "eyepatch", slot: "face", name: "Eyepatch", rarity: "fine", value: 45, weight: 0.1, perk: { critDmg: 0.15 } },
+  goggles: { id: "goggles", slot: "face", name: "Ski Goggles", rarity: "common", value: 40, weight: 0.3, headArmor: 0.3, dur: 100 },
+  heartglasses: { id: "heartglasses", slot: "face", name: "Heart Glasses", rarity: "uncommon", value: 110, weight: 0.2, perk: { heal: 1.2 } },
+  banditmask: { id: "banditmask", slot: "face", name: "Bandit Mask", rarity: "fine", value: 50, weight: 0.2, headArmor: 0.2, dur: 100, perk: { notice: 0.8 } },
   snorkel: { id: "snorkel", slot: "face", name: "Snorkel Mask", rarity: "common", value: 35, weight: 0.4, headArmor: 0.5, dur: 100 },
-  leaf_vest: { id: "leaf_vest", slot: "body", name: "Banana-Leaf Vest", rarity: "common", value: 50, weight: 1.5, bodyArmor: 1, dur: 100, packSlots: 1 },
-  life_jacket: { id: "life_jacket", slot: "body", name: "Ferry Life Jacket", rarity: "uncommon", value: 80, weight: 1.8, bodyArmor: 1, dur: 100, packSlots: 2 },
+  leaf_vest: { id: "leaf_vest", slot: "body", name: "Banana-Leaf Vest", rarity: "fine", value: 50, weight: 1.5, bodyArmor: 1, dur: 100, packSlots: 1 },
+  life_jacket: { id: "life_jacket", slot: "body", name: "Ferry Life Jacket", rarity: "fine", value: 80, weight: 1.8, bodyArmor: 1, dur: 100, packSlots: 2 },
   peel_jacket: { id: "peel_jacket", slot: "body", name: "Peel Gang Padded Jacket", rarity: "uncommon", value: 110, weight: 2.2, bodyArmor: 1.5, dur: 100, packSlots: 1 },
   bamboo_plate: { id: "bamboo_plate", slot: "body", name: "Bamboo Plate Vest", rarity: "uncommon", value: 140, weight: 3, bodyArmor: 2, dur: 100 },
   coconut_cuirass: { id: "coconut_cuirass", slot: "body", name: "Coconut Cuirass", rarity: "rare", value: 240, weight: 5, bodyArmor: 3, dur: 100, perk: { speed: 0.95 } },
   warden_vest: { id: "warden_vest", slot: "body", name: "Warden's Kevlar", rarity: "epic", value: 520, weight: 4.5, bodyArmor: 4, dur: 100 },
   sack: { id: "sack", slot: "back", name: "Loot Sack", rarity: "common", value: 20, weight: 0.8, packSlots: 1, maxWeight: 4 },
-  bigpack: { id: "bigpack", slot: "back", name: "Big Backpack", rarity: "uncommon", value: 90, weight: 1.2, packSlots: 2, maxWeight: 8 },
+  bigpack: { id: "bigpack", slot: "back", name: "Big Backpack", rarity: "fine", value: 90, weight: 1.2, packSlots: 2, maxWeight: 8 },
   cratepack: { id: "cratepack", slot: "back", name: "Banana Crate Pack", rarity: "rare", value: 200, weight: 2, packSlots: 4, maxWeight: 15, perk: { speed: 0.97 } },
-  walkman: { id: "walkman", slot: "ears", name: "Walkman Headphones", rarity: "rare", value: 150, weight: 0.3, perk: { hearing: 18 } },
-  radio_headset: { id: "radio_headset", slot: "ears", name: "Radio Headset", rarity: "epic", value: 380, weight: 0.4, perk: { hearing: 28 } },
+  walkman: { id: "walkman", slot: "ears", name: "Walkman Headphones", rarity: "uncommon", value: 150, weight: 0.3, perk: { hearing: 18 } },
+  radio_headset: { id: "radio_headset", slot: "ears", name: "Radio Headset", rarity: "rare", value: 380, weight: 0.4, perk: { hearing: 28 } },
 };
 export const SLOTS: readonly WearSlot[] = ["head", "face", "body", "back", "ears"];
 export const BOUND_KIT: Gear = { head: "bowler", face: "shades", body: "suit", back: "satchel", ears: null };

@@ -37,10 +37,12 @@ export const noteOf = (id: string) => NOTES.find((n) => n.id === id);
 export const isNote = (type: string) => NOTES.some((n) => n.id === type);
 
 export const STORY_ITEMS: Record<string, ItemDef> = {
-  ...Object.fromEntries(NOTES.map((n) => [n.id, { id: n.id, name: n.title, icon: "📜", rarity: "uncommon" as const, value: 1, kind: "note" as const, weight: 0.05 }])),
-  // quest items: kind "key" keeps them safe from the Fence and in the cheek pouch
-  road_map: { id: "road_map", name: "Foreman's Road Map", icon: "🗺️", rarity: "rare", value: 0, kind: "key", weight: 0.1 },
-  cove_flare: { id: "cove_flare", name: "Cove Signal Flare", icon: "🧨", rarity: "rare", value: 0, kind: "key", weight: 0.3 },
+  ...Object.fromEntries(NOTES.map((n) => [n.id, { id: n.id, name: n.title, icon: "📜", rarity: "common" as const, value: 1, kind: "note" as const, weight: 0.05 }])),
+  // quest items: kind "key" keeps them safe from the Fence and in the cheek pouch. Tiers (loot/tiers.ts, Duckov quality):
+  // notes are paper worth a banana, Petty (q1); the two quest items Premium (q3: blue, a 1 s reveal, never slowed down);
+  // the carving is a trophy, Boardroom (q5)
+  road_map: { id: "road_map", name: "Foreman's Road Map", icon: "🗺️", rarity: "uncommon", value: 0, kind: "key", weight: 0.1 },
+  cove_flare: { id: "cove_flare", name: "Cove Signal Flare", icon: "🧨", rarity: "uncommon", value: 0, kind: "key", weight: 0.3 },
   // the Grove Keeper's trade good: an epic curiosity (it goes on the trophy wall), priced above what the Fence pays
   keeper_carving: { id: "keeper_carving", name: "Keeper Seed Carving", icon: "🪵", rarity: "epic", value: 70, kind: "sell", weight: 0.4 },
 };

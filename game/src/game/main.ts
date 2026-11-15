@@ -36,7 +36,13 @@ import { itemDef, dropItem, placeItem } from "./loot/raidloot";
 import { visualGear } from "./loot/equipment";
 import { payoutSlip } from "./ui/payout";
 import { createRig, preloadCharacters, RIG_TUNE } from "./actors/rig";
-import { createKingpin, createGunFx, preloadKingpin } from "./combat/kingpin";
+import { createKingpin, createGunFx } from "./combat/kingpin";
+import { createGunView, gunPickupModel, preloadGunModels } from "./combat/gunmodels";
+import { groundHooks } from "./loot/ground";
+import { GUNS } from "./combat/guns";
+import { EMPTY_GUN } from "./loot/attachments";
+import { own } from "./loot/instances";
+import { arsenalHooks } from "./combat/arsenal";
 import { botTick, setBot } from "./core/botdrive";
 import { createBot } from "./core/bot";
 import { hud } from "./ui/hud";
@@ -50,6 +56,10 @@ G.stage = new Stage(document.getElementById("game") as HTMLCanvasElement);
 G.input = new Input(G.stage.renderer.domElement);
 if (QS.has("fresh")) localStorage.removeItem("bv_g1");
 G.save = load(); G.bot = QS.has("bot"); G.intent = G.input.read(0);
+// test only (tools/botrun.mjs sanity runs): a fresh bot save starts with this gun in gun 1 and 90 rounds of its caliber,
+// the Kingpin in gun 2, so the bot fires, reloads and switches a new gun from its first raid. Home-side, before any raid
+{ const id = QS.get("botgun"), def = id ? GUNS[id] : undefined;
+  if (G.bot && QS.has("fresh") && def && !def.bound) { G.save.guns = [{ inst: own(id!), atts: { ...EMPTY_GUN } }, G.save.guns[0]]; G.save.ammo[def.caliber] += 90; G.save = commitSave(G.save); } }
 if (G.bot) { const bot = createBot({ greed: Number(QS.get("greed") ?? 0.5), reactionLag: Number(QS.get("lag") ?? 0.25), seed: Number(QS.get("botseed") ?? QS.get("seed") ?? 1) }); setBot(bot); (window as unknown as { __bot: unknown }).__bot = bot; }
 if (QS.has("dev")) Object.assign(window as unknown as object, { __G: G, __RIG_TUNE: RIG_TUNE, __music: musicState, __sfx: { sfx, stepOn } }); // captures and debugging only
 addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlockAudio);
@@ -58,7 +68,8 @@ addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlock
 initSettings({ blocked: () => lootOpen() || mapOpen() || homeApi.panelOpen() || storyPanelOpen() || introRunning(), quit: () => quitRaid() });
 
 // world + rig up front (the map snapshot needs the raid scene built); the gun model is a GLB, loaded before anything asks for it
-await preloadKingpin();
+await preloadGunModels(); // the Kingpin's GLB, every gun's GLB that has landed, placeholders for the rest
+arsenalHooks.createView = createGunView; arsenalHooks.changed = () => hud.ammo(); groundHooks.gunModel = gunPickupModel;
 await preloadBuild().catch((e) => console.warn("build kit missing, bunker uses the blockout", e)); // structures kit (bunker room, raid structures)
 await preloadCharacters(); // character GLBs (rig v2): createRig() is synchronous once this resolves
 await Promise.all([preloadNature(), preloadHouse(), preloadGroundItems(), preloadFauna()]); // nature + building kits (the structures kit is loaded above): the raid world builds from them

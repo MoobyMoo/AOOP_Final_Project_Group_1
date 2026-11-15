@@ -16,6 +16,7 @@ import { createKingpin, createGunFx } from "../combat/kingpin";
 import { KINGPIN, KINGPIN_HANDLING, PLAYER } from "../combat/weapons";
 import { HS, resetHandling } from "../combat/handling";
 import { GUN, refreshGun } from "../combat/gunstats";
+import { loadForRaid, mountActiveGun } from "../combat/arsenal";
 import { updateLaser } from "../combat/laser";
 import { tuneObject } from "./tune";
 import { spawnEnemies, updateEnemies } from "../ai/enemies";
@@ -85,14 +86,15 @@ export function startRaid(end: (r: RaidResult) => void, entry: RaidEntry = {}) {
   const before = new Set(raidScene.children); resetRaidColliders(); resetWalls(); resetHouses(); resetProps();
   // player
   if (!G.rig) { G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); }
+  G.fx.update(0);
   G.rig.setLook?.(G.save.look); G.gear = { ...G.save.gear }; restoreBoundKit(); G.rig.setGear?.(G.gear);
   raidScene.add(G.rig.root);
   G.pp = G.rig.root.position; G.pp.set(START.x, 0, START.z); // just outside the hatch ring (placed for real below, once the enemies stand)
   G.pp.y = standHeight(G.pp.x, G.pp.z);
   G.vel.set(0, 0, 0); G.moveYaw = Math.PI; G.aimYaw = Math.PI;
   G.maxHp = PLAYER.hp + 25 * G.save.upgrades.heart; G.hp = G.maxHp; G.stamina = PLAYER.stamina.max; G.staminaDelay = 0; G.sprinting = false; G.painT = 0; G.useItem = null; G.iframes = 0;
-  refreshGun(); // magazine size, the extended mag's look and the fitted attachments (combat/gunstats.ts)
-  G.ammo = G.save.ammo; G.mag = Math.min(G.magSize, G.ammo); G.ammo -= G.mag;
+  // both guns load from their caliber's loose rounds; the gun in hand gets its model, mag size and attachments
+  G.reserve = { ...G.save.ammo }; loadForRaid(); mountActiveGun();
   G.fireCd = 0; G.fireT = 1; G.reloadT = -1; G.meleeT = -1; G.rollT = -1; G.rollCd = 0; G.skidT = 0; G.zipping = null;
   G.pouchSlots = 2; G.pack = []; G.equipping = null; G.equipmentEvents = []; refreshEquipment();
   // heals bought at home come along (up to 3)
@@ -151,6 +153,8 @@ export function quitRaid() { if (G.scene === "raid") finish("bonked", 0, "quit")
 export const camLead = new THREE.Vector3(), camFocus = new THREE.Vector3();
 /** Moo 2026-11-15: guns were way too big; Duckov-like proportions put a pistol at ~1/4 of the character's height */
 const GUN_SCALE = 0.65;
+/** the long-gun hold handed to the rig (actors/rig.ts LONG_HOLD), filled from the gun view each frame */
+const HOLD = { support: new THREE.Vector3(), reach: 0, bore: 0.3, scale: GUN_SCALE };
 const focus = new THREE.Vector3(), chest = new THREE.Vector3(), sockQ = new THREE.Quaternion(), yawQ = new THREE.Quaternion(), UPV = new THREE.Vector3(0, 1, 0);
 export function stepRaid(dt: number) {
   G.raidT += dt; G.time += dt;
@@ -163,11 +167,14 @@ export function renderRaid(dt: number) {
   const action = !G.alive && G.hp <= 0 ? "defeat" : G.rollT >= 0 ? "roll" : G.meleeT >= 0 ? "melee" : G.reloadT >= 0 ? "reload" : G.hurtT >= 0 ? "hurt" : G.fireT < 1 ? "fire" : G.vel.lengthSq() > 0.3 ? "run" : "idle";
   const at = action === "defeat" ? Math.min(1, bonkT / 0.9) : action === "roll" ? G.rollT : action === "melee" ? G.meleeT : action === "reload" ? G.reloadT : action === "hurt" ? G.hurtT : action === "fire" ? G.fireT : 0;
   G.rig.root.rotation.y = G.moveYaw;
-  G.rig.pose({ time: G.time, speed: G.vel.length(), moveYaw: G.moveYaw, faceYaw: action === "roll" ? G.moveYaw : G.aimYaw, action, actionT: at, armed: G.meleeT >= 0 ? "briefcase" : "pistol", flash: G.iframes > 0.25 ? 1 : 0 });
+  const long = G.gun.hold === "two" && !!G.gun.support && GUN.armed; // SMG, rifle, shotgun, sniper, LMG: shouldered, two hands
+  // in gun space, read through the gun's last world pose (the support can ride a pump's fore-end)
+  if (long) { G.gun.root.updateMatrixWorld(true); G.gun.root.worldToLocal(G.gun.support!.getWorldPosition(HOLD.support)); HOLD.reach = G.gun.stockReach ?? 0; HOLD.bore = G.gun.root.worldToLocal(G.gun.muzzle.getWorldPosition(chest)).y; }
+  G.rig.pose({ time: G.time, speed: G.vel.length(), moveYaw: G.moveYaw, faceYaw: action === "roll" ? G.moveYaw : G.aimYaw, action, actionT: at, armed: G.meleeT >= 0 ? "briefcase" : long ? "long" : "pistol", flash: G.iframes > 0.25 ? 1 : 0, hold: long ? HOLD : null });
   // level the gun in the hand and point it along the aim (the socket's own rotation follows the arm pose)
   G.rig.root.updateMatrixWorld(true); G.rig.sockets.handR.getWorldQuaternion(sockQ);
   G.gun.root.quaternion.copy(sockQ.invert()).multiply(yawQ.setFromAxisAngle(UPV, G.aimYaw));
-  G.gun.root.visible = G.meleeT < 0 && G.alive;
+  G.gun.root.visible = G.meleeT < 0 && G.alive && GUN.armed;
   G.gun.root.scale.setScalar(GUN_SCALE);
   G.gun.pose({ fireT: Math.min(1, G.fireT), reloadT: G.reloadT });
   updateDashFx(dt); // after the pose: the afterimages copy it

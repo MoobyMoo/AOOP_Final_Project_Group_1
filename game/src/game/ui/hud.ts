@@ -1,8 +1,11 @@
 // Raid HUD v3, direction A "Corner office" (G1.5 row 06; styles in ui3.css). Placement is Duckov's
 // (POLISH_FINDINGS 9 table, 1920x1080 reference px, scaled by ui/scale.ts): clock top-left at an 11 px inset,
-// extract countdown top-centre (centre y 106.8), health / armor / load bottom-left of centre, the ammo block above
-// the weapon slots (gun 96, briefcase 60, right edge at centre + 42.75), quick slots 3-8 from centre + 56.25 (75 px,
-// 15 px gaps), minimap top-right, prompt and stamina following the character, the action bar at y 225.
+// extract countdown top-centre (centre y 106.8), health / armor / load bottom-left of centre, the weapon slots
+// (POLISH_FINDINGS 17 "HUD weapon display", Duckov's WeaponButtons row at 2560x1440 x 0.75: gun 1 96, gun 2 96,
+// briefcase 60, 15 px gaps, bottom 37.5, right edge at centre + 42.75), the ammo block floating 6 px above the gun in
+// hand and centred on it (Duckov's BulletTypeHUD moves to the selected card), quick slots 3-8 from centre + 56.25
+// (75 px, 15 px gaps), minimap top-right, prompt and stamina following the character, the action bar at y 225.
+// Duckov's cards show only the icon tinted by quality; ours also print loaded / reserve in the gun's caliber (Moo).
 // The DOM is touched only when a value changes (every write is behind a key compare), so the HUD costs no layout
 // per frame beyond the few follow-the-character transforms.
 // Tab and looting live in ui/lootview.ts (openLoot); hud.inventory() is the Tab toggle.
@@ -22,6 +25,8 @@ import { iconHtml } from "./itemicon";
 import { iconUrl } from "./icons";
 import { carriedWeight } from "../actors/player";
 import { HEALS } from "../combat/weapons";
+import { CALIBERS, gunOf } from "../combat/guns";
+import { DRAW_TIME } from "../combat/arsenal";
 import { itemType } from "../loot/instances";
 import { toRef } from "./scale";
 import { HS, currentScatter, restScatter } from "../combat/handling";
@@ -35,7 +40,7 @@ const BRK = `<i class="brk tl"></i><i class="brk tr"></i><i class="brk bl"></i><
 let E: Record<string, HTMLElement> = {};
 const proj = new THREE.Vector3();
 function toScreen(p: THREE.Vector3) { proj.copy(p).project(G.stage.camera); return { x: (proj.x * 0.5 + 0.5) * innerWidth, y: (-proj.y * 0.5 + 0.5) * innerHeight, on: Math.abs(proj.x) < 1 && Math.abs(proj.y) < 1 && proj.z < 1 }; }
-let lastHeard = "", lastEhp = "", lastEquipT = -1, lastArrows = "", lastClock = "", lastHp = -1, lastPrompt = "", lastStam = "", lastLoad = "", lastAmmo = "", lastQuick = "", lastUse = "", lastRl = "", lastSearch = "";
+let lastHeard = "", lastEhp = "", lastEquipT = -1, lastArrows = "", lastClock = "", lastHp = -1, lastPrompt = "", lastStam = "", lastLoad = "", lastAmmo = "", lastQuick = "", lastUse = "", lastRl = "", lastSearch = "", lastWeapons = "";
 let toastT = 0, bannerT = 0, promptT = 0, helpT = 0, shownScatter = 0, shownRest = 0, lastCross = "";
 /** the crosshair reads the gun (POLISH_FINDINGS 16, Duckov AimMarker): each tick sits base + perDeg x scatter px from
  *  the centre (1440-tall reference, scaled to the window), the shown scatter chasing the live cone at `chase` deg/s.
@@ -68,7 +73,7 @@ const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, "0")}:${(t
 export const hud = {
   build() {
     closeLoot();
-    root().innerHTML = ""; E = {}; lastArrows = lastClock = lastPrompt = lastHeard = lastEhp = lastStam = lastLoad = lastAmmo = lastQuick = lastUse = lastRl = lastSearch = ""; lastHp = -1; lastEquipT = -1;
+    root().innerHTML = ""; E = {}; lastArrows = lastClock = lastPrompt = lastHeard = lastEhp = lastStam = lastLoad = lastAmmo = lastQuick = lastUse = lastRl = lastSearch = lastWeapons = ""; lastHp = -1; lastEquipT = -1;
     quick = [null, null, null, null, null, null]; wireKeys(); lootHooks.changed = () => { hud.health(); hud.pack(); hud.ammo(); };
     const scr = document.createElement("div"); scr.className = "h3-screen"; scr.style.cssText = "position:absolute;inset:0;pointer-events:none"; root().appendChild(scr);
     const ref = document.createElement("div"); ref.className = "ui-ref h3"; root().appendChild(ref);
@@ -83,7 +88,7 @@ export const hud = {
     E.armor = el("plate h3-badge h3-armor", `${BRK}<span class="k">armor</span><span class="v"></span><span class="k s"></span>`);
     E.load = el("plate h3-badge h3-load", `${BRK}<span class="k">load</span><span class="v"></span><span class="k s"></span>`);
     E.ammo = el("plate h3-ammo", `${BRK}<span class="m"></span><span class="r"></span><span class="c"></span>`);
-    E.weapons = el("h3-weapons", `<div class="plate h3-slot gun on">${BRK}<span class="key">1</span><img src="${iconUrl("kingpin")}" alt="Kingpin .45" draggable="false"><i class="rl"></i></div><div class="plate h3-slot case"><span class="key">V</span><span class="emo" style="font-size:30px">💼</span></div>`);
+    E.weapons = el("h3-weapons", `<div class="plate h3-slot gun" data-k="0"></div><div class="plate h3-slot gun" data-k="1"></div><div class="plate h3-slot case"><span class="key">V</span><span class="emo" style="font-size:30px">💼</span></div>`);
     E.quick = el("h3-quick");
     E.extract = el("plate h3-extract", "");
     E.use = el("plate h3-use", "");
@@ -92,6 +97,26 @@ export const hud = {
     E.prompt = el("plate h3-prompt", "");
     E.search = el("h3-search", `<svg viewBox="0 0 40 40"><circle class="bg" cx="20" cy="20" r="19"/><circle class="tr" cx="20" cy="20" r="16"/><circle class="fg" cx="20" cy="20" r="16"/></svg><span class="glass"><svg viewBox="0 0 24 24" fill="none" stroke="#f3ead6" stroke-width="2.6" stroke-linecap="square"><circle cx="10" cy="10" r="6"/><path d="M15 15l5 5"/></svg></span>`);
     hud.health(); hud.ammo(); hud.pack();
+  },
+  /** the two gun cards: icon (tier glow), key, loaded / reserve in the gun's caliber, the frame on the one in hand,
+   *  the reload strip and the draw sweep (Duckov holdStadyTime 0.15 s) */
+  weapons() {
+    if (!E.weapons) return;
+    const k = G.save.guns.map((gs, i) => gs ? `${gs.inst}:${G.loaded[i]}:${G.reserve[gunOf(gs.inst)!.caliber]}` : "-").join("|") + "|" + G.slot;
+    if (k === lastWeapons) return; lastWeapons = k;
+    for (const i of [0, 1] as const) {
+      const card = E.weapons.querySelector(`[data-k="${i}"]`) as HTMLElement, gs = G.save.guns[i], def = gunOf(gs?.inst);
+      card.classList.toggle("on", !!gs && i === G.slot); card.classList.toggle("none", !gs);
+      if (!gs || !def) { card.style.removeProperty("--rar"); card.innerHTML = `${BRK}<span class="key">${i + 1}</span>`; continue; }
+      card.style.setProperty("--rar", `var(--rar-${def.tier})`);
+      const empty = G.loaded[i] === 0 && G.reserve[def.caliber] === 0;
+      card.innerHTML = `${BRK}<span class="key">${i + 1}</span>${iconHtml(gs.inst, 80)}<span class="n${empty ? " out" : ""}">${G.loaded[i]}<small>/${G.reserve[def.caliber]}</small></span><span class="cal">${CALIBERS[def.caliber].short}</span><i class="rl"></i><i class="draw"></i>`;
+      card.title = def.name;
+    }
+    lastRl = ""; // the reload strip lives in the card just rebuilt
+    // the ammo block floats above the gun in hand (Duckov: 8 px above the selected card at 2560, centred on it)
+    const right = 42.75, centre = G.slot === 0 ? right - 60 - 15 - 96 - 15 - 48 : right - 60 - 15 - 48;
+    if (E.ammo) E.ammo.style.left = `calc(50% + ${centre - 105}px)`;
   },
   health() {
     if (!E.hp) return; const k = Math.max(0, G.hp / G.maxHp);
@@ -111,8 +136,11 @@ export const hud = {
   money() {},
   ammo() {
     if (!E.ammo) return;
-    const st = G.reloadT >= 0 ? "reloading" : G.mag === 0 && G.ammo === 0 ? "empty" : "";
-    const cap = st === "reloading" ? "Reloading…" : st === "empty" ? "No rounds: swing V" : G.mag === 0 ? "Press R to reload" : ".45 Kingpin";
+    hud.weapons();
+    const def = gunOf(G.save.guns[G.slot]?.inst);
+    const st = !def ? "empty" : G.reloadT >= 0 ? "reloading" : G.mag === 0 && G.ammo === 0 ? "empty" : "";
+    const other = G.save.guns[G.slot === 0 ? 1 : 0];
+    const cap = !def ? "No gun: swing V" : st === "reloading" ? "Reloading…" : st === "empty" ? (other ? `No ${CALIBERS[def.caliber].short}: press ${G.slot === 0 ? 2 : 1}` : "No rounds: swing V") : G.mag === 0 ? "Press R to reload" : def.name; // the caliber is on the card
     const k = `${G.mag}|${G.ammo}|${st}|${cap}`; if (k === lastAmmo) return; lastAmmo = k;
     E.ammo.className = `plate h3-ammo ${st}`;
     set(E.ammo.querySelector(".m") as HTMLElement, String(G.mag).padStart(2, "0")); set(E.ammo.querySelector(".r") as HTMLElement, `/ ${String(G.ammo).padStart(2, "0")}`);
@@ -183,7 +211,11 @@ export const hud = {
     }
     if (promptT > 0) E.prompt.style.transform = `translate(${(mx + 46).toFixed(1)}px,${(my - 4).toFixed(1)}px)`;
     hud.ammo(); hud.load();
-    { const rl = G.reloadT >= 0 ? G.reloadT.toFixed(2) : ""; if (rl !== lastRl) { lastRl = rl; const r = E.weapons.querySelector(".rl") as HTMLElement; r.style.setProperty("--rl", rl || "0"); } }
+    hud.weapons();
+    { const rl = G.reloadT >= 0 ? G.reloadT.toFixed(2) : "", dr = G.drawT < DRAW_TIME ? (G.drawT / DRAW_TIME).toFixed(2) : "";
+      if (rl + dr !== lastRl) { lastRl = rl + dr; const c = E.weapons.querySelector(`[data-k="${G.slot}"]`) as HTMLElement | null;
+        for (const q of E.weapons.querySelectorAll<HTMLElement>(".rl")) q.style.setProperty("--rl", "0");
+        c?.querySelector<HTMLElement>(".rl")?.style.setProperty("--rl", rl || "0"); c?.querySelector<HTMLElement>(".draw")?.style.setProperty("--dr", dr || "1"); } }
     toastT -= dt; bannerT -= dt; promptT -= dt;
     if (prefs.controls) { if (E.help.classList.contains("gone")) E.help.classList.remove("gone"); helpT = Math.max(helpT, 0.01); }
     else if (helpT > 0) { helpT -= dt; if (helpT <= 0) E.help.classList.add("gone"); }

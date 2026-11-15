@@ -34,10 +34,10 @@ export const shotLevel = () => (SHOT_TONE.suppressed > 0 ? SHOT_TONE.level : 1);
 export let musicBus: GainNode | null = null;
 export function audioCtx() { return ctx; }
 /** player volume settings, 0..1 per bus (persisted; the settings menu calls this) */
-export const VOLUME = { master: 1, sfx: 1, ui: 1, music: 1, ...JSON.parse(localStorage.getItem("bv_volume") ?? "{}") as Partial<Record<"master" | "sfx" | "ui" | "music", number>> };
+export const VOLUME = { master: 1, sfx: 1, ui: 1, music: 1, ...JSON.parse(globalThis.localStorage?.getItem("bv_volume") ?? "{}") as Partial<Record<"master" | "sfx" | "ui" | "music", number>> };
 const BUS_BASE = { master: 0.7, sfx: 1, ui: 0.8, music: 0.5 };
 export function setVolume(bus: keyof typeof VOLUME, v: number) {
-  VOLUME[bus] = Math.min(1, Math.max(0, v)); localStorage.setItem("bv_volume", JSON.stringify(VOLUME)); applyVolume();
+  VOLUME[bus] = Math.min(1, Math.max(0, v)); globalThis.localStorage?.setItem("bv_volume", JSON.stringify(VOLUME)); applyVolume();
 }
 // ?tune "audio": the same four buses (the setting persists through setVolume, not the tune store)
 tuneObject("audio", VOLUME, { master: { min: 0, max: 1, step: 0.01 }, sfx: { min: 0, max: 1, step: 0.01, label: "effects" }, ui: { min: 0, max: 1, step: 0.01, label: "interface" }, music: { min: 0, max: 1, step: 0.01 } },
@@ -75,6 +75,17 @@ export function sfx(kind: Sfx, vol = 1) {
   if (!playSample(kind, vol, c.n) && import.meta.env.DEV && loaded && !warned.has(kind)) { warned.add(kind); console.warn(`sfx "${kind}" has no samples`); }
 }
 
+/** a gunshot voiced for one gun (combat/guns.ts GunDef.sound): the shared shot layers at this pitch and gain, with
+ *  the tail held up to `tail` s (a sniper's rings on, an SMG's is clipped). TODO(audio): per-class ElevenLabs takes
+ *  (shotgun boom, sniper crack with a long tail, LMG chug) replace the pitched layers; research/audio/QUEUE.md. */
+export function gunShot(sound: { pitch: number; gain: number; tail: number }, vol = 1) {
+  if (!ctx || !master || vol <= 0.01) return;
+  const core = pickBuf("shotCore"); if (!core) return;
+  const j = (k: "shotCore" | "shotMech" | "shotTail") => sound.pitch * (1 + (Math.random() - 0.5) * 2 * (MIX[k]?.jit ?? 0)), v = vol * sound.gain;
+  voice("shotCore", core, v, j("shotCore"), 0, shotLp ?? sfxBus!);
+  const mech = pickBuf("shotMech"); if (mech) voice("shotMech", mech, v, j("shotMech"), 0.035 / sound.pitch, sfxBus!);
+  const tail = pickBuf("shotTail"); if (tail) voice("shotTail", tail, v * (0.6 + 0.4 * vol), j("shotTail"), 0.01, shotLp ?? sfxBus!, sound.tail);
+}
 // ---- samples ----
 /** per-kind mix: gain, pitch jitter, voice cap, optional hard length cap. The gains level every kind against the gun: each
  *  is set from the kind's measured punch (loudest 100 ms RMS of its peak-normalised takes) plus a role offset in dB
@@ -134,8 +145,8 @@ function pickBuf(kind: string): AudioBuffer | null {
   if (list.length > 1 && i === last[kind]) i = (i + 1 + Math.floor(Math.random() * (list.length - 1))) % list.length;
   last[kind] = i; return list[i];
 }
-function voice(kind: string, buf: AudioBuffer, vol: number, rate: number, at: number, bus: AudioNode) {
-  const m = MIX[kind as keyof typeof MIX] ?? { g: 0.5 }, cap = m.cap ?? 3, vs = (voices[kind] ??= []);
+function voice(kind: string, buf: AudioBuffer, vol: number, rate: number, at: number, bus: AudioNode, maxLen?: number) {
+  const m0 = MIX[kind as keyof typeof MIX] ?? { g: 0.5 }, m = maxLen ? { ...m0, max: maxLen } : m0, cap = m.cap ?? 3, vs = (voices[kind] ??= []);
   while (vs.length >= cap) { const old = vs.shift()!; old.g.gain.setTargetAtTime(0, ctx!.currentTime, 0.012); old.src.stop(ctx!.currentTime + 0.06); }
   const src = ctx!.createBufferSource(), g = ctx!.createGain(); src.buffer = buf; src.playbackRate.value = rate;
   g.gain.value = m.g * vol; src.connect(g).connect(bus);

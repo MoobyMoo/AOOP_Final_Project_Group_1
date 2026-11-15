@@ -24,7 +24,7 @@ const KINGPIN_URL = `${import.meta.env.BASE_URL}models/kingpin45.glb`;
  *  its origin, +z forward like the gun. Optional: with no file, or no node for an id, the attachment has no visual. */
 const ATTACH_URL = `${import.meta.env.BASE_URL}models/attachments.glb`;
 /** which named empty in kingpin45.glb each attachment slot mounts on */
-export const SOCKET_OF: Record<AttSlot, string> = { sight: "socket_sight", muzzle: "socket_muzzle", mag: "socket_mag", laser: "socket_rail" };
+export const SOCKET_OF: Record<AttSlot, string> = { sight: "socket_sight", muzzle: "socket_muzzle", mag: "socket_mag", laser: "socket_rail", grip: "socket_grip", stock: "socket_stock" };
 
 // ------------------------------------------------------------------------------------------------ geometry helpers (brass)
 /** paint a geometry one colour (vertex colours), non-indexed, no uv, so every part merges into one buffer */
@@ -76,11 +76,11 @@ const ENV_I = 1;
  *  vertex colours, and the studio sky to reflect. Without (the brass): vertex colours only.
  *  Fading parts (the dropped magazine, old brass) dissolve with a screen-door dither, so they stay opaque: no sorting,
  *  no blending state, same program for every gun. "uniform": one fade per material; "attr": one per instance. */
-function gunMat(rough: number, fade: "none" | "uniform" | "attr" = "none", pbr?: { map: THREE.Texture; orm: THREE.Texture }) {
+export function gunMat(rough: number, fade: "none" | "uniform" | "attr" = "none", pbr?: { map: THREE.Texture; orm?: THREE.Texture | null }) {
   const p: THREE.MeshStandardMaterialParameters = { color: "#ffffff", vertexColors: true, roughness: rough, metalness: 0 };
   if (pbr) {
     p.map = pbr.map;
-    if (!TOON) { p.roughnessMap = p.metalnessMap = pbr.orm; p.roughness = p.metalness = 1; p.envMap = studioEnv(); p.envMapIntensity = ENV_I; }
+    if (!TOON && pbr.orm) { p.roughnessMap = p.metalnessMap = pbr.orm; p.roughness = p.metalness = 1; p.envMap = studioEnv(); p.envMapIntensity = ENV_I; }
   }
   const m = patch(surf(p), { rim: pbr ? 0.55 : 0.9 });
   const base = m.onBeforeCompile, key = m.customProgramCacheKey, uFade = { value: 1 }, fill = pbr ? "0.12" : "0.2";
@@ -119,7 +119,7 @@ type Asset = {
 };
 /** one attachment model: its meshes (palette parts use the gun's material at mount time), the flash point of a muzzle
  *  device (extras.muzzle) and the beam origin of a laser (extras.emit), both in the model's frame */
-type AttModel = { obj: THREE.Object3D; tip: THREE.Vector3 | null; emit: THREE.Vector3 | null };
+export type AttModel = { obj: THREE.Object3D; tip: THREE.Vector3 | null; emit: THREE.Vector3 | null };
 let ASSET: Asset | null = null, loading: Promise<void> | null = null, bodyMat: THREE.Material | null = null;
 
 function table(clip: THREE.AnimationClip, rest: Float32Array): Clip {
@@ -221,19 +221,33 @@ async function loadAttachments(): Promise<Asset["atts"]> {
 }
 /** Load the Kingpin's GLB (once). Await this at boot, before the first createKingpin(). */
 export function preloadKingpin(): Promise<void> { return (loading ??= load()); }
+/** the attachment model for an attachment item id (instance ids too), with MODEL_LIKE stand-ins, as createKingpin mounts
+ *  it; undefined with no model (or before preloadKingpin()). Palette parts are marked userData.palette: put
+ *  gunMaterial() on them (or a fading copy on a magazine). Clone obj before adding it to a scene. */
+export function attachmentAsset(id: string | null): AttModel | undefined {
+  if (!id || !ASSET) return undefined;
+  const t = itemType(id);
+  return ASSET.atts.get(t) ?? (MODEL_LIKE[t] ? ASSET.atts.get(MODEL_LIKE[t]) : undefined);
+}
+/** The Kingpin's palette material (the one attachments.glb parts are painted for). "none": the shared one; "uniform": a
+ *  new copy that dissolves with its own userData.uFade.value (a magazine). Await preloadKingpin() first. */
+export function gunMaterial(fade: "none" | "uniform" = "none"): THREE.Material {
+  if (!ASSET) throw new Error("gunMaterial(): await preloadKingpin() first");
+  return fade === "uniform" ? gunMat(0.4, "uniform", ASSET) : (bodyMat ??= gunMat(0.4, "none", ASSET));
+}
 
 const IDENT = new THREE.Matrix4(), _a = new Float32Array(S7), _b = new Float32Array(S7), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion();
 
 export function createKingpin(): GunView {
   if (!ASSET) throw new Error("createKingpin(): await preloadKingpin() first");
   const A = ASSET;
-  bodyMat ??= gunMat(0.4, "none", A);
+  const bodyM = gunMaterial();
   const root = new THREE.Group(); root.name = "kingpin45";
   const body = new THREE.Group(); body.name = "body"; root.add(body);            // recoil + reload motion live here, never on root
   const bones = SKIN.map((name) => { const b = new THREE.Bone(); b.name = name; body.add(b); return b; });
-  const skin = new THREE.SkinnedMesh(A.body, bodyMat); skin.name = "kingpinBody"; skin.castShadow = true; skin.receiveShadow = true;
+  const skin = new THREE.SkinnedMesh(A.body, bodyM); skin.name = "kingpinBody"; skin.castShadow = true; skin.receiveShadow = true;
   body.add(skin); skin.bind(new THREE.Skeleton(bones, A.boneInv), IDENT); skin.boundingSphere = A.sphere;
-  const magMat = gunMat(0.4, "uniform", A), magFade = magMat.userData.uFade as { value: number }; // per gun: the dropped magazine dissolves
+  const magMat = gunMaterial("uniform"), magFade = magMat.userData.uFade as { value: number }; // per gun: the dropped magazine dissolves
   const mag = new THREE.Mesh(A.mag, magMat); mag.name = "mag"; mag.castShadow = true; mag.receiveShadow = true; body.add(mag);
   const muzzle = new THREE.Object3D(); muzzle.name = "muzzle"; muzzle.position.copy(A.muzzle); body.add(muzzle);
   const eject = new THREE.Object3D(); eject.name = "eject"; eject.position.copy(A.eject); body.add(eject);
@@ -248,7 +262,7 @@ export function createKingpin(): GunView {
     (p >= 0 ? restOf(p).invert().multiply(k.m) : k.m).decompose(g.position, g.quaternion, g.scale); part.add(g); mounts[slot] = g;
   }
   const shown: Partial<Record<AttSlot, string | null>> = {};
-  const model = (id: string | null) => (id ? A.atts.get(itemType(id)) ?? (MODEL_LIKE[itemType(id)] ? A.atts.get(MODEL_LIKE[itemType(id)]) : undefined) : undefined);
+  const model = attachmentAsset;
   const laser = new THREE.Object3D(); laser.name = "laserEmit";
   const view: GunView = {
     root, muzzle, eject, laser: null,
@@ -262,7 +276,7 @@ export function createKingpin(): GunView {
           if (a) {
             const o = a.obj.clone(true);
             // palette parts take the gun's material; the mag extension takes the magazine's, so it dissolves with it
-            o.traverse((q) => { const m = q as THREE.Mesh; if (m.isMesh && m.userData.palette) m.material = slot === "mag" ? magMat : bodyMat!; });
+            o.traverse((q) => { const m = q as THREE.Mesh; if (m.isMesh && m.userData.palette) m.material = slot === "mag" ? magMat : bodyM; });
             g.add(o);
             if (a.emit && slot === "laser") { laser.position.copy(a.emit); g.add(laser); }
           }

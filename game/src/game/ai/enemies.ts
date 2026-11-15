@@ -110,6 +110,14 @@ export function spawnEnemies(set: number) {
     G.enemies.push(e);
   }
 }
+/** a target that never wakes (wakeAt far away keeps it inactive and still; bullets still hit it): tools/gunfeel.mjs
+ *  measures each gun's time-to-kill against one. Dev only (devhooks.ts) */
+export function spawnDummy(x: number, z: number, hp = 48): Enemy {
+  const rig = createRig("monkey", { kind: "bandit", seed: 7 });
+  const e: Enemy = { id: nextId++, kind: "bandit", rig, p: V(x, z, standHeight(x, z)), vel: new THREE.Vector3(), face: Math.PI, hp, max: hp, state: "patrol", t: 0, actionT: 0, home: V(x, z), path: [], repath: 0, flash: 0,
+    stolen: [], carry: [], zs: 3, quiet: 0, lastSeen: null, lostT: 0, rang: null, active: false, down: false, downT: 0, wakeAt: 1e9 };
+  rig.root.position.copy(e.p); G.stage.scene.add(rig.root); G.enemies.push(e); return e;
+}
 const onScreen = (p: THREE.Vector3) => { const v = p.clone().setY(p.y + 1).project(G.stage.camera); return Math.abs(v.x) < 0.95 && Math.abs(v.y) < 0.92 && v.z < 1; };
 const toPlayer = (e: Enemy) => V(G.pp.x - e.p.x, G.pp.z - e.p.z);
 function sees(e: Enemy, range: number) {

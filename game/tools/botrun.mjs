@@ -16,7 +16,9 @@ function settlementLedger(record) {
   const duplicates = accounted.filter((id, index) => accounted.indexOf(id) !== index);
   assert.ok([...before, ...accounted].every(Boolean), `identified items ${record.id}`);
   assert.equal(new Set(before).size, before.length, `unique origin items ${record.id}`);
-  assert.equal(record.rounds.before, record.rounds.after + record.rounds.spent + record.rounds.abandoned, `ammunition ledger ${record.id}`);
+  // rounds are per caliber since the arsenal ({ ammo45, ammo_rifle, ... }); an old record holds plain numbers
+  const r = record.rounds, cals = typeof r.before === 'number' ? [null] : Object.keys(r.before), at = (v, c) => c === null ? v : v[c] ?? 0;
+  for (const c of cals) assert.equal(at(r.before, c), at(r.after, c) + at(r.spent, c) + at(r.abandoned, c), `ammunition ledger ${record.id}${c ? ' ' + c : ''}`);
   assert.deepEqual({ missing, unexpected, duplicates }, { missing: [], unexpected: [], duplicates: [] }, `item-id ledger ${record.id}`);
   return { raidId: record.id, reason: record.reason, before, after, consumed, abandoned, missing, unexpected, duplicates, rounds: record.rounds };
 }
@@ -51,6 +53,14 @@ async function selfTest() {
     upgrades: { mag: 0, pack: 0, heart: 0 }, combatEvents: [],
   });
   const tests = [
+    ['draw the other gun when the one in hand is dry (two gun slots)', () => {
+      const bot = createBot({ greed: 0.5, reactionLag: 0, seed: 1 });
+      const view = observation(); view.player.mag = 0; view.player.ammo = 0;
+      view.player.gun = { slot: 0, interval: 0.08, range: 26.5, drawing: false, other: { slot: 1, rounds: 20 } };
+      assert.equal(bot.tick(view, 0.3).swap, 2);
+      const full = observation(); full.player.gun = { slot: 0, interval: 0.08, range: 26.5, drawing: false, other: { slot: 1, rounds: 20 } };
+      assert.equal(bot.tick(full, 0.3).swap, undefined);
+    }],
     ['repair a pinched corridor requiring an eighth-cell lateral step', () => {
       const bot = createBot({ greed: 0.5, reactionLag: 0, seed: 1 });
       const view = observation(); view.player.x = 0.3; view.player.z = 0.275;
@@ -564,7 +574,7 @@ async function runCampaign(browser, { raids, ts, greed, seed, lag = 0.25, bossRo
   });
   const base = process.env.BASE ?? "http://127.0.0.1:5352";
   assert.ok(Number(new URL(base).port) >= 5352 && Number(new URL(base).port) <= 5359, "campaigns use a systems-only port from 5352 to 5359");
-  const url = `${base}/game.html?fresh=1&bot=1&ts=${ts}&post=0&dpr=1&fixdpr=1&greed=${greed}&lag=${lag}&seed=${seed}${bossRoute ? `&botroute=${bossRoute}` : ''}`;
+  const url = `${base}/game.html?fresh=1&bot=1&ts=${ts}&post=0&dpr=1&fixdpr=1&greed=${greed}&lag=${lag}&seed=${seed}${bossRoute ? `&botroute=${bossRoute}` : ''}${process.env.BOT_GUN ? `&botgun=${process.env.BOT_GUN}` : ''}`; // BOT_GUN: start in gun 1 with this gun (main.ts, test only)
   const started = Date.now();
   const build = await captureBuild(buildDir, base);
   const report = { config: { raids, ts, greed, seed, lag, bossRoute, url }, build, started: new Date().toISOString(), errors, itemLedger: [] };
