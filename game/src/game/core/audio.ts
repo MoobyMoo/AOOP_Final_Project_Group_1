@@ -66,7 +66,7 @@ export type Sfx = "shot" | "shell" | "dry" | "reloadOut" | "reloadIn" | "slide" 
   | "kill" | "killCrit" | "impactDirt" | "impactWood" | "impactMetal" | "impactFoliage" | "impactStone" | "dash" | "ko" | "hurt" | "heal"
   | "step" | "crateTick" | "crate" | "pop" | "rare" | "pick" | "throw" | "whirr" | "windup" | "slam" | "roar" | "thunk" | "notice"
   | "snatch" | "tick" | "extract" | "cash" | "buy" | "nope" | "ui" | "door"
-  | "squawk" | "grunt" | "splash"; // G1.5 population pass: the wildlife (samples to come; silent until then)
+  | "squawk" | "grunt" | "squeal" | "splash" | "scuttle"; // wildlife (ai/fauna.ts): parrot flush, boar telegraph + charge, croc lunge, crab
 const combo: Record<string, { n: number; t: number }> = {}, warned = new Set<string>();
 /** play a sound; vol scales it (e.g. by distance) */
 export function sfx(kind: Sfx, vol = 1) {
@@ -79,7 +79,7 @@ export function sfx(kind: Sfx, vol = 1) {
 /** per-kind mix: gain, pitch jitter, voice cap, optional hard length cap. The gains level every kind against the gun: each
  *  is set from the kind's measured punch (loudest 100 ms RMS of its peak-normalised takes) plus a role offset in dB
  *  relative to shotCore, which stays at 0.42 (about -7.5 dB): hit-confirms -1..-3, boss cues +1, gun handling -8..-10,
- *  impacts -9, UI -6..-12, footsteps -16/-17. Re-derive them when takes change (research/audio/QUEUE.md, "Mix"). */
+ *  impacts -9, UI -6..-12, footsteps -16/-17, wildlife -1..-3 (crab -18). Re-derive them when takes change (research/audio/QUEUE.md, "Mix"). */
 type Mix = { g: number; jit?: number; cap?: number; max?: number; climb?: boolean };
 const MIX: Partial<Record<Sfx | "shotCore" | "shotMech" | "shotTail" | StepKind, Mix>> = {
   shotCore: { g: 0.42, jit: 0.05, cap: 6, max: 0.9 }, shotMech: { g: 0.26, jit: 0.06, cap: 4, max: 0.35 }, shotTail: { g: 0.25, jit: 0.04, cap: 3, max: 1.4 },
@@ -96,6 +96,9 @@ const MIX: Partial<Record<Sfx | "shotCore" | "shotMech" | "shotTail" | StepKind,
   extract: { g: 0.23, cap: 1, max: 3 }, tick: { g: 0.3, cap: 1, max: 0.3 }, whirr: { g: 0.32, cap: 1, max: 1.0 },
   pick: { g: 0.39, cap: 3, max: 0.4, climb: true }, rare: { g: 0.24, cap: 1, max: 2 }, cash: { g: 0.34, cap: 3, max: 0.8, climb: true }, buy: { g: 0.27, cap: 1, max: 1.2 },
   ui: { g: 0.28, cap: 2, max: 0.25 }, pop: { g: 0.18, cap: 3, max: 0.4, climb: true }, nope: { g: 0.47, cap: 1, max: 0.5 },
+  // wildlife (ai/fauna.ts): squawk -1 (it gives you away, so it carries), grunt -2 (the charge warning), squeal -3, splash -2, scuttle -18
+  squawk: { g: 0.34, jit: 0.06, cap: 2, max: 0.8 }, grunt: { g: 0.32, jit: 0.06, cap: 2, max: 0.8 }, squeal: { g: 0.21, jit: 0.05, cap: 2, max: 0.7 },
+  splash: { g: 0.17, jit: 0.05, cap: 1, max: 1.2 }, scuttle: { g: 0.11, jit: 0.15, cap: 2, max: 0.5 },
   // footsteps per ground (stepOn): low under everything, wide jitter so a walk never repeats exactly
   stepDirt: { g: 0.13, jit: 0.12, cap: 2, max: 0.35 }, stepSand: { g: 0.07, jit: 0.12, cap: 2, max: 0.5 }, stepGrass: { g: 0.08, jit: 0.12, cap: 2, max: 0.5 },
   stepPlank: { g: 0.1, jit: 0.1, cap: 2, max: 0.35 }, stepStone: { g: 0.06, jit: 0.1, cap: 2, max: 0.35 }, stepMud: { g: 0.09, jit: 0.1, cap: 2, max: 0.4 },

@@ -192,14 +192,14 @@ function spawnHostile(id: "boar" | "croc", x: number, z: number, idn: number) {
 export function faunaHear(at: THREE.Vector3, r: number, kind: string) {
   const loud = kind === "shot" || kind === "smash" || kind === "melee";
   for (const a of ambient) { const d = flat(a.p, at); if (d < Math.min(FAUNA[a.id].hear, r * 1.4) || (loud && d < FAUNA[a.id].hear)) scare(a, at); }
-  for (const e of hostiles) if (!e.down && e.fauna === "boar" && kind === "shot" && flat(e.p, at) < 9 && e.state === "patrol") { e.state = "windup"; e.t = FAUNA.boar.wind; sfx("windup"); }
+  for (const e of hostiles) if (!e.down && e.fauna === "boar" && kind === "shot" && flat(e.p, at) < 9 && e.state === "patrol") { e.state = "windup"; e.t = FAUNA.boar.wind; sfx("grunt"); }
 }
 function scare(a: Ambient, from: { x: number; z: number }) {
   if (a.id === "parrot") { if (a.state === "perch") flush(a); return; }
   if (a.state === "burrowed" || a.state === "flee" || a.state === "hop" || a.state === "emerge") return;
   const dx = a.p.x - from.x, dz = a.p.z - from.z, l = Math.hypot(dx, dz) || 1;
   a.face = Math.atan2(dx, dz); a.v.set(dx / l, 0, dz / l);
-  if (a.id === "crab") { a.state = "flee"; a.t = 1.2; } else { a.state = "hop"; a.t = 3; }
+  if (a.id === "crab") { a.state = "flee"; a.t = 1.2; sfx("scuttle", Math.max(0, 1 - Math.hypot(a.p.x - G.pp.x, a.p.z - G.pp.z) / 14)); } else { a.state = "hop"; a.t = 3; }
 }
 /** a parrot takes off: a squawk, and the noise of it is at your position (it gives you away) */
 function flush(a: Ambient) {
@@ -313,14 +313,14 @@ function boar(e: Enemy, dt: number, hurt: boolean) {
   e.t -= dt; boarClip(e, dt, hurt);
   switch (e.state) {
     case "patrol": {
-      if (hurt || d < (G.sprinting ? b.noticeSprint : b.notice)) { e.state = "windup"; e.t = b.wind; sfx("windup"); e.vel.set(0, 0, 0); break; }
+      if (hurt || d < (G.sprinting ? b.noticeSprint : b.notice)) { e.state = "windup"; e.t = b.wind; sfx("grunt"); e.vel.set(0, 0, 0); break; }
       if (e.t <= 0) { e.t = 2 + G.rng() * 3; const a = G.rng() * 6.28, r = G.rng() * 4; tmp.set(e.home.x + Math.cos(a) * r - e.p.x, 0, e.home.z + Math.sin(a) * r - e.p.z); e.vel.copy(tmp.lengthSq() > 0.1 ? tmp.setLength(1.1) : tmp.set(0, 0, 0)); }
       if (e.vel.lengthSq() > 0.01) e.face = Math.atan2(e.vel.x, e.vel.z);
       break;
     }
     case "windup": // the telegraph: it squares up and paws (ai/enemies.ts windCue shows the "!")
       e.face = Math.atan2(G.pp.x - e.p.x, G.pp.z - e.p.z); e.vel.set(0, 0, 0);
-      if (e.t <= 0) { e.state = "charge"; e.actionT = 0; e.home.set(e.p.x, 0, e.p.z); e.vel.set(Math.sin(e.face), 0, Math.cos(e.face)).multiplyScalar(b.charge); sfx("grunt"); }
+      if (e.t <= 0) { e.state = "charge"; e.actionT = 0; e.home.set(e.p.x, 0, e.p.z); e.vel.set(Math.sin(e.face), 0, Math.cos(e.face)).multiplyScalar(b.charge); sfx("squeal"); }
       break;
     case "charge": {
       e.actionT += b.charge * dt; e.vel.setLength(b.charge);
@@ -330,7 +330,7 @@ function boar(e: Enemy, dt: number, hurt: boolean) {
     }
     case "recover":
       e.vel.multiplyScalar(0.8);
-      if (e.t <= 0) { if (d < 14) { e.state = "windup"; e.t = b.wind; sfx("windup"); } else { e.state = "patrol"; e.t = b.calm; } }
+      if (e.t <= 0) { if (d < 14) { e.state = "windup"; e.t = b.wind; sfx("grunt"); } else { e.state = "patrol"; e.t = b.calm; } }
       break;
     default: e.state = "patrol";
   }
