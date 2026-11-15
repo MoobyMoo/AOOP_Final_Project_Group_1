@@ -69,6 +69,7 @@ export interface Rig {
   bounds: { radius: number; height: number };
   pose(s: RigState): void;
   setLook?(look: MonkeyLook): void;   // monkeys: rebuild the changed parts live (creator)
+  dressBoss?(): void;                 // gorillas: the Plantation boss look (bigger, armor plates, head left bare: headshots count)
   setGear?(gear: Gear): void;         // monkeys: swap wearables on the head/face/back sockets
   knockOff?(slot: WearSlot): THREE.Object3D | null; // detach a wearable (world space) for the hit gag; gameplay animates it and re-attaches via setGear
   dispose(): void;

@@ -70,6 +70,7 @@ export function spawnEnemies(set: number) {
     const plan = s.kind === "brute" || s.kind === "sleeper" ? "gorilla" : "monkey";
     const gearSeed = G.seed ^ Math.imul(index + 1, 7), gear = enemyGear(gearSeed, s.kind);
     if (s.tag === BOSS.id) { gear.head = null; gear.body = 'leaf_vest'; }
+    else if (s.group === 'plantation-boss') { gear.head = 'guard_helmet'; gear.body = index % 2 ? 'guard_plate' : 'peel_jacket'; } // the escorts wear (and drop) the foreman's guard kit
     const rig = createRig(plan, { kind: s.kind, seed: gearSeed });
     rig.setGear?.(gear);
     const st = ENEMY[s.kind];
@@ -78,6 +79,7 @@ export function spawnEnemies(set: number) {
       stolen: [], carry: [], gear, gearSeed, zs: 3, quiet: 0, lastSeen: null, lostT: 0, rang: null, active: false, down: false, downT: 0 };
     if (s.carry) e.carry.push(s.carry); // e.g. the Radio Shack Key on the lemon bandit: bonk him and it drops
     if (isBoss(e)) {
+      rig.dressBoss?.();
       e.hp = e.max = BOSS.hp; bossBrains.set(e, createBossBrain(e.home));
       seedEnemyInventory(e, G.rng, { weapon: 'boomerang', pockets: bossPockets(G.rng) });
     } else {

@@ -37,7 +37,7 @@ export type RigActionX = RigAction | "use" | "cheer";
 export const CLIP_INFO: Record<string, { dur: number; loop?: boolean }> = {
   idle: { dur: 2, loop: true }, walk: { dur: 0.5, loop: true }, run: { dur: 0.45, loop: true }, runBack: { dur: 0.4, loop: true }, strafeL: { dur: 0.35, loop: true },
   strafeR: { dur: 0.35, loop: true }, aim: { dur: 1, loop: true }, carry: { dur: 1, loop: true }, fire: { dur: 0.25 }, reload: { dur: 1.2 },
-  melee: { dur: 0.45 }, roll: { dur: 0.34 }, hurt: { dur: 0.35 }, throw: { dur: 0.75 }, use: { dur: 1.6 }, defeat: { dur: 0.9 }, cheer: { dur: 0.9, loop: true },
+  melee: { dur: 0.45 }, roll: { dur: 0.34 }, dash: { dur: 0.34 }, hurt: { dur: 0.35 }, throw: { dur: 0.75 }, use: { dur: 1.6 }, defeat: { dur: 0.9 }, cheer: { dur: 0.9, loop: true },
   windup: { dur: 0.9 }, slam: { dur: 0.6 }, charge: { dur: 0.5, loop: true }, stunned: { dur: 1.6, loop: true }, sleep: { dur: 3.2, loop: true },
 };
 /** metres one cycle of each gait covers with planted feet (from tools/blender/monkey_anim.py GAIT_LEN / build_gorilla.py) */
@@ -567,6 +567,13 @@ class GorillaRig extends CharRig {
     setRegion(p, "vest", "#7a3142"); setRegion(p, "vest2", "#ecdfc2"); setRegion(p, "mask", "#7a4ea0");
     this.headB = this.bone("head"); this.neckB = this.bone("neck");
     this.setParts(boss ? ["body", "face", "vest", "sleepmask", "chain"] : ["body", "face"]);
+  }
+  /** the Plantation boss (Fable's boss_plates; the boss_helmet stays off so the bare head reads as the crit target, and the
+   *  plates are the 30% body mitigation in ai/boss.ts, not extra armor) */
+  dressBoss() {
+    const size = 1.35; this.scale = size; this.body.scale.setScalar(size); this.bounds = { radius: 0.9 * size, height: 2.9 * size };
+    const p = this.pal; setRegion(p, "fur", "#454050"); setRegion(p, "fur2", "#565062"); setRegion(p, "skin", "#38343f"); setRegion(p, "skin2", "#8a8496");
+    this.setParts(["body", "face", "boss_plates"]);
   }
   pose(s: RigState) {
     const nb = this.nb, dt = this.tick(s), snap = dt < 0, h = snap ? 0 : Math.min(dt, 1 / 30), act = s.action as string, fullClip = G_FULL[act];

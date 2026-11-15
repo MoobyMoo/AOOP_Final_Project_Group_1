@@ -19,6 +19,8 @@ export const EQUIP: Record<string, EquipDef> = {
   hardhat: { id: "hardhat", slot: "head", name: "Hard Hat", rarity: "uncommon", value: 60, weight: 0.6, headArmor: 1.5, dur: 100 },
   pith: { id: "pith", slot: "head", name: "Pith Helmet", rarity: "rare", value: 80, weight: 0.5, headArmor: 1.5, dur: 100 },
   coconut_helmet: { id: "coconut_helmet", slot: "head", name: "Coconut Helmet", rarity: "uncommon", value: 90, weight: 0.8, headArmor: 2, dur: 100 },
+  guard_helmet: { id: "guard_helmet", slot: "head", name: "Foreman's Guard Helmet", rarity: "uncommon", value: 70, weight: 0.9, headArmor: 1.5, dur: 100 },
+  guard_plate: { id: "guard_plate", slot: "body", name: "Foreman's Guard Plate", rarity: "uncommon", value: 120, weight: 3.2, bodyArmor: 2, dur: 100, perk: { speed: 0.97 } },
   warden_helmet: { id: "warden_helmet", slot: "head", name: "Warden's Riot Helmet", rarity: "epic", value: 260, weight: 1.2, headArmor: 3, dur: 100, perk: { speed: 0.97 } },
   crown: { id: "crown", slot: "head", name: "Crown", rarity: "epic", value: 400, weight: 0.8, headArmor: 1, dur: 100 },
   aviators: { id: "aviators", slot: "face", name: "Aviators", rarity: "uncommon", value: 70, weight: 0.2, perk: { aim: 2 } },

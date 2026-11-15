@@ -15,6 +15,7 @@ export const WEARABLES: Wearable[] = [
   { id: "pot_helmet", slot: "head", name: "Cooking Pot", rarity: "common" },
   { id: "coconut_helmet", slot: "head", name: "Coconut Helmet", rarity: "uncommon" },
   { id: "warden_helmet", slot: "head", name: "Warden's Riot Helmet", rarity: "epic" },
+  { id: "guard_helmet", slot: "head", name: "Foreman's Guard Helmet", rarity: "uncommon" }, { id: "guard_plate", slot: "body", name: "Foreman's Guard Plate", rarity: "uncommon" },
   { id: "snorkel", slot: "face", name: "Snorkel Mask", rarity: "common", hidesBrows: true },
   { id: "leaf_vest", slot: "body", name: "Banana-Leaf Vest", rarity: "common" },
   { id: "life_jacket", slot: "body", name: "Ferry Life Jacket", rarity: "uncommon", hidesTie: true },
@@ -38,6 +39,7 @@ export const WEARABLES: Wearable[] = [
 export const DEFAULT_GEAR: Gear = { head: "bowler", face: "shades", body: "suit", back: "satchel", ears: null }; // the bound kit (loot/equipment.ts BOUND_KIT); the suit is the body itself
 /** recolourable zones of each wearable: main + accent map to palette regions (creator: LookExt.gear[slot].main / .accent) */
 export const WEAR_ZONES: Record<string, { main: Region; accent?: Region }> = {
+  guard_helmet: { main: "metal", accent: "yellow" }, guard_plate: { main: "metal", accent: "yellow" },
   bowler: { main: "hat", accent: "band" }, tophat: { main: "hat", accent: "red" }, fedora: { main: "khaki", accent: "dark" }, cap: { main: "blue", accent: "banana" },
   hardhat: { main: "yellow" }, pith: { main: "khaki", accent: "leather" }, beanie: { main: "green", accent: "pink" }, crown: { main: "gold", accent: "red" },
   shades: { main: "hat", accent: "lens" }, aviators: { main: "gold", accent: "green" }, monocle: { main: "gold", accent: "glass" }, eyepatch: { main: "dark" },
