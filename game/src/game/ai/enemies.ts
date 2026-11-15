@@ -12,6 +12,8 @@ import { createRig } from "../actors/rig";
 import { SPAWNS, GROUP_RINGS } from "../world/layout";
 import { inDemo, DEMO } from "../world/map/grove";
 import { demoSpawns } from "./encounters";
+import { spawnFauna } from "./fauna";
+const QS_NOFAUNA = typeof location !== "undefined" && /[?&]nofauna\b/.test(location.search);
 import type { Spawn } from "../world/map/types";
 import { path as findPath, pathLength, los, collide, walkable, ramAt, gates, straightWalk } from "../world/grid";
 import { groundHeight, standHeight } from "../world/terrain";
@@ -80,6 +82,7 @@ export function spawnEnemies(set: number) {
   // the demo slice rolls its encounters once per raid (G1.5 population pass, A05); the full map keeps its two patrol sets
   const demo = DEMO ? demoSpawns(G.rng) : null; G.encounters = demo ? demo.rolled.map((r) => ({ id: r.id, count: r.count })) : [];
   const list: (Spawn & { wake?: number })[] = demo ? demo.spawns : SPAWNS[set % SPAWNS.length];
+  if (!QS_NOFAUNA) spawnFauna(() => nextId++); // the slice's wildlife (ai/fauna.ts): boars and crocs join G.enemies
   for (const [index, s] of list.entries()) {
     if (!inDemo(s.x, s.z)) continue; // past the demo's route locks: parked in the data (G1.5-13)
     const plan = s.kind === "brute" || s.kind === "sleeper" ? "gorilla" : "monkey";
@@ -121,7 +124,7 @@ function mark(e: Enemy) {
 }
 /** the notice cue (rule 9) + local group alert (rule 11) */
 export function alertEnemy(e: Enemy, direct = false) {
-  if (e.down) return;
+  if (e.down || e.fauna) return;
   const boss = bossBrains.get(e);
   if (boss) { boss.alerted = true; if (e.state === 'patrol' || e.state === 'return') { boss.state = 'notice'; boss.timer = BOSS.reaction; e.state = 'notice'; mark(e); } return; }
   if (e.kind === "sleeper") { if (e.state === "sleep") { e.zs = 0; wake(e); } return; }
@@ -136,7 +139,7 @@ export function alertEnemy(e: Enemy, direct = false) {
   }
 }
 export function hearNoise(e: Enemy, loud: number, at?: THREE.Vector3) {
-  if (e.down) return;
+  if (e.down || e.fauna) return; // animals hear through ai/fauna.ts
   if (e.kind === "sleeper") {
     if (e.state !== "sleep") return;
     const before = Math.ceil(e.zs); e.zs = Math.max(0, e.zs - loud); e.quiet = 0;
@@ -240,6 +243,11 @@ export function updateEnemies(dt: number) {
     }
     if (!e.active) { e.rig.root.visible = d < 48; continue; }
     e.rig.root.visible = true;
+    if (e.fauna) { // a boar or a croc: ai/fauna.ts runs its states and sets its velocity; this moves and poses it
+      const nx = e.p.x + e.vel.x * dt, nz = e.p.z + e.vel.z * dt;
+      if (walkable(nx, nz)) { e.p.x = nx; e.p.z = nz; } else e.vel.multiplyScalar(0.3);
+      collide(e.p, e.rig.bounds.radius * 0.8); e.p.y = standHeight(e.p.x, e.p.z); poseRig(e, dt); continue;
+    }
     e.t -= dt;
     if (isBoss(e)) updateBoss(e, dt);
     else if (e.group === 'plantation-boss') updateEscort(e, dt, d);

@@ -710,6 +710,16 @@ export const ENCOUNTERS: EncounterDef[] = [
   enc("brush", "a lone wild monkey in the brush", [[66, 20], [80, 24], [36, 30], [-28, 40], [-90, 40]], 1, 1, [["wild", 1]], 8),
   enc("grotto", "smugglers in the grotto", [[166, 24], [172, 29], [165, 32], [153, -21], [150, 58], [176, 22]], 2, 3, [["bandit", 2], ["wild", 1]], 14),
 ];
+// ---------------------------------------------------------------- wildlife (G1.5 population pass, ai/fauna.ts)
+export type FaunaId = "crab" | "parrot" | "frog" | "boar" | "croc";
+/** where each animal lives: a count in [min, max] seeded per raid at these points (parrots perch on the nearest palm) */
+export const FAUNA_SPAWNS: { id: FaunaId; min: number; max: number; points: Pt[]; note: string }[] = [
+  { id: "crab", min: 7, max: 10, note: "Exile Beach and the cove sand", points: [[-48, 106], [-26, 104], [-16, 109], [6, 108], [24, 108], [40, 107], [52, 106], [74, 106], [-70, 106], [-78, 103], [-90, 100], [-64, 98]] },
+  { id: "parrot", min: 6, max: 8, note: "palms on the beach, Palm Edge and the cove", points: [[-58, 104], [-22, 96], [10, 106], [46, 97], [78, 104], [-14, 72], [14, 70], [-66, 108], [56, 108], [-82, 92], [-38, 64], [20, 60]] },
+  { id: "frog", min: 5, max: 7, note: "the mangrove's water and the grotto", points: [[38, 62], [44, 48], [54, 58], [60, 54], [62, 36], [72, 46], [50, 74], [80, 56], [158, 24], [170, 34], [152, -18]] },
+  { id: "boar", min: 2, max: 3, note: "the plantation fields and the jungle edge", points: [[-14, 25], [15, 37], [-24, 32], [32, 28], [-30, 46], [26, 46], [-10, 36]] },
+  { id: "croc", min: 2, max: 2, note: "the mangrove water", points: [[40, 66], [60, 62], [76, 52], [56, 44], [86, 66]] },
+];
 /** the camp's fixed member: the lemon bandit with the Radio Shack Key (LORE.md EGG ep02) */
 export const FIXED_SPAWNS: Spawn[] = [{ kind: "bandit", x: -63.4, z: 37.2, group: "camp", tag: "lemon", carry: "radio_key" }];
 /** allies share an alert only inside their group's ring (CODE_FINDINGS rule 11) */

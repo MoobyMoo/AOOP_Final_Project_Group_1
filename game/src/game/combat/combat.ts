@@ -1,5 +1,6 @@
 // Shots, melee, damage, knockouts, breakable walls, noise. Feedback channels are separate (CODE_FINDINGS rule 8):
 // enemy flash 90 ms, sound, camera kick on the shot and on kills/hurt only, knockback, hit-stop only on melee kills.
+import { faunaHear } from "../ai/fauna";
 import * as THREE from "three";
 import { G, V, flat, angDiff, type Enemy } from "../core/state";
 import { KINGPIN, BRIEFCASE, ENEMY, FEEL, GEAR_CRIT_BASE } from "./weapons";
@@ -173,7 +174,7 @@ export function damage(e: Enemy, n: number, by: "pistol" | "briefcase" | "slam" 
 export function knockOut(e: Enemy, by: string) {
   if (G.bot) recordBotCombat("kill", by === "briefcase" ? "melee" : by === "pistol" ? "pistol" : "environment", G.raidT, e.id);
   e.down = true; e.state = "down"; e.downT = 0; e.vel.set(0, 0, 0);
-  G.log.kills[e.kind] = (G.log.kills[e.kind] ?? 0) + 1; if (by === "pistol" || by === "briefcase") G.log.killsBy[by]++;
+  G.log.kills[e.fauna ?? e.kind] = (G.log.kills[e.fauna ?? e.kind] ?? 0) + 1; if (by === "pistol" || by === "briefcase") G.log.killsBy[by]++;
   sfx("ko"); G.stage.kick.add(e.p.clone().sub(G.pp).setY(0).normalize().multiplyScalar(FEEL.killKick * 0.5));
   if (by === "briefcase") G.hitStop = FEEL.hitStopKill;
   floatText(e.kind === "sleeper" ? "THE SLEEPER IS OUT COLD!" : ["OOF!", "WHOOPS!", "NIGHTY NIGHT!", "BONKED!"][e.id % 4], e.p.clone().setY(e.rig.bounds.height + 0.8), "#ffd84a", e.kind === "sleeper" ? 34 : 24);
@@ -185,9 +186,11 @@ export function knockOut(e: Enemy, by: string) {
 
 /** noise: a visible ring when loud; wakes/alerts listeners inside the radius (rule 10: predictable) */
 export function makeNoise(at: THREE.Vector3, r: number, kind: string) {
+  faunaHear(at, r, kind); // gunfire and the like scatter the ambient animals (ai/fauna.ts)
   for (const e of G.enemies) { if (e.down) continue; const d = flat(at, e.p); if (d < enemyHearingRange(e, r)) hearNoise(e, kind === "shot" ? 1 : kind === "smash" ? 1 : 0.5, at); }
   if (r >= 8) hud.noiseRing(at, r);
 }
 void isWall; void tmp; void ENEMY;
 // capture and test handle (tools/combatfeel.mjs): read-only queries, no game state changes
 (globalThis as unknown as { __combat: object }).__combat = { surfaceAt, headCenter, aimHead, critMultiplier, rayShot, throwDemo, ground: (x: number, z: number) => zoneAt(x, z)?.ground ?? null, live: () => pool.filter((b) => b.alive).length };
+

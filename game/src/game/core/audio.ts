@@ -112,6 +112,10 @@ const DEFS = {
   heal: { osc: [{ f: 400, f2: 800, wave: "sine", d: 0.3, g: 0.2 }] },
   ui: { osc: [{ f: 700, wave: "triangle", d: 0.04, g: 0.1 }] },
   door: { nz: [{ lp: 600, d: 0.4, g: 0.5 }], osc: [{ f: 80, f2: 60, wave: "sine", d: 0.4, g: 0.4 }] },
+  // G1.5 population pass: synth stand-ins for the wildlife (the lead swaps in samples under the same names)
+  squawk: { osc: [{ f: 1800, f2: 2600, wave: "sawtooth", d: 0.09, g: 0.12 }, { f: 2200, f2: 1500, wave: "sawtooth", d: 0.12, g: 0.1, at: 0.11 }, { f: 1900, f2: 2700, wave: "square", d: 0.08, g: 0.06, at: 0.26 }], jitter: 0.1 },
+  grunt: { osc: [{ f: 120, f2: 70, wave: "sawtooth", d: 0.25, g: 0.3 }], nz: [{ lp: 700, d: 0.2, g: 0.35 }], jitter: 0.1 },
+  splash: { nz: [{ lp: 2600, lp2: 500, hp: 200, d: 0.45, g: 0.5 }], jitter: 0.1 },
 } satisfies Record<string, Def>;
 export type Sfx = keyof typeof DEFS;
 const combo: Record<string, { n: number; t: number }> = {};

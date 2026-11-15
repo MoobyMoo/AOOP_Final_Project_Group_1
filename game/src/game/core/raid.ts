@@ -19,9 +19,10 @@ import { GUN, refreshGun } from "../combat/gunstats";
 import { updateLaser } from "../combat/laser";
 import { tuneObject } from "./tune";
 import { spawnEnemies, updateEnemies } from "../ai/enemies";
+import { spawnFauna, updateFauna, setFaunaNoise } from "../ai/fauna";
 import { setupCrates, updateLoot, renderLoot, sortPack, packValue, itemDef } from "../loot/raidloot";
 import { updatePlayer } from "../actors/player";
-import { resetWalls, updateBullets, renderBullets, clearBullets } from "../combat/combat";
+import { resetWalls, updateBullets, renderBullets, clearBullets, makeNoise } from "../combat/combat";
 import { updateFeedback } from "../combat/feedback";
 import { updateRangFx, clearRangFx } from "../combat/rangfx";
 import { updateDashFx, clearDashFx } from "../actors/dash";
@@ -89,7 +90,8 @@ export function startRaid(end: (r: RaidResult) => void) {
   G.discovered = new Set(); G.area = ""; G.lockTarget = null;
   G.log = { crates: 0, kills: {}, killsBy: { pistol: 0, briefcase: 0 }, shots: 0, hits: 0, hurt: 0, rolls: 0, swaps: 0, missed: 0, firstShot: -1, firstCrate: -1, firstRoll: -1, breaks: [], value: 0 };
   G.lootCtx = { raid: G.save.raids, cratesOpened: 0, usefulFound: 0, emptyStreak: 0, ammoFound: 0, orderNeeds: G.save.order && !G.save.order.done ? Object.keys(G.save.order.progress) : [] };
-  if (QS.has("peace")) { for (const e of G.enemies) e.rig.dispose(); G.enemies = []; } else spawnEnemies((G.save.raids + WORLD_SEED) % 2);
+  setFaunaNoise((at, r, kind) => makeNoise(at, r, kind)); // a flushed parrot's squawk is a noise event at your position
+  if (QS.has("peace")) { for (const e of G.enemies) e.rig.dispose(); G.enemies = []; if (!QS.has("nofauna")) { let n = 90000; spawnFauna(() => n++); } } else spawnEnemies((G.save.raids + WORLD_SEED) % 2); // peace keeps the animals
   setupCrates();
   for (const c of raidScene.children) if (!before.has(c)) c.userData.perRaid = true;
   resetHandling(); hud.build(); buildMinimap(); resetTrail(); clearBullets(); clearRangFx(); clearDashFx(); startInteractions(); bonkT = 0;
@@ -127,7 +129,7 @@ const GUN_SCALE = 0.65;
 const focus = new THREE.Vector3(), chest = new THREE.Vector3(), sockQ = new THREE.Quaternion(), yawQ = new THREE.Quaternion(), UPV = new THREE.Vector3(0, 1, 0);
 export function stepRaid(dt: number) {
   G.raidT += dt; G.time += dt;
-  updatePlayer(dt); updateBullets(dt); updateEnemies(dt); updateLoot(dt); updateInteractions(dt); recordTrail();
+  updatePlayer(dt); updateBullets(dt); updateEnemies(dt); updateFauna(dt); updateLoot(dt); updateInteractions(dt); recordTrail();
   if (!G.alive && G.hp <= 0) { bonkT += dt; if (bonkT > 1.8 && bonkT - dt <= 1.8) finish("bonked", 0); }
 }
 /** per render frame (not per sim step): pose, camera, FX */

@@ -131,8 +131,8 @@ const BODY_NAME: Record<Enemy["kind"], string> = { wild: "Wild monkey", bandit: 
 function lootTargetOf(c: Crate, s: SearchSession): LootTarget {
   if (c.kind === "body") c.items = s.slots.filter((q) => !q.taken).map((q) => q.item);
   c.items ??= s.slots.filter((q) => !q.taken).map((q) => q.item);
-  const name = c.kind === "body" ? (c.enemy?.tag === "plantation-foreman" ? "Foreman Knucklebark" : BODY_NAME[c.enemy?.kind ?? "bandit"]) : c.kind === "container" && c.type ? CONTAINER_NAME[c.type] : c.fixed === "satchel" ? "Your satchel" : c.fixed === "supply" ? "Supply gondola" : c.fixed === "key" ? "Gang strongbox" : `${c.tier[0].toUpperCase()}${c.tier.slice(1)} crate`;
-  const sub = c.kind === "body" ? "Knocked out" : c.note;
+  const name = c.kind === "body" ? (c.enemy?.tag === "plantation-foreman" ? "Foreman Knucklebark" : c.enemy?.fauna ? { boar: "Boar", croc: "Crocodile" }[c.enemy.fauna] : BODY_NAME[c.enemy?.kind ?? "bandit"]) : c.kind === "container" && c.type ? CONTAINER_NAME[c.type] : c.fixed === "satchel" ? "Your satchel" : c.fixed === "supply" ? "Supply gondola" : c.fixed === "key" ? "Gang strongbox" : `${c.tier[0].toUpperCase()}${c.tier.slice(1)} crate`;
+  const sub = c.kind === "body" ? (c.enemy?.fauna ? "Out cold" : "Knocked out") : c.note;
   return { name, sub, kind: c.kind === "body" ? "body" : "container", items: c.items, search: s,
     near: () => G.alive && G.rollT < 0 && flat(c, G.pp) < 2.2,
     onClose: () => { if (searching === c) searching = null; if (emptied(c)) c.opened = true; } };
