@@ -1,8 +1,8 @@
 {
  "groups": {
   "bunker": {
-   "glb_bytes": 1147108,
-   "tris": 23693,
+   "glb_bytes": 1147628,
+   "tris": 23705,
    "assets": {
     "bunker_room": {
      "tris": 9712,
@@ -70,7 +70,7 @@
      "glow": 1.8
     },
     "bunker_ladder": {
-     "tris": 824,
+     "tris": 836,
      "parts": [],
      "points": [
       "climb",
@@ -190,8 +190,8 @@
    }
   },
   "camp": {
-   "glb_bytes": 679948,
-   "tris": 14634,
+   "glb_bytes": 1043432,
+   "tris": 22634,
    "assets": {
     "tent_a": {
      "tris": 684,
@@ -391,6 +391,56 @@
      "blocksMove": true,
      "blocksShot": false,
      "tall": true,
+     "glow": 1.8
+    },
+    "sandbags": {
+     "tris": 1372,
+     "parts": [],
+     "points": [],
+     "footprint": 1.2,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "crate_stack": {
+     "tris": 2730,
+     "parts": [],
+     "points": [],
+     "footprint": 1.2,
+     "blocksMove": true,
+     "blocksShot": true,
+     "tall": false,
+     "glow": 1.8
+    },
+    "washing_line": {
+     "tris": 1754,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": true,
+     "glow": 1.8
+    },
+    "lean_to": {
+     "tris": 1272,
+     "parts": [],
+     "points": [],
+     "footprint": 1.5,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "dummy_seated": {
+     "tris": 872,
+     "parts": [],
+     "points": [],
+     "footprint": 0.6,
+     "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
      "glow": 1.8
     }
    }
@@ -1415,8 +1465,8 @@
    }
   },
   "landmarks": {
-   "glb_bytes": 946796,
-   "tris": 22146,
+   "glb_bytes": 1011504,
+   "tris": 23582,
    "assets": {
     "ferry": {
      "tris": 6218,
@@ -1431,7 +1481,7 @@
      "glow": 1.8
     },
     "bomber": {
-     "tris": 3445,
+     "tris": 3900,
      "parts": [
       "prop_l",
       "prop_r"
@@ -1512,6 +1562,36 @@
      "points": [],
      "footprint": 0.6,
      "blocksMove": true,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bomber_debris_a": {
+     "tris": 313,
+     "parts": [],
+     "points": [],
+     "footprint": 0.8,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bomber_debris_b": {
+     "tris": 380,
+     "parts": [],
+     "points": [],
+     "footprint": 0.8,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "bomber_debris_c": {
+     "tris": 288,
+     "parts": [],
+     "points": [],
+     "footprint": 0.8,
+     "blocksMove": false,
      "blocksShot": false,
      "tall": false,
      "glow": 1.8
@@ -1655,7 +1735,7 @@
    }
   },
   "prefab": {
-   "glb_bytes": 2551452,
+   "glb_bytes": 2551580,
    "tris": 43346,
    "assets": {
     "guard_hut": {
@@ -1807,11 +1887,11 @@
    }
   },
   "ruins": {
-   "glb_bytes": 1009404,
-   "tris": 22448,
+   "glb_bytes": 1038876,
+   "tris": 23028,
    "assets": {
     "ruin_floor_a": {
-     "tris": 728,
+     "tris": 1008,
      "parts": [],
      "points": [],
      "footprint": 0.1,
@@ -1821,7 +1901,7 @@
      "glow": 1.8
     },
     "ruin_floor_b": {
-     "tris": 1216,
+     "tris": 1428,
      "parts": [],
      "points": [],
      "footprint": 0.1,
@@ -1831,7 +1911,7 @@
      "glow": 1.8
     },
     "ruin_floor_c": {
-     "tris": 520,
+     "tris": 608,
      "parts": [],
      "points": [],
      "footprint": 0.1,
@@ -1969,8 +2049,8 @@
    }
   },
   "traversal": {
-   "glb_bytes": 781664,
-   "tris": 17533,
+   "glb_bytes": 980216,
+   "tris": 22335,
    "assets": {
     "zip_tower": {
      "tris": 2940,
@@ -2036,6 +2116,46 @@
      "points": [],
      "footprint": 0.3,
      "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "dock_a": {
+     "tris": 1520,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "dock_b": {
+     "tris": 1760,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "dock_broken": {
+     "tris": 1256,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8
+    },
+    "dock_piles": {
+     "tris": 266,
+     "parts": [],
+     "points": [],
+     "footprint": 0.3,
+     "blocksMove": true,
      "blocksShot": false,
      "tall": false,
      "glow": 1.8
@@ -2365,6 +2485,6 @@
    }
   }
  },
- "total_tris": 186939,
- "total_bytes": 9525504
+ "total_tris": 201769,
+ "total_bytes": 10182368
 }

@@ -5,7 +5,7 @@ from hprops import *
 G = "prefab"
 
 
-def pennant(g, at, col=YELLOW, s=1.0):
+def pennant(g, at, col=RED, s=1.0):
     x, y, z = at
     g.pole((x, y, z), (x, y, z + 1.1 * s), 0.035, WOOD_D[0], n=5, b=0)
     grid = [[(x + 0.02 + 0.6 * s * k / 3, y + 0.05 * sin(k * 1.9), z + 1.05 * s - 0.16 * s * i * (1 - k / 4.5) - 0.04 * k) for k in range(4)] for i in range(3)]
@@ -61,7 +61,7 @@ def cellblock():
     sign(g, "CELL BLOCK", (-3, -4.24, H + 0.47), h=0.34, col=CREAM, ink="#3a2a1c", th=0.07)
     for x in (-4.3, -1.7):
         g.box(0.08, 0.08, 0.5, (x, -4.19, H - 0.14), col=WOOD_D[0], b=0)
-    sign(h.up("i"), "WARDEN", (4 - th / 2 - 0.07, -1, 2.62), face=LEFT, h=0.16, col=YELLOW)
+    sign(h.up("i"), "WARDEN", (4 - th / 2 - 0.07, -1, 2.62), face=LEFT, h=0.16, col=OCHRE)
     # cells: a bunk on the west wall, a bucket, a stool; tally marks on the back wall
     for i, x0 in enumerate((-8, -4, 0)):
         h.put(bunk, x0 + 0.72, 2.45, 90)
@@ -280,7 +280,7 @@ def radio_shack():
     dz = zf(dy) + 0.05
     g.pole((dx, dy, dz), (dx, dy, dz + 0.6), 0.05, STEEL_D, n=5, b=0)
     g.lathe([(0.0, 0.0), (0.3, 0.06), (0.52, 0.2), (0.5, 0.24), (0.28, 0.1), (0.0, 0.05)], (dx, dy, dz + 0.5), (40, 0, 30), col=CREAM, n=9)
-    sign(g, "RADIO", (0.7, -2.3, zf(-2.3) + 0.52), h=0.36, col="#3d4a52", ink=YELLOW, th=0.07)
+    sign(g, "RADIO", (0.7, -2.3, zf(-2.3) + 0.52), h=0.36, col="#3d4a52", ink=CREAM, th=0.07)
     for x in (0.05, 1.35):
         g.box(0.07, 0.07, 0.45, (x, -2.26, zf(-2.3) - 0.02), col=WOOD_D[0], b=0)
     # inside

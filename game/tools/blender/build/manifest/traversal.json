@@ -1,6 +1,6 @@
 {
  "group": "traversal",
- "glb_bytes": 781664,
+ "glb_bytes": 980216,
  "assets": {
   "zip_tower": {
    "tris": 2940,
@@ -66,6 +66,46 @@
    "points": [],
    "footprint": 0.3,
    "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "dock_a": {
+   "tris": 1520,
+   "parts": [],
+   "points": [],
+   "footprint": 0.3,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "dock_b": {
+   "tris": 1760,
+   "parts": [],
+   "points": [],
+   "footprint": 0.3,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "dock_broken": {
+   "tris": 1256,
+   "parts": [],
+   "points": [],
+   "footprint": 0.3,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "dock_piles": {
+   "tris": 266,
+   "parts": [],
+   "points": [],
+   "footprint": 0.3,
+   "blocksMove": true,
    "blocksShot": false,
    "tall": false,
    "glow": 1.8

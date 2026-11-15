@@ -24,7 +24,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 OUT_GLB = os.path.join(ROOT, "public", "models", "build")
 OUT_BLEND = os.path.join(HERE, "blend")
-OUT_RENDER = os.path.join(ROOT, "spikes", "build")
+OUT_RENDER = os.environ.get("BV_RENDER", os.path.join(ROOT, "spikes", "build"))     # BV_RENDER=/tmp/... keeps review sheets off the project disk
 
 
 # ------------------------------------------------------------------ colour (authored in sRGB, stored linear)
@@ -714,6 +714,7 @@ class Asset:
         self.rng = random.Random(seed if seed is not None else hash_str(name))
         self.static, self.parts, self.points = {}, {}, {}
         self.ground, self.wall, self.ao_dist, self.ao_min, self.ao_self, self.note = ground, wall, ao_dist, ao_min, ao_self, note
+        self.contact_z = 0.0      # the level the piece stands on (house floors sit at 0.08)
         self.objects = []
         ASSETS.append(self)
 
@@ -773,6 +774,7 @@ def hash_str(s):
 _AO_DIRS = None
 CHECK = os.environ.get("BUILD_CHECK") == "1"
 SIDE_BOOST = 0.8
+CONTACT, CONTACT_H = 0.5, 0.6     # side faces at the ground keep this share of their light; back to full by this height
 
 
 def _ao_dirs(n=20):
@@ -838,6 +840,12 @@ def bake_ao(asset, extra=None):
                     # shade. Bake an "equator" ambient term into the sides so they keep their local colour.
                     k = min(1.0, max(0.0, (0.95 - n[2]) / 0.45))
                     a *= 1.0 + SIDE_BOOST * k * k * (3 - 2 * k)
+                    # Contact darkening (G1 council fix round 1): a side face darkens toward the ground it stands on,
+                    # so a crate, a barrel or a wall base carries its own contact line. The ray AO above cannot do it
+                    # alone: the side boost lifts it back and a box has no vertices between its base and its top.
+                    if asset.ground and CONTACT < 1.0:
+                        hgt = max(0.0, min(1.0, (g.P[vi][2] - asset.contact_z) / CONTACT_H))
+                        a *= CONTACT + (1.0 - CONTACT) * (hgt * hgt * (3 - 2 * hgt)) ** 0.8 if k > 0.3 else 1.0
                     cache[key] = a
                 row.append(tuple(min(1.0, lin[i] * (tint[i] + (1 - tint[i]) * min(a, 1.0)) * max(1.0, a)) for i in range(3)))
             newc.append(row)

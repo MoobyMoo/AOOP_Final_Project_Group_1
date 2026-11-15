@@ -133,6 +133,101 @@ def boardwalk(name, seed, L=4.0, W=2.8, broken=False, ramp=False):
     return a
 
 
+# ------------------------------------------------------------------ the landing dock (G1 council fix round 1)
+DOCK_WOOD = WOOD_GREY + ["#a8916f", "#9d8766", "#b39a78"]
+PILE = ["#6b5540", "#5f4a37", "#765f48"]
+
+
+def dock_pile(g, r, x, y, top=0.78, bot=-2.4, lean=(0.0, 0.0), rad=0.15, band=True):
+    """a driven pile: a heavy log, darker and weedy below the tide line, a rope band and a chamfered head above the deck"""
+    p0, p1 = Vector((x - lean[0] * (top - bot) * 0.0, y, bot)), Vector((x + lean[0], y + lean[1], top))
+    col = pick(r, PILE)
+    mid = p0.lerp(p1, (-0.35 - bot) / (top - bot))
+    g.pole(p0, mid, rad + 0.012, shade(col, 0.72), n=8, b=0.0, cap="#3a3a2c")                 # wet, weed-dark below the water line
+    g.pole(mid - (p1 - p0).normalized() * 0.03, p1, rad, col, n=8, r2=rad * 0.9, b=0.03, cap=ENDGRAIN)
+    if band:
+        lashing(g, p0.lerp(p1, (top - 0.3 - bot) / (top - bot)), p1 - p0, rad * 0.93, turns=2, rr=0.032)
+    return p1
+
+
+def dock_bent(g, r, x, W, lean=0.0, cap_beam=True, brace=True):
+    """one bent: a pile each side, a cap beam across under the stringers, cross bracing below it"""
+    ys = (-(W / 2 - 0.1), W / 2 - 0.1)
+    for y in ys:
+        dock_pile(g, r, x, y, lean=(lean, 0.0))
+    if cap_beam:
+        g.beam((x, ys[0] - 0.42, -0.2), (x, ys[1] + 0.42, -0.2), 0.24, 0.22, pick(r, WOOD_D), b=0.03, roll=0, jit=0.04)
+    if brace:
+        for sgn, dx in ((1, 0.2), (-1, -0.2)):
+            g.beam((x + dx, ys[0] * sgn, -0.42), (x + dx, ys[1] * sgn, -1.55), 0.13, 0.06, pick(r, WOOD_D), b=0.012, jit=0.05)
+
+
+def dock(name, seed, L=4.0, W=2.8, variant="a"):
+    """a pier section along x, deck top at z 0.16 like the boardwalk. Built the way a pier is: piles, cap beams,
+    three stringers, deck boards, a kerb. variant "b" adds a mooring cleat and a rope coil; "broken" is the far end
+    (+x): the last bent has gone, a stringer has snapped and hangs in the water, boards are missing or dangling."""
+    a = Asset(name, G, footprint=0.3, seed=seed, ground=False, ao_dist=1.2)
+    g, r = a.mesh(), a.rng
+    broken = variant == "broken"
+    zt = 0.16
+    xa, xb = -L / 2 + 0.5, L / 2 - 0.5
+    dock_bent(g, r, xa, W)
+    if not broken:
+        dock_bent(g, r, xb, W)
+    else:      # the far bent: one pile left, leaning out, its cap beam snapped off short
+        tip = dock_pile(g, r, xb + 0.1, -(W / 2 - 0.1), top=0.5, lean=(0.5, -0.12), band=False)
+        g.beam((xb + 0.42, -(W / 2 + 0.3), -0.34), (xb + 0.5, -0.2, -0.2), 0.24, 0.22, pick(r, WOOD_D), b=0.03, jit=0.04)
+    # stringers: the load path the judges missed. They sit on the cap beams and oversail them
+    for i, y in enumerate((-(W / 2 - 0.45), 0.0, W / 2 - 0.45)):
+        x1 = L / 2 + 0.02
+        if broken:
+            x1 = (0.75, 1.5, 0.3)[i]
+        g.beam((-L / 2 - 0.02, y, -0.01), (x1, y, -0.01), 0.18, 0.18, pick(r, WOOD_D), b=0.025, jit=0.04)
+        if broken:           # splintered end: two sharp slivers
+            for k in (-1, 1):
+                g.emit(p_prism([(0.0, -0.045), (0.34 + 0.1 * k, 0.0), (0.0, 0.045)], 0.07), pick(r, WOOD_PALE), T(x1 - 0.02, y + k * 0.045, -0.085, 0, -6 * k, 0), jit=0.04)
+    if broken:               # the snapped length of the middle stringer: one end still pinned, the other in the water
+        g.beam((1.42, 0.05, -0.1), (L / 2 + 0.75, 0.42, -1.25), 0.18, 0.18, pick(r, WOOD_D), b=0.025, jit=0.04)
+    n = int(L / 0.42)
+    pw = L / n
+    gone = {n - 1, n - 2, n - 4} if broken else set()
+    for i in range(n):
+        x = -L / 2 + pw * (i + 0.5)
+        if i in gone:
+            continue
+        ln, rot, y0, z = W + r.uniform(-0.1, 0.14), (0, 0, r.uniform(-1.4, 1.4)), r.uniform(-0.05, 0.05), zt - 0.08
+        if broken and i == n - 3:          # a board left hanging by one nail
+            ln, rot, y0, z = W * 0.62, (0, 0, 8), -W * 0.19, zt - 0.085
+        if broken and i == n - 5:          # and one cracked through, its outer half sagging
+            ln, y0 = W * 0.55, W * 0.225
+            g.box(pw - 0.05, W * 0.44, 0.08, (x + 0.03, -W * 0.3, zt - 0.15), (-13, 0, -3), col=pick(r, DOCK_WOOD), b=0.02, jit=0.05)      # it rests on the outer stringer
+        g.box(pw - 0.035, ln, 0.08, (x, y0, z), rot, col=pick(r, DOCK_WOOD), b=0.02, jit=0.05)
+    # kerbs: a low rail of squared timber along both edges, stopped short where the deck is gone
+    kx1 = L / 2 - 0.62 if not broken else 0.1
+    for sy in (-1, 1):
+        g.beam((-L / 2 + 0.62, sy * (W / 2 - 0.16), zt + 0.045), (kx1, sy * (W / 2 - 0.16), zt + 0.045), 0.13, 0.11, pick(r, WOOD_D), b=0.02, jit=0.04)
+    if variant == "b":
+        g.box(0.5, 0.14, 0.1, (0.5, W / 2 - 0.5, zt - 0.005), col=IRON, b=0.02)
+        g.box(0.12, 0.12, 0.16, (0.5, W / 2 - 0.5, zt + 0.03), col=IRON, b=0.02)
+        for k in range(3):
+            g.emit(p_lathe([(0.22, 0), (0.28, 0.04), (0.22, 0.08)], 9, cap0=False, cap1=False), ROPE, T(-0.7, -W / 2 + 0.62, zt - 0.012 + k * 0.066), jit=0.04)
+        g.box(0.62, 0.46, 0.34, (-1.0, W / 2 - 0.7, zt - 0.012), (0, 0, 12), col=pick(r, WOOD), b=0.03, jit=0.04)
+    if broken:               # a loose board that dropped and wedged between the pile and the snapped stringer
+        g.box(0.3, 1.5, 0.07, (1.75, -0.5, -0.62), (22, 12, 24), col=pick(r, DOCK_WOOD), b=0.02, jit=0.05)
+    return a
+
+
+def dock_piles(name, seed):
+    """what is left of the pier beyond its broken end: two piles standing in the water, a cap beam hanging off one"""
+    a = Asset(name, G, footprint=0.3, blocksMove=True, seed=seed, ground=False, ao_dist=1.2)
+    g, r = a.mesh(), a.rng
+    dock_pile(g, r, 0.0, -1.3, top=0.55, lean=(0.16, 0.1), band=False)
+    dock_pile(g, r, 0.2, 1.3, top=0.25, lean=(-0.22, -0.16), band=False)
+    g.beam((0.14, -1.55, 0.2), (0.02, 1.2, -0.28), 0.24, 0.22, pick(r, WOOD_D), b=0.03, jit=0.04)
+    rope(g, [(0.15, -1.2, 0.36), (0.6, -0.6, -0.5)], 0.03, sag=0.0, seg=2)
+    return a
+
+
 def bridge(name, seed, L=5.0, W=2.2):
     """plank bridge with rope rails: planks follow a shallow sag between four corner posts"""
     a = Asset(name, G, footprint=0.3, seed=seed, ao_dist=1.0)
@@ -327,6 +422,10 @@ def build():
     boardwalk("boardwalk_a", 94)
     boardwalk("boardwalk_b", 95, broken=True)
     boardwalk("boardwalk_ramp", 96, L=2.6, ramp=True)
+    dock("dock_a", 104)
+    dock("dock_b", 105, variant="b")
+    dock("dock_broken", 106, variant="broken")
+    dock_piles("dock_piles", 107)
     bridge("bridge", 97)
     raft("raft", 98)
     hatch("hatch", 99)

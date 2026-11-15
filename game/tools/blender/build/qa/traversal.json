@@ -42,6 +42,48 @@
    ],
    "ground_z": -0.7
   },
+  "dock_a": {
+   "pass": true,
+   "tris": 1520,
+   "errors": [],
+   "warnings": [
+    "dock_a__matte: duplicate verts=32 loose verts=0",
+    "hidden back-to-back faces: dock_a__matte (21 pairs) - delete to save tris",
+    "asset lowest point z=-2.4 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -2.4
+  },
+  "dock_b": {
+   "pass": true,
+   "tris": 1760,
+   "errors": [],
+   "warnings": [
+    "dock_b__matte: duplicate verts=32 loose verts=0",
+    "hidden back-to-back faces: dock_b__matte (23 pairs) - delete to save tris",
+    "asset lowest point z=-2.4 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -2.4
+  },
+  "dock_broken": {
+   "pass": true,
+   "tris": 1256,
+   "errors": [],
+   "warnings": [
+    "dock_broken__matte: duplicate verts=19 loose verts=0",
+    "hidden back-to-back faces: dock_broken__matte (14 pairs) - delete to save tris",
+    "asset lowest point z=-2.4283 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -2.4283
+  },
+  "dock_piles": {
+   "pass": true,
+   "tris": 266,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-2.4165 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -2.4165
+  },
   "hatch": {
    "pass": true,
    "tris": 1472,

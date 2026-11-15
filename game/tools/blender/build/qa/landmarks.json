@@ -13,14 +13,43 @@
   },
   "bomber": {
    "pass": true,
-   "tris": 3445,
+   "tris": 3900,
    "errors": [],
    "warnings": [
-    "bomber__matte: duplicate verts=2 loose verts=0",
-    "3 parts fully enclosed, not touching (eyes/internals?): ['bomber__matte', 'bomber__matte', 'bomber__matte']",
+    "bomber__matte: duplicate verts=11 loose verts=0",
+    "hidden back-to-back faces: bomber__matte (8 pairs) - delete to save tris",
+    "4 parts fully enclosed, not touching (eyes/internals?): ['bomber__matte', 'bomber__matte', 'bomber__matte', 'bomber__matte']",
     "asset lowest point z=-0.516 (not resting on ground plane z=0)"
    ],
    "ground_z": -0.516
+  },
+  "bomber_debris_a": {
+   "pass": true,
+   "tris": 313,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.2143 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.2143
+  },
+  "bomber_debris_b": {
+   "pass": true,
+   "tris": 380,
+   "errors": [],
+   "warnings": [
+    "bomber_debris_b__matte: duplicate verts=12 loose verts=0",
+    "asset lowest point z=-0.025 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.025
+  },
+  "bomber_debris_c": {
+   "pass": true,
+   "tris": 288,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.5087 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.5087
   },
   "bottle": {
    "pass": true,

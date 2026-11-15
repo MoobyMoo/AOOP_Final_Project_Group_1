@@ -3,7 +3,7 @@
  "assets": {
   "bunker_set": {
    "pass": true,
-   "tris": 19753,
+   "tris": 19765,
    "errors": [],
    "warnings": [
     "bunker_counter__matte: duplicate verts=2 loose verts=0",
@@ -29,7 +29,7 @@
   },
   "bunker_fx_heart+set": {
    "pass": true,
-   "tris": 21467,
+   "tris": 21479,
    "errors": [],
    "warnings": [
     "bunker_counter__matte: duplicate verts=2 loose verts=0",
@@ -57,7 +57,7 @@
   },
   "bunker_fx_mag+set": {
    "pass": true,
-   "tris": 20533,
+   "tris": 20545,
    "errors": [],
    "warnings": [
     "bunker_counter__matte: duplicate verts=2 loose verts=0",
@@ -77,15 +77,15 @@
     "hidden back-to-back faces: bunker_cot__matte<->bunker_room__matte (7 pairs) - delete to save tris",
     "hidden back-to-back faces: bunker_ladder__matte<->bunker_room__matte (6 pairs) - delete to save tris",
     "hidden back-to-back faces: bunker_room__matte<->bunker_shelf__matte (4 pairs) - delete to save tris",
-    "hidden back-to-back faces: bunker_shelf__matte (2 pairs) - delete to save tris",
     "hidden back-to-back faces: bunker_room__matte<->bunker_fx_mag__matte (2 pairs) - delete to save tris",
+    "hidden back-to-back faces: bunker_shelf__matte (2 pairs) - delete to save tris",
     "asset lowest point z=-0.11 (not resting on ground plane z=0)"
    ],
    "ground_z": -0.11
   },
   "bunker_fx_neon+set": {
    "pass": true,
-   "tris": 20565,
+   "tris": 20577,
    "errors": [],
    "warnings": [
     "bunker_counter__matte: duplicate verts=2 loose verts=0",
@@ -113,7 +113,7 @@
   },
   "bunker_fx_pack+set": {
    "pass": true,
-   "tris": 20387,
+   "tris": 20399,
    "errors": [],
    "warnings": [
     "bunker_counter__matte: duplicate verts=2 loose verts=0",

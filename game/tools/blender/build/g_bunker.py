@@ -287,9 +287,13 @@ def bunker_ladder(name, seed, x=0.0, y=-4.7):
     for k in range(5):
         ang = radians(18 + k * 36)
         g.emit(p_sphere(0.05, 5, 2, z0=0, z1=1), STEEL_L, along((x + cos(ang) * 0.86, y + 0.1 + sin(ang) * 0.86, 3.3), (x + cos(ang) * 3, y + 0.1 + sin(ang) * 3, 3.3)))
-    g.emit(p_lathe([(0.707, 4.4), (0.707, 3.1)], 12, cap0=False, cap1=False, arc=180), lambda c, tg: mix("#d9b877", "#7a6248", max(0.0, (4.4 - c.z) / 1.3)), T(x, y + 0.1, 0), jit=0, smooth=80)
+    # G1 council: the lit lining made the shaft read as a lamp shade. It is a dark hole now: near-black up the pipe,
+    # a little cool sky caught on the lip, and the lamp point hangs BELOW the mouth so the light falls on the ladder,
+    # the mat and the floor instead of filling the pipe.
+    g.emit(p_lathe([(0.707, 4.4), (0.707, 3.1)], 12, cap0=False, cap1=False, arc=180), lambda c, tg: mix("#0e0c0b", "#2c3136", max(0.0, (3.55 - c.z) / 0.45) ** 1.5), T(x, y + 0.1, 0), jit=0, smooth=80)
+    g.emit(p_lathe([(0.72, 4.43), (0.0, 4.43)], 12, cap0=False, cap1=False, arc=180), "#0b0a09", T(x, y + 0.1, 0), jit=0)      # the dark above
     g.box(1.0, 0.7, 0.04, (x, y + 0.9, 0.0), col="#6b7a4f", b=0.012)       # mat
-    a.point("light", (x, y, 3.9))
+    a.point("light", (x, y + 0.55, 2.55))
     a.point("climb", (x, y + 0.7, 0))
     return a
 

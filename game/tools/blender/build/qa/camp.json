@@ -26,6 +26,25 @@
    ],
    "ground_z": -0.03
   },
+  "crate_stack": {
+   "pass": true,
+   "tris": 2730,
+   "errors": [],
+   "warnings": [
+    "hidden back-to-back faces: crate_stack__matte (4 pairs) - delete to save tris"
+   ],
+   "ground_z": 0.0
+  },
+  "dummy_seated": {
+   "pass": true,
+   "tris": 872,
+   "errors": [],
+   "warnings": [
+    "1 parts fully enclosed, not touching (eyes/internals?): ['dummy_seated__matte']",
+    "asset lowest point z=-0.04 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.04
+  },
   "fence_a": {
    "pass": true,
    "tris": 800,
@@ -73,6 +92,16 @@
    ],
    "ground_z": -0.0226
   },
+  "lean_to": {
+   "pass": true,
+   "tris": 1272,
+   "errors": [],
+   "warnings": [
+    "lean_to__matte: duplicate verts=32 loose verts=0",
+    "asset lowest point z=-0.0517 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.0517
+  },
   "log_bench": {
    "pass": true,
    "tris": 260,
@@ -90,6 +119,15 @@
     "asset lowest point z=-0.04 (not resting on ground plane z=0)"
    ],
    "ground_z": -0.04
+  },
+  "sandbags": {
+   "pass": true,
+   "tris": 1372,
+   "errors": [],
+   "warnings": [
+    "asset lowest point z=-0.121 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.121
   },
   "signpost_a": {
    "pass": true,
@@ -149,6 +187,17 @@
     "asset lowest point z=-0.0249 (not resting on ground plane z=0)"
    ],
    "ground_z": -0.0249
+  },
+  "washing_line": {
+   "pass": true,
+   "tris": 1754,
+   "errors": [],
+   "warnings": [
+    "washing_line__matte: duplicate verts=26 loose verts=0",
+    "hidden back-to-back faces: washing_line__matte (81 pairs) - delete to save tris",
+    "asset lowest point z=-0.1023 (not resting on ground plane z=0)"
+   ],
+   "ground_z": -0.1023
   },
   "watchtower": {
    "pass": true,
