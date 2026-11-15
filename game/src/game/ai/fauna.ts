@@ -7,6 +7,8 @@
 //    searchable body (loot/bodies.ts, the shared loot screen) all work unchanged: boars graze in the plantation fields and
 //    on the jungle edge, neutral until you come close or hit one, then charge after a telegraph (the "!" cue, a pawing
 //    windup); crocs lurk in the mangrove water and ambush you at the water's edge, bite once and sink back.
+// Their calm states are named like the monkeys' ("patrol", "return") so the HUD's health bars, threat arrows and the
+// combat music only react once an animal is actually coming for you (windup, charge, bite).
 // Enemies and animals ignore each other (the simple option the brief offers): the monkeys' perception only ever looks
 // at you. Animals hear through makeNoise (combat.ts calls faunaHear) and see you by distance.
 // Models: Fable's rigged fauna_<id> nodes in public/models/fauna.glb when the file is there (cloned with their
@@ -14,6 +16,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/addons/utils/SkeletonUtils.js";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { G, V, flat, type Enemy } from "../core/state";
 import type { Rig } from "../contracts";
 import { walkable } from "../world/grid";
@@ -52,6 +55,7 @@ function fromGlb(id: FaunaId): Model | null {
   const play = (name: string) => { const c = clips.find((q) => q.name.toLowerCase().includes(name)) ?? clips[0]; if (!c) return; const a = mixer.clipAction(c); if (a === cur) return; cur?.fadeOut(0.15); a.reset().fadeIn(0.15).play(); cur = a; };
   play("idle"); return { root, parts: { body }, mixer, play };
 }
+let VC_MAT: THREE.Material | null = null;
 const M = (c: string) => mat(c, { rough: 0.7, rim: 0.6 });
 function part(g: THREE.BufferGeometry, color: string, x = 0, y = 0, z = 0, parent?: THREE.Object3D) { const m = new THREE.Mesh(g, M(color)); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; parent?.add(m); return m; }
 /** the stand-ins: a few shapes each, sized to read at the gameplay camera (a crab is a fist, a boar knee-high to a monkey) */
@@ -85,6 +89,17 @@ function standIn(id: FaunaId): Model {
     part(new THREE.ConeGeometry(0.22, 1.3, 6).rotateX(-Math.PI / 2), "#4f6b3a", 0, 0.2, -1.35, body);
     for (const s of [-1, 1]) part(new THREE.SphereGeometry(0.06, 8, 5), "#e7d34a", s * 0.13, 0.33, 0.95, body);
     for (const [x, z] of [[-0.36, 0.45], [0.36, 0.45], [-0.36, -0.45], [0.36, -0.45]]) part(new THREE.BoxGeometry(0.16, 0.1, 0.22), "#3e5a2e", x, 0.05, z, body);
+  }
+  // the small ones a little larger than life, like the ground items (loot/ground.ts): a fist-sized crab still has to read
+  body.scale.setScalar({ crab: 1.4, parrot: 1.7, frog: 1.4, boar: 1, croc: 1 }[id]);
+  // one draw call for everything that doesn't move on its own: the shapes merged into one vertex-coloured mesh
+  const moving = new Set(Object.entries(parts).filter(([n]) => n !== "body" && (n.startsWith("wing") || n.startsWith("leg"))).map(([, o]) => o));
+  const stat = body.children.filter((c) => (c as THREE.Mesh).isMesh && !moving.has(c)) as THREE.Mesh[];
+  if (stat.length > 1) {
+    const geos = stat.map((m) => { m.updateMatrix(); const g = (m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone()).applyMatrix4(m.matrix); const col = ((m.material as THREE.MeshStandardMaterial).color ?? new THREE.Color(1, 1, 1)), n = g.getAttribute("position").count, c = new Float32Array(n * 3); for (let i = 0; i < n; i++) c.set([col.r, col.g, col.b], i * 3); g.setAttribute("color", new THREE.BufferAttribute(c, 3)); for (const a of Object.keys(g.attributes)) if (!["position", "normal", "color"].includes(a)) g.deleteAttribute(a); return g; });
+    for (const m of stat) m.removeFromParent();
+    const merged = new THREE.Mesh(mergeGeometries(geos, false)!, VC_MAT ??= mat("#ffffff", { rough: 0.7, rim: 0.6, vc: true })); merged.castShadow = true; merged.receiveShadow = true; body.add(merged);
+    for (const [n, o] of Object.entries(parts)) if (o !== body && !moving.has(o)) delete parts[n];
   }
   return { root, parts };
 }
@@ -145,7 +160,7 @@ function nearestPalm(x: number, z: number, not?: { x: number; z: number }, min =
 }
 function spawnHostile(id: "boar" | "croc", x: number, z: number, idn: number) {
   const m = model(id), rig = animalRig(id, m), d = FAUNA[id];
-  const e: Enemy = { id: idn, kind: "wild", fauna: id, rig, p: V(x, z), vel: new THREE.Vector3(), face: G.rng() * 6.28, hp: d.hp, max: d.hp, state: id === "boar" ? "graze" : "lurk", t: G.rng() * 3, actionT: 0,
+  const e: Enemy = { id: idn, kind: "wild", fauna: id, rig, p: V(x, z), vel: new THREE.Vector3(), face: G.rng() * 6.28, hp: d.hp, max: d.hp, state: id === "boar" ? "patrol" : "patrol", t: G.rng() * 3, actionT: 0,
     home: V(x, z), path: [], repath: 0, flash: 0, stolen: [], carry: [...d.drops], zs: 3, quiet: 0, lastSeen: null, lostT: 0, rang: null, active: false, down: false, downT: 0, wakeAt: 0 };
   rig.root.position.set(x, groundHeight(x, z), z); G.stage.scene.add(rig.root); G.enemies.push(e); hostiles.push(e);
   (e as Enemy & { hpSeen?: number }).hpSeen = e.hp;
@@ -156,7 +171,7 @@ function spawnHostile(id: "boar" | "croc", x: number, z: number, idn: number) {
 export function faunaHear(at: THREE.Vector3, r: number, kind: string) {
   const loud = kind === "shot" || kind === "smash" || kind === "melee";
   for (const a of ambient) { const d = flat(a.p, at); if (d < Math.min(FAUNA[a.id].hear, r * 1.4) || (loud && d < FAUNA[a.id].hear)) scare(a, at); }
-  for (const e of hostiles) if (!e.down && e.fauna === "boar" && kind === "shot" && flat(e.p, at) < 9 && e.state === "graze") { e.state = "windup"; e.t = FAUNA.boar.wind; sfx("windup"); }
+  for (const e of hostiles) if (!e.down && e.fauna === "boar" && kind === "shot" && flat(e.p, at) < 9 && e.state === "patrol") { e.state = "windup"; e.t = FAUNA.boar.wind; sfx("windup"); }
 }
 function scare(a: Ambient, from: { x: number; z: number }) {
   if (a.id === "parrot") { if (a.state === "perch") flush(a); return; }
@@ -244,7 +259,7 @@ function boar(e: Enemy, dt: number, hurt: boolean) {
   const b = FAUNA.boar, d = flat(e.p, G.pp);
   e.t -= dt;
   switch (e.state) {
-    case "graze": {
+    case "patrol": {
       if (hurt || d < (G.sprinting ? b.noticeSprint : b.notice)) { e.state = "windup"; e.t = b.wind; sfx("windup"); e.vel.set(0, 0, 0); break; }
       if (e.t <= 0) { e.t = 2 + G.rng() * 3; const a = G.rng() * 6.28, r = G.rng() * 4; tmp.set(e.home.x + Math.cos(a) * r - e.p.x, 0, e.home.z + Math.sin(a) * r - e.p.z); e.vel.copy(tmp.lengthSq() > 0.1 ? tmp.setLength(1.1) : tmp.set(0, 0, 0)); }
       if (e.vel.lengthSq() > 0.01) e.face = Math.atan2(e.vel.x, e.vel.z);
@@ -262,9 +277,9 @@ function boar(e: Enemy, dt: number, hurt: boolean) {
     }
     case "recover":
       e.vel.multiplyScalar(0.8);
-      if (e.t <= 0) { if (d < 14) { e.state = "windup"; e.t = b.wind; sfx("windup"); } else { e.state = "graze"; e.t = b.calm; } }
+      if (e.t <= 0) { if (d < 14) { e.state = "windup"; e.t = b.wind; sfx("windup"); } else { e.state = "patrol"; e.t = b.calm; } }
       break;
-    default: e.state = "graze";
+    default: e.state = "patrol";
   }
 }
 // ---------------------------------------------------------------- the croc: lurks, ambushes at the edge, bites once, sinks
@@ -272,7 +287,7 @@ function croc(e: Enemy, dt: number, hurt: boolean) {
   const c = FAUNA.croc, d = flat(e.p, G.pp), body = (e.rig.root.children[0] ?? e.rig.root);
   e.t -= dt;
   switch (e.state) {
-    case "lurk":
+    case "patrol":
       body.position.y += (-0.32 - body.position.y) * Math.min(1, dt * 4); // only the eyes and the ridge above the water
       e.vel.set(0, 0, 0);
       if (e.t <= 0 && (d < c.ambush || hurt && d < 12)) { e.state = "windup"; e.t = c.wind; sfx("splash"); burst(e.p.clone().setY(0.1), 14, "#bfe8e2", 0.8); e.face = Math.atan2(G.pp.x - e.p.x, G.pp.z - e.p.z); }
@@ -280,13 +295,13 @@ function croc(e: Enemy, dt: number, hurt: boolean) {
     case "windup": body.position.y += (0 - body.position.y) * Math.min(1, dt * 10); if (e.t <= 0) { e.state = "bite"; e.t = 0.25; e.vel.set(Math.sin(e.face), 0, Math.cos(e.face)).multiplyScalar(6); } break;
     case "bite":
       if (d < c.reach && e.actionT !== 1) { hurtPlayer(e.p, "bite", c.bite); e.actionT = 1; }
-      if (e.t <= 0) { e.state = "retreat"; e.t = c.sink; e.actionT = 0; }
+      if (e.t <= 0) { e.state = "return"; e.t = c.sink; e.actionT = 0; }
       break;
-    case "retreat": // back to its spot under the water
+    case "return": // back to its spot under the water
       tmp.set(e.home.x - e.p.x, 0, e.home.z - e.p.z); e.vel.copy(tmp.lengthSq() > 0.04 ? tmp.setLength(2.5) : tmp.set(0, 0, 0)); e.face = Math.atan2(-tmp.x, -tmp.z);
       body.position.y += (-0.32 - body.position.y) * Math.min(1, dt * 2);
-      if (e.t <= 0) { e.state = "lurk"; e.t = c.cooldown; }
+      if (e.t <= 0) { e.state = "patrol"; e.t = c.cooldown; }
       break;
-    default: e.state = "lurk";
+    default: e.state = "patrol";
   }
 }

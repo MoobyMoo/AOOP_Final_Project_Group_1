@@ -707,7 +707,7 @@ export const ENCOUNTERS: EncounterDef[] = [
   enc("plantation", "the plantation's hands and its brute", [[4, 24], [-12, 25], [14, 36], [20, 10], [-4.2, 18.2]], 1, 2, [["brute", 1], ["wild", 2], ["bandit", 1]]),
   enc("mangrove", "swamp monkeys on the boardwalk", [[50.5, 58.5], [42, 58], [64, 46], [68.4, 60.6], [58, 70]], 1, 2, [["wild", 2], ["bandit", 1]]),
   enc("coast", "beachcombers at the ferry and the cove", [[58, 96], [70, 96.5], [-80, 95], [-60, 103], [26.6, 105.5]], 1, 2, [["wild", 2], ["bandit", 1]], 12),
-  enc("brush", "a lone wild monkey in the brush", [[66, 20], [80, 24], [36, 30], [-28, 40], [-90, 40]], 1, 1, [["wild", 1]], 8),
+  enc("brush", "a lone wild monkey in the brush", [[66, 20], [80, 24], [37.5, 30.5], [-28, 40], [-90, 40]], 1, 1, [["wild", 1]], 8),
   enc("grotto", "smugglers in the grotto", [[166, 24], [172, 29], [165, 32], [153, -21], [150, 58], [176, 22]], 2, 3, [["bandit", 2], ["wild", 1]], 14),
 ];
 // ---------------------------------------------------------------- wildlife (G1.5 population pass, ai/fauna.ts)
