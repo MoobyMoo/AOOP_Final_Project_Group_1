@@ -279,7 +279,7 @@ group(2, 22, 0, [["barrel_wood", 3.5, -2.5], ["barrel_wood", 4.4, -1.8], ["sack_
 group(1, 50, 0, [
   ["crate_stack", -9, -3.4, 0.25], ["crate_stack", 8.6, 3.4, -0.3], ["sandbags", -5.2, 6.4, 0.08], ["sandbags", 6.4, -5.4, -0.18],
   ["barrel_rust", 10.2, -2.6], ["barrel_wood", 11.1, -1.7], ["crate_green", -10.6, 3.4, 0.4], ["barrel_teal", -11.9, 2.1],
-  ["log", 4.2, 9.2, 1.35], ["stump", 6.6, 9.8], ["log_bench", 12.6, 6.4, -0.4], ["lantern_post", 12.4, 4.6, 2.2], ["tarp", 13.4, 7.6, -0.35],
+  ["log", 4.2, 9.2, 1.35], ["stump", 6.6, 9.8], ["log_bench", 12.6, 6.4, -0.4], ["lantern_post", 12.4, 4.6, 2.2],
   ["sack_pile", -12.8, -2.4, 0.5], ["banana_stash", -4.6, -6.6, 0.1], ["banana_stash", 4.4, -7.4, -0.2], ["signpost_a", 2.8, 10.6, 0.2],
   ["rockm", -13.6, 8.4], ["bush", -14.4, 10.2], ["banana", 15.6, 0.6], ["banana", 14.8, -4.2], ["fern", -15.2, 4.6],
 ]);
@@ -445,20 +445,20 @@ if (DEMO) {
     }
   };
   // ---- west: the cliff to the camp's north-west corner, the camp's north-east corner to the central ridge
-  seal([[-101.8, 10.6], [-90, 11.4], [-78.6, 12.2]], 1.9);
-  seal([[-45.6, 12.6], [-45, 5.5], [-44.2, -1.4]], 1.9);
+  seal([[-101.8, 10.6], [-90, 11.4], [-80.6, 12.0]], 1.9); // ends clear of the camp corner: the plugs close the last metre
+  seal([[-44.4, 10.4], [-44.6, 4.8], [-44.2, -1.4]], 1.7); // clear of the palisade corner (rock in a wall reads as a glitch)
   // ---- the Peel Gang barricade: the north gate shut, sandbags behind it, the gang's junk piled outside, a painted sign
   { const g = P.find((p) => p.k === "gate" && Math.abs(p.x + 64) < 0.1 && Math.abs(p.z - 12) < 0.1); if (g) g.o = { ...(g.o ?? {}), open: false }; }
-  put("sandbags", -64, 12.78, 0); put("sandbags", -64, 13.5, Math.PI, 0.96);
+  put("sandbags", -64, 12.78, 0);
   group(-64, 10.6, 0, [["crate_stack", -1.4, -0.3, 0.12], ["barrel_rust", 1.6, -0.1], ["barrel_wood", 2.3, -0.9], ["log", 0.4, -1.9, 0.18], ["wall_palisade_post", -3.2, -0.6, 0.2], ["wall_palisade_post", 3.2, 0.2, 2.1], ["signpost_a", 3.4, -1.6, 0.5], ["sack_pile", -3.4, -2.2, 0.4], ["rocks", 0.6, -3.2, 0.3, 1.2]]);
   group(-64, 15.2, 0, [["crate_wood_b", 2.4, 0.2, 0.3], ["lantern", -2.2, 0.3]]);
   // ---- the rockslide in the central ridge's gap: the north road ends in a slope of fresh rock and a buried signpost
   seal([[-4.6, -2.6], [-1.6, -3.4], [1.4, -3.0], [4.4, -2.2]], 2.0, 1.05);
-  group(0, -2.4, 0, [["rubble_pile_rock", -1.6, 1.6, 0.4], ["rubble_pile_rock", 1.4, 1.9, 2.2], ["rubble_pile_rock", 0, 2.6, 4.1], ["rocks", -2.4, 3.6, 0.2, 1.3], ["rocks", 2.2, 3.9, 1.6, 1.1], ["rocks", 0.4, 4.6, 3.1, 1.2], ["rockm", 3.6, 2.8, 0.6], ["log", -3.2, 2.9, 0.7], ["signpost_raft", -0.6, 4.0, 2.4]]);
+  group(0, -2.4, 0, [["rockm", -1.9, 2.2, 0.4, 1.2], ["rockm", 1.7, 2.5, 2.2, 1.1], ["rocks", -2.4, 3.6, 0.2, 1.3], ["rocks", 2.2, 3.9, 1.6, 1.1], ["rocks", 0.4, 4.6, 3.1, 1.2], ["rockm", 3.6, 2.8, 0.6], ["log", -3.2, 2.9, 0.7], ["signpost_raft", -0.6, 4.0, 2.4]]);
   // ---- east: the central ridge's end to the colony's west wall; the rockfall in the colony's west gate
-  seal([[44.8, -6.4], [47.4, -7.4], [49.6, -8.0]], 1.8);
-  seal([[50.4, -0.6], [50.2, 2.0], [50.4, 4.6]], 1.8, 1.0);
-  group(48, 2.2, 0, [["rubble_pile_rock", -0.6, -1.6, 0.6], ["rubble_pile_rock", -0.8, 1.8, 2.4], ["rocks", -2.6, 0.2, 0.4, 1.3], ["rocks", -3.6, 2.6, 1.9, 1.0], ["rockm", -2.2, -2.8, 0.2]]);
+  seal([[44.8, -6.4], [46.0, -7.0], [47.2, -7.6]], 1.8);
+  seal([[53.2, 0.4], [53.2, 2.0], [53.2, 3.6]], 1.7, 1.0); // just inside the gateway, clear of its pillars and the wall
+  group(48, 2.2, 0, [["rockm", -1.2, -1.4, 0.6, 1.1], ["rockm", -1.4, 1.6, 2.4, 1.0], ["rocks", -2.6, 0.2, 0.4, 1.3], ["rocks", -3.6, 2.6, 1.9, 1.0], ["rockm", -2.2, -2.8, 0.2]]);
   // ---- the collapsed boardwalk: its last span and the ramp are gone; a broken section hangs into the water, the piles
   // stand on; behind it the colony's south arch has fallen into its own gateway
   { const r = ROADS.find((q) => q.id === "boardwalk")!; r.pts = r.pts.filter((q) => q[1] > 40); r.pts.push([67.4, 36.4]); } // no causeway under the missing span: it ends in the water
@@ -466,12 +466,13 @@ if (DEMO) {
   put("dock_broken", 67.6, 33.8, H + 0.12, 1, { deck: true, tilt: [0.16, 0.05] }); put("dock_piles", 68.4, 31.4, H + 0.2); put("dock_piles", 67.2, 29.2, H - 0.3);
   group(68, 26, 0, [["driftwood", -1.6, 0.4, 0.9, 1.3], ["driftwood", 1.4, -1.2, 2.6, 1.2], ["reeds", -2.6, 1.6], ["reeds", 2.8, 0.8], ["rocks", 0.4, -2.4, 0.4, 1.1]]);
   for (let i = P.length - 1; i >= 0; i--) { const p = P[i]; if ((p.k === "ruin_arch" || p.k === "ruin_steps") && p.x === 68) P.splice(i, 1); }
-  put("rubble_pile_rock", 66.9, 14.2, 0.4, 1.35); put("rubble_pile_rock", 69.2, 14.0, 2.1, 1.3); put("pillar_c", 68.1, 15.4, 1.2); put("rubble_pile", 68, 13.4, 3.3, 1.2);
-  put("ruin_wall_broken", 68, 12.6, 0.06); put("rocks", 66.4, 16.6, 0.8, 1.2); put("rocks", 69.8, 16.9, 2.2, 1.1);
+  // the fallen arch: a slab of its wall across the gateway (pillar to pillar), rubble either side
+  put("ruin_wall_broken", 68, 14.0, 0, 0.95); put("rubble_pile_rock", 68.2, 12.3, 1.3, 1.15); put("rubble_pile", 67.4, 15.7, 3.3, 1.1); put("pillar_c", 69.6, 17.2, 1.2, 0.9);
+  put("rocks", 66.2, 16.8, 0.8, 1.2); put("rocks", 70.6, 15.6, 2.2, 1.1);
   // ---- the colony's south-east corner to the east cliff
-  seal([[86.8, 14.8], [94, 15.4], [102.8, 14.4]], 1.9);
+  seal([[88.6, 15.2], [94, 15.4], [102.8, 14.4]], 1.9);
   // ---- the cove cave has fallen in; the camp well is boarded over (the grotto's two ways in)
-  group(-96.2, 91, H, [["rubble_pile_rock", -1.2, 1.2, 0.4, 1.25], ["rubble_pile_rock", 1.3, 1.1, 2.6, 1.2], ["rockl", 0.1, 1.9, 0.9, 1.05], ["rocks", -0.8, 3.2, 0.3, 1.2], ["rocks", 1.6, 3.4, 1.7, 1.0]]);
+  group(-96.2, 91, H, [["rubble_pile_rock", -1.2, 1.2, 0.4, 1.25], ["rubble_pile_rock", 1.3, 1.1, 2.6, 1.2], ["rockm", 0.1, 2.3, 0.9, 1.1], ["rocks", -0.8, 3.2, 0.3, 1.2], ["rocks", 1.6, 3.4, 1.7, 1.0]]);
   // (the camp well's own model has boards over its shaft: the read says the gang nailed them down, props.ts)
   // ---- the cove boat: the smugglers' rowboat pulled up at the waterline, a lantern on a post, oars and a crate
   group(-88.6, 104.2, 0.62, [["lantern_post", 2.4, 1.6, 2.2], ["crate_wood_b", -2.6, 0.8, 0.4], ["barrel_wood", -3.2, -0.6], ["rocks", 2.6, -1.4, 0.4, 1.1], ["signpost_a", -2.0, 2.6, 0.9]]);
@@ -493,7 +494,7 @@ P.forEach(pinVariant); // multi-rock and leaning nature pieces get a fixed varia
  *  the barricade), the north-east seal, the central ridge with the rockslide in its gap, the ridge end to the colony, the
  *  colony's west and south walls (the rockfall and the fallen arch in their gates), the east seal. Ridges authored for
  *  looks had gaps a monkey fits through; seal.ts finds them and plugs them with more rock */
-export const DEMO_BORDER: Pt[] = [[-103.5, 10.5], [-90, 11.4], [-78.6, 12.2], [-78, 12], [-46, 12], [-45, 5.5], [-44.2, -1.4], [-44, -2], [-30, -3], [-16, -1], [-4.6, -2.4], [-1.6, -3.4], [1.4, -3.0], [4.4, -2.2], [18, -1], [32, -3], [44, -6], [47.4, -7.4], [50, -8], [50, 14], [86, 14], [94, 15.4], [103.5, 14.4]];
+export const DEMO_BORDER: Pt[] = [[-103.5, 10.5], [-90, 11.4], [-78.6, 12.2], [-78, 12], [-46, 12], [-45, 5.5], [-44.2, -1.4], [-44, -2], [-30, -3], [-16, -1], [-4.6, -2.4], [-1.6, -3.4], [1.4, -3.0], [4.4, -2.2], [18, -1], [32, -3], [44, -6], [47.4, -7.4], [50, -8], [50, -0.6], [53, -0.6], [53, 4.4], [50, 4.4], [50, 14], [86, 14], [94, 15.4], [103.5, 14.4]];
 export const BORDER_PLUGS: Placed[] = DEMO ? (() => { let ps = 902011; return plugGaps(P, [DEMO_BORDER], OVER, () => (ps = (ps * 16807) % 2147483647) / 2147483647); })() : [];
 P.push(...BORDER_PLUGS);
 export const PLACED: Placed[] = P;
@@ -584,7 +585,7 @@ export const CONTAINER_SOCKETS: ContainerSocket[] = [
   // parts: workshops, wrecks, boats, machines
   cs("beach-wreck", "parts", { x: 31.4, z: 101.2 }, "a wreck's worth of flotsam on the beach"),
   cs("ferry-engine", "parts", { x: 57.3, z: 104.6 }, "by the ferry's stern"),
-  cs("hut-bench", "parts", { x: 12.2, z: 79.6 }, "the checkpoint hut's workbench, round the back"),
+  cs("hut-bench", "parts", { x: 10.6, z: 78.6 }, "the checkpoint hut's workbench, round the back"),
   cs("camp-workshop", "parts", { x: -71.4, z: 36.8 }, "the camp's workshop by the crate stacks"),
   cs("barn-parts", "parts", at("barn", 1.0, 1.2), "the barn's parts bins", { in: "barn" }),
   cs("cove-repair", "parts", { x: -84.8, z: 102.6 }, "the cove boat's repair kit"),
@@ -594,7 +595,7 @@ export const CONTAINER_SOCKETS: ContainerSocket[] = [
   cs("ferry-aid", "medical", at("ferry", 2.4, 1.2), "the ferry's first aid", { in: "ferry" }),
   cs("checkpoint-bunk", "medical", { x: -4.8, z: 72.6 }, "the checkpoint's bunk"),
   cs("camp-tent", "medical", { x: -57.4, z: 22 }, "the camp's treatment tent"),
-  cs("farm-bedside", "medical", at("farmhouse", -3.0, -1.6), "the farmhouse bedside", { in: "farmhouse" }),
+  cs("farm-bedside", "medical", at("farmhouse", -3.4, 1.4), "the farmhouse bedside", { in: "farmhouse" }),
   // weapon: the secured places
   cs("hut-rack", "weapon", at("hut-south", -0.7, 0), "the checkpoint hut's locked rack", { in: "hut-south" }),
   cs("barn-shelf", "weapon", at("barn", -0.6, 4.0), "the barn's secured shelf", { in: "barn" }),

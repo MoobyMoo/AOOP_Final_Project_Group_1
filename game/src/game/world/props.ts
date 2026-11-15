@@ -59,8 +59,11 @@ export function buildProps(scene: THREE.Scene) {
   // the cove boat (G1.5-13): the slice's second way home, the same ring and countdown as the others. The smugglers'
   // rowboat (the house kit's boat) lies at the waterline beside the ring
   { const [r, f] = ring(POI.coveBoat.x, POI.coveBoat.z, "#9fe6c8"); exits.push({ id: "boat", x: POI.coveBoat.x, z: POI.coveBoat.z, ring: r, fill: f, bonus: 0, open: true });
-    try { const b = houseModule("boat"), q = COVE_BOAT.boat, y = groundHeight(q.x, q.z) - 0.12; if (pieceRec.on) pieceRec.owner = { src: "prop", k: "cove_boat", x: q.x, z: q.z, yaw: q.yaw, s: 1, id: "cove-boat" };
-      addPieces(b.pieces, q.x, q.z, q.yaw, 1.25, y); pieceRec.owner = null; contactShade(q.x, q.z, 1.4, 2.6, q.yaw, 4, 0.6); } catch (e) { console.warn("cove boat model", e); } }
+    try { const b = houseModule("boat"), q = COVE_BOAT.boat, y = groundHeight(q.x, q.z) + 0.04; if (pieceRec.on) pieceRec.owner = { src: "prop", k: "cove_boat", x: q.x, z: q.z, yaw: q.yaw, s: 1, id: "cove-boat" };
+      // it lies on the shelving beach: tilt it to the slope like a loose prop (dress.ts settle), up to 12 deg
+      const e = 0.9, gx = (groundHeight(q.x + e, q.z) - groundHeight(q.x - e, q.z)) / (2 * e), gz = (groundHeight(q.x, q.z + e) - groundHeight(q.x, q.z - e)) / (2 * e);
+      const n = new THREE.Vector3(-gx, 1, -gz).normalize(), tq = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), n), ang = 2 * Math.acos(Math.min(1, tq.w)), max = (12 * Math.PI) / 180;
+      addPieces(b.pieces, q.x, q.z, q.yaw, 1.25, y, ang > max ? new THREE.Quaternion().slerp(tq, max / ang) : tq); pieceRec.owner = null; contactShade(q.x, q.z, 1.4, 2.6, q.yaw, 4, 0.6); } catch (e) { console.warn("cove boat model", e); } }
   // the demo slice shuts the raft (north of the locks) and the tunnel (the grotto)
   if (DEMO) for (const e of exits) if (e.id === "raft" || e.id === "tunnel") { e.open = false; e.ring.visible = e.fill.visible = false; }
   // ---- portals (the models are placed pieces; these are the stand-here marks)
