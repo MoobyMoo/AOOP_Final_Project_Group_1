@@ -168,7 +168,7 @@ def main():
     link.append(run("https://github.com/MoobyMoo/AOOP_Final_Project_Group_1/"))
     body.append(link_para)
     body.append(paragraph(
-        "Repo 已公開。目前收錄提案、架構圖與組員資料，接下來依上述分工匯入遊戲程式與操作說明。"
+        "Repo 已公開，包含遊戲程式（game/）、提案、架構圖與組員資料，執行方式寫在 README。"
         "組員持續以自己的帳號記錄工作，提交內容與分工對應。"
     ))
     body.append(section)
