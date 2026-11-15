@@ -114,9 +114,9 @@ def bench(name, seed):
     g.box(2.5, 0.06, 1.3, (0, 0.88, 1.0), col=PEG, b=0.015, jit=0.02)
     g.box(2.76, 0.14, 0.09, (0, 0.88, 2.3), col=MAHOG[1], b=0.0)
     P = lambda px, pz, poly, col, rz=0, dy=0.0: g.emit(p_prism(poly, 0.05), col, T(px, 0.85 - dy, pz, 90, 0, 0) @ T(rz=rz), jit=0.03)
-    P(-0.3, 1.9, [(-0.17, 0.06), (0.17, 0.06), (0.17, 0.24), (-0.17, 0.24)], STEELB)                    # hammer
-    P(-0.3, 1.62, [(-0.04, -0.26), (0.04, -0.26), (0.04, 0.36), (-0.04, 0.36)], MAHOG_L, 0, 0.005)
-    P(0.0, 1.82, [(-0.045, -0.38), (0.045, -0.38), (0.045, 0.08), (0.14, 0.14), (0.14, 0.3), (0.05, 0.22), (-0.05, 0.22), (-0.14, 0.3), (-0.14, 0.14), (-0.045, 0.08)], STEELB_L)   # wrench
+    P(-0.32, 1.9, [(-0.17, 0.06), (0.17, 0.06), (0.17, 0.24), (-0.17, 0.24)], STEELB)                    # hammer
+    P(-0.32, 1.62, [(-0.04, -0.26), (0.04, -0.26), (0.04, 0.36), (-0.04, 0.36)], MAHOG_L, 0, 0.005)
+    P(0.02, 1.82, [(-0.045, -0.38), (0.045, -0.38), (0.045, 0.08), (0.14, 0.14), (0.14, 0.3), (0.05, 0.22), (-0.05, 0.22), (-0.14, 0.3), (-0.14, 0.14), (-0.045, 0.08)], STEELB_L)   # wrench
     P(0.3, 1.5, [(-0.035, -0.12), (0.035, -0.12), (0.035, 0.18), (0.0, 0.27), (-0.035, 0.18)], RED, 0, 0.01)
     P(0.3, 1.95, [(-0.035, -0.12), (0.035, -0.12), (0.035, 0.18), (0.0, 0.27), (-0.035, 0.18)], BANANA, 0, 0.01)
     P(-0.02, 1.2, [(-0.42, -0.1), (0.34, -0.16), (0.34, 0.1), (-0.42, 0.05)], STEELB_L, -4)              # saw
@@ -169,7 +169,7 @@ def bench(name, seed):
     fh.box(0.62, 0.42, 0.03, (0.78, 0.08, 0.98), col=MAHOG_L, b=0.01)
     for sx in (-1, 1):
         fh.box(0.03, 0.4, 0.06, (0.78 + sx * 0.3, 0.08, 0.984), col=MAHOG_D, b=0.0)
-    fh.lathe([(0.0, 0.0), (0.12, 0.008), (0.16, 0.03), (0.0, 0.02)], (0.66, 0.1, 1.01), col=CREAM, n=9)
+    fh.lathe([(0.0, 0.0), (0.07, 0.0), (0.16, 0.034), (0.0, 0.012)], (0.66, 0.1, 1.01), col=CREAM, n=9)
     bunch(fh, (0.66, 0.1, 1.07), (0, 0, 35), 0.62, 3)
     fh.lathe([(0.065, 0.0), (0.085, 0.03), (0.09, 0.13), (0.06, 0.2), (0.035, 0.22), (0.0, 0.22)], (0.95, 0.16, 1.01), col=STEELB, n=8, smooth=50)
     fh.tube([(1.03, 0.16, 1.17), (1.1, 0.16, 1.14), (1.09, 0.16, 1.07), (1.03, 0.16, 1.05)], 0.014, CAST, n=4)
@@ -223,7 +223,7 @@ def sal(name, seed):
     for sx in (-1, 1):
         g.box(0.09, 0.09, 2.08, (sx * 1.14, 0.9, 0), col=pick(r, WOOD_D), b=0.02)
     g.box(2.3, 0.06, 1.1, (0, 0.9, 0.96), col="#b8905e", b=0.015, jit=0.03)
-    for (bx, bz, sx_, sz_) in ((0, 0.93, 2.4, 0.07), (0, 2.03, 2.4, 0.07)):
+    for (bx, bz, sx_, sz_) in ((0, 0.93, 2.18, 0.07), (0, 2.03, 2.18, 0.07)):
         g.box(sx_, 0.08, sz_, (bx, 0.895, bz), col=pick(r, WOOD_D), b=0.015)
     # the island, in ink and paint, with a red X
     Mi = FRONT(-0.5, 0.869, 1.5)
@@ -238,7 +238,8 @@ def sal(name, seed):
         for k in range(2):
             g.paint_line([(-w * 0.34, h * 0.14 - k * h * 0.24), (w * (0.34 - 0.14 * k), h * 0.14 - k * h * 0.24)], 0.028, m, "#8f8676", lift=0.012)
         g.emit(p_sphere(0.032, 6, 2, z0=0, z1=1), RED if i % 2 else "#3f8f9a", m @ T(0, h * 0.4, 0.01), jit=0)
-    g.tube([(-0.4, 0.855, 1.52), (0.35, 0.85, 1.9), (0.82, 0.848, 1.38)], 0.011, RED, n=3)
+    g.tube([(-0.4, 0.846, 1.52), (0.35, 0.842, 1.9)], 0.011, RED, n=3)
+    g.tube([(0.35, 0.837, 1.9), (0.82, 0.835, 1.38)], 0.011, RED, n=3)
     # contraband: crates one side, a barrel and a sack the other
     crate_c(g, (-1.12, 0.38, 0), 0.6, 0.5, -6, WOOD, True)
     crate_c(g, (-1.14, 0.4, 0.5), 0.44, 0.36, 12, WOOD_PALE)
@@ -252,10 +253,18 @@ def sal(name, seed):
     ne = a.part("neon", (0, 0.88, 2.26), "emissive"); ne.ghost = True
     paths, w = text_paths("BANANA BANK", 0.36)
     k = 2.02 / w
-    for i, p in enumerate(paths):
-        closed = len(p) > 2 and p[0] == p[-1]
-        pts = [(px * k, 0.852 - 0.003 * (i % 3), 2.16 + py * k) for px, py in (p[:-1] if closed else p)]
-        ne.emit(p_tube(pts, 0.022, 3, True, closed), NEON, None, jit=0)
+    run = 0
+    for p in paths:
+        cuts = [0]                                           # a three-sided tube folds over itself at a sharp bend
+        for j in range(1, len(p) - 1):
+            d0, d1 = Vector(p[j]) - Vector(p[j - 1]), Vector(p[j + 1]) - Vector(p[j])
+            if d0.length > 1e-6 and d1.length > 1e-6 and d0.angle(d1) > radians(50):
+                cuts.append(j)
+        cuts.append(len(p) - 1)
+        for q in range(len(cuts) - 1):
+            pts = [(px * k, 0.852 - 0.003 * (run % 3), 2.16 + py * k) for px, py in p[cuts[q]:cuts[q + 1] + 1]]
+            ne.emit(p_tube(pts, 0.022, 3, True, False), NEON, None, jit=0)
+            run += 1
     for sx in (-1, 1):
         pts = [(sx * 1.14 + cos(radians(200 + i * 23)) * 0.075 * sx, 0.852, 2.23 + sin(radians(200 + i * 23)) * 0.12 + 0.05) for i in range(7)]
         ne.emit(p_tube(pts, 0.02, 3), "#ff9a5a", None, jit=0)

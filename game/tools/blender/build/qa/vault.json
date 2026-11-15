@@ -9,7 +9,7 @@
     "fac_bench__matte: duplicate verts=4 loose verts=0",
     "hidden back-to-back faces: fac_bench__matte (73 pairs) - delete to save tris",
     "hidden back-to-back faces: fx_mag (36 pairs) - delete to save tris",
-    "hidden back-to-back faces: fx_heart (19 pairs) - delete to save tris",
+    "hidden back-to-back faces: fx_heart (31 pairs) - delete to save tris",
     "hidden back-to-back faces: fac_bench__matte<->fx_heart (9 pairs) - delete to save tris",
     "hidden back-to-back faces: fac_bench__gloss<->fac_bench__matte (8 pairs) - delete to save tris",
     "hidden back-to-back faces: fx_pack (4 pairs) - delete to save tris",
@@ -20,12 +20,12 @@
   },
   "fac_blueprint": {
    "pass": true,
-   "tris": 619,
+   "tris": 617,
    "errors": [],
    "warnings": [
     "hidden back-to-back faces: fac_blueprint__matte (10 pairs) - delete to save tris",
-    "hidden back-to-back faces: bp_sheet<->fac_blueprint__matte (3 pairs) - delete to save tris",
-    "hidden back-to-back faces: fac_blueprint__emissive<->fac_blueprint__matte (2 pairs) - delete to save tris"
+    "hidden back-to-back faces: bp_sheet<->fac_blueprint__matte (6 pairs) - delete to save tris",
+    "hidden back-to-back faces: fac_blueprint__emissive<->fac_blueprint__matte (4 pairs) - delete to save tris"
    ],
    "ground_z": -0.0093
   },
@@ -57,7 +57,7 @@
   },
   "fac_generator": {
    "pass": true,
-   "tris": 2474,
+   "tris": 2462,
    "errors": [],
    "warnings": [
     "hidden back-to-back faces: fac_generator__gloss<->fac_generator__matte (9 pairs) - delete to save tris",
@@ -67,7 +67,7 @@
   },
   "fac_locker": {
    "pass": true,
-   "tris": 1240,
+   "tris": 1220,
    "errors": [],
    "warnings": [
     "hidden back-to-back faces: fac_locker__matte (15 pairs) - delete to save tris",
@@ -89,14 +89,12 @@
    "pass": true,
    "tris": 1084,
    "errors": [],
-   "warnings": [
-    "fac_plant__matte: duplicate verts=1 loose verts=0"
-   ],
+   "warnings": [],
    "ground_z": -0.015
   },
   "fac_press": {
    "pass": true,
-   "tris": 1930,
+   "tris": 1966,
    "errors": [],
    "warnings": [
     "hidden back-to-back faces: fac_press__matte (36 pairs) - delete to save tris",
@@ -106,7 +104,7 @@
   },
   "fac_sal": {
    "pass": true,
-   "tris": 2192,
+   "tris": 2276,
    "errors": [],
    "warnings": [
     "fac_sal__matte: duplicate verts=8 loose verts=0",
@@ -220,8 +218,8 @@
    "errors": [],
    "warnings": [
     "vault_pilaster__matte: duplicate verts=2 loose verts=0",
-    "hidden back-to-back faces: vault_pilaster__matte (18 pairs) - delete to save tris",
     "hidden back-to-back faces: vault_pilaster__gloss<->vault_pilaster__matte (16 pairs) - delete to save tris",
+    "hidden back-to-back faces: vault_pilaster__matte (15 pairs) - delete to save tris",
     "hidden back-to-back faces: vault_pilaster__gloss (10 pairs) - delete to save tris"
    ],
    "ground_z": 0.0

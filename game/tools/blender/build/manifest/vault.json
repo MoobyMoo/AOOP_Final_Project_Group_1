@@ -1,6 +1,6 @@
 {
  "group": "vault",
- "glb_bytes": 1388464,
+ "glb_bytes": 1394028,
  "assets": {
   "vault_pod": {
    "tris": 3682,
@@ -211,7 +211,7 @@
    "glow": 2.0
   },
   "fac_sal": {
-   "tris": 2192,
+   "tris": 2276,
    "parts": [
     "neon"
    ],
@@ -266,7 +266,7 @@
    "glow": 1.8
   },
   "fac_generator": {
-   "tris": 2474,
+   "tris": 2462,
    "parts": [
     "gen_lamp",
     "gen_wheel"
@@ -281,7 +281,7 @@
    "glow": 2.2
   },
   "fac_press": {
-   "tris": 1930,
+   "tris": 1966,
    "parts": [
     "press_wheel"
    ],
@@ -315,7 +315,7 @@
    "glow": 1.8
   },
   "fac_locker": {
-   "tris": 1240,
+   "tris": 1220,
    "parts": [
     "mirror_glass"
    ],
@@ -327,7 +327,7 @@
    "glow": 1.8
   },
   "fac_blueprint": {
-   "tris": 619,
+   "tris": 617,
    "parts": [
     "bp_sheet"
    ],
