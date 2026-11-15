@@ -9,8 +9,8 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 
 export function payoutSlip(p: PayoutInfo) {
   const bad = p.how === "bonked";
-  const how = bad ? "Bonked" : p.how === "raft" ? "Rafted home" : p.how === "tunnel" ? "Home by the tunnel" : "Home safe";
-  const sub = bad ? "The crew carried you home." : p.how === "raft" ? "You rafted home with the haul." : p.how === "tunnel" ? "Home through the Smuggler Tunnel." : "Back through the hatch.";
+  const how = bad ? "Bonked" : p.how === "raft" ? "Rafted home" : p.how === "tunnel" ? "Home by the tunnel" : p.how === "boat" ? "Rowed home" : "Home safe";
+  const sub = bad ? "The crew carried you home." : p.how === "raft" ? "You rafted home with the haul." : p.how === "tunnel" ? "Home through the Smuggler Tunnel." : p.how === "boat" ? "You rowed the haul home from the cove." : "Back through the hatch.";
   const mmss = `${Math.floor(p.raidT / 60)}:${String(Math.floor(p.raidT % 60)).padStart(2, "0")}`;
   // group identical items: "Coconut x2"
   const groups = new Map<string, { inst: string; n: number }>();

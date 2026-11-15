@@ -100,3 +100,46 @@ Monkey (30 fps samples): loops `idle walk run runBack strafeL strafeR cheer`, po
 `dash` (G1.5 row 14) is the ninja dash that replaces the roll: 20 frames played over 0.34 s, a low forward lunge with the arms swept back. It starts and ends on the same ready stance and eases out of and into it (drop in 0-0.2, hold 0.2-0.74, recover 0.74-1).
 Gorilla: loops `idle walk charge stunned sleep`, timed `windup slam hurt defeat`. Timed clips play at `actionT x clip length`.
 Gaits are stride-matched: one cycle covers `GAIT_LEN` metres (walk 0.8, run 2.2, runBack 1.64, strafe 1.18).
+
+## Kingpin .45 and its attachments (`tools/blender/kingpin/`)
+
+```
+B=/home/moo/.local/bin/blender
+$B -b --factory-startup --python-exit-code 1 -P tools/blender/kingpin/build_kingpin.py       # -> public/models/kingpin45.glb + kingpin45.blend
+$B -b --factory-startup --python-exit-code 1 -P tools/blender/kingpin/build_attachments.py   # -> public/models/attachments.glb + attachments.blend
+$B -b tools/blender/kingpin/kingpin45.blend --python-exit-code 1 -P tools/blender/kingpin/qa_attachments.py            # QA gate, each piece alone and fitted
+$B -b tools/blender/kingpin/kingpin45.blend --python-exit-code 1 -P tools/blender/kingpin/render_attachments.py -- /tmp/att_shots 720
+python3 tools/blender/kingpin/sheet_attachments.py /tmp/att_shots research/look/attachments  # review_sheet.png, loadouts.png
+node tools/blender/kingpin/check_glb.mjs                                                     # three.js: node names, sockets, fit
+```
+Icons: `tools/items/icon_attachments.py`, then `tools/items/render.py` and `tools/items/compose.py` (see the docstring).
+
+`kp_common.py` holds what the gun and the attachments share: the modelling kit, the 16-cell palette (15 used, append
+only) and the `MAT_Kingpin` material. Frame: x right (ejection port side), y up, z forward along the bore.
+
+**Sockets** in `kingpin45.glb`, all children of `body`, unrotated (a socket's axes are the gun's). `rides` is a custom
+property on the socket naming the part the piece should follow. `slide` and `mag` rest at the identity, so the same
+point is correct under either parent.
+
+| Socket | Point (x, y, z) | Rides | Where |
+|---|---|---|---|
+| `socket_sight` | 0, 0.415, 0.40 | `slide` | top of the slide, between the ejection port and the front sight |
+| `socket_muzzle` | 0, 0.315, 0.707 | `body` | the barrel's crown, on the bore axis |
+| `socket_mag` | 0, -0.300, -0.075 | `mag` | mouth of the magazine well, bottom of the grip |
+| `socket_rail` | 0, 0.089, 0.494 | `body` | underside of the accessory rail, middle lug |
+
+**Attachments** in `attachments.glb`: one root node each, at the identity, origin at the mount point. Add the node to
+its socket with no transform and it is fitted.
+
+| Node | Socket | Tris | Notes |
+|---|---|---|---|
+| `att_sight_holo` | `socket_sight` | 488 | second primitive `sight_dot` (emissive) |
+| `att_sight_2x` | `socket_sight` | 860 | |
+| `att_muzzle_comp` | `socket_muzzle` | 338 | property `muzzle` = the flash point in the node's frame, [0, 0, 0.248] |
+| `att_muzzle_supp` | `socket_muzzle` | 808 | property `muzzle` = [0, 0, 0.513] |
+| `att_mag_ext` | `socket_mag` | 356 | hangs under the standard magazine (keep `mag`, do not swap in `mag_ext`) |
+| `att_laser` | `socket_rail` | 408 | second primitive `laser_emit` (emissive); property `emit` = where the beam leaves, [0, -0.073, 0.206] |
+
+Every piece uses `MAT_Kingpin` with the gun's palette UVs and AO in `COLOR_0`, so the game can put the Kingpin's own
+`gunMat` on it. A node with a second primitive loads in three.js as a Group of two meshes; find the emitter by
+material name.

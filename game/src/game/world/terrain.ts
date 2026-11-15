@@ -9,6 +9,7 @@ import { polySigned, segDist, inPoly, type Ground, type EdgeKind } from "./map/t
 import { edgeDist, roadDist, zoneAt } from "./grid";
 import { fbm } from "./noise";
 import { patch } from "../render/shading";
+import { groundDetail, DETAIL_MEAN } from "./groundtex";
 
 export const GROUND_C: Record<Ground | "jungle" | "wet" | "rock", THREE.Color> = {
   grass: new THREE.Color("#86a64e"), sand: new THREE.Color("#dcc08a"), dirt: new THREE.Color("#ceb47f"), stone: new THREE.Color("#c4ab84"),
@@ -130,28 +131,30 @@ function coastDist(x: number, z: number, d: number) {
 }
 /** 0..1 across an edge: 0.5 on it, linear over 2r so the shader's threshold moves evenly */
 const ramp = (sd: number, r = 1.2) => Math.max(0, Math.min(1, 0.5 + sd / (2 * r)));
-export type GroundMask = { /** turf: > 0.5 is grass */ g: number; /** u inland from the outline along a coast (9 = no coast near) */ shore: number; /** how much surface mottling the bare ground takes */ fine: number };
-const gm: GroundMask = { g: 1, shore: 9, fine: 1 };
+export type GroundMask = { /** turf: > 0.5 is grass */ g: number; /** u inland from the outline along a coast (9 = no coast near) */ shore: number; /** how much surface mottling the bare ground takes */ fine: number;
+  /** detail layer weights (groundtex.ts): sand, stone (dirt is the rest) */ ls?: number; lst?: number };
+const gm: GroundMask = { g: 1, shore: 9, fine: 1, ls: 0, lst: 0 };
+const SANDY: Partial<Record<Ground, number>> = { sand: 1 }, STONY: Partial<Record<Ground, number>> = { stone: 1, plank: 0.6, cave: 0.6 };
 const FINE: Record<Ground, number> = { grass: 1, sand: 1, dirt: 1, stone: 0.55, cave: 0.5, plank: 0.3, mud: 0.6 };
 /** the authored ground at a point: the bare colour, the turf colour and the masks */
 export function sampleGround(x: number, z: number, bare: THREE.Color, grass: THREE.Color, o: GroundMask = gm): GroundMask {
   const n = fbm(x * 0.06, z * 0.06), m = fbm(x * 0.45 + 9, z * 0.45), wob = (fbm(x * 0.21 + 40, z * 0.21) - 0.5) * 2.4;
   const d = landDist(x, z, info), kind = info.kind;
-  o.shore = 9; o.fine = 1; o.g = 0;
-  if (x > UNDER_X) {
+  o.shore = 9; o.fine = 1; o.g = 0; o.ls = 0; o.lst = 0;
+  if (x > UNDER_X) { o.lst = 0.6;
     bare.copy(GROUND_C.cave).lerp(G2.caveL, m * 0.6);
     if (d < 0) bare.lerp(G2.rockD, sstep(-d, 0, 1.5) * 0.7).multiplyScalar(1 - sstep(-d, 1.5, 4) * 0.45); else bare.lerp(G2.caveL, (1 - sstep(roadDist(x, z), -0.6, 0.8)) * 0.5);
     grass.copy(bare); o.fine = FINE.cave; return o;
   }
   grass.copy(G2.grassMoist).lerp(G2.grassDry, sstep(n, 0.35, 0.7)).lerp(G2.worn, sstep(m, 0.62, 0.82) * 0.3);
   bare.copy(GROUND_C.dirt).lerp(G2.dirtD, m);
-  let g = 1, fine = 1;
+  let g = 1, fine = 1, ls = 0, lst = 0;
   for (const p of PAINT) {
     if (!inBB(p.bb, x, z)) continue;
     const sd = polySigned(p.z.pts, x, z) + wob; if (sd < -3.2) continue;
     const gr = p.z.ground, kc = sstep(sd, -2.8, 0.2);
     tmp.copy(GROUND_C[gr]); if (gr === "dirt") tmp.lerp(G2.dirtD, m); else if (gr === "stone") tmp.lerp(G2.worn, m * 0.35); else if (gr === "sand") tmp.lerp(G2.dirtD, sstep(m, 0.6, 0.9) * 0.25); else if (gr === "mud") tmp.lerp(G2.deep, sstep(m, 0.3, 0.8) * 0.4);
-    bare.lerp(tmp, kc); fine += (FINE[gr] - fine) * kc;
+    bare.lerp(tmp, kc); fine += (FINE[gr] - fine) * kc; ls += ((SANDY[gr] ?? 0) - ls) * kc; lst += ((STONY[gr] ?? 0) - lst) * kc;
     let k = ramp(sd);
     // worn yards keep islands of turf (Duckov frames: dirt and turf interleave round buildings); it grows darker and
     // moister there than the open meadow, so it parts from pale sandstone and lit dirt (Sol's "quieter grass-root colour")
@@ -162,14 +165,14 @@ export function sampleGround(x: number, z: number, bare: THREE.Color, grass: THR
   if (road && rd < 2.4) {
     const sd = -(rd + wob * 0.2), gr = road.ground, kc = sstep(sd, -1.5, 0.1) * (gr === "sand" ? 0.6 : 1);
     tmp.copy(GROUND_C[gr]); if (gr === "dirt") tmp.lerp(G2.dirtD, m); if (gr === "plank") tmp.multiplyScalar(0.8);
-    bare.lerp(tmp, kc); fine += (FINE[gr] - fine) * kc; g = Math.min(g, 1 - ramp(sd, 0.9));
+    bare.lerp(tmp, kc); fine += (FINE[gr] - fine) * kc; ls += ((SANDY[gr] ?? 0) - ls) * kc; lst += ((STONY[gr] ?? 0) - lst) * kc; g = Math.min(g, 1 - ramp(sd, 0.9));
   }
   if (d < 4) {
-    if (kind === "coast" || kind === "river") { bare.lerp(GROUND_C.sand, sstep(-d, -3, -0.6) * 0.85).lerp(G2.deep, sstep(-d, 1.5, 5) * 0.75).multiplyScalar(1 - sstep(-d, 3, 9) * 0.45); g = Math.min(g, ramp(d - 2.0 + wob * 0.3)); }
-    else if (kind === "cliff") { bare.lerp(GROUND_C.rock, sstep(-d, -1.6, 1.0)).lerp(G2.rockD, sstep(m, 0.4, 0.8) * sstep(-d, 0, 2) * 0.6); g = Math.min(g, ramp(d + 0.3 + wob * 0.25)); fine += (0.6 - fine) * sstep(-d, -1.6, 1.0); }
+    if (kind === "coast" || kind === "river") { ls += (1 - ls) * sstep(-d, -3, -0.6) * 0.85; bare.lerp(GROUND_C.sand, sstep(-d, -3, -0.6) * 0.85).lerp(G2.deep, sstep(-d, 1.5, 5) * 0.75).multiplyScalar(1 - sstep(-d, 3, 9) * 0.45); g = Math.min(g, ramp(d - 2.0 + wob * 0.3)); }
+    else if (kind === "cliff") { lst += (1 - lst) * sstep(-d, -1.6, 1.0); bare.lerp(GROUND_C.rock, sstep(-d, -1.6, 1.0)).lerp(G2.rockD, sstep(m, 0.4, 0.8) * sstep(-d, 0, 2) * 0.6); g = Math.min(g, ramp(d + 0.3 + wob * 0.25)); fine += (0.6 - fine) * sstep(-d, -1.6, 1.0); }
     else { const k = sstep(-d, -1.5, 3); grass.lerp(GROUND_C.jungle, k); bare.lerp(G2.loam, k); }
   }
-  o.shore = coastDist(x, z, d); o.g = g; o.fine = fine; return o;
+  o.shore = coastDist(x, z, d); o.g = g; o.fine = fine; o.ls = ls; o.lst = lst; return o;
 }
 const cB = new THREE.Color(), cG = new THREE.Color();
 /** the blended ground colour at a point (map screen, anything that wants one colour) */
@@ -231,7 +234,13 @@ const GROUND_GLSL = /* glsl */ `
       float foam = smoothstep(0.13, 0.03, abs(sh + (n2 - 0.5) * 0.2 - lap * 1.6 + 1.22));
       bare = mix(bare, vec3(0.9, 0.93, 0.9), foam * 0.75);
     }
-    vec3 turf = vGrass * (0.95 + 0.1 * smoothstep(0.35, 0.65, lt_noise(wp * 0.31 + 11.0)));
+    // the detail layers (groundtex.ts, POLISH_FINDINGS 7): sand ripples, dirt grit, stone joints, turf blades at a 4 m
+    // repeat, plus a slower turned copy so the tile never reads. Mean-centred: texture, not light
+    vec4 dt = texture2D(uDetail, wp * 0.25) - uDetailMean, dt2 = texture2D(uDetail, vec2(wp.y, -wp.x) * 0.093 + 0.37) - uDetailMean;
+    float wd = max(0.0, 1.0 - vLayer.x - vLayer.y);
+    float det = (dt.r * 0.85 + dt2.r * 0.35) * vLayer.x + (dt.g + dt2.g * 0.4) * wd + (dt.a + dt2.a * 0.3) * vLayer.y;
+    bare *= 1.0 + det * 1.1 * (0.35 + 0.65 * vMask.z);
+    vec3 turf = vGrass * (0.95 + 0.1 * smoothstep(0.35, 0.65, lt_noise(wp * 0.31 + 11.0))) * (1.0 + (dt.b * 0.85 + dt2.b * 0.3));
     diffuseColor.rgb *= mix(bare, turf, gk); }
 `;
 /** patch a ground material (after shading.ts patch()) to read the two colour layers and the masks */
@@ -239,26 +248,27 @@ function groundShader<T extends THREE.Material>(mat: T): T {
   const base = mat.onBeforeCompile;
   mat.onBeforeCompile = (sh, r) => {
     base.call(mat, sh, r);
-    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute vec3 aGrass;\nattribute vec3 aMask;\nvarying vec3 vGrass;\nvarying vec3 vMask;").replace("#include <color_vertex>", "#include <color_vertex>\n  vGrass = aGrass; vMask = aMask;");
-    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vGrass;\nvarying vec3 vMask;\nfloat gndMot = 0.0;").replace("#include <color_fragment>", GROUND_GLSL)
+    Object.assign(sh.uniforms, { uDetail: { value: groundDetail() }, uDetailMean: { value: DETAIL_MEAN } });
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute vec3 aGrass;\nattribute vec3 aMask;\nattribute vec2 aLayer;\nvarying vec3 vGrass;\nvarying vec3 vMask;\nvarying vec2 vLayer;").replace("#include <color_vertex>", "#include <color_vertex>\n  vGrass = aGrass; vMask = aMask; vLayer = aLayer;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vGrass;\nvarying vec3 vMask;\nvarying vec2 vLayer;\nuniform sampler2D uDetail;\nuniform vec4 uDetailMean;\nfloat gndMot = 0.0;").replace("#include <color_fragment>", GROUND_GLSL)
       // after the lighting (shading.ts leaves one opaque_fragment include behind its own block): the mottling swings wider
       // the brighter the pixel, so it lands near 8 percent of displayed value in sun and in shade alike. In sun only the
       // dark half grows: the light half would push lit dirt back into clipping
       .replace("#include <opaque_fragment>", "  { float gndLum = max(outgoingLight.r, max(outgoingLight.g, outgoingLight.b)); float gndB = smoothstep(0.35, 1.3, gndLum); outgoingLight *= 1.0 + min(gndMot, 0.0) * mix(0.75, 2.9, gndB) + max(gndMot, 0.0) * mix(0.75, 0.15, gndB); }\n#include <opaque_fragment>");
   };
-  mat.customProgramCacheKey = () => "ground3";
+  mat.customProgramCacheKey = () => "ground4";
   return mat;
 }
 
 const TILE = 32, STEP = 0.8;
 function tile(x0: number, z0: number, mat: THREE.Material) {
   const n = Math.round(TILE / STEP), g = new THREE.PlaneGeometry(TILE, TILE, n, n); g.rotateX(-Math.PI / 2); g.translate(x0 + TILE / 2, 0, z0 + TILE / 2);
-  const pos = g.attributes.position as THREE.BufferAttribute, col = new Float32Array(pos.count * 3), gra = new Float32Array(pos.count * 3), msk = new Float32Array(pos.count * 3), c = new THREE.Color(), cg = new THREE.Color(), o: GroundMask = { g: 0, shore: 9, fine: 1 };
+  const pos = g.attributes.position as THREE.BufferAttribute, col = new Float32Array(pos.count * 3), gra = new Float32Array(pos.count * 3), msk = new Float32Array(pos.count * 3), lay = new Float32Array(pos.count * 2), c = new THREE.Color(), cg = new THREE.Color(), o: GroundMask = { g: 0, shore: 9, fine: 1, ls: 0, lst: 0 };
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), z = pos.getZ(i); pos.setY(i, terrainHeight(x, z)); sampleGround(x, z, c, cg, o);
-    col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; gra[i * 3] = cg.r; gra[i * 3 + 1] = cg.g; gra[i * 3 + 2] = cg.b; msk[i * 3] = o.g; msk[i * 3 + 1] = o.shore; msk[i * 3 + 2] = o.fine;
+    col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; gra[i * 3] = cg.r; gra[i * 3 + 1] = cg.g; gra[i * 3 + 2] = cg.b; msk[i * 3] = o.g; msk[i * 3 + 1] = o.shore; msk[i * 3 + 2] = o.fine; lay[i * 2] = o.ls ?? 0; lay[i * 2 + 1] = o.lst ?? 0;
   }
-  g.setAttribute("color", new THREE.BufferAttribute(col, 3)); g.setAttribute("aGrass", new THREE.BufferAttribute(gra, 3)); g.setAttribute("aMask", new THREE.BufferAttribute(msk, 3));
+  g.setAttribute("color", new THREE.BufferAttribute(col, 3)); g.setAttribute("aGrass", new THREE.BufferAttribute(gra, 3)); g.setAttribute("aMask", new THREE.BufferAttribute(msk, 3)); g.setAttribute("aLayer", new THREE.BufferAttribute(lay, 2));
   // normals from the height field itself, so tile seams are invisible
   const nor = g.attributes.normal as THREE.BufferAttribute, e = 0.6;
   for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), z = pos.getZ(i), nx = terrainHeight(x - e, z) - terrainHeight(x + e, z), nz = terrainHeight(x, z - e) - terrainHeight(x, z + e), l = Math.hypot(nx, 2 * e, nz); nor.setXYZ(i, nx / l, (2 * e) / l, nz / l); }

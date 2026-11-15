@@ -10,6 +10,7 @@ import { ENEMY, aimRang } from "../combat/weapons";
 import { makeRangVisual } from "../combat/rangfx";
 import { createRig } from "../actors/rig";
 import { SPAWNS, GROUP_RINGS } from "../world/layout";
+import { inDemo } from "../world/map/grove";
 import { path as findPath, pathLength, los, collide, walkable, ramAt, gates, straightWalk } from "../world/grid";
 import { groundHeight, standHeight } from "../world/terrain";
 import { sfx } from "../core/audio";
@@ -75,6 +76,7 @@ export function spawnEnemies(set: number) {
   bossBrains.clear();
   for (const e of G.enemies) e.rig.dispose(); G.enemies = [];
   for (const [index, s] of SPAWNS[set % SPAWNS.length].entries()) {
+    if (!inDemo(s.x, s.z)) continue; // past the demo's route locks: parked in the data (G1.5-13)
     const plan = s.kind === "brute" || s.kind === "sleeper" ? "gorilla" : "monkey";
     const gearSeed = G.seed ^ Math.imul(index + 1, 7), gear = enemyGear(gearSeed, s.kind);
     if (s.tag === BOSS.id) { gear.head = null; gear.body = 'leaf_vest'; }

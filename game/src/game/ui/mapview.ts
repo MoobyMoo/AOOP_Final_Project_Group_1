@@ -6,7 +6,9 @@
 //    screen-sized at every zoom, wheel zoom keeps the view centre, the map opens centred on the player;
 //  - extracts, level links, pins, the explored trail and the player; the boss as a fixed danger area until spotted,
 //    then a moving "?" (ai/enemies.ts bossMarkers()); never regular enemies or loot.
-// Ours on top: the demo slice framed with the north closed (route locks from world/map), a ruled grid, a legend.
+// Ours on top: the demo slice with the north closed (route locks from world/map), a ruled grid, a legend.
+// Map v4: like Duckov's (a sprite whose alpha is the level's outline, floating on the map's background), each image is
+// cut to its level's shape (mapshape.ts): the island with a sliver of sea, the grotto's chambers, on the map board.
 // The image is baked once; per frame only CSS transforms move (the minimap) and only while the M map is open.
 import "@fontsource/barlow-condensed/500.css";
 import "@fontsource/barlow-condensed/600.css";
@@ -16,7 +18,7 @@ import * as THREE from "three";
 import { G } from "../core/state";
 import { CLEARINGS } from "../world/layout";
 import { bakeMap, type MapImage } from "./mapbake";
-import { SURFACE, UNDER, levelOf, areaLabels, marks, closedPoly, demoEdge, inDemo, devMarks, type Level, type Mark } from "./mapdata";
+import { SURFACE, UNDER, levelOf, areaLabels, marks, closedPoly, demoEdge, inDemo, underClosed, routeLocks, type Level, type Mark } from "./mapdata";
 import { ICON, LEGEND } from "./mapicons";
 
 const imgs: Partial<Record<Level, MapImage>> = {};
@@ -27,22 +29,29 @@ const savePins = () => localStorage.setItem("bv_pins", JSON.stringify(pins));
 const deg = (r: number) => (r * 180) / Math.PI;
 
 // ---------------------------------------------------------------- the bake (once, at load: main.ts)
-/** the closed north on the surface image: a dark wash, a brass hatch and a dashed tie-orange edge */
+/** the demo edge on the surface image: a dashed tie-orange line (drawn before the cut-out, which fades and tears the
+ *  land north of it and clips the line to the island) */
 function drawClosed(x: CanvasRenderingContext2D, m: MapImage) {
   const P = (p: [number, number]) => [(p[0] - m.minX) * m.ppu, (p[1] - m.minZ) * m.ppu] as const;
-  x.save(); x.beginPath(); closedPoly().forEach((p, i) => { const [a, b] = P(p); if (i) x.lineTo(a, b); else x.moveTo(a, b); }); x.closePath(); x.clip();
-  x.fillStyle = "rgba(22,20,26,0.66)"; x.fillRect(0, 0, m.w, m.h);
-  x.strokeStyle = "rgba(194,154,91,0.22)"; x.lineWidth = 2;
-  for (let k = -m.h; k < m.w; k += 16) { x.beginPath(); x.moveTo(k, m.h); x.lineTo(k + m.h, 0); x.stroke(); }
+  x.save(); x.lineCap = "round"; x.lineJoin = "round"; x.beginPath();
+  demoEdge().forEach((p, i) => { const [a, b] = P(p); if (i) x.lineTo(a, b); else x.moveTo(a, b); });
+  x.strokeStyle = "rgba(42,26,18,0.55)"; x.lineWidth = 6; x.stroke();
+  x.strokeStyle = "#f46a10"; x.lineWidth = 3.2; x.setLineDash([14, 9]); x.stroke(); x.restore();
+}
+/** the grotto past the tunnel cave-in: washed into the board's fog tone, like the closed north on the surface */
+function drawUnderClosed(x: CanvasRenderingContext2D, m: MapImage) {
+  const step = 0.5, px = step * m.ppu;
+  x.save(); x.fillStyle = "rgba(70,77,85,0.82)";
+  for (let wz = m.minZ; wz < m.maxZ; wz += step) for (let wx = m.minX; wx < m.maxX; wx += step)
+    if (!inDemo(wx + step / 2, wz + step / 2)) x.fillRect((wx - m.minX) * m.ppu, (wz - m.minZ) * m.ppu, px + 0.5, px + 0.5);
   x.restore();
-  x.save(); x.strokeStyle = "#f46a10"; x.lineWidth = 3; x.setLineDash([14, 9]); x.beginPath();
-  demoEdge().forEach((p, i) => { const [a, b] = P(p); if (i) x.lineTo(a, b); else x.moveTo(a, b); }); x.stroke(); x.restore();
 }
 export function buildMapShots(scene?: THREE.Scene) {
   const s = scene ?? G.stage.scene;
-  imgs.surface = bakeMap(s, "surface", SURFACE, 2048, drawClosed);
-  imgs.under = bakeMap(s, "under", UNDER, 1024);
-  if (new URLSearchParams(location.search).has("dev")) (window as unknown as { __map: unknown }).__map = { imgs, dev: devMarks, open: (l?: Level) => { if (!el) open(l); }, setLevel: (l: Level) => setLevel(l) };
+  const poly = closedPoly();
+  imgs.surface = bakeMap(s, "surface", SURFACE, 2048, poly ? { extra: drawClosed, closed: { edge: demoEdge(), poly } } : {});
+  imgs.under = bakeMap(s, "under", UNDER, 1024, underClosed ? { dim: true } : { extra: drawUnderClosed });
+  if (new URLSearchParams(location.search).has("dev")) (window as unknown as { __map: unknown }).__map = { imgs, open: (l?: Level) => { if (!el) open(l); }, setLevel: (l: Level) => setLevel(l) };
 }
 
 // ---------------------------------------------------------------- explored trail (research/duckov-map rule 4)
@@ -97,7 +106,7 @@ function open(start?: Level) {
       </div>
       <aside class="mv3-side">
         <h3>Legend</h3>
-        <ul>${LEGEND.map(([k, t]) => `<li><span class="ic">${ICON[k]}</span>${t}</li>`).join("")}<li><span class="ic trail-k"></span>Your route this raid</li><li class="closed-row"><span class="ic closed-k"></span><span>Closed until the full game<small>Old Colony, the Vault, the Hollow and Raft Landing open after the demo</small></span></li></ul>
+        <ul>${LEGEND.map(([k, t]) => `<li><span class="ic">${ICON[k]}</span>${t}</li>`).join("")}<li><span class="ic trail-k"></span>Your route this raid</li><li class="closed-row"><span class="ic closed-k"></span><span>Closed until the full game<small>Old Colony, the Vault, the Hollow, Raft Landing and the Smuggler Tunnel open after the demo</small></span></li></ul>
         <h3>Raid</h3>
         <dl><dt>Areas found</dt><dd class="num">${[...G.discovered].filter((id) => inDemo(CLEARINGS.find((c) => c.id === id)?.x ?? 0, CLEARINGS.find((c) => c.id === id)?.z ?? 0)).length} / ${areaLabels("surface").length + areaLabels("under").length}</dd><dt>Pins</dt><dd class="num pins">${pins.length}</dd></dl>
       </aside>
@@ -120,7 +129,7 @@ function open(start?: Level) {
   view.onpointerup = (e) => {
     view.classList.remove("drag"); const d = down; down = null; if (!d || d.moved) return;
     const r = view.getBoundingClientRect(), p = matrix().inverse().transformPoint(new DOMPoint(e.clientX - r.left, e.clientY - r.top)), m = imgs[level]!;
-    const x = m.minX + p.x / m.ppu, z = m.minZ + p.y / m.ppu; if (x < m.minX || x > m.maxX || z < m.minZ || z > m.maxZ) return;
+    const x = m.minX + p.x / m.ppu, z = m.minZ + p.y / m.ppu; if (m.shape.at(x, z) <= 0) return; // the board is not the map
     const k = pins.findIndex((q) => levelOf(q.x) === level && Math.hypot(q.x - x, q.z - z) < 14 / (zoom * m.ppu) + 1.5);
     if (k >= 0) pins.splice(k, 1); else pins.push({ x, z }); savePins();
     (el!.querySelector(".pins") as HTMLElement).textContent = String(pins.length); lastMarks = 0;
@@ -139,23 +148,31 @@ function setLevel(l: Level, opening = false) {
   const plane = el.querySelector(".mv3-plane") as HTMLDivElement; plane.style.width = m.w + "px"; plane.style.height = m.h + "px";
   (plane.querySelector("img") as HTMLImageElement).src = urlOf(m);
   const vec = plane.querySelector(".mv3-vec") as SVGSVGElement; vec.setAttribute("viewBox", `0 0 ${m.w} ${m.h}`); vec.setAttribute("width", String(m.w)); vec.setAttribute("height", String(m.h));
-  // fit: the rotated image's bounding box inside the view
-  const a = Math.abs(G.stage.cam.yaw), bw = m.w * Math.cos(a) + m.h * Math.sin(a), bh = m.w * Math.sin(a) + m.h * Math.cos(a);
-  fit = Math.min(vw / bw, vh / bh) * 0.98;
+  // fit: the piece's own outline, turned by the camera yaw, inside the view (not the rotated image rectangle)
+  const yaw = G.stage.cam.yaw, co = Math.cos(yaw), si = Math.sin(yaw), o = m.shape.outline;
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (let i = 0; i < o.length; i += 2) { const sx = o[i] * co - o[i + 1] * si, sy = o[i] * si + o[i + 1] * co; x0 = Math.min(x0, sx); x1 = Math.max(x1, sx); y0 = Math.min(y0, sy); y1 = Math.max(y1, sy); }
+  fit = Math.min(vw / (x1 - x0), vh / (y1 - y0)) * 0.95;
   // the demo area is small enough to show whole on both levels (Moo needs the full picture first; the wheel zooms in
-  // around the cursor's centre from there)
-  zoom = fit; fx = m.w / 2; fy = m.h / 2;
+  // around the cursor's centre from there). Focus: the turned box's centre, back in image px
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  zoom = fit; fx = cx * co + cy * si; fy = -cx * si + cy * co;
   // labels: upright, screen-sized, placed each frame from the matrix
   const over = el.querySelector(".mv3-over") as HTMLDivElement; over.innerHTML = ""; markEls = new Map(); labelEls = [];
   for (const a of areaLabels(l)) {
     const d = document.createElement("span"); d.className = "lab" + (a.id === G.area ? " cur" : "") + (G.discovered.has(a.id) ? "" : " new"); d.textContent = a.name; over.appendChild(d); labelEls.push({ el: d, x: a.x, z: a.z });
+  }
+  if (l === "under" && underClosed) {
+    // the grotto is shut for the demo: one caption over it instead of its area names (the cave-in lock sits at its mouth)
+    const d = document.createElement("span"), k = routeLocks("under")[0];
+    d.className = "lab closed"; d.innerHTML = `Grotto closed<small>${k?.note ?? "Opens after the demo"}</small>`; over.appendChild(d); labelEls.push({ el: d, x: 168, z: 26 });
   }
   const me = document.createElement("b"); me.className = "me"; me.innerHTML = ICON.me; over.appendChild(me); markEls.set("me", me);
   lastMarks = 0; trailKey = -1; update(); void opening;
 }
 const matrix = () => new DOMMatrix().translate(vw / 2, vh / 2).rotate(deg(G.stage.cam.yaw)).scale(zoom).translate(-fx, -fy);
 function clampFocus() {
-  const m = imgs[level]!; fx = THREE.MathUtils.clamp(fx, 0, m.w); fy = THREE.MathUtils.clamp(fy, 0, m.h);
+  const b = imgs[level]!.shape.box; fx = THREE.MathUtils.clamp(fx, b.l, b.r); fy = THREE.MathUtils.clamp(fy, b.t, b.b);
 }
 function place() {
   if (!el) return; const M = matrix();
@@ -169,6 +186,9 @@ function place() {
   };
   // markers first, then the labels, each pushed up or down off any marker or earlier label it would cover (screen space)
   const boxes: { l: number; t: number; r: number; b: number }[] = [];
+  // the needle and the scale bar sit over the view: labels step off them too
+  const vr = (el.querySelector(".mv3-view") as HTMLElement).getBoundingClientRect();
+  for (const q of el.querySelectorAll<HTMLElement>(".mv3-needle, .mv3-scale")) { const r = q.getBoundingClientRect(); boxes.push({ l: r.left - vr.left - 4, t: r.top - vr.top - 4, r: r.right - vr.left + 4, b: r.bottom - vr.top + 4 }); }
   const toScreen = (x: number, z: number) => M.transformPoint(new DOMPoint((x - m.minX) * m.ppu, (z - m.minZ) * m.ppu));
   for (const [id, e] of markEls) {
     if (id === "me") continue; const x = Number(e.dataset.x), z = Number(e.dataset.z); put(e, x, z);
@@ -176,16 +196,24 @@ function place() {
     boxes.push({ l: p.x - hw, t: p.y - hh, r: p.x + hw, b: p.y + hh });
     if (sp && sp.offsetWidth) boxes.push({ l: p.x - sp.offsetWidth / 2, t: p.y + hh, r: p.x + sp.offsetWidth / 2, b: p.y + hh + sp.offsetHeight + 2 });
   }
-  if (levelOf(G.pp.x) === level) { const p = toScreen(G.pp.x, G.pp.z); boxes.push({ l: p.x - 14, t: p.y - 14, r: p.x + 14, b: p.y + 14 }); } // the player arrow
+  if (levelOf(G.pp.x) === level) { // the player arrow, turned to the heading: its box grows toward the diagonal
+    const p = toScreen(G.pp.x, G.pp.z), e = markEls.get("me")!, hs = Math.max(14, (e.offsetWidth || 30) * 0.62);
+    boxes.push({ l: p.x - hs, t: p.y - hs, r: p.x + hs, b: p.y + hs });
+  }
+  // each label takes the first clear spot from a short list near its place (on it, above, below, beside, farther out);
+  // when none is clear, the one that covers the least
+  const hit = (l: number, t: number, r: number, b: number) => { let o = 0; for (const q of boxes) { const ox = Math.min(r, q.r) - Math.max(l, q.l), oy = Math.min(b, q.b) - Math.max(t, q.t); if (ox > 0 && oy > 0) o += ox * oy; } return o; };
   for (const q of labelEls) {
-    const p = toScreen(q.x, q.z), w = q.el.offsetWidth / 2, h = q.el.offsetHeight / 2; let dy = 0;
-    for (let n = 0; n < 4; n++) {
-      const o = boxes.find((b) => p.x - w < b.r && b.l < p.x + w && p.y + dy - h < b.b && b.t < p.y + dy + h); if (!o) break;
-      dy = (o.t + o.b) / 2 >= p.y + dy ? o.t - h - 2 - p.y : o.b + h + 2 - p.y;
+    const p = toScreen(q.x, q.z), w = q.el.offsetWidth / 2, h = q.el.offsetHeight / 2, sy = h * 2 + 4, sx = w + 22;
+    let best = { dx: 0, dy: 0 }, bestO = Infinity;
+    for (const [dx, dy] of [[0, 0], [0, -sy], [0, sy], [sx, 0], [-sx, 0], [0, -2 * sy], [0, 2 * sy], [sx, -sy], [-sx, -sy], [sx, sy], [-sx, sy]]) {
+      const o = hit(p.x + dx - w, p.y + dy - h, p.x + dx + w, p.y + dy + h);
+      if (o < bestO) { bestO = o; best = { dx, dy }; } if (o === 0) break;
     }
-    const out = p.x < -80 || p.y < -40 || p.x > vw + 80 || p.y > vh + 40; q.el.style.display = out ? "none" : "";
-    q.el.style.transform = `translate(${p.x.toFixed(1)}px,${(p.y + dy).toFixed(1)}px) translate(-50%,-50%)`;
-    if (!out) boxes.push({ l: p.x - w, t: p.y + dy - h, r: p.x + w, b: p.y + dy + h }); // later labels step off this one
+    const x = p.x + best.dx, y = p.y + best.dy;
+    const out = x < -80 || y < -40 || x > vw + 80 || y > vh + 40; q.el.style.display = out ? "none" : "";
+    q.el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) translate(-50%,-50%)`;
+    if (!out) boxes.push({ l: x - w, t: y - h, r: x + w, b: y + h }); // later labels step off this one
   }
   const me = markEls.get("me")!; me.style.visibility = levelOf(G.pp.x) === level ? "visible" : "hidden";
   me.dataset.rot = deg(G.stage.cam.yaw - G.moveYaw + Math.PI).toFixed(1); put(me, G.pp.x, G.pp.z);
@@ -251,7 +279,7 @@ export function updateMinimap() {
   for (const k of miniMarks) {
     const e = miniEls.get(k.id); if (!e) continue;
     const q = M.transformPoint(new DOMPoint((k.x - m.minX) * m.ppu, (k.z - m.minZ) * m.ppu)); let dx = q.x - MINI_PX / 2, dy = q.y - MINI_PX / 2; const d = Math.hypot(dx, dy);
-    const rim = k.kind === "exit" || k.kind === "boss";
+    const rim = k.kind === "exit" || k.kind === "boat" || k.kind === "boss";
     if (d > R) { if (!rim) { e.style.display = "none"; continue; } dx *= R / d; dy *= R / d; e.classList.add("rim"); } else e.classList.remove("rim");
     e.style.display = ""; e.style.transform = `translate(${(MINI_PX / 2 + dx).toFixed(1)}px,${(MINI_PX / 2 + dy).toFixed(1)}px) translate(-50%,-50%)`;
   }
