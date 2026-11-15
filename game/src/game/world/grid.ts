@@ -341,8 +341,8 @@ export function flood(x: number, z: number) {
 /** Exact reachability for a monkey (radius 0.45) on a 0.25 u lattice, gates as they stand now, overworld only. The nav
  *  raster pads every collider, so a gap a player can squeeze through can still read as closed on the 1 u grid: this is
  *  the check that the demo's route locks really hold (G1.5-13). Slow (a second or two): the lint runs it on request. */
-export function exactReach(x0: number, z0: number, rad = 0.45, step = 0.25) {
-  const W = Math.ceil((UNDER_X - BOUNDS.minX) / step), H = Math.ceil(GH / step), st = new Uint8Array(W * H); // 1 reached, 2 blocked
+export function exactReach(x0: number, z0: number, rad = 0.45, step = 0.25, more: { x: number; z: number }[] = []) {
+  const W = Math.ceil((BOUNDS.maxX - BOUNDS.minX) / step), H = Math.ceil(GH / step), st = new Uint8Array(W * H); // 1 reached, 2 blocked
   const free = (x: number, z: number) => {
     const i = ci(x, z); if (i < 0 || cells[i] !== OPEN) return false;
     for (const [ox, oz] of DIRS8) { const k = ci(x + ox * rad, z + oz * rad); if (k < 0 || cells[k] !== OPEN) return false; }
@@ -355,7 +355,7 @@ export function exactReach(x0: number, z0: number, rad = 0.45, step = 0.25) {
   };
   const at = (x: number, z: number) => { const c = Math.round((x - BOUNDS.minX) / step), r = Math.round((z - BOUNDS.minZ) / step); return c < 0 || r < 0 || c >= W || r >= H ? -1 : r * W + c; };
   const q = new Int32Array(W * H), from = new Int32Array(W * H).fill(-1); let n = 0;
-  const s0 = at(x0, z0); if (s0 >= 0 && free(x0, z0)) { st[s0] = 1; q[n++] = s0; }
+  for (const p of [{ x: x0, z: z0 }, ...more]) { const s0 = at(p.x, p.z); if (s0 >= 0 && !st[s0] && free(p.x, p.z)) { st[s0] = 1; q[n++] = s0; } } // more: where open portals land (the grotto)
   for (let h = 0; h < n; h++) {
     const cur = q[h], c = cur % W, r = (cur / W) | 0;
     for (let d = 0; d < 4; d++) {
@@ -426,10 +426,10 @@ export function lintReport(o: { exact?: boolean } = {}): LintReport {
   }
   for (const [x, z] of SEAL_PROBES) if (walkable(x, z) && reach(x, z)) errors.push(`sealing line leaks: (${x.toFixed(1)}, ${z.toFixed(1)}) is reachable`);
   if (o.exact && DEMO) { // the same at the monkey's real radius, gates open (the worst case)
-    const t0 = performance.now(), ex = exactReach(START.x, START.z);
-    for (const l of ROUTE_LOCKS) if (!l.under && ex(l.beyond[0], l.beyond[1], 0.6)) errors.push(`route lock ${l.id}: a monkey can squeeze past it (exact, radius 0.45)`);
+    const t0 = performance.now(), ex = exactReach(START.x, START.z, 0.45, 0.25, PORTALS.filter((q) => portalOpen(q.id)).flatMap((q) => [q.a, q.b]));
+    for (const l of ROUTE_LOCKS) if (ex(l.beyond[0], l.beyond[1], 0.6)) errors.push(`route lock ${l.id}: a monkey can squeeze past it (exact, radius 0.45)`);
     let leaks = 0; for (const [x, z] of SEAL_PROBES) if (ex(x, z)) { if (leaks++ < 6) errors.push(`sealing line leaks at the monkey's radius: (${x.toFixed(1)}, ${z.toFixed(1)})`); }
-    for (const [name, x, z] of all) if (!live(x, z) && x < UNDER_X && ex(x, z, 1.5)) errors.push(`${name} is past the route locks but a monkey can reach it (exact)`);
+    for (const [name, x, z] of all) if (!live(x, z) && ex(x, z, 1.5)) errors.push(`${name} is past the route locks but a monkey can reach it (exact)`);
     stats.exactMs = Math.round(performance.now() - t0);
   }
   // 3) time budget: the straight runs (walk speed 4.6 u/s, no looting, no fights)

@@ -110,10 +110,18 @@ export const PIERS = [
 const PIER_PTS: [number, number, EdgeKind][] = [[18.45, -106.2, "river"], [18.45, -115.8, "river"], [15.55, -115.8, "river"], [15.55, -109.3, "river"], [13.7, -109.3, "river"], [13.7, -106.8, "river"]];
 const OVER: [number, number, EdgeKind][] = [
   [-100, 100, "coast"], [-84, 110, "coast"], [-40, 113, "coast"], [0, 114, "coast"], [40, 113, "coast"], [80, 110, "coast"],
-  [98, 100, "cliff"], [102, 76, "jungle"], [100, 40, "jungle"], [103, 14, "cliff"], [100, -30, "jungle"], [102, -56, "cliff"],
+  // the east side (G1.5, the map cut: a straight wall read as a tilted block): a rocky point off the beach, coves and
+  // headlands down the mangrove shore, a broken cliff line past the colony
+  [93, 107, "cliff"], [96.5, 104.5, "cliff"], [102, 99, "cliff"], [98, 91, "cliff"], [103, 84, "jungle"], [100, 75, "jungle"], [92, 68, "jungle"], [99, 57, "jungle"],
+  [108, 48, "cliff"], [101, 39, "cliff"], [92, 31, "jungle"], [100, 22, "jungle"], [103, 14, "cliff"], [109, 4, "cliff"], [102, -6, "jungle"], [94, -16, "jungle"],
+  [101, -26, "jungle"], [108, -38, "cliff"], [104, -48, "cliff"], [102, -56, "cliff"],
   [96, -70, "cliff"], [74, -71, "cliff"], [73, -87, "cliff"], [59, -87, "cliff"], [58, -71, "cliff"], [52, -74, "cliff"], [50, -92, "jungle"],
   [54, -108, "river"], [40, -109.5, "river"], [30, -106.5, "river"], [22, -105.8, "river"], ...PIER_PTS, [12, -107, "river"], [4, -106.6, "river"], [0, -109, "river"], [-1.5, -116, "river"], [-30, -116, "river"], [-70, -112, "river"],
-  [-90, -100, "jungle"], [-100, -70, "cliff"], [-104, -30, "jungle"], [-100, 0, "jungle"], [-102, 30, "cliff"], [-104, 70, "cliff"], [-103, 88, "cliff"],
+  // the west side: the same idea, coves cut into the jungle wall and rocky points out of the cliffs
+  [-90, -100, "jungle"], [-95, -92, "jungle"], [-101, -84, "cliff"], [-93, -77, "cliff"], [-103, -66, "cliff"], [-110, -56, "cliff"], [-102, -47, "jungle"],
+  [-99, -38, "jungle"], [-104, -30, "jungle"], [-101, -20, "jungle"], [-90, -13, "jungle"], [-102, -4, "cliff"], [-110, 2, "cliff"], [-101, 9, "jungle"],
+  [-102, 18, "jungle"], [-107, 26, "cliff"], [-111, 33, "cliff"], [-103, 39, "cliff"], [-95, 47, "jungle"], [-86, 54, "jungle"], [-93, 61, "jungle"],
+  [-102, 68, "cliff"], [-109, 75, "cliff"], [-103, 83, "cliff"], [-103, 88, "cliff"],
 ];
 /** the land alone: the outline without the pier decks (what the terrain and the shore paint follow) */
 export const LAND: [number, number, EdgeKind][] = OVER.filter((q) => !PIER_PTS.includes(q));
@@ -409,9 +417,13 @@ export const DEMO = !(typeof location !== "undefined" && /[?&]north\b/.test(loca
 /** inside the demo slice (x, z). The grotto and everything north of the line above is out. Used to park sockets and spawns */
 export function inDemo(x: number, z: number) {
   if (!DEMO) return true;
-  if (x > UNDER_X) return false;
+  // the grotto is in the demo (Moo: an underground level with its own map tab); past the cave-in in the Smuggler
+  // Tunnel (toward the north exit) is out
+  if (x > UNDER_X) return (x - TUNNEL_LOCK.x) * TUNNEL_LOCK.dx + (z - TUNNEL_LOCK.z) * TUNNEL_LOCK.dz < 1.5;
   return x < -46 ? z > 12.5 : x <= 50 ? z > (x > 44 ? -8 : -3) : z > 14.6;
 }
+/** the cave-in across the Smuggler Tunnel: its centre and the way along the tunnel toward the north exit */
+export const TUNNEL_LOCK = { x: 182.6, z: 34.8, dx: 0.67, dz: 0.74 };
 /** a "route closed" record for the map (the lead's M map draws these; see ROUTE_LOCKS below) */
 export type RouteLock = { id: string; kind: "barricade" | "rockslide" | "bridge" | "cave-in"; label: string; note: string; x: number; z: number; under?: boolean;
   /** a point on the demo side and one just past it: the lint checks the first is reachable and the second is not */
@@ -421,7 +433,10 @@ export const ROUTE_LOCKS: RouteLock[] = DEMO ? [
   { id: "north-road", kind: "rockslide", label: "Rockslide", note: "The ridge came down across the north road. The way to the hollow and the river is closed.", x: 0, z: -2.4, inside: [0, 1.6], beyond: [0, -7] },
   { id: "colony-road", kind: "rockslide", label: "Rockfall at the colony gate", note: "Boulders off the ridge fill the colony's west gate.", x: 48.6, z: 2, inside: [44, 4.5], beyond: [53, 2] },
   { id: "colony-boardwalk", kind: "bridge", label: "Collapsed boardwalk", note: "The boardwalk's last span fell into the swamp and the colony arch came down behind it.", x: 68, z: 22, inside: [66, 38], beyond: [68, 10] },
-  { id: "cove-cave", kind: "cave-in", label: "Cave-in", note: "The smugglers' cave has fallen in. The grotto is closed.", x: -95.6, z: 91, inside: [-92.6, 91.6], beyond: [145, 63] },
+  // the grotto is open (lead, 2026-11-15): the cave-in moved from the cove cave's mouth to the Smuggler Tunnel, and the
+  // root climb from the Root Chamber up to the Sleeper's Hollow is choked
+  { id: "smuggler-tunnel", kind: "cave-in", label: "Cave-in", note: "The Smuggler Tunnel has fallen in past the hall. The way out to the north is closed.", x: 182.6, z: 34.8, under: true, inside: [179.4, 31.2], beyond: [190.6, 42.6] },
+  { id: "hollow-roots", kind: "cave-in", label: "Choked roots", note: "The root tunnel up to the Sleeper's Hollow is packed with fallen earth.", x: 150, z: -30.2, under: true, inside: [150, -27], beyond: [-13.4, -65.2] },
 ] : [];
 /** points just past every sealing line: the lint checks a monkey can't reach any of them (grid.ts exactReach) */
 export const SEAL_PROBES: Pt[] = [];
@@ -473,7 +488,15 @@ if (DEMO) {
   // ---- the colony's south-east corner to the east cliff
   seal([[88.6, 15.2], [94, 15.4], [102.8, 14.4]], 1.9);
   // ---- the cove cave has fallen in; the camp well is boarded over (the grotto's two ways in)
-  group(-96.2, 91, H, [["rubble_pile_rock", -1.2, 1.2, 0.4, 1.25], ["rubble_pile_rock", 1.3, 1.1, 2.6, 1.2], ["rockm", 0.1, 2.3, 0.9, 1.1], ["rocks", -0.8, 3.2, 0.3, 1.2], ["rocks", 1.6, 3.4, 1.7, 1.0]]);
+  // the Smuggler Tunnel has fallen in past the hall (the breakable rubble that opened it is gone in the demo): cave rock
+  // and rubble across the corridor, loose stones spilled back toward the hall
+  for (let i = WALLS_.length - 1; i >= 0; i--) if (WALLS_[i].id === "grotto-rubble") WALLS_.splice(i, 1);
+  for (const [lx, s, k] of [[-2.6, 1.25, "caverock"], [-0.9, 1.5, "rockl"], [0.9, 1.4, "rockl"], [2.6, 1.25, "caverock"]] as [number, number, string][])
+    put(k, TUNNEL_LOCK.x + TUNNEL_LOCK.dz * lx, TUNNEL_LOCK.z - TUNNEL_LOCK.dx * lx, lrr(0, 6.28), s);
+  for (let t = 3; t <= 11; t += 2) SEAL_PROBES.push([TUNNEL_LOCK.x + TUNNEL_LOCK.dx * t, TUNNEL_LOCK.z + TUNNEL_LOCK.dz * t]); // the lint: past it is out of reach
+  group(TUNNEL_LOCK.x - 1.6, TUNNEL_LOCK.z - 1.8, 0.7, [["rubble_pile_rock", 0, 0, 0.4, 1.1], ["rocks", -1.4, 0.8, 1.2, 1.2], ["rocks", 1.2, -0.6, 2.2, 1.1], ["stalagmite", 2.4, 1.2, 0, 0.9]]);
+  // the root climb up to the Hollow: packed earth and roots in front of it
+  group(150, -30.2, 0, [["rubble_pile_rock", 0.9, -0.7, 0.6, 1.0], ["rocks", 2.6, 1.8, 0.5, 1.2], ["rocks", -0.4, 0.6, 1.9, 1.1], ["mushroom", -3.0, 1.4, 0, 1.2]]); // in the climb's mouth, clear of the chamber's own roots
   // (the camp well's own model has boards over its shaft: the read says the gang nailed them down, props.ts)
   // ---- the cove boat: the smugglers' rowboat pulled up at the waterline, a lantern on a post, oars and a crate
   group(-88.6, 104.2, 0.62, [["lantern_post", 2.4, 1.6, 2.2], ["crate_wood_b", -2.6, 0.8, 0.4], ["barrel_wood", -3.2, -0.6], ["rocks", 2.6, -1.4, 0.4, 1.1], ["signpost_a", -2.0, 2.6, 0.9]]);
@@ -570,7 +593,7 @@ export const CRATES: CrateSocket[] = [
  *  at rest and treatment spots, weapon crates in the two secured places. Budget 8 food, 6 ammo, 8 parts, 4 medical,
  *  2 weapon (DEMO_CONTAINER_BUDGET); loot/sockets.ts spawns a type-balanced share of them each raid. Each is its own
  *  model (kit_build container(type)), so it reads before you open it. Interior ones square up with their building. */
-export type ContainerSocket = { id: string; type: "weapon" | "food" | "ammo" | "parts" | "medical"; x: number; z: number; y?: number; in?: string; yaw?: number; note: string };
+export type ContainerSocket = { id: string; type: "weapon" | "food" | "ammo" | "parts" | "medical"; x: number; z: number; y?: number; in?: string; yaw?: number; note: string; /** spawns every raid (the grotto's den: worth the trip) */ always?: boolean };
 const cs = (id: string, type: ContainerSocket["type"], p: { x: number; z: number }, note: string, o: Partial<ContainerSocket> = {}): ContainerSocket => ({ id, type, x: p.x, z: p.z, note, ...o });
 export const CONTAINER_SOCKETS: ContainerSocket[] = [
   // food: picnics, galleys, harvests, kitchens
@@ -605,10 +628,14 @@ export const CONTAINER_SOCKETS: ContainerSocket[] = [
   cs("farm-bedside", "medical", at("farmhouse", -3.4, 1.4), "the farmhouse bedside", { in: "farmhouse" }),
   // weapon: the secured places
   cs("hut-rack", "weapon", { x: 10.6, z: 78.4 }, "the checkpoint's locked rack, behind the hut") /* inside, the hut is too small to stand beside it (bot softlock, G1.5 matrix) */,
+  // the grotto (open in the demo): a smugglers' den, so ammo, parts and a weapon crate, every raid
+  cs("hall-ammo", "ammo", { x: 166, z: 33.2 }, "the smugglers' hall", { always: true }),
+  cs("hall-parts", "parts", { x: 178, z: 24.6 }, "the smugglers' stores", { always: true }),
+  cs("mouth-weapon", "weapon", { x: 151, z: 59.4 }, "a smugglers' cache in the grotto mouth", { always: true }),
   cs("barn-shelf", "weapon", at("barn", -0.6, 4.0), "the barn's secured shelf", { in: "barn" }),
 ];
 /** portals the demo shuts (the grotto's two ways in) */
-export const portalOpen = (id: string) => !DEMO || (id !== "cove-cave" && id !== "camp-well");
+export const portalOpen = (id: string) => !DEMO || (id !== "camp-well" && id !== "hollow-roots"); // the cove cave is open: the grotto is in the demo
 export const BOSS_ENCOUNTER = {
   x: 1, z: 48.5, retreat: { x: -24, z: 74 }, radius: 30,
   spawns: [

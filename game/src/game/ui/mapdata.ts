@@ -40,10 +40,10 @@ export function demoEdge(): Pt[] {
 }
 /** the closed north as a polygon (the border, closed off over the top of the frame); null when nothing is closed */
 export function closedPoly(): Pt[] | null { const e = demoEdge(); return e.length ? [...e, [e[e.length - 1][0], -400], [e[0][0], -400]] : null; }
-/** inside the demo slice: the world's own test (the grotto is out while the demo is on: its two ways in are shut) */
+/** inside the demo slice: the world's own test (the grotto is in; past the tunnel cave-in is out) */
 export const inDemo = (x: number, z: number) => worldInDemo(x, z);
-/** the grotto is closed for the whole demo: the map still shows it, washed out like the closed north */
-export const underClosed = DEMO;
+/** the grotto is open in the demo (its cove cave leads down; only the Smuggler Tunnel past the cave-in is closed) */
+export const underClosed = DEMO && !worldInDemo(168, 26);
 
 // ---------------------------------------------------------------- markers
 export type MarkKind = "exit" | "boat" | "link" | "zip" | "lock" | "pin" | "boss" | "danger" | "down";
