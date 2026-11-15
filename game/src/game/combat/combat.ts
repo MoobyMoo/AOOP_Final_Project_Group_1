@@ -2,7 +2,7 @@
 // enemy flash 90 ms, sound, camera kick on the shot and on kills/hurt only, knockback, hit-stop only on melee kills.
 import * as THREE from "three";
 import { G, V, flat, angDiff, type Enemy } from "../core/state";
-import { KINGPIN, BRIEFCASE, ENEMY, FEEL } from "./weapons";
+import { KINGPIN, BRIEFCASE, ENEMY, FEEL, GEAR_CRIT_BASE } from "./weapons";
 import { rayShot, wallAt, breakWall, isWall, gate, los } from "../world/grid";
 import { sfx } from "../core/audio";
 import { burst, floatText } from "../../fx";
@@ -12,14 +12,24 @@ import { dropLoot } from "../loot/raidloot";
 import { breakWallVisual } from "../world/props";
 import { recordBotCombat } from "../core/bot";
 import { gearStats } from "../loot/equipment";
+import type { KingpinFx } from "./kingpin";
+import { aimHead, headCenter } from "./headshot";
+import { damageNumber, hitMarker, clearFeedback } from "./feedback";
+import { surfaceAt } from "./surface";
+import { throwDemo } from "./rangfx";
+import { bossDamage, enemyHearingRange } from "./boss_hooks"; // -> ../ai/boss once Sol's row-26 commit is merged
+import { zoneAt } from "../world/grid";
 
-const tmp = new THREE.Vector3(), to = new THREE.Vector3();
+const tmp = new THREE.Vector3(), to = new THREE.Vector3(), hitAt = new THREE.Vector3();
 // ---- projectile bullets (Moo 2026-11-15: "we should be able to see the bullets like Duckov"): each round is a visible
 // glowing streak that travels at BULLET_SPEED and hits on arrival; swept against walls and enemies every sim step.
-const BULLET_SPEED = 48, BULLET_LEN = 1.3;
-type Bullet = { p: THREE.Vector3; d: THREE.Vector3; left: number; alive: boolean; damage: number };
-const bullets: Bullet[] = [];
+// G1.5 row 03: the streak is what a 0.04 s trail behind the round would cover (Duckov's ordinary trail retention, its
+// width 0.19; ours 0.14), and when the round stops the tail keeps running into the stop point for those 0.04 s
+// instead of the whole streak blinking out. Bullets are pooled (MAX_BULLETS objects, reused).
+const BULLET_SPEED = 48, TRAIL_T = 0.04, BULLET_LEN = BULLET_SPEED * TRAIL_T;
+type Bullet = { p: THREE.Vector3; d: THREE.Vector3; left: number; flown: number; alive: boolean; dieT: number; damage: number; crit: boolean; head: Enemy | null };
 const MAX_BULLETS = 48;
+const pool: Bullet[] = Array.from({ length: MAX_BULLETS }, () => ({ p: new THREE.Vector3(), d: new THREE.Vector3(), left: 0, flown: 0, alive: false, dieT: -1, damage: 0, crit: false, head: null }));
 let bulletMesh: THREE.InstancedMesh | null = null;
 const bm = new THREE.Matrix4(), bq = new THREE.Quaternion(), bs = new THREE.Vector3(), FWD = new THREE.Vector3(0, 0, 1);
 function ensureBulletMesh() {
@@ -31,6 +41,9 @@ function ensureBulletMesh() {
   }
   G.stage.scene.add(bulletMesh); return bulletMesh;
 }
+const fxk = () => G.fx as KingpinFx;
+/** crit damage multiplier for the Kingpin with the worn gear (weapons.ts CRITS) */
+export function critMultiplier() { return KINGPIN.critMult * (1 + gearStats(G.gear).critDmg - GEAR_CRIT_BASE); }
 export function shoot() {
   G.log.shots++;
   if (G.bot) recordBotCombat("shot", "pistol", G.raidT);
@@ -47,17 +60,19 @@ export function shoot() {
   G.gun.pose({ fireT: 0, reloadT: -1 }); G.gun.root.updateMatrixWorld(true);
   G.gun.muzzle.getWorldPosition(to);
   G.fx.fire(G.gun.muzzle, G.gun.eject, to, "none"); // flash, light, brass; the bullet itself draws the tracer
-  const d = V(Math.sin(yaw), Math.cos(yaw));
-  const critical = G.rng() < KINGPIN.crit + stats.crit;
-  bullets.push({ p: to.clone(), d, left: KINGPIN.range, alive: true, damage: Math.round(KINGPIN.damage * (critical ? stats.critDmg : 1)) });
+  // crit at aim time (headshot.ts): the cursor on a head makes this round critical; body shots crit only via gear perks
+  const head = G.intent.aimNdc ? aimHead.enemy : null, critical = !!head || G.rng() < stats.crit;
+  const b = pool.find((q) => !q.alive && q.dieT < 0) ?? pool.reduce((x, y) => (y.flown > x.flown ? y : x)); // full: recycle the oldest
+  b.p.copy(to); b.d.set(Math.sin(yaw), 0, Math.cos(yaw)); b.left = KINGPIN.range; b.flown = 0; b.alive = true; b.dieT = -1;
+  b.crit = critical; b.head = head; b.damage = Math.round(KINGPIN.damage * (critical ? critMultiplier() : 1));
   sfx("shot"); sfx("shell");
-  G.stage.kick.add(V(-d.x, -d.z).multiplyScalar(FEEL.shotKick));
+  G.stage.kick.add(tmp.set(-b.d.x, 0, -b.d.z).multiplyScalar(FEEL.shotKick));
   makeNoise(G.pp, KINGPIN.noise, "shot");
 }
 /** advance bullets one sim step; hits resolve on contact */
 export function updateBullets(dt: number) {
-  for (const b of bullets) {
-    if (!b.alive) continue;
+  for (const b of pool) {
+    if (!b.alive) { if (b.dieT >= 0) { b.dieT += dt; if (b.dieT > TRAIL_T) b.dieT = -1; } continue; }
     const step = Math.min(b.left, BULLET_SPEED * dt);
     const wallD = rayShot(b.p.x, b.p.z, b.d.x, b.d.z, step + 0.01);
     let hit: Enemy | null = null, hitD = Math.min(step, wallD);
@@ -67,27 +82,35 @@ export function updateBullets(dt: number) {
       if (Math.abs(ex * b.d.z - ez * b.d.x) < e.rig.bounds.radius + 0.12) { hit = e; hitD = Math.max(0, along); }
     }
     if (hit) {
-      b.p.addScaledVector(b.d, hitD); b.alive = false; G.log.hits++;
-      damage(hit, b.damage, "pistol", b.d.clone());
-      G.fx.impact?.(b.p.clone().setY(hit.p.y + hit.rig.bounds.height * 0.5), b.d, "enemy");
+      b.p.addScaledVector(b.d, hitD); b.flown += hitD; b.alive = false; b.dieT = 0; G.log.hits++;
+      // the effect sits where the round was aimed: the head for a headshot on that enemy, else mid-body
+      if (b.crit && b.head === hit) headCenter(hit, hitAt); else hitAt.copy(b.p).setY(hit.p.y + hit.rig.bounds.height * 0.5);
+      b.p.y = hitAt.y;
+      damage(hit, b.damage, "pistol", b.d, b.crit, hitAt, b.crit && b.head === hit);
+      fxk().impactOn(hitAt, b.d, "enemy", b.crit);
     } else if (wallD <= step) {
-      b.p.addScaledVector(b.d, wallD); b.alive = false; G.fx.impact?.(b.p, b.d, "wall");
+      b.p.addScaledVector(b.d, wallD); b.flown += wallD; b.alive = false; b.dieT = 0;
+      const surf = surfaceAt(b.p.x + b.d.x * 0.2, b.p.z + b.d.z * 0.2);
+      fxk().impactOn(b.p, b.d, surf);
+      sfx(IMPACT_SFX[surf], Math.max(0.15, 1 - flat(b.p, G.pp) / 28));
       const w = wallAt(b.p.x + b.d.x * 0.3, b.p.z + b.d.z * 0.3); if (w) hud.toast("Bullets won't break that. Try the briefcase!");
-    } else { b.p.addScaledVector(b.d, step); b.left -= step; if (b.left <= 0) b.alive = false; }
+    } else { b.p.addScaledVector(b.d, step); b.left -= step; b.flown += step; if (b.left <= 0) { b.alive = false; b.dieT = 0; } }
   }
-  for (let i = bullets.length - 1; i >= 0; i--) if (!bullets[i].alive) bullets.splice(i, 1);
 }
-/** draw live bullets as streaks pointing along their flight (one draw call) */
+const IMPACT_SFX = { dirt: "impactDirt", wood: "impactWood", metal: "impactMetal", foliage: "impactFoliage", stone: "impactStone" } as const;
+/** draw live bullets as streaks pointing along their flight (one draw call); a stopped round's tail runs in for 0.04 s */
 export function renderBullets() {
   const m = ensureBulletMesh(); let n = 0;
-  for (const b of bullets) {
+  for (const b of pool) {
+    if (!b.alive && b.dieT < 0) continue;
     if (n >= MAX_BULLETS) break; // capacity, not m.count (count is how many we drew last frame)
-    bq.setFromUnitVectors(FWD, b.d); const trail = Math.min(BULLET_LEN, KINGPIN.range - b.left + 0.2);
-    bs.set(1, 1, trail); bm.compose(b.p, bq, bs); m.setMatrixAt(n++, bm);
+    const trail = Math.min(BULLET_LEN, b.flown + 0.2) - (b.alive ? 0 : BULLET_SPEED * b.dieT);
+    if (trail <= 0.02) continue;
+    bq.setFromUnitVectors(FWD, b.d); bs.set(1, 1, trail); bm.compose(b.p, bq, bs); m.setMatrixAt(n++, bm);
   }
   m.count = n; m.instanceMatrix.needsUpdate = true; m.visible = n > 0;
 }
-export function clearBullets() { bullets.length = 0; if (bulletMesh) { bulletMesh.count = 0; bulletMesh.removeFromParent(); } }
+export function clearBullets() { for (const b of pool) { b.alive = false; b.dieT = -1; } if (bulletMesh) { bulletMesh.count = 0; bulletMesh.removeFromParent(); } clearFeedback(); }
 export function swingBriefcase() {
   const fx = Math.sin(G.aimYaw), fz = Math.cos(G.aimYaw);
   let any = false;
@@ -109,7 +132,8 @@ const wallHp = new Map<string, number>();
 export function hitWall(id: string, n: number, at: THREE.Vector3) {
   const w = gate(id); if (!w || w.hp === undefined || w.open) return; // breakable wall sections and boarded doors are both gates in the grid
   const hp = (wallHp.get(id) ?? w.hp) - n; wallHp.set(id, hp);
-  burst(at, 8, w.mat === "palisade" || w.mat === "hull" || w.mat === "wood" ? "#a8824f" : "#b9ab94", 0.8); sfx("hit");
+  const woody = w.mat === "palisade" || w.mat === "hull" || w.mat === "wood";
+  burst(at, 8, woody ? "#a8824f" : "#b9ab94", 0.8); sfx(woody ? "impactWood" : "impactStone");
   if (hp <= 0) {
     breakWall(id); breakWallVisual(id); sfx("crate"); sfx("thunk"); G.stage.trauma = Math.min(1, G.stage.trauma + 0.4);
     if (w.reveals) hud.banner(w.reveals); G.log.breaks.push(id); makeNoise(at, 10, "smash");
@@ -118,17 +142,28 @@ export function hitWall(id: string, n: number, at: THREE.Vector3) {
 }
 export function resetWalls() { wallHp.clear(); }
 
-export function damage(e: Enemy, n: number, by: "pistol" | "briefcase" | "slam" | "ram", dir: THREE.Vector3) {
+/** apply damage to an enemy. Player-origin hits (pistol, briefcase) get a damage number, a hit marker and its sound;
+ *  crit = the round was classified critical at aim time (headshot.ts); at = where it landed (for the number) */
+export function damage(e: Enemy, n: number, by: "pistol" | "briefcase" | "slam" | "ram", dir: THREE.Vector3, crit = false, at?: THREE.Vector3, head = false) {
   if (e.down) return;
   if (e.kind === "sleeper" && e.state !== "stunned") { // awake hits plink for zero (advisor 18)
     floatText("plink", e.p.clone().setY(3.4), "#8a8fa0", 18); sfx("hit", 0.4); if (e.state === "sleep") hearNoise(e, 3); return;
   }
-  e.hp -= n; e.flash = FEEL.flash; e.hitAt = G.raidT; floatText(String(n), e.p.clone().setY(e.rig.bounds.height + 0.2 + G.rng() * 0.4), by === "briefcase" ? "#ffd84a" : "#fff8ec", 18, (Math.abs(Math.round(e.hp)) % 3 - 1) * 14, -24); sfx(by === "pistol" ? "hit" : "bonk"); hud.hitMarker(e.hp <= 0);
+  // boss resistance (ai/boss.ts, Sol row 26) after the head/crit classification; it is the only armour-like step on
+  // this path (enemies wear no armour against the player here), so nothing is applied twice
+  n = Math.max(1, Math.round(bossDamage(e, n, head ? "head" : "body")));
+  e.hp -= n; e.flash = FEEL.flash; e.hitAt = G.raidT;
+  const player = by === "pistol" || by === "briefcase", kill = e.hp <= 0;
+  if (player) {
+    damageNumber(n, at ?? hitAt.copy(e.p).setY(e.p.y + e.rig.bounds.height * 0.6), crit);
+    hitMarker(kill ? (crit ? "critKill" : "kill") : crit ? "crit" : "hit");
+  }
+  if (by !== "pistol") sfx("bonk");
   if (e.kind !== "brute" && e.kind !== "sleeper") e.vel.addScaledVector(dir, by === "briefcase" ? BRIEFCASE.knock : 2.5);
-  burst(e.p.clone().setY(1.2), by === "briefcase" ? 10 : 5, "#fff3b0", 0.7);
+  if (by !== "pistol") burst(e.p.clone().setY(1.2), by === "briefcase" ? 10 : 5, "#fff3b0", 0.7); // bullets bring their own pop (kingpin impactOn)
   if (by === "briefcase") floatText("BONK!", e.p.clone().setY(e.rig.bounds.height + 0.8), "#e8493a", 24);
   if (e.state === "sleep" || e.state === "patrol" || e.state === "return") alertEnemy(e, true);
-  if (e.hp <= 0) knockOut(e, by);
+  if (kill) knockOut(e, by);
 }
 export function knockOut(e: Enemy, by: string) {
   if (G.bot) recordBotCombat("kill", by === "briefcase" ? "melee" : by === "pistol" ? "pistol" : "environment", G.raidT, e.id);
@@ -145,7 +180,9 @@ export function knockOut(e: Enemy, by: string) {
 
 /** noise: a visible ring when loud; wakes/alerts listeners inside the radius (rule 10: predictable) */
 export function makeNoise(at: THREE.Vector3, r: number, kind: string) {
-  for (const e of G.enemies) { if (e.down) continue; const d = flat(at, e.p); if (d < r) hearNoise(e, kind === "shot" ? 1 : kind === "smash" ? 1 : 0.5, at); }
+  for (const e of G.enemies) { if (e.down) continue; const d = flat(at, e.p); if (d < enemyHearingRange(e, r)) hearNoise(e, kind === "shot" ? 1 : kind === "smash" ? 1 : 0.5, at); }
   if (r >= 8) hud.noiseRing(at, r);
 }
 void isWall; void tmp; void ENEMY;
+// capture and test handle (tools/combatfeel.mjs): read-only queries, no game state changes
+(globalThis as unknown as { __combat: object }).__combat = { surfaceAt, headCenter, aimHead, critMultiplier, rayShot, throwDemo, ground: (x: number, z: number) => zoneAt(x, z)?.ground ?? null, live: () => pool.filter((b) => b.alive).length };

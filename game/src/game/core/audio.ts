@@ -24,6 +24,18 @@ const DEFS = {
   bonk: { osc: [{ f: 260, f2: 120, wave: "triangle", d: 0.12, g: 0.6 }, { f: 820, f2: 600, wave: "sine", d: 0.08, g: 0.25 }], nz: [{ lp: 2200, d: 0.05, g: 0.4 }], jitter: 0.07 },
   hit: { osc: [{ f: 520, f2: 300, wave: "square", d: 0.05, g: 0.15 }], nz: [{ lp: 3000, hp: 400, d: 0.05, g: 0.35 }], jitter: 0.12 },
   marker: { osc: [{ f: 1800, f2: 1700, wave: "sine", d: 0.04, g: 0.12 }] },
+  // G1.5 rows 02/03/14/20 (combat feel): synth stand-ins for the hit-confirm roles, surface impacts, the dash and the
+  // single-round insert. The lead replaces these with ElevenLabs samples under the same names.
+  hitCrit: { osc: [{ f: 1500, f2: 1900, wave: "triangle", d: 0.06, g: 0.16 }, { f: 2600, f2: 2400, wave: "sine", d: 0.05, g: 0.08, at: 0.02 }], nz: [{ lp: 6000, hp: 1500, d: 0.04, g: 0.25 }], jitter: 0.04 },
+  kill: { osc: [{ f: 880, f2: 520, wave: "triangle", d: 0.12, g: 0.2 }, { f: 1320, f2: 1100, wave: "sine", d: 0.1, g: 0.08, at: 0.04 }] },
+  killCrit: { osc: [{ f: 1320, f2: 1760, wave: "triangle", d: 0.1, g: 0.2 }, { f: 1760, f2: 2640, wave: "sine", d: 0.18, g: 0.12, at: 0.06 }], nz: [{ lp: 7000, hp: 2000, d: 0.06, g: 0.2 }] },
+  impactDirt: { nz: [{ lp: 900, lp2: 300, hp: 80, d: 0.08, g: 0.22 }], jitter: 0.15 },
+  impactWood: { nz: [{ lp: 2200, hp: 300, d: 0.06, g: 0.25 }], osc: [{ f: 260, f2: 180, wave: "triangle", d: 0.06, g: 0.12 }], jitter: 0.12 },
+  impactMetal: { osc: [{ f: 2400, f2: 2100, wave: "triangle", d: 0.12, g: 0.1 }, { f: 3700, f2: 3500, wave: "sine", d: 0.09, g: 0.06 }], nz: [{ lp: 8000, hp: 2500, d: 0.04, g: 0.25 }], jitter: 0.1 },
+  impactFoliage: { nz: [{ lp: 3500, lp2: 1200, hp: 900, d: 0.1, g: 0.16 }], jitter: 0.2 },
+  impactStone: { nz: [{ lp: 4000, hp: 700, d: 0.05, g: 0.3 }], osc: [{ f: 900, f2: 600, wave: "square", d: 0.03, g: 0.05 }], jitter: 0.12 },
+  dash: { nz: [{ lp: 4200, lp2: 900, hp: 600, d: 0.2, g: 0.32 }], osc: [{ f: 520, f2: 1300, wave: "sine", d: 0.12, g: 0.08 }] },
+  reloadRound: { nz: [{ lp: 3200, hp: 900, d: 0.04, g: 0.25 }], osc: [{ f: 700, f2: 820, wave: "square", d: 0.03, g: 0.06 }], jitter: 0.08 },
   ko: { osc: [{ f: 700, f2: 180, wave: "triangle", d: 0.35, g: 0.35 }, { f: 1400, f2: 2200, wave: "sine", d: 0.25, g: 0.12, at: 0.12 }] },
   hurt: { osc: [{ f: 300, f2: 110, wave: "sawtooth", d: 0.22, g: 0.28 }], nz: [{ lp: 1200, d: 0.12, g: 0.4 }] },
   roll: { nz: [{ lp: 900, lp2: 300, d: 0.22, g: 0.35 }], osc: [{ f: 200, f2: 320, wave: "sine", d: 0.12, g: 0.12 }] },

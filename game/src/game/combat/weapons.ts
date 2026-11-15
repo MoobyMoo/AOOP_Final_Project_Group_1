@@ -18,12 +18,35 @@ export const PLAYER = {
    *  overweight > 1 -70% (a crawl, never a freeze: rule 17). Pack slots still cap the count. */
   maxWeight: 30, weight: { light: 0.25, heavy: 0.75, lightBonus: 0.15, heavySlow: 0.4, overSlow: 0.7 },
 };
-/** CANCEL RULE (one, on purpose): a roll interrupts firing, melee recovery and item use, and PAUSES a reload (it
- *  resumes after); it never interrupts the 0.1 s melee wind-up. Melee interrupts a reload (restarts it). */
+/** CANCEL RULE (G1.5 row 20, POLISH_FINDINGS 12 on Duckov's CA_Reload priorities): a dash cancels a reload, and so do
+ *  the briefcase swing (a weapon swap) and using a heal; you can walk and run while reloading, and ordinary hits never
+ *  cancel it. A dash also interrupts firing, melee recovery and item use; it never interrupts the 0.1 s melee wind-up.
+ *
+ *  RELOAD (combat/reload.ts). Two modes: "mag" loads the whole missing amount when the timer completes (one timer for a
+ *  top-up and an empty gun, no chamber +1, as in Duckov); "round" inserts one round per perRound seconds and keeps every
+ *  completed insert when cancelled (for a future scatter gun). autoReload off by default: pulling the trigger on an
+ *  empty gun starts the reload instead, with a dry click limited to one per 200 ms.
+ *  Kingpin numbers, chosen on purpose: Duckov's low-tier demo pistol is 13 rounds / 1.1 s / 9 damage, its 8-round
+ *  pistols reload in 1.8 s. The Kingpin is our heavy .45: 8 rounds (12 with the extended mag) of 12 damage, so one
+ *  magazine (96) sits just under their 13 x 9 = 117, and its 1.2 s reload sits between their two. 1.2 s also matches
+ *  the authored gun and arm reload clips (kingpin45.glb "reload", monkey.glb "reload"), so nothing is time-stretched.
+ *
+ *  CRITS (G1.5 row 02, POLISH_FINDINGS 3, Duckov's aim-time classification): a shot fired while the cursor is on an
+ *  enemy's head target is critical; anything else is a body shot, which only crits through gear perks (perk.crit).
+ *  Crit damage = damage x critMult x (1 + gear critDmg bonus), where the bonus is gearStats().critDmg - 1.5 (the
+ *  eyepatch's +0.15 makes the Kingpin crit 1.3 x 1.15 = 1.5). Duckov's form is (gun + ammo) x (1 + holder). */
 export const KINGPIN = {
   id: "kingpin45", name: "Kingpin .45", mag: 8, extMag: 12, interval: 0.22, damage: 12, reload: 1.2, range: 16, pen: 1,
-  magnet: 7 * Math.PI / 180, magnetAds: 10 * Math.PI / 180, noise: 14, kick: 0.09, startAmmo: 24, crit: 0.06,
+  magnet: 7 * Math.PI / 180, magnetAds: 10 * Math.PI / 180, noise: 14, kick: 0.09, startAmmo: 24,
+  critMult: 1.3, reloadMode: "mag" as ReloadMode, perRound: 0.4, autoReload: false,
 };
+export type ReloadMode = "mag" | "round";
+/** a gun as the reload loop sees it (the Kingpin today; a scatter gun later uses mode "round") */
+export type GunDef = { mag: number; reload: number; reloadMode: ReloadMode; perRound: number; autoReload: boolean };
+/** the head target: a sphere this big (world units at rig scale 1) around the middle of the head (Duckov: 0.42) */
+export const HEAD = { radius: 0.42 };
+/** gear crit-damage bonus on top of the gun's multiplier (gearStats starts critDmg at 1.5) */
+export const GEAR_CRIT_BASE = 1.5;
 export const BRIEFCASE = { reach: 1.9, arc: Math.PI * 0.6, wind: 0.1, damage: 22, cycle: 0.45, knock: 5.5, noise: 2 };
 /** enemy HP and the damage their attacks do to the player (before armor) */
 export const ENEMY = {

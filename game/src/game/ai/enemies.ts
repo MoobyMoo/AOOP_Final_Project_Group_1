@@ -7,6 +7,7 @@
 import * as THREE from "three";
 import { G, V, flat, type Enemy } from "../core/state";
 import { ENEMY, aimRang } from "../combat/weapons";
+import { makeRangVisual } from "../combat/rangfx";
 import { createRig } from "../actors/rig";
 import { SPAWNS, GROUP_RINGS } from "../world/layout";
 import { path as findPath, pathLength, los, collide, walkable, ramAt, gates, straightWalk } from "../world/grid";
@@ -283,9 +284,8 @@ function wild(e: Enemy, dt: number, d: number) {
     case "return": goTo(e, e.home.x, e.home.z, 2.5, dt); if (flat(e.p, e.home) < 1) e.state = "patrol"; if (sees(e, 7)) alertEnemy(e); break;
   }
 }
-const rangGeo = new THREE.TorusGeometry(0.32, 0.08, 6, 14, Math.PI * 0.9), rangMat = new THREE.MeshStandardMaterial({ color: "#ffd23a", roughness: 0.5, emissive: "#ffb020", emissiveIntensity: 0.35 });
-function throwRang(e: Enemy, angle = 0) {
-  const mesh = new THREE.Mesh(rangGeo, rangMat); mesh.castShadow = true; mesh.rotation.x = Math.PI / 2; const holder = new THREE.Group(); holder.add(mesh); G.stage.scene.add(holder);
+function throwRang(e: Enemy, angle = 0) { // angle: the boss's phase-2 second throw (ai/boss.ts)
+  const holder = makeRangVisual(); G.stage.scene.add(holder); // the readable look lives in combat/rangfx.ts (G1.5 row 19)
   const flight = e.group ? Math.min(0.5, flat(e.p, G.pp) / ENEMY.wild.rangSpeed) : 0;
   const target = toPlayer(e).addScaledVector(G.vel, flight), out = Math.min(isBoss(e) ? BOSS.throwRange : ENEMY.wild.rangMax, flat(e.p, G.pp) + 1.5);
   const aim = aimRang(target.x, target.z, out), dir = e.group ? V(aim.x, aim.z) : target.normalize();

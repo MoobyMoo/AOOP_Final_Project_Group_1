@@ -269,6 +269,7 @@ abstract class CharRig implements Rig {
     this.mat = charMaterial(this.pal);
     this.mesh = new THREE.SkinnedMesh(merge(model, []), this.mat);
     this.mesh.castShadow = true; this.mesh.receiveShadow = true; this.mesh.morphTargetInfluences = MORPHS.map(() => 0);
+    this.mesh.userData.rigBody = true; // actors/dash.ts copies this mesh's pose for the dash afterimages
     arm.add(this.mesh); this.mesh.bind(new THREE.Skeleton(this.bones, model.inverses), model.bind);
     this.mesh.boundingSphere = this.mesh.geometry.boundingSphere!; this.mesh.boundingBox = this.mesh.geometry.boundingBox!;
     this.body.add(arm); this.root.add(this.body);
@@ -341,6 +342,7 @@ class MonkeyRig extends CharRig {
   private spine: THREE.Bone; private chest: THREE.Bone; private neck: THREE.Bone; private head: THREE.Bone; private earL: THREE.Bone; private earR: THREE.Bone;
   private tail: THREE.Bone[]; private curl = 0; private build = 0; private hipsI: number; private hipsY = 0; private armored = false;
   private tSway: Spring = { x: 0, v: 0 }; private tSway2: Spring = { x: 0, v: 0 }; private tLift: Spring = { x: 0, v: 0 }; private ear: Spring = { x: 0, v: 0 };
+  private arms: THREE.Bone[]; private dashK = 0;   // upperarm L/R, forearm L/R; dash pose weight
 
   constructor(model: Model, style: MonkeyLook | EnemyStyle) {
     super(model, /^(root|hips|thigh|shin|foot)/);
@@ -348,6 +350,7 @@ class MonkeyRig extends CharRig {
     model.names.forEach((n, i) => { this.aimMask[i] = /^(chest|shoulder|upperarm|forearm|hand|thumb|sk_hand)/.test(n) ? 1 : n === "spine" ? 0.6 : 0; });
     this.spine = this.bone("spine"); this.chest = this.bone("chest"); this.neck = this.bone("neck"); this.head = this.bone("head");
     this.earL = this.bone("ear_L"); this.earR = this.bone("ear_R"); this.tail = [1, 2, 3, 4, 5].map((i) => this.bone("tail" + i)); this.hipsI = model.bi.hips;
+    this.arms = ["upperarm_L", "upperarm_R", "forearm_L", "forearm_R"].map((n) => this.bone(n));
     this.spec = "kind" in style ? monkeyEnemy(style) : null;
     this.scale = this.spec?.scale ?? 1; this.body.scale.setScalar(this.scale);
     this.bounds = { radius: 0.45 * this.scale, height: 2.0 * this.scale };
@@ -452,13 +455,16 @@ class MonkeyRig extends CharRig {
   }
   pose(s: RigState) {
     const nb = this.nb, dt = this.tick(s), snap = dt < 0, h = snap ? 0 : Math.min(dt, 1 / 30), act = s.action as string;
-    const fullClip = M_FULL[act], atkClip = M_ATTACK[act];
+    // the dash (action "roll", G1.5 row 14): plays a "dash" clip when monkey.glb has one, else a procedural ninja lean
+    // over the run cycle (below). The old front-flip "roll" clip is no longer used.
+    const dashing = act === "roll", dashClip = dashing && this.model.clips.dash ? "dash" : undefined;
+    const fullClip = dashing ? dashClip : M_FULL[act], atkClip = M_ATTACK[act];
     // ---- facing: the body faces faceYaw (eased); the gun arm chases it at aimRate so it never snaps
     let yawRate = 0;
     if (snap) { this.yaw = s.faceYaw; this.aimYaw = s.faceYaw; }
     else {
       const prev = this.yaw, st = RIG_TUNE.aimRate * dt;
-      this.yaw += wrap(s.faceYaw - this.yaw) * (1 - Math.exp(-dt * (fullClip ? 26 : 13)));
+      this.yaw += wrap(s.faceYaw - this.yaw) * (1 - Math.exp(-dt * (fullClip || dashing ? 26 : 13)));
       this.aimYaw += clamp(wrap(s.faceYaw - this.aimYaw), -st, st);
       yawRate = dt > 0 ? wrap(this.yaw - prev) / dt : 0;
     }
@@ -485,7 +491,7 @@ class MonkeyRig extends CharRig {
     // ---- attack layer (spine and up) and the full-body state (roll, defeat)
     this.attack.set(atkClip ? this.clip(atkClip) : null, clamp(s.actionT, 0, 1), dt);
     this.attack.apply(nb, this.upper);
-    this.full.set(fullClip ? this.clip(fullClip) : null, act === "cheer" ? frac(s.time / CLIP_INFO.cheer.dur + this.seed) : clamp(s.actionT, 0, 1), dt, act === "roll");
+    this.full.set(fullClip ? this.clip(fullClip) : null, act === "cheer" ? frac(s.time / CLIP_INFO.cheer.dur + this.seed) : clamp(s.actionT, 0, 1), dt, dashing);
     this.full.apply(nb, null);
     this.write();
     // ---- procedural: gun-arm aim, head look, chin up, tail, ears, recoil
@@ -508,6 +514,17 @@ class MonkeyRig extends CharRig {
     }
     const ew = this.gearObj.ears ? 0 : this.ear.x;                    // a headset pins the ears
     this.earL.quaternion.multiply(Q.setFromAxisAngle(ZA, ew)); this.earR.quaternion.multiply(Q.setFromAxisAngle(ZA, -ew));
+    // procedural dash pose (until the "dash" clip lands): upper body pitched forward over the hips, head kept up to
+    // look ahead, both arms swept back (ninja run). In fast (0.04 s), out over 0.12 s into the skid. Positive X tips a
+    // bone's +Y toward its +Z (forward).
+    this.dashK = snap ? (dashing && !dashClip ? 1 : 0) : this.dashK + ((dashing && !dashClip ? 1 : 0) - this.dashK) * (1 - Math.exp(-dt * (dashing ? 25 : 9)));
+    if (this.dashK > 0.002) {
+      const k = this.dashK;
+      this.spine.quaternion.multiply(Q.setFromAxisAngle(XA, 0.42 * k)); this.chest.quaternion.multiply(Q.setFromAxisAngle(XA, 0.2 * k));
+      this.neck.quaternion.multiply(Q.setFromAxisAngle(XA, -0.28 * k)); this.head.quaternion.multiply(Q.setFromAxisAngle(XA, -0.22 * k));
+      this.arms[0].quaternion.multiply(Q.setFromAxisAngle(XA, -1.05 * k)); this.arms[1].quaternion.multiply(Q.setFromAxisAngle(XA, -0.95 * k));
+      this.arms[2].quaternion.multiply(Q.setFromAxisAngle(XA, -0.3 * k)); this.arms[3].quaternion.multiply(Q.setFromAxisAngle(XA, -0.3 * k));
+    }
     // recoil: fast out, slower recover (Duckov: back 20/s, recover 8/s); moves the gun socket, a little of it reaches the chest
     const hr = this.sockets.handR, ft = act === "fire" ? s.actionT * CLIP_INFO.fire.dur : -1, kick = ft < 0 ? 0 : ft < 0.035 ? ft / 0.035 : Math.exp(-(ft - 0.035) * 9);
     hr.position.z = -0.1 * kick; hr.rotation.x = -0.3 * kick;
