@@ -6,10 +6,11 @@
 //     ink outline in shading.ts uses), and the core is the only part bright enough for the bloom pass to pick up;
 //   - one main tongue and two smaller leaning ones, each flickering on its own phase;
 //   - embers: one Points draw call for every fire on the map, animated in the vertex shader (no per-frame CPU work).
-// The new meshes are children of parts.flame, so the scale flicker props.ts already applies still drives them.
+// The new meshes are children of the flame node, so the scale flicker props.ts applies to it still drives them. The
+// flames are found by name in the scene (the campfire asset is the only one with a "flame" part), so campfires placed
+// without an id get the fire too.
 // Unlit and outside the shadow pass. Colours are linear; values above 1 are what blooms.
 import * as THREE from "three";
-import { placedParts } from "../world/dress";
 
 const EMBERS = 12;
 const col = (r: number, g: number, b: number) => new THREE.Color().setRGB(r, g, b, THREE.LinearSRGBColorSpace);
@@ -22,20 +23,21 @@ function teardrop() {
 }
 type Tongue = { o: THREE.Object3D; h: number; lean: number; yaw: number; ph: number };
 const tongues: Tongue[] = [], seen = new WeakSet<THREE.Object3D>();
-let embers: THREE.Points | null = null, emberPos: number[] = [], emberSeed: number[] = [], emberSize: number[] = [], scanned = -1;
+const HIDDEN = new THREE.MeshBasicMaterial({ visible: false });   // the kit's own cone: not drawn, its children still are
+let embers: THREE.Points | null = null, emberPos: number[] = [], emberSeed: number[] = [], emberSize: number[] = [], scanIn = 0, scannedScene: THREE.Scene | null = null;
 const box = new THREE.Box3(), size = new THREE.Vector3(), ws = new THREE.Vector3(), wp = new THREE.Vector3(), buf = new THREE.Vector2();
 
 function dress(flame: THREE.Object3D, scene: THREE.Scene) {
-  MATS ??= [layer(col(1.0, 0.2, 0.03), THREE.BackSide), layer(col(1.3, 0.6, 0.07), THREE.BackSide), layer(col(3.0, 2.5, 1.3), THREE.FrontSide)];
+  MATS ??= [layer(col(0.86, 0.1, 0.015), THREE.BackSide), layer(col(1.25, 0.5, 0.05), THREE.BackSide), layer(col(3.0, 2.5, 1.3), THREE.FrontSide)];
   GEO ??= teardrop();
   flame.updateWorldMatrix(true, true); box.setFromObject(flame).getSize(size); flame.getWorldScale(ws); flame.getWorldPosition(wp);
-  const H = Math.max(0.5, size.y / ws.y) * 1.25, R = Math.max(0.16, Math.max(size.x, size.z) / 2 / ws.x) * 1.1, y0 = (box.min.y - wp.y) / ws.y;
-  flame.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.visible = false; });   // the kit's single cone
+  const H = Math.max(0.5, size.y / ws.y) * 1.4, R = Math.max(0.16, Math.max(size.x, size.z) / 2 / ws.x) * 1.35, y0 = (box.min.y - wp.y) / ws.y;
+  flame.traverse((o) => { if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).material = HIDDEN; });
   const seed = tongues.length * 1.7;
   for (const [i, t] of ([[0, 0, 1, 1, 0], [0.55, 0.42, 0.62, 0.6, 0.6], [0.5, 0.4, 0.5, 0.55, 3.9]] as const).entries()) {
     const [off, lean, hs, rs, yaw] = t, g = new THREE.Group();
     g.position.set(Math.sin(yaw) * off * R, y0, Math.cos(yaw) * off * R);
-    for (const [k, w, hh] of [[0, 1, 1], [1, 0.72, 0.8], [2, 0.42, 0.56]] as const) {
+    for (const [k, w, hh] of [[0, 1, 1], [1, 0.66, 0.76], [2, 0.36, 0.5]] as const) {
       const m = new THREE.Mesh(GEO, MATS[k]); m.scale.set(R * rs * w, H * hs * hh, R * rs * w); m.position.y = k * 0.02 * H; m.renderOrder = 2 + k; g.add(m);
     }
     flame.add(g); tongues.push({ o: g, h: 1, lean, yaw, ph: seed + i * 2.3 });
@@ -52,7 +54,7 @@ const EU = { uTime: { value: 0 }, uPx: { value: 6 } };
 let EMAT: THREE.ShaderMaterial | null = null;
 function emberMat() {
   return (EMAT ??= new THREE.ShaderMaterial({
-    uniforms: EU, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false,
+    uniforms: EU, transparent: true, depthWrite: false, toneMapped: false, fog: false,   // alpha-blended, not additive: additive sparks vanish over sunlit sand
     vertexShader: /* glsl */ `
 attribute vec4 aSeed; attribute float aSize; uniform float uTime; uniform float uPx; varying float vK;
 void main() {
@@ -68,15 +70,17 @@ void main() {
   vec2 q = abs(gl_PointCoord - 0.5); float d = q.x + q.y;                 // a little diamond
   float a = (1.0 - smoothstep(0.34, 0.5, d)) * smoothstep(0.0, 0.06, vK) * (1.0 - smoothstep(0.7, 1.0, vK));
   if (a < 0.01) discard;
-  gl_FragColor = vec4(mix(vec3(3.2, 2.4, 0.9), vec3(1.7, 0.42, 0.05), smoothstep(0.0, 0.7, vK)) * a, a);
+  gl_FragColor = vec4(mix(vec3(2.6, 1.9, 0.6), vec3(0.9, 0.14, 0.02), smoothstep(0.0, 0.6, vK)), a);
 }`,
   }));
 }
 /** call once per render frame: dresses any campfire flames placed since the last call, then animates them */
 export function updateCampfires(time: number, scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
-  if (scanned !== placedParts.size) {
-    scanned = placedParts.size;
-    for (const parts of placedParts.values()) if (parts.flame && !seen.has(parts.flame)) { seen.add(parts.flame); dress(parts.flame, scene); }
+  if (scannedScene !== scene || --scanIn <= 0) {   // on a new scene, then every few seconds in case the world was rebuilt
+    scannedScene = scene; scanIn = 240;
+    const found: THREE.Object3D[] = [];
+    scene.traverse((o) => { if (o.name === "flame" && !seen.has(o)) found.push(o); });
+    for (const f of found) { seen.add(f); dress(f, scene); }
   }
   if (embers && embers.parent !== scene) scene.add(embers);
   for (const t of tongues) {
@@ -84,5 +88,5 @@ export function updateCampfires(time: number, scene: THREE.Scene, renderer: THRE
     t.o.scale.set(1 - a * 0.06, 1 + a * 0.13, 1 - a * 0.06);
     t.o.rotation.set(Math.cos(t.yaw) * t.lean + Math.sin(time * 6.3 + t.ph) * 0.09, 0, -Math.sin(t.yaw) * t.lean + Math.cos(time * 7.4 + t.ph) * 0.09);
   }
-  EU.uTime.value = time; EU.uPx.value = 6.5 * renderer.getDrawingBufferSize(buf).y / 900;
+  EU.uTime.value = time; EU.uPx.value = 9 * renderer.getDrawingBufferSize(buf).y / 900;
 }
