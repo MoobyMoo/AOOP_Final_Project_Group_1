@@ -1,6 +1,7 @@
 // G1 fix round F1 checks (cutaways in motion, combat cues in slow motion, the campfire). Built preview only.
-// node tools/f1check.mjs <outdir> <base> [walk,door,muzzle,cues,fire]
+// node tools/f1check.mjs <outdir> <base> [walk,pillar,door,muzzle,cues,fire]
 //   walk   the hero steps behind the big hollow bush, eight frames (hero cutout: clean hole, grain only in the rim)
+//   pillar the hero passes behind a Penal Colony pillar, four frames
 //   door   the hero steps in through the farmhouse's outside door and back out at quarter speed, a frame every ~70 ms
 //          across the roof fade (0.12 s game time), so mid-fade frames are in the set
 //   muzzle one pistol shot at 1/10 speed: the flash while it is alive
@@ -9,7 +10,7 @@
 // Never 5318 or 5340 (the owner's and the lead's servers).
 import { chromium } from "playwright-core";
 import { mkdirSync, writeFileSync } from "node:fs";
-const [out = "/tmp/f1check", base = "http://127.0.0.1:5341", only = "walk,door,muzzle,cues,fire"] = process.argv.slice(2);
+const [out = "/tmp/f1check", base = "http://127.0.0.1:5341", only = "walk,pillar,door,muzzle,cues,fire"] = process.argv.slice(2);
 if (["5318", "5340"].includes(new URL(base).port)) throw new Error("ports 5318 and 5340 are taken");
 mkdirSync(out, { recursive: true });
 const b = await chromium.launch({ executablePath: "/usr/bin/chromium", args: ["--use-angle=gl", "--enable-gpu", "--ignore-gpu-blocklist"] });
@@ -29,6 +30,12 @@ if (want("walk")) {
   await tp(p, 3, -54); await p.waitForTimeout(1500);
   // right = (0.866, 0.5), toward the camera = (-0.5, 0.866) on the ground at the default yaw of -30 degrees
   for (let i = 0; i < 8; i++) { const t = -2.4 + i * 0.75; await tp(p, 5.45 + 0.866 * t, -50.7 + 0.5 * t); await p.waitForTimeout(1300); await p.screenshot({ path: `${out}/walk${i}.png` }); }
+  await p.close();
+}
+if (want("pillar")) {
+  const p = await open("&peace=1"); await p.mouse.move(800, 380);
+  await tp(p, 66, 5); await p.waitForTimeout(1500);
+  for (let i = 0; i < 4; i++) { const t = -1.2 + i * 0.8; await tp(p, 58.3 + 0.866 * t, 1.5 + 0.5 * t); await p.waitForTimeout(1500); await p.screenshot({ path: `${out}/pillar${i}.png` }); }
   await p.close();
 }
 if (want("door")) {

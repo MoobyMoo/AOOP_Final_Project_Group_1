@@ -301,7 +301,7 @@ export function createGunFx(scene: THREE.Scene): KingpinFx {
   const rr = (a: number, b: number) => a + (b - a) * rnd();
   const col = (hex: string, boost = 1) => new THREE.Color(hex).multiplyScalar(boost);
   const C = { // linear working colours; boosts above 1 are what the bloom pass picks up
-    flash: col("#ffb347", 5), flashCore: col("#ffc35c", 3.4), tracer: col("#ffd76a", 5.5), light: new THREE.Color("#ffc170"),
+    flash: col("#ffb347", 5), flashCore: col("#ff9a2a", 2.4), tracer: col("#ffd76a", 5.5), light: new THREE.Color("#ffc170"),
     starHot: col("#fffbe6", 2.6), starGold: col("#ffc81e", 1.5), starOrange: col("#ff9a1f", 1.15), spark: col("#ffe2a8", 4),
     dustA: col("#c9a468"), dustB: col("#9a7245"), dustC: col("#dcbf8a"), chipA: col("#6e4a28"), chipB: col("#b98f58"),
   };
@@ -403,7 +403,7 @@ export function createGunFx(scene: THREE.Scene): KingpinFx {
       const roll = rnd() * 6.283, big = rr(0.9, 1.15);
       emit(FREE, GLOW, m0.x + dir.x * 0.15, m0.y + dir.y * 0.15, m0.z + dir.z * 0.15, 0, 0, 0, 0.5 * big, 0.5 * big, 1.2, FLASH_T, C.flash, 0.3, 1, 0.2, 0, 0, 0, 0, 0.6);
       emit(FREE, FLAME, m0.x, m0.y, m0.z, dir.x * 0.95 * big, dir.y * 0.95 * big, dir.z * 0.95 * big, 0.12 * big, 1, 1.3, FLASH_T, C.flash, 1, 1, 0.45, 0, 0, 0, 0, 0.6);
-      emit(FREE, BURST, m0.x + dir.x * 0.2, m0.y + dir.y * 0.2, m0.z + dir.z * 0.2, 0, 0, 0, 0.3 * big, 0.3 * big, 1.3, FLASH_T, C.flashCore, 1, 1, 0.45, 0, 0, roll, rr(-6, 6), 0.7);
+      emit(FREE, BURST, m0.x + dir.x * 0.2, m0.y + dir.y * 0.2, m0.z + dir.z * 0.2, 0, 0, 0, 0.36 * big, 0.36 * big, 1.3, FLASH_T, C.flashCore, 1, 1, 0.45, 0, 0, roll, rr(-6, 6), 0.7);
       light.position.copy(m0).addScaledVector(dir, 0.35); light.position.y += 0.35; lightT = 0; light.intensity = LIGHT_I;
       // ---- tracer
       t1.copy(to).sub(m0); const dist = t1.length();
