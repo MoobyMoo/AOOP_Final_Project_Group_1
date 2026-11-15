@@ -14,6 +14,7 @@ import type { Placed } from "../../contracts";
 import type { Zone, Road, Shape, Wall, Portal, CrateSocket, Spawn, Pt, EdgeKind } from "./types";
 import { toWorld } from "./types";
 import { pinVariant } from "./colliders";
+import { plugGaps } from "./seal";
 
 // ---------------------------------------------------------------- authoring helpers (deterministic)
 const P: Placed[] = [];
@@ -221,7 +222,7 @@ group(14, 70, 0, [["palm", 0, 0, 2], ["tree", -3.6, 2.4], ["rockl", 2.6, 2.4, 0,
 // the fork: three ways on (rule 9: a decision, a sign, a wreck)
 group(0, 64, 0, [["signpost_key", -2.8, -1.6, 0.6], ["signpost_raft", 2.6, -2.4, -0.4], ["lantern_post", 2.9, 1.9, 1], ["log_bench", -3.4, 2.4, 0.3], ["rockm", 4.5, 3.5]]);
 group(-18, 66, 0.2, [["crate_wood_b", 0, 0, 0.4], ["barrel_wood", 1.3, 0.5], ["barrel_wood", 1.9, -0.6], ["sack_pile", -2.3, 0.9, 1], ["log", -0.6, 2.2, 0.2], ["stump", 2.8, 1.9]]); // a looted cart's load
-group(4, 52, 0, [["log", -3.4, 0.4, 1.2], ["log", 3.2, -0.6, 0.3], ["stump", 4.4, 1.2], ["banana", -4.6, -1.6], ["banana", 5.2, -2.2], ["rockm", -5.4, 2.2], ["bush", 5.8, 2.6]]); // the overgrown middle road
+// (the overgrown middle road's logs gave way to the foreman's loading yard, G1.5: see the Old Plantation)
 
 // ---------------------------------------------------------------- Lookout Bend (a bandit lookout over the west trail)
 group(-38, 60, 0, [["campfire", 0, 0], ["log_bench", -2.2, 0.8, 1.2], ["log_bench_b", 1.4, 2.2, 0.2], ["tent_b", -3.5, -4.2, 0.4], ["barrel_wood", 3.4, -2.6], ["sack", 2.8, -3.4], ["signpost_key", 5.5, 3.5, -0.6], ["lantern_post", -5, 2.5, 2.4], ["rockl", 6, -4.5, 0, 1.3], ["bedroll_a", -1.4, -2.2, 0.4]]);
@@ -271,6 +272,17 @@ put("vat", -9, 31, 0, 1, undefined, "vat");
 put("zip_tower", 21, 8, 0, 1, undefined, "zip-tower");
 rows(-16, 22, -12, 27); rows(8, 34, 23, 38.5); rows(-16, 34.5, -4, 38.5, 2.4, 2.2);
 group(2, 22, 0, [["barrel_wood", 3.5, -2.5], ["barrel_wood", 4.4, -1.8], ["sack_pile", 4.2, 0.4, 1.4], ["log_bench", -3, 3.5, 0.2], ["lantern_post", -3.2, -2.6, 1], ["crate_wood_b", 5.6, 3.2, 0.3], ["banana_stash", -4.5, 0.4, 1.2]]);
+// The foreman's loading yard (G1.5 boss arena): the stretch of road between the fork and the plantation's south gate,
+// where Foreman Knucklebark checks every bunch that leaves. Cover in a loose ring 6-10 u out so a throw can be broken
+// (two crate stacks and the cart load are tall; the sandbags and logs are waist-high and shots pass), the road itself
+// kept clear (x -2..2), the yard open to the south so you can back out toward the fork and the west trail.
+group(1, 50, 0, [
+  ["crate_stack", -9, -3.4, 0.25], ["crate_stack", 8.6, 3.4, -0.3], ["sandbags", -5.2, 6.4, 0.08], ["sandbags", 6.4, -5.4, -0.18],
+  ["barrel_rust", 10.2, -2.6], ["barrel_wood", 11.1, -1.7], ["crate_green", -10.6, 3.4, 0.4], ["barrel_teal", -11.9, 2.1],
+  ["log", 4.2, 9.2, 1.35], ["stump", 6.6, 9.8], ["log_bench", 12.6, 6.4, -0.4], ["lantern_post", 12.4, 4.6, 2.2], ["tarp", 13.4, 7.6, -0.35],
+  ["sack_pile", -12.8, -2.4, 0.5], ["banana_stash", -4.6, -6.6, 0.1], ["banana_stash", 4.4, -7.4, -0.2], ["signpost_a", 2.8, 10.6, 0.2],
+  ["rockm", -13.6, 8.4], ["bush", -14.4, 10.2], ["banana", 15.6, 0.6], ["banana", 14.8, -4.2], ["fern", -15.2, 4.6],
+]);
 group(6, 31, 0, [["barrel_rust", 3, 1.6], ["sack", -2.6, 1.2], ["crate_wood", -2.8, -1.8, 0.5], ["log", 1, 3.6, 0.3]]);
 group(-9, 31, 0, [["barrel_wood", 3.2, -2.4], ["barrel_wood", 3.9, -1.5], ["barrel_rust", 3.6, 3.4]]);
 group(21, 8, 0, [["barrel_wood", -3, 1.5], ["sack_pile", -3.2, -1.6, 0.4], ["signpost_a", 2.6, 3, 0.2], ["crate_wood_b", 3, -2, 0.2]]);
@@ -383,6 +395,90 @@ group(154, -24, 0, [["roots", -4.4, -5.4], ["roots", 5.2, -4.6, 2], ["roots", 6.
 group(192, 44, 0, [["barrel_wood", -3.4, 2.4], ["lantern", 2.4, -2.6], ["crate_wood_b", -2.6, -2.8, 0.4], ["crystal", 3.6, 2.4]]);
 for (const [x, z] of [[155.6, 50], [160.4, 40], [162.6, 8], [157.4, -6]]) group(x, z, rr(0, 6), [["stalagmite", 1.7, 0.4, 0, rr(0.8, 1.2)], ["mushroom", -1.6, -0.6, 0, rr(0.9, 1.5)], ["crystal", -1.9, 1.2]]);
 
+// ================================================================ G1.5 demo slice (row 13)
+// Moo: "make a very polished first area and lock the routes to the next". The demo runs from Exile Beach to the Old
+// Plantation (with the Mangrove Boardwalk between them, which is open swamp: walling it off would take 150 u of made-up
+// barrier across open ground, while the colony's own walls already make a border). Everything north of the line below
+// stays in the data; ?north opens it again for development. The line, west to east: a rock ridge from the cliff to the
+// camp, the Peel Gang barricade in the camp's north gate, a ridge from the camp to the central ridge, the rockslide in the
+// central ridge's gap (the north road), the central ridge, a rockfall in the colony's west gate (the farm road), the
+// colony's south wall with the collapsed boardwalk and its fallen arch, and a ridge from the colony to the east cliff.
+// The grotto's two ways in (the cove cave and the camp well) are shut too. Duckov closes its routes the same way: a
+// visible, solid thing in the world plus a mark on the map (POLISH_FINDINGS 5); the pieces and the names are ours.
+export const DEMO = !(typeof location !== "undefined" && /[?&]north\b/.test(location.search));
+/** inside the demo slice (x, z). The grotto and everything north of the line above is out. Used to park sockets and spawns */
+export function inDemo(x: number, z: number) {
+  if (!DEMO) return true;
+  if (x > UNDER_X) return false;
+  return x < -46 ? z > 12.5 : x <= 50 ? z > (x > 44 ? -8 : -3) : z > 14.6;
+}
+/** a "route closed" record for the map (the lead's M map draws these; see ROUTE_LOCKS below) */
+export type RouteLock = { id: string; kind: "barricade" | "rockslide" | "bridge" | "cave-in"; label: string; note: string; x: number; z: number; under?: boolean;
+  /** a point on the demo side and one just past it: the lint checks the first is reachable and the second is not */
+  inside: Pt; beyond: Pt };
+export const ROUTE_LOCKS: RouteLock[] = DEMO ? [
+  { id: "camp-north", kind: "barricade", label: "Peel Gang barricade", note: "The gang nailed their north gate shut. The road to the bomber and the radio shack is closed.", x: -64, z: 11.2, inside: [-64, 15], beyond: [-64, 7] },
+  { id: "north-road", kind: "rockslide", label: "Rockslide", note: "The ridge came down across the north road. The way to the hollow and the river is closed.", x: 0, z: -2.4, inside: [0, 1.6], beyond: [0, -7] },
+  { id: "colony-road", kind: "rockslide", label: "Rockfall at the colony gate", note: "Boulders off the ridge fill the colony's west gate.", x: 48.6, z: 2, inside: [44, 4.5], beyond: [53, 2] },
+  { id: "colony-boardwalk", kind: "bridge", label: "Collapsed boardwalk", note: "The boardwalk's last span fell into the swamp and the colony arch came down behind it.", x: 68, z: 22, inside: [66, 38], beyond: [68, 10] },
+  { id: "cove-cave", kind: "cave-in", label: "Cave-in", note: "The smugglers' cave has fallen in. The grotto is closed.", x: -95.6, z: 91, inside: [-92.6, 91.6], beyond: [145, 63] },
+] : [];
+/** points just past every sealing line: the lint checks a monkey can't reach any of them (grid.ts exactReach) */
+export const SEAL_PROBES: Pt[] = [];
+/** the cove boat: the second way home inside the slice (a smuggler's rowboat at the cove's waterline) */
+export const COVE_BOAT = { x: -89.5, z: 104.5, boat: { x: -91.4, z: 107.4, yaw: 0.62 } };
+if (DEMO) {
+  // a separate stream so the slice never shifts the look of anything authored above
+  let ls = 151103; const lr = () => (ls = (ls * 16807) % 2147483647) / 2147483647, lrr = (a: number, b: number) => a + lr() * (b - a);
+  /** boulders and big rocks shoulder to shoulder, overlapping enough that a monkey can't squeeze between (radius 0.45) */
+  const seal = (pts: Pt[], s = 1.9, step = 1.25) => {
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [ax, az] = pts[i], [bx, bz] = pts[i + 1], len = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.round(len / (step * s)));
+      // lint probes 5 u past the line (its left side walking from the first point: the polylines run with the slice on the right)
+      for (let t = 0; t <= len; t += 1.5) SEAL_PROBES.push([ax + ((bx - ax) * t) / len + ((bz - az) / len) * 5, az + ((bz - az) * t) / len - ((bx - ax) / len) * 5]);
+      for (let k = 0; k <= n; k++) {
+        if (k === n && i < pts.length - 2) continue;
+        const t = k / n, big = lr() < 0.35;
+        put(big ? "boulders" : "rockl", ax + (bx - ax) * t + lrr(-0.25, 0.25), az + (bz - az) * t + lrr(-0.25, 0.25), lrr(0, 6.28), (big ? 0.8 : 1) * s * lrr(0.95, 1.12));
+        if (lr() < 0.45) put(lr() < 0.5 ? "bush" : "fern", ax + (bx - ax) * t + lrr(-2.2, 2.2), az + (bz - az) * t + lrr(1.2, 2.6), lrr(0, 6.28), lrr(0.9, 1.3));
+      }
+    }
+  };
+  // ---- west: the cliff to the camp's north-west corner, the camp's north-east corner to the central ridge
+  seal([[-101.8, 10.6], [-90, 11.4], [-78.6, 12.2]], 1.9);
+  seal([[-45.6, 12.6], [-45, 5.5], [-44.2, -1.4]], 1.9);
+  // ---- the Peel Gang barricade: the north gate shut, sandbags behind it, the gang's junk piled outside, a painted sign
+  { const g = P.find((p) => p.k === "gate" && Math.abs(p.x + 64) < 0.1 && Math.abs(p.z - 12) < 0.1); if (g) g.o = { ...(g.o ?? {}), open: false }; }
+  put("sandbags", -64, 12.78, 0); put("sandbags", -64, 13.5, Math.PI, 0.96);
+  group(-64, 10.6, 0, [["crate_stack", -1.4, -0.3, 0.12], ["barrel_rust", 1.6, -0.1], ["barrel_wood", 2.3, -0.9], ["log", 0.4, -1.9, 0.18], ["wall_palisade_post", -3.2, -0.6, 0.2], ["wall_palisade_post", 3.2, 0.2, 2.1], ["signpost_a", 3.4, -1.6, 0.5], ["sack_pile", -3.4, -2.2, 0.4], ["rocks", 0.6, -3.2, 0.3, 1.2]]);
+  group(-64, 15.2, 0, [["crate_wood_b", 2.4, 0.2, 0.3], ["lantern", -2.2, 0.3]]);
+  // ---- the rockslide in the central ridge's gap: the north road ends in a slope of fresh rock and a buried signpost
+  seal([[-4.6, -2.6], [-1.6, -3.4], [1.4, -3.0], [4.4, -2.2]], 2.0, 1.05);
+  group(0, -2.4, 0, [["rubble_pile_rock", -1.6, 1.6, 0.4], ["rubble_pile_rock", 1.4, 1.9, 2.2], ["rubble_pile_rock", 0, 2.6, 4.1], ["rocks", -2.4, 3.6, 0.2, 1.3], ["rocks", 2.2, 3.9, 1.6, 1.1], ["rocks", 0.4, 4.6, 3.1, 1.2], ["rockm", 3.6, 2.8, 0.6], ["log", -3.2, 2.9, 0.7], ["signpost_raft", -0.6, 4.0, 2.4]]);
+  // ---- east: the central ridge's end to the colony's west wall; the rockfall in the colony's west gate
+  seal([[44.8, -6.4], [47.4, -7.4], [49.6, -8.0]], 1.8);
+  seal([[50.4, -0.6], [50.2, 2.0], [50.4, 4.6]], 1.8, 1.0);
+  group(48, 2.2, 0, [["rubble_pile_rock", -0.6, -1.6, 0.6], ["rubble_pile_rock", -0.8, 1.8, 2.4], ["rocks", -2.6, 0.2, 0.4, 1.3], ["rocks", -3.6, 2.6, 1.9, 1.0], ["rockm", -2.2, -2.8, 0.2]]);
+  // ---- the collapsed boardwalk: its last span and the ramp are gone; a broken section hangs into the water, the piles
+  // stand on; behind it the colony's south arch has fallen into its own gateway
+  { const r = ROADS.find((q) => q.id === "boardwalk")!; r.pts = r.pts.filter((q) => q[1] > 40); r.pts.push([67.4, 36.4]); } // no causeway under the missing span: it ends in the water
+  for (let i = P.length - 1; i >= 0; i--) { const p = P[i]; if ((p.k === "boardwalk_a" || p.k === "boardwalk_b") && p.z < 36 && p.x > 66 || p.k === "boardwalk_ramp" && p.x === 68) P.splice(i, 1); }
+  put("dock_broken", 67.6, 33.8, H + 0.12, 1, { deck: true, tilt: [0.16, 0.05] }); put("dock_piles", 68.4, 31.4, H + 0.2); put("dock_piles", 67.2, 29.2, H - 0.3);
+  group(68, 26, 0, [["driftwood", -1.6, 0.4, 0.9, 1.3], ["driftwood", 1.4, -1.2, 2.6, 1.2], ["reeds", -2.6, 1.6], ["reeds", 2.8, 0.8], ["rocks", 0.4, -2.4, 0.4, 1.1]]);
+  for (let i = P.length - 1; i >= 0; i--) { const p = P[i]; if ((p.k === "ruin_arch" || p.k === "ruin_steps") && p.x === 68) P.splice(i, 1); }
+  put("rubble_pile_rock", 66.9, 14.2, 0.4, 1.35); put("rubble_pile_rock", 69.2, 14.0, 2.1, 1.3); put("pillar_c", 68.1, 15.4, 1.2); put("rubble_pile", 68, 13.4, 3.3, 1.2);
+  put("ruin_wall_broken", 68, 12.6, 0.06); put("rocks", 66.4, 16.6, 0.8, 1.2); put("rocks", 69.8, 16.9, 2.2, 1.1);
+  // ---- the colony's south-east corner to the east cliff
+  seal([[86.8, 14.8], [94, 15.4], [102.8, 14.4]], 1.9);
+  // ---- the cove cave has fallen in; the camp well is boarded over (the grotto's two ways in)
+  group(-96.2, 91, H, [["rubble_pile_rock", -1.2, 1.2, 0.4, 1.25], ["rubble_pile_rock", 1.3, 1.1, 2.6, 1.2], ["rockl", 0.1, 1.9, 0.9, 1.05], ["rocks", -0.8, 3.2, 0.3, 1.2], ["rocks", 1.6, 3.4, 1.7, 1.0]]);
+  put("dock_broken", -52, 22, 0.3, 0.42, { lift: 0.75 }); // planks nailed over the well mouth
+  // ---- the cove boat: the smugglers' rowboat pulled up at the waterline, a lantern on a post, oars and a crate
+  group(-88.6, 104.2, 0.62, [["lantern_post", 2.4, 1.6, 2.2], ["crate_wood_b", -2.6, 0.8, 0.4], ["barrel_wood", -3.2, -0.6], ["rocks", 2.6, -1.4, 0.4, 1.1], ["signpost_a", -2.0, 2.6, 0.9]]);
+}
+/** the patrol set in use: in the demo the north's enemies stay parked in the data */
+export const activeSpawns = (set: number): Spawn[] => SPAWNS[set % SPAWNS.length].filter((s) => inDemo(s.x, s.z));
+
 /** worn footpaths (ground decals, dress.ts): where feet go every day. Drawn darker and patchy on the dirt */
 export const PATHS: Pt[][] = [
   [[-60, 39.6], [-60.6, 34], [-61.4, 29.6]], [[-62.6, 25.2], [-63.6, 20], [-64, 13]],          // gate to fire to gate
@@ -392,7 +488,15 @@ export const PATHS: Pt[][] = [
   [[10, -98], [13.4, -100.4], [16.6, -101.4]], [[8, -102], [12.6, -102.4], [15.8, -102.2]],       // down to the dock
   [[-64, -42], [-60.6, -46.4], [-57, -47.8]],                                                  // round the wreck
 ];
-export const PLACED: Placed[] = P.map(pinVariant); // multi-rock and leaning nature pieces get a fixed variant (colliders.ts)
+P.forEach(pinVariant); // multi-rock and leaning nature pieces get a fixed variant (colliders.ts)
+/** the demo's border, west to east, as one line that must be closed: the west seal, the camp's north wall (its gate is
+ *  the barricade), the north-east seal, the central ridge with the rockslide in its gap, the ridge end to the colony, the
+ *  colony's west and south walls (the rockfall and the fallen arch in their gates), the east seal. Ridges authored for
+ *  looks had gaps a monkey fits through; seal.ts finds them and plugs them with more rock */
+export const DEMO_BORDER: Pt[] = [[-103.5, 10.5], [-90, 11.4], [-78.6, 12.2], [-78, 12], [-46, 12], [-45, 5.5], [-44.2, -1.4], [-44, -2], [-30, -3], [-16, -1], [-4.6, -2.4], [-1.6, -3.4], [1.4, -3.0], [4.4, -2.2], [18, -1], [32, -3], [44, -6], [47.4, -7.4], [50, -8], [50, 14], [86, 14], [94, 15.4], [103.5, 14.4]];
+export const BORDER_PLUGS: Placed[] = DEMO ? (() => { let ps = 902011; return plugGaps(P, [DEMO_BORDER], OVER, () => (ps = (ps * 16807) % 2147483647) / 2147483647); })() : [];
+P.push(...BORDER_PLUGS);
+export const PLACED: Placed[] = P;
 export const WALLS: Wall[] = WALLS_;
 
 // ================================================================ gameplay sockets
@@ -411,7 +515,7 @@ export const PORTALS: Portal[] = [
 /** one-way zipline from the plantation lookout down to the beach: a fast way home from the middle of the map */
 export const ZIPLINES = [{ id: "lookout", from: { x: 21, z: 8, h: 6 }, to: { x: 20, z: 99, h: 1.2 } }];
 export const POI = {
-  hatch: { x: -8, z: 102 }, raft: { x: 17, z: -113.4 }, tunnelExit: { x: 193.5, z: 44.5 },
+  hatch: { x: -8, z: 102 }, coveBoat: { x: -89.5, z: 104.5 }, boss: { x: 1, z: 48.5 }, raft: { x: 17, z: -113.4 }, tunnelExit: { x: 193.5, z: 44.5 },
   campfire: { x: -62, z: 27 }, watchtower: { x: -73, z: 17 }, ruinCenter: { x: 68, z: 4 }, raftSign: { x: 0.6, z: -11.4 },
   sleeperBed: { x: 2, z: -57.4 }, giantTree: { x: -6, z: -66 }, vat: { x: -9, z: 31 }, plane: { x: -66, z: -44 }, falls: { x: 66, z: -72 },
 };
@@ -429,20 +533,13 @@ export const LANDMARKS = [
   { id: "audit", x: -6, z: -63, note: "a NOTICE OF AUDIT nailed to the giant tree (foreshadows the ending gag)" },
   { id: "falls", x: 66, z: -72, note: "a waterfall you can walk through to a hidden nook" },
 ];
-/** 35 authored sockets; the 5 fixed ones always spawn; loot/sockets.ts selects 10 optional sockets.
+/** Generic crate sockets: the fixed ones (key, vault, Sleeper, shrine, radio) and the north's tiered crates. The demo
+ *  slice's own loot is in CONTAINER_SOCKETS (typed, G1.5-27); loot/sockets.ts picks per raid from both.
  *  Tiers rise with distance from the hatch and behind contested doors. */
 export const CRATES: CrateSocket[] = [
-  // the south is thin on purpose (pacing report: raids ended on the first three crates by the hatch): one crate in
-  // the ferry hull, one behind the cove rocks; the beach itself holds nothing
-  { ...at("ferry", 2.4, 1.2), tier: "green", in: "ferry" }, { x: -88, z: 100, tier: "green" },
-  // the checkpoint hut and the lookout
-  { x: 7.25, z: 50.05, tier: "wood" }, { x: -41, z: 57.6, tier: "wood" }, // the checkpoint hut itself holds nothing: it is 23 u from the hatch, the first guard's post
-  // Peel Gang camp: the key is up the tower, the far corner from both gates
-  { ...at("watchtower", 0.2, 0.25), tier: "gold", fixed: "key", y: 3.07 }, { x: -70.5, z: 31.5, tier: "green" }, { x: -57.4, z: 22, tier: "wood" }, { x: -49.4, z: 37, tier: "wood" },
-  // Old Plantation: one in each building, one by the tractor
-  { ...at("farmhouse", 3.6, 1.7), tier: "green", in: "farmhouse" }, { ...at("barn", -0.6, -2.6), tier: "wood", in: "barn" }, { x: 10.4, z: 29, tier: "wood" },
-  // Mangrove: on the boardwalk hub and the jetty
-  { x: 50.6, z: 51.6, tier: "green" }, { x: 69.6, z: 39.4, tier: "wood" },
+  // (G1.5-27: the slice's generic sockets in the ferry, the cove, the lookout, the camp, the plantation and the mangrove
+  // became typed containers, CONTAINER_SOCKETS below.) Peel Gang camp: the key is up the tower, far from both gates
+  { ...at("watchtower", 0.2, 0.25), tier: "gold", fixed: "key", y: 3.07 },
   // Penal Colony: the yard, the locked evidence cell, the back yard; the vault and the shrine are gated
   { x: 59.4, z: 9.4, tier: "wood" }, { ...at("cellblock", 5.4, 2.8), tier: "gold", in: "cellblock" }, { x: 79, z: 9, tier: "wood" },
   { x: 82.2, z: -28.4, tier: "gold", fixed: "vault", y: 0.44 }, { x: 64.2, z: -19.6, tier: "gold", fixed: "secret" },
@@ -457,14 +554,63 @@ export const CRATES: CrateSocket[] = [
   // the grotto
   { x: 173.6, z: 33, tier: "gold" }, { x: 157.6, z: -27.6, tier: "gold" }, { x: 146.6, z: 67.4, tier: "wood" },
 ];
+/** Foreman Knucklebark's encounter (ai/boss.ts, Sol's numbers): the loading yard on the road from the fork to the
+ *  plantation's south gate. radius = the 30 u leash; the retreat is the way out you can always take (south to the fork,
+ *  then west along the trail), and it ends outside the leash (npm run sim checks both). */
+/** Typed containers (G1.5-27): Sol's five pools (loot/containers.ts CONTAINERS) placed by his rules, which follow the
+ *  room: ammo tins at guard posts, food baskets in kitchens and camps, parts crates by workshops and boats, medical boxes
+ *  at rest and treatment spots, weapon crates in the two secured places. Budget 8 food, 6 ammo, 8 parts, 4 medical,
+ *  2 weapon (DEMO_CONTAINER_BUDGET); loot/sockets.ts spawns a type-balanced share of them each raid. Each is its own
+ *  model (kit_build container(type)), so it reads before you open it. Interior ones square up with their building. */
+export type ContainerSocket = { id: string; type: "weapon" | "food" | "ammo" | "parts" | "medical"; x: number; z: number; y?: number; in?: string; yaw?: number; note: string };
+const cs = (id: string, type: ContainerSocket["type"], p: { x: number; z: number }, note: string, o: Partial<ContainerSocket> = {}): ContainerSocket => ({ id, type, x: p.x, z: p.z, note, ...o });
+export const CONTAINER_SOCKETS: ContainerSocket[] = [
+  // food: picnics, galleys, harvests, kitchens
+  cs("beach-picnic", "food", { x: -44.2, z: 97.2 }, "beach picnic by the flotsam"),
+  cs("ferry-galley", "food", at("ferry", -2.4, -1.8), "the ferry's galley", { in: "ferry" }),
+  cs("palm-harvest", "food", { x: 10.6, z: 67.4 }, "a palm harvest under the trees"),
+  cs("camp-kitchen", "food", { x: -58.6, z: 27.6 }, "the camp's kitchen fire"),
+  cs("farm-kitchen", "food", at("farmhouse", 3.6, 1.7), "the farmhouse kitchen", { in: "farmhouse" }),
+  cs("cove-picnic", "food", { x: -78.4, z: 100.4 }, "the smugglers' picnic"),
+  cs("lookout-fire", "food", { x: -35.0, z: 61.8 }, "the lookout's cookfire"),
+  cs("farm-porch", "food", { x: -1.6, z: 17.8 }, "the farmhouse porch"),
+  // ammo: guard posts
+  cs("ferry-locker", "ammo", at("ferry", -2.6, 1.6), "the ferry's guard locker", { in: "ferry" }),
+  cs("hut-post", "ammo", { x: 10.6, z: 75.6 }, "the checkpoint guard's post"),
+  cs("camp-gatepost", "ammo", { x: -54.8, z: 39.0 }, "the camp's south gate post"),
+  cs("barn-sentry", "ammo", at("barn", -1.0, -2.0), "the barn sentry", { in: "barn" }),
+  cs("lookout-post", "ammo", { x: -40.9, z: 57.8 }, "the bandit lookout"),
+  cs("yard-tin", "ammo", { x: -7.4, z: 43.4 }, "the foreman's yard"),
+  // parts: workshops, wrecks, boats, machines
+  cs("beach-wreck", "parts", { x: 31.4, z: 101.2 }, "a wreck's worth of flotsam on the beach"),
+  cs("ferry-engine", "parts", { x: 57.3, z: 104.6 }, "by the ferry's stern"),
+  cs("hut-bench", "parts", { x: 12.2, z: 79.6 }, "the checkpoint hut's workbench, round the back"),
+  cs("camp-workshop", "parts", { x: -71.4, z: 36.8 }, "the camp's workshop by the crate stacks"),
+  cs("barn-parts", "parts", at("barn", 1.0, 1.2), "the barn's parts bins", { in: "barn" }),
+  cs("cove-repair", "parts", { x: -84.8, z: 102.6 }, "the cove boat's repair kit"),
+  cs("tractor", "parts", { x: 10.4, z: 29 }, "the rusted tractor"),
+  cs("zip-tower", "parts", { x: 16.7, z: 7.5 }, "the zipline tower"),
+  // medical: rest and treatment
+  cs("ferry-aid", "medical", at("ferry", 2.4, 1.2), "the ferry's first aid", { in: "ferry" }),
+  cs("checkpoint-bunk", "medical", { x: -4.8, z: 72.6 }, "the checkpoint's bunk"),
+  cs("camp-tent", "medical", { x: -57.4, z: 22 }, "the camp's treatment tent"),
+  cs("farm-bedside", "medical", at("farmhouse", -3.0, -1.6), "the farmhouse bedside", { in: "farmhouse" }),
+  // weapon: the secured places
+  cs("hut-rack", "weapon", at("hut-south", -0.7, 0), "the checkpoint hut's locked rack", { in: "hut-south" }),
+  cs("barn-shelf", "weapon", at("barn", -0.6, 4.0), "the barn's secured shelf", { in: "barn" }),
+];
+/** portals the demo shuts (the grotto's two ways in) */
+export const portalOpen = (id: string) => !DEMO || (id !== "cove-cave" && id !== "camp-well");
 export const BOSS_ENCOUNTER = {
-  x: -3, z: 43, retreat: { x: -24, z: 74 }, radius: 30,
+  x: 1, z: 48.5, retreat: { x: -24, z: 74 }, radius: 30,
   spawns: [
-    { kind: 'brute', x: -3, z: 43, group: 'plantation-boss', tag: 'plantation-foreman' },
-    { kind: 'wild', x: -8, z: 39, group: 'plantation-boss', tag: 'foreman-escort-0' },
-    { kind: 'wild', x: 7, z: 40.5, group: 'plantation-boss', tag: 'foreman-escort-1' },
+    { kind: 'brute', x: 1, z: 48.5, group: 'plantation-boss', tag: 'plantation-foreman' },
+    { kind: 'wild', x: -5, z: 51.6, group: 'plantation-boss', tag: 'foreman-escort-0' },
+    { kind: 'wild', x: 6.4, z: 49.2, group: 'plantation-boss', tag: 'foreman-escort-1' },
   ] satisfies Spawn[],
 };
+/** the map's static danger area for the boss (before he is spotted; ai/enemies.ts bossMarkers() takes over in a raid) */
+export const BOSS_ARENA = { id: 'plantation-foreman', label: 'Foreman Knucklebark', kind: 'danger-area' as const, x: BOSS_ENCOUNTER.x, z: BOSS_ENCOUNTER.z, radius: BOSS_ENCOUNTER.radius };
 const base: Spawn[] = [
   ...BOSS_ENCOUNTER.spawns,
   { kind: "bandit", x: -60, z: 31, group: "camp" }, { kind: "bandit", x: -66, z: 21, group: "camp" }, { kind: "bandit", x: -63.4, z: 37.2, group: "camp", tag: "lemon", carry: "radio_key" }, { kind: "bandit", x: -54, z: 27, group: "camp" },
@@ -480,7 +626,7 @@ export const SPAWNS: Spawn[][] = [[...base,
   { kind: "brute", x: 8, z: -90.5, group: "landing" }, { kind: "bandit", x: -7.7, z: -111.5, group: "landing" }, { kind: "bandit", x: 24.6, z: -101.2, group: "landing" }, { kind: "bandit", x: 32.6, z: -102.2, group: "landing" }, { kind: "wild", x: 30, z: -99, group: "landing" },
   { kind: "bandit", x: 166, z: 24, group: "grotto" }, { kind: "bandit", x: 172, z: 29, group: "grotto" },
 ], [...base,
-  { kind: "wild", x: 8, z: 70 }, { kind: "wild", x: -80, z: 95 }, { kind: "wild", x: 42, z: 58 }, { kind: "wild", x: 64, z: 46 }, { kind: "bandit", x: 4, z: 50 },
+  { kind: "wild", x: 8, z: 70 }, { kind: "wild", x: -80, z: 95 }, { kind: "wild", x: 42, z: 58 }, { kind: "wild", x: 64, z: 46 }, { kind: "bandit", x: 16.5, z: 63.5 }, /* was 4, 50: the foreman's yard now */
   { kind: "wild", x: 72, z: 8, group: "ruin" }, { kind: "bandit", x: 69.5, z: -5.4, group: "ruin" }, { kind: "bandit", x: 76, z: -15, group: "ruin" },
   { kind: "bandit", x: -24, z: -11 }, { kind: "wild", x: -60, z: -16.5 }, { kind: "bandit", x: -70, z: -48, group: "plane" }, { kind: "wild", x: -56, z: -40 },
   { kind: "wild", x: 36, z: -58 }, { kind: "brute", x: 8, z: -90, group: "landing" }, { kind: "bandit", x: 24.2, z: -100.8, group: "landing" }, { kind: "bandit", x: 33, z: -102.6, group: "landing" }, { kind: "bandit", x: -7.7, z: -111.5, group: "landing" }, { kind: "wild", x: -40, z: -101 }, { kind: "wild", x: 33, z: -100, group: "landing" },
@@ -492,6 +638,7 @@ export const GROUP_RINGS: Record<string, { x: number; z: number; r: number }> = 
   camp: { x: -62, z: 26, r: 19 }, plane: { x: -64, z: -45, r: 14 }, grotto: { x: 168, z: 26, r: 14 }, ruin: { x: 68, z: -4, r: 20 }, landing: { x: 8, z: -98, r: 26 },
 };
 /** dynamic event: a bandit supply balloon crash-lands one gold crate (with red smoke) 90-150 s into a raid */
-export const SUPPLY_DROPS = [{ x: 12, z: 16, area: "plantation" }, { x: -54, z: -54, area: "planecrash" }, { x: 76, z: -58, area: "waterfall" }, { x: -76, z: 102, area: "cove" }];
+export const SUPPLY_DROPS_ALL = [{ x: 12, z: 16, area: "plantation" }, { x: -54, z: -54, area: "planecrash" }, { x: 76, z: -58, area: "waterfall" }, { x: -76, z: 102, area: "cove" }];
+export const SUPPLY_DROPS = SUPPLY_DROPS_ALL.filter((d) => inDemo(d.x, d.z));
 /** where the player starts a raid (just outside the hatch ring) */
 export const START = { x: -5.5, z: 97.4 };

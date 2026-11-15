@@ -11,11 +11,12 @@ import { G } from "./core/state";
 import { load, save, retainKeys } from "./core/save";
 import { unlockAudio } from "./core/audio";
 import { startRaid, stepRaid, renderRaid, buildRaidWorld, raidScene, type RaidResult } from "./core/raid";
-import { path, walkable, los, lintReport, gates, setGate, pathLength, collide } from "./world/grid";
+import { path, walkable, los, lintReport, exactReach, clearance, gates, setGate, pathLength, collide } from "./world/grid";
 import { worldStats, countVisible, scattered } from "./world/world";
 import { blockoutSvg } from "./world/map/dump";
 import { preloadNature } from "./world/kit_nature";
 import { preloadHouse } from "./world/buildings";
+import { preloadGroundItems } from "./loot/ground";
 import { groundHeight } from "./world/terrain";
 import { houses } from "./world/buildings";
 import { enterBunker, stepBunker, renderBunker, leaveBunker, bunkerScene, homeApi } from "./home/bunker";
@@ -44,7 +45,7 @@ addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlock
 await preloadKingpin();
 await preloadBuild().catch((e) => console.warn("build kit missing, bunker uses the blockout", e)); // structures kit (bunker room, raid structures)
 await preloadCharacters(); // character GLBs (rig v2): createRig() is synchronous once this resolves
-await Promise.all([preloadNature(), preloadHouse()]); // nature + building kits (the structures kit is loaded above): the raid world builds from them
+await Promise.all([preloadNature(), preloadHouse(), preloadGroundItems()]); // nature + building kits (the structures kit is loaded above): the raid world builds from them
 buildRaidWorld(); G.stage.setScene(raidScene); buildMapShots(raidScene);
 if (QS.has("glitch")) (window as unknown as { __glitch: unknown }).__glitch = await import("./dev/glitch"); // the glitch hunt (tools/glitchcheck.mjs)
 G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); G.rig.setGear?.(G.save.gear);
@@ -63,8 +64,8 @@ function onRaidEnd(r: RaidResult) {
   sv.gear = { ...G.gear };
   save(sv);
   // raid result (Duckov-style panel: title + badge, stats, a rarity-tinted item grid, total)
-  const badge = r.how === "bonked" ? ["Bonked", "bad"] : r.how === "raft" ? ["Rafted home", "raft"] : r.how === "tunnel" ? ["Tunnel", "ok"] : ["Home safe", "ok"];
-  const how = r.how === "bonked" ? "The crew carried you home." : r.how === "raft" ? "You rafted home with the haul." : r.how === "tunnel" ? "Home through the Smuggler Tunnel." : "Back through the hatch.";
+  const badge = r.how === "bonked" ? ["Bonked", "bad"] : r.how === "raft" ? ["Rafted home", "raft"] : r.how === "tunnel" ? ["Tunnel", "ok"] : r.how === "boat" ? ["Rowed home", "ok"] : ["Home safe", "ok"];
+  const how = r.how === "bonked" ? "The crew carried you home." : r.how === "raft" ? "You rafted home with the haul." : r.how === "tunnel" ? "Home through the Smuggler Tunnel." : r.how === "boat" ? "You rowed the smugglers' boat round the point and home." : "Back through the hatch.";
   const mmss = `${Math.floor(r.raidT / 60)}:${String(Math.floor(r.raidT % 60)).padStart(2, "0")}`, kills = Object.values(r.log.kills).reduce((x, y) => x + y, 0);
   const cellH = (i: string) => `<div class="cell" style="--rbg:var(--r-${itemDef(i).rarity})" title="${itemDef(i).name}">${iconHtml(i, 44)}<span class="v">${itemDef(i).value}</span></div>`;
   const html = `<header><div class="result-title"><h2>Raid ${sv.raids}</h2><i class="${badge[1]}">${badge[0]}</i></div><small>Banana Grove</small></header><p>${how}</p>
@@ -107,7 +108,7 @@ function frame() {
 function neutral() { const i = G.intent; i.move = { x: 0, z: 0 }; i.fire = i.firePressed = i.melee = i.roll = i.interact = i.reload = i.heal = false; }
 (window as unknown as { __g: unknown }).__g = { G, path, walkable, los, collide, home: homeApi, info: () => ({ calls: G.stage.renderer.info.render.calls, tris: G.stage.renderer.info.render.triangles }),
   // map v3 checks: lint report, world build stats, objects in the current frame (G1-21), teleport, gates
-  lint: lintReport, world: () => worldStats, density: () => countVisible(G.stage.camera, [...G.crates, ...G.enemies.filter((e) => !e.down).map((e) => ({ x: e.p.x, z: e.p.z }))]),
+  lint: lintReport, exactReach, clearance, world: () => worldStats, density: () => countVisible(G.stage.camera, [...G.crates, ...G.enemies.filter((e) => !e.down).map((e) => ({ x: e.p.x, z: e.p.z }))]),
   tp: (x: number, z: number) => { G.pp.set(x, groundHeight(x, z), z); G.vel.set(0, 0, 0); }, gates, setGate, pathLength, houses, svg: () => blockoutSvg(scattered) };
 
 if (QS.has("raid")) { G.save.lookDone = true; startRaid(onRaidEnd); }

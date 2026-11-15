@@ -4,6 +4,7 @@ import { G, V } from "./state";
 import { groundHeight, standHeight } from "../world/terrain";
 import { resetRaidColliders, walkable, isUnder } from "../world/grid";
 import { START } from "../world/layout";
+import { DEMO } from "../world/map/grove";
 import { resetProps, updateProps } from "../world/props";
 import { resetHouses, updateHouses } from "../world/buildings";
 import { updateLightPool } from "../world/lights";
@@ -14,7 +15,7 @@ import { createRig } from "../actors/rig";
 import { createKingpin, createGunFx } from "../combat/kingpin";
 import { KINGPIN, PLAYER } from "../combat/weapons";
 import { spawnEnemies, updateEnemies } from "../ai/enemies";
-import { setupCrates, updateLoot, sortPack, packValue, itemDef } from "../loot/raidloot";
+import { setupCrates, updateLoot, renderLoot, sortPack, packValue, itemDef } from "../loot/raidloot";
 import { updatePlayer } from "../actors/player";
 import { resetWalls, updateBullets, renderBullets, clearBullets } from "../combat/combat";
 import { updateFeedback } from "../combat/feedback";
@@ -43,7 +44,7 @@ export function buildRaidWorld() {
   if (st.lint.errors.length) console.error("map lint:", st.lint.errors); if (st.lint.warnings.length) console.warn("map lint warnings:", st.lint.warnings);
   G.stage.setScene(scn);
 }
-export type RaidResult = { how: "hatch" | "raft" | "tunnel" | "bonked"; kept: string[]; lost: string[]; bonus: number; raidT: number; log: typeof G.log };
+export type RaidResult = { how: "hatch" | "raft" | "tunnel" | "boat" | "bonked"; kept: string[]; lost: string[]; bonus: number; raidT: number; log: typeof G.log };
 let onEnd: (r: RaidResult) => void = () => {};
 export function startRaid(end: (r: RaidResult) => void) {
   if (G.bot) { botTelemetry.raidId = G.save.raids; botTelemetry.outcome = undefined; botTelemetry.combatEvents = []; }
@@ -80,7 +81,7 @@ export function startRaid(end: (r: RaidResult) => void) {
   G.stage.renderer.compile(raidScene, G.stage.camera); hidden.forEach((o) => (o.visible = false));
   setOnExtract((id, bonus) => finish(id, bonus));
   G.stage.focus.copy(G.pp); focus.copy(G.pp);
-  hud.banner("Banana Grove", G.save.raids === 0 ? "find loot, bonk bandits, get home with it" : `raid ${G.save.raids + 1}`);
+  hud.banner(DEMO ? "Exile Beach" : "Banana Grove", G.save.raids === 0 ? "find loot, bonk bandits, get home with it" : `raid ${G.save.raids + 1}`);
 }
 function finish(how: RaidResult["how"], bonus: number) {
   sortPack();
@@ -120,7 +121,7 @@ export function renderRaid(dt: number) {
   G.gun.pose({ fireT: Math.min(1, G.fireT), reloadT: G.reloadT });
   updateDashFx(dt); // after the pose: the afterimages copy it
   G.fx.update(dt); renderBullets(); updateRangFx(dt); updateFeedback(dt); updateFx(dt); hud.update(dt); updateMinimap();
-  updateHouses(dt, isUnder(G.pp.x)); updateProps(dt); updateLightPool(dt, G.pp);
+  updateHouses(dt, isUnder(G.pp.x)); updateProps(dt); renderLoot(dt); updateLightPool(dt, G.pp);
   U.uTime.value = G.time; U.uPlayer.value.copy(G.pp);
   // camera: damped follow + a small lead toward the aim point (CODE_FINDINGS 8.1: aim lookahead, kept modest, rule 19)
   const lead = G.aimPoint.clone().sub(G.pp).setY(0); const L = Math.min(lead.length(), 10); lead.setLength(L * 0.22);

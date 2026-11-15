@@ -7,7 +7,7 @@
 //     gates (doors, breakable walls, the vine door) and dynamic blockers (crates, the supply drop).
 // Low cover blocks walking but not shots or sight. Water outside the coast lets shots through; cliffs and jungle don't.
 import type { Collider, Placed, BuildingDef } from "../contracts";
-import { BOUNDS, SHAPES, ZONES, PLACED, WALLS, DOOR, PORTALS, CRATES, SPAWNS, POI, UNDER_X, ROADS, ZIPLINES, SUPPLY_DROPS, START } from "./map/grove";
+import { BOUNDS, SHAPES, ZONES, PLACED, WALLS, DOOR, PORTALS, CRATES, SPAWNS, POI, UNDER_X, ROADS, ZIPLINES, SUPPLY_DROPS, START, DEMO, inDemo, ROUTE_LOCKS, SEAL_PROBES, CONTAINER_SOCKETS, portalOpen } from "./map/grove";
 import { collidersFor, RAM } from "./map/colliders";
 import { inPoly, segDist, toWorld, type EdgeKind, type Zone } from "./map/types";
 
@@ -204,6 +204,17 @@ export function walkable(x: number, z: number) {
   return true;
 }
 export const isWall = (x: number, z: number) => !walkable(x, z);
+/** how far a point is from the nearest solid thing (colliders, crates, the outline), up to 3 u: socket placement checks */
+export function clearance(x: number, z: number, crates = true) {
+  let d = 3; const c0 = Math.floor(x - BOUNDS.minX), r0 = Math.floor(z - BOUNDS.minZ);
+  for (let dr = -3; dr <= 3; dr++) for (let dc = -3; dc <= 3; dc++) {
+    const c = c0 + dc, r = r0 + dr; if (c < 0 || r < 0 || c >= GW || r >= GH) continue; const k = r * GW + c;
+    if (cells[k] !== OPEN) d = Math.min(d, Math.max(0, Math.hypot(Math.max(0, Math.abs(cx(c) - x) - 0.5), Math.max(0, Math.abs(cz(r) - z) - 0.5))));
+    for (let n = cellStart[k]; n < cellStart[k + 1]; n++) { const q = cols[cellItems[n]]; if (q.flags & MOVE && active(q)) d = Math.min(d, colDist(q, x, z)); }
+  }
+  if (crates) for (const b of blockers) d = Math.min(d, Math.hypot(x - b.x, z - b.z) - b.r);
+  return d;
+}
 /** a closed breakable thing (wall section or boarded door) at or right next to a point */
 export function wallAt(x: number, z: number): Gate | null {
   const i = ci(x, z); if (i < 0) return null;
@@ -318,7 +329,7 @@ export function flood(x: number, z: number) {
   for (let h = 0; h < q.length; h++) {
     const cur = q[h], c = cur % GW, r = (cur / GW) | 0;
     for (let d = 0; d < 4; d++) { const nc = c + DC[d], nr = r + DR[d]; if (nc >= 0 && nr >= 0 && nc < GW && nr < GH) push(nr * GW + nc); }
-    for (const p of PORTALS) { if (cur === ci(p.a.x, p.a.z)) push(ci(p.b.x, p.b.z)); if (!p.oneWay && cur === ci(p.b.x, p.b.z)) push(ci(p.a.x, p.a.z)); }
+    for (const p of PORTALS) { if (!portalOpen(p.id)) continue; if (cur === ci(p.a.x, p.a.z)) push(ci(p.b.x, p.b.z)); if (!p.oneWay && cur === ci(p.b.x, p.b.z)) push(ci(p.a.x, p.a.z)); }
   }
   /** reached, or (for things that are solid themselves: crates) a cell next to it was */
   return (px: number, pz: number, near = 0) => {
@@ -327,22 +338,60 @@ export function flood(x: number, z: number) {
     return false;
   };
 }
-export type LintReport = { errors: string[]; warnings: string[]; stats: Record<string, number> };
-/** reachability + gating + pacing lint. Call after initGrid() and before crates are placed. errors empty = pass */
-export function lintReport(): LintReport {
-  const errors: string[] = [], warnings: string[] = [], stats: Record<string, number> = {};
+/** Exact reachability for a monkey (radius 0.45) on a 0.25 u lattice, gates as they stand now, overworld only. The nav
+ *  raster pads every collider, so a gap a player can squeeze through can still read as closed on the 1 u grid: this is
+ *  the check that the demo's route locks really hold (G1.5-13). Slow (a second or two): the lint runs it on request. */
+export function exactReach(x0: number, z0: number, rad = 0.45, step = 0.25) {
+  const W = Math.ceil((UNDER_X - BOUNDS.minX) / step), H = Math.ceil(GH / step), st = new Uint8Array(W * H); // 1 reached, 2 blocked
+  const free = (x: number, z: number) => {
+    const i = ci(x, z); if (i < 0 || cells[i] !== OPEN) return false;
+    for (const [ox, oz] of DIRS8) { const k = ci(x + ox * rad, z + oz * rad); if (k < 0 || cells[k] !== OPEN) return false; }
+    const c0 = Math.floor(x - BOUNDS.minX), r0 = Math.floor(z - BOUNDS.minZ);
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      const c = c0 + dc, r = r0 + dr; if (c < 0 || r < 0 || c >= GW || r >= GH) continue; const k = r * GW + c;
+      for (let n = cellStart[k]; n < cellStart[k + 1]; n++) { const q = cols[cellItems[n]]; if (q.flags & MOVE && active(q) && colDist(q, x, z) < rad) return false; }
+    }
+    return true;
+  };
+  const at = (x: number, z: number) => { const c = Math.round((x - BOUNDS.minX) / step), r = Math.round((z - BOUNDS.minZ) / step); return c < 0 || r < 0 || c >= W || r >= H ? -1 : r * W + c; };
+  const q = new Int32Array(W * H), from = new Int32Array(W * H).fill(-1); let n = 0;
+  const s0 = at(x0, z0); if (s0 >= 0 && free(x0, z0)) { st[s0] = 1; q[n++] = s0; }
+  for (let h = 0; h < n; h++) {
+    const cur = q[h], c = cur % W, r = (cur / W) | 0;
+    for (let d = 0; d < 4; d++) {
+      const nc = c + DC[d], nr = r + DR[d]; if (nc < 0 || nr < 0 || nc >= W || nr >= H) continue; const k = nr * W + nc; if (st[k]) continue;
+      if (free(BOUNDS.minX + nc * step, BOUNDS.minZ + nr * step)) { st[k] = 1; from[k] = cur; q[n++] = k; } else st[k] = 2;
+    }
+  }
+  /** reached within r of a point */
+  const hit = (px: number, pz: number, r = 0.3) => { for (let dz = -r; dz <= r + 1e-6; dz += step) for (let dx = -r; dx <= r + 1e-6; dx += step) { const k = at(px + dx, pz + dz); if (k >= 0 && st[k] === 1) return k; } return -1; };
+  const test = (px: number, pz: number, r = 0.3) => hit(px, pz, r) >= 0;
+  /** the lattice route from the start to a reached point, every 2 u (debugging a leak) */
+  test.route = (px: number, pz: number) => { const out: [number, number][] = []; let k = hit(px, pz, 0.6), i = 0; while (k >= 0) { if (i++ % 8 === 0) out.push([BOUNDS.minX + (k % W) * step, BOUNDS.minZ + ((k / W) | 0) * step]); k = from[k]; } return out.reverse(); };
+  return test;
+}
+export type LintReport = { errors: string[]; warnings: string[]; stats: Record<string, number>; info?: string[] };
+/** reachability + gating + pacing lint. Call after initGrid() and before crates are placed. errors empty = pass.
+ *  The demo slice (G1.5-13): what lies past the route locks is parked, not broken. The lint checks the opposite there:
+ *  every lock has a reachable near side and an unreachable far side, nothing parked can be reached, and (exact: true)
+ *  a monkey can't squeeze past any lock or sealing line at its real radius. */
+export function lintReport(o: { exact?: boolean } = {}): LintReport {
+  const errors: string[] = [], warnings: string[] = [], info: string[] = [], stats: Record<string, number> = {};
   const saved = gates.map((g) => g.open), saveDyn = navDyn.slice(); navDyn.fill(0);
   const set = (f: (g: Gate) => boolean) => { for (const g of gates) g.open = f(g); };
+  const live = (x: number, z: number) => inDemo(x, z); // in the demo: on this side of the locks
   for (const k of unknownKinds) errors.push(`placed kind "${k}" has no collider entry (map/colliders.ts)`);
-  // 1) a fresh raid: nothing broken, locked doors shut, plain doors openable. The raft and the key must be reachable.
+  // 1) a fresh raid: nothing broken, locked doors shut, plain doors openable. The exits and the key must be reachable.
   set((g) => g.kind === "door" && !g.locked);
   let reach = flood(START.x, START.z);
   if (!walkable(START.x, START.z)) errors.push("the start point is not on open ground");
   if (!reach(POI.hatch.x, POI.hatch.z)) errors.push("hatch unreachable from the start");
-  if (!reach(POI.raft.x, POI.raft.z)) errors.push("raft unreachable on a fresh raid");
+  if (DEMO) { if (!reach(POI.coveBoat.x, POI.coveBoat.z)) errors.push("cove boat unreachable on a fresh raid"); }
+  else if (!reach(POI.raft.x, POI.raft.z)) errors.push("raft unreachable on a fresh raid");
   const key = CRATES.find((c) => c.fixed === "key")!; if (!reach(key.x, key.z, 2)) errors.push("key crate needs the key (soft-lock)");
   for (const g of gates) {
     if (g.open) continue;
+    if (!live(g.x, g.z)) continue; // a parked door: the north side of the locks
     const side = (k: number) => reach(g.x + g.nx * 1.6 * k, g.z + g.nz * 1.6 * k) || reach(g.x + g.nx * 2.4 * k, g.z + g.nz * 2.4 * k);
     const a = side(1), b = side(-1);
     if (!a && !b) errors.push(`${g.kind === "break" ? "breakable" : "locked/boarded door"} ${g.id} can't be reached to open it`);
@@ -351,43 +400,69 @@ export function lintReport(): LintReport {
   // what must stay gated until its gate opens
   for (const [fixed, name] of [["vault", "vault crate"], ["secret", "shrine crate"]] as const) { const c = CRATES.find((q) => q.fixed === fixed)!; if (reach(c.x, c.z, 2)) errors.push(`${name} is reachable without opening its gate`); }
   if (reach(POI.tunnelExit.x, POI.tunnelExit.z)) errors.push("tunnel exit is reachable without breaking the rubble");
-  // 2) everything open: every socket on open ground and reachable
+  // 2) everything open: every live socket on open ground and reachable; every parked one out of reach (the locks hold)
   set(() => true); reach = flood(START.x, START.z);
-  const pts: [string, number, number, number][] = [["raft", POI.raft.x, POI.raft.z, 0], ["tunnelExit", POI.tunnelExit.x, POI.tunnelExit.z, 0], ["hatch", POI.hatch.x, POI.hatch.z, 0],
-    ...CRATES.map((c, i) => [`crate${i}(${c.x},${c.z})`, c.x, c.z, 2] as [string, number, number, number]),
-    ...SPAWNS.flatMap((set_, si) => set_.map((s, i) => [`${s.kind}${si}.${i}(${s.x},${s.z})`, s.x, s.z, 0] as [string, number, number, number])),
-    ...PORTALS.flatMap((p) => [[`${p.id}.a`, p.a.x, p.a.z, 0], [`${p.id}.b`, p.b.x, p.b.z, 0]] as [string, number, number, number][]),
-    ...ZIPLINES.flatMap((zl) => [[`zip-${zl.id}.from`, zl.from.x, zl.from.z + 3.2, 0], [`zip-${zl.id}.to`, zl.to.x, zl.to.z + 1.6, 0]] as [string, number, number, number][]),
-    ...SUPPLY_DROPS.map((d) => [`drop(${d.x},${d.z})`, d.x, d.z, 0] as [string, number, number, number])];
-  for (const [name, x, z, near] of pts) { if (!near && !walkable(x, z)) errors.push(`${name} not on open ground`); else if (!reach(x, z, near)) errors.push(`${name} unreachable`); }
-  for (const c of CRATES) { const i = ci(c.x, c.z); if (i < 0 || cells[i] !== OPEN) errors.push(`crate (${c.x},${c.z}) is outside the map`); else if (blockedAt(i, c.x, c.z, MOVE)) warnings.push(`crate (${c.x},${c.z}) sits inside a collider`); }
-  for (const g of gates) if (!reach(g.x + g.nx * 1.5, g.z + g.nz * 1.5, 1) || !reach(g.x - g.nx * 1.5, g.z - g.nz * 1.5, 1)) errors.push(`gate ${g.id}: one side is unreachable even when open`);
+  type Pnt = [string, number, number, number];
+  const all: Pnt[] = [["raft", POI.raft.x, POI.raft.z, 0], ["tunnelExit", POI.tunnelExit.x, POI.tunnelExit.z, 0], ["hatch", POI.hatch.x, POI.hatch.z, 0], ["coveBoat", POI.coveBoat.x, POI.coveBoat.z, 0],
+    ...CRATES.map((c, i) => [`crate${i}(${c.x},${c.z})`, c.x, c.z, 2] as Pnt),
+    ...CONTAINER_SOCKETS.map((c) => [`${c.type}:${c.id}(${c.x},${c.z})`, c.x, c.z, 2] as Pnt),
+    ...SPAWNS.flatMap((set_, si) => set_.map((s, i) => [`${s.kind}${si}.${i}(${s.x},${s.z})`, s.x, s.z, 0] as Pnt)),
+    ...PORTALS.filter((p) => portalOpen(p.id)).flatMap((p) => [[`${p.id}.a`, p.a.x, p.a.z, 0], [`${p.id}.b`, p.b.x, p.b.z, 0]] as Pnt[]),
+    ...ZIPLINES.flatMap((zl) => [[`zip-${zl.id}.from`, zl.from.x, zl.from.z + 3.2, 0], [`zip-${zl.id}.to`, zl.to.x, zl.to.z + 1.6, 0]] as Pnt[]),
+    ...SUPPLY_DROPS.map((d) => [`drop(${d.x},${d.z})`, d.x, d.z, 0] as Pnt)];
+  let parked = 0;
+  for (const [name, x, z, near] of all) {
+    if (DEMO && !live(x, z)) { parked++; if (reach(x, z, near)) errors.push(`${name} is past the route locks but reachable (a leak)`); continue; }
+    if (!near && !walkable(x, z)) errors.push(`${name} not on open ground`); else if (!reach(x, z, near)) errors.push(`${name} unreachable`);
+  }
+  stats.parked = parked;
+  for (const c of [...CRATES, ...CONTAINER_SOCKETS]) { if (!live(c.x, c.z)) continue; const i = ci(c.x, c.z); if (i < 0 || cells[i] !== OPEN) errors.push(`crate (${c.x},${c.z}) is outside the map`); else if (blockedAt(i, c.x, c.z, MOVE)) warnings.push(`crate (${c.x},${c.z}) sits inside a collider`); }
+  for (const g of gates) { if (!live(g.x, g.z)) continue; if (!reach(g.x + g.nx * 1.5, g.z + g.nz * 1.5, 1) || !reach(g.x - g.nx * 1.5, g.z - g.nz * 1.5, 1)) errors.push(`gate ${g.id}: one side is unreachable even when open`); }
   for (const g of gates) if (!passable(ci(g.x, g.z))) errors.push(`gate ${g.id}: its doorway cell is not passable when open (wall on a cell boundary?)`);
+  // 2b) the route locks: the near side reachable, the far side not (the lead's map shows these as "route closed")
+  for (const l of ROUTE_LOCKS) {
+    if (!reach(l.inside[0], l.inside[1], 1)) errors.push(`route lock ${l.id}: its near side (${l.inside}) is unreachable`);
+    if (reach(l.beyond[0], l.beyond[1], 1)) errors.push(`route lock ${l.id}: its far side (${l.beyond}) is reachable (the lock leaks)`);
+  }
+  for (const [x, z] of SEAL_PROBES) if (walkable(x, z) && reach(x, z)) errors.push(`sealing line leaks: (${x.toFixed(1)}, ${z.toFixed(1)}) is reachable`);
+  if (o.exact && DEMO) { // the same at the monkey's real radius, gates open (the worst case)
+    const t0 = performance.now(), ex = exactReach(START.x, START.z);
+    for (const l of ROUTE_LOCKS) if (!l.under && ex(l.beyond[0], l.beyond[1], 0.6)) errors.push(`route lock ${l.id}: a monkey can squeeze past it (exact, radius 0.45)`);
+    let leaks = 0; for (const [x, z] of SEAL_PROBES) if (ex(x, z)) { if (leaks++ < 6) errors.push(`sealing line leaks at the monkey's radius: (${x.toFixed(1)}, ${z.toFixed(1)})`); }
+    for (const [name, x, z] of all) if (!live(x, z) && x < UNDER_X && ex(x, z, 1.5)) errors.push(`${name} is past the route locks but a monkey can reach it (exact)`);
+    stats.exactMs = Math.round(performance.now() - t0);
+  }
   // 3) time budget: the straight runs (walk speed 4.6 u/s, no looting, no fights)
   set((g) => g.kind === "door" && !g.locked);
   const run = (name: string, x: number, z: number, lo: number, hi: number) => {
     const p = path(START.x, START.z, x, z, 200000), l = pathLength(p, START.x, START.z); stats[name] = Math.round(l);
     if (!p.length) errors.push(`no path to ${name}`); else if (l < lo || l > hi) warnings.push(`${name} is ${Math.round(l)} u from the start (budget ${lo}-${hi} u)`);
   };
-  run("raft", POI.raft.x, POI.raft.z, 190, 330); run("keyCrate", key.x, key.z, 100, 220); run("sleeper", POI.sleeperBed.x, POI.sleeperBed.z + 3, 130, 260);
-  const firstCrate = Math.min(...CRATES.map((c) => Math.hypot(c.x - START.x, c.z - START.z))); stats.nearestCrate = Math.round(firstCrate);
-  if (firstCrate < 24) warnings.push(`a crate sits ${Math.round(firstCrate)} u from the start (nothing worth having next to spawn)`);
+  if (DEMO) { // the slice: the cove boat a detour from the beach, the key and the foreman deep enough to cost a few minutes
+    run("coveBoat", POI.coveBoat.x, POI.coveBoat.z, 70, 140); run("keyCrate", key.x, key.z, 100, 200); run("boss", POI.boss.x, POI.boss.z + 8, 35, 90); run("plantation", POI.vat.x + 3, POI.vat.z + 3, 55, 150);
+  } else { run("raft", POI.raft.x, POI.raft.z, 190, 330); run("keyCrate", key.x, key.z, 100, 220); run("sleeper", POI.sleeperBed.x, POI.sleeperBed.z + 3, 130, 260); }
+  const sockets = [...CRATES, ...CONTAINER_SOCKETS].filter((c) => live(c.x, c.z));
+  const firstCrate = Math.min(...sockets.map((c) => Math.hypot(c.x - START.x, c.z - START.z))); stats.nearestCrate = Math.round(firstCrate);
+  // 22 u: the checkpoint hut's weapon rack is 23 u out in a straight line, but behind the first guard and the gate
+  if (firstCrate < 22) warnings.push(`a crate sits ${Math.round(firstCrate)} u from the start (nothing worth having next to spawn)`);
   // 4) rule 9: along every road, something to react to at least every 28 u (6 s at walk speed)
-  const events: [number, number][] = [...CRATES.map((c) => [c.x, c.z] as [number, number]), ...SPAWNS.flat().map((s) => [s.x, s.z] as [number, number]),
+  const events: [number, number][] = [...sockets.map((c) => [c.x, c.z] as [number, number]), ...SPAWNS.flat().map((s) => [s.x, s.z] as [number, number]),
     ...PLACED.filter((p) => !SOFT.has(p.k)).map((p) => [p.x, p.z] as [number, number]), ...gates.map((g) => [g.x, g.z] as [number, number])];
   let worst = 0;
   for (const r of ROADS) {
     let gap = 0, gapMax = 0;
     for (let i = 0; i < r.pts.length - 1; i++) {
       const [ax, az] = r.pts[i], [bx, bz] = r.pts[i + 1], len = Math.hypot(bx - ax, bz - az);
-      for (let s = 0; s < len; s += 2) { const x = ax + (bx - ax) * (s / len), z = az + (bz - az) * (s / len); if (events.some(([ex, ez]) => Math.abs(ex - x) < 7.5 && Math.hypot(ex - x, ez - z) < 7.5)) gap = 0; else gap += 2; gapMax = Math.max(gapMax, gap); }
+      for (let s = 0; s < len; s += 2) { const x = ax + (bx - ax) * (s / len), z = az + (bz - az) * (s / len); if (!live(x, z)) { gap = 0; continue; } if (events.some(([ex, ez]) => Math.abs(ex - x) < 7.5 && Math.hypot(ex - x, ez - z) < 7.5)) gap = 0; else gap += 2; gapMax = Math.max(gapMax, gap); }
     }
     worst = Math.max(worst, gapMax); if (gapMax > 28) warnings.push(`road ${r.id}: ${gapMax} u with nothing on it (rule 9: 18-28 u)`);
   }
   stats.worstRoadGap = worst; stats.colliders = cols.length; stats.gates = gates.length; stats.placed = PLACED.length; stats.scattered = scattered;
   stats.openCells = cells.reduce((a, v, i) => a + (v === OPEN && !navStatic[i] ? 1 : 0), 0);
+  stats.routeLocks = ROUTE_LOCKS.length; stats.sealProbes = SEAL_PROBES.length;
+  if (DEMO) info.push(`demo slice: ${ROUTE_LOCKS.length} route locks (${ROUTE_LOCKS.map((l) => l.id).join(", ")}), ${parked} sockets/spawns/marks parked past them`);
   gates.forEach((g, i) => (g.open = saved[i])); navDyn.set(saveDyn);
-  return { errors, warnings, stats };
+  return { errors, warnings, stats, info };
 }
 /** breakables that are shortcuts between two reachable places, not gates to somewhere new */
 const SHORTCUTS = new Set(["palisade"]);

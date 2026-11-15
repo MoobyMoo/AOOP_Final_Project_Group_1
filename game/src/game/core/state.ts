@@ -14,8 +14,17 @@ export type Enemy = {
   gear?: Gear; gearSeed?: number;
 };
 export type Rang = { p: THREE.Vector3; from: THREE.Vector3; dir: THREE.Vector3; t: number; out: number; mesh: THREE.Object3D; owner: Enemy; hitDone: boolean; back: boolean };
-export type Crate = { id: number; x: number; z: number; tier: "wood" | "green" | "gold"; fixed?: string; obj: THREE.Object3D; opened: boolean; search: number; items: string[] | null; beam?: THREE.Object3D };
-export type Pickup = { id: number; item: string; p: THREE.Vector3; obj: THREE.Object3D; vy: number; landed: boolean; t: number; n?: number };
+/** anything you search with E (G1.5 rows 18, 27): a generic crate (tiered, fixed rewards), a typed container or a
+ *  knocked-out enemy's body. session = the search (loot/search.ts): per-item reveal, kept between openings.
+ *  opened = searched out (nothing left to reveal or take); started = the lid is up / the search has begun */
+export type Crate = {
+  id: number; x: number; z: number; tier: "wood" | "green" | "gold"; fixed?: string; obj: THREE.Object3D; opened: boolean; search: number; items: string[] | null; beam?: THREE.Object3D;
+  kind?: "crate" | "container" | "body"; type?: "weapon" | "food" | "ammo" | "parts" | "medical"; label?: string; socket?: string;
+  session?: import("../loot/search").SearchSession | null; started?: boolean; enemy?: Enemy; r?: number;
+};
+/** an item lying in the world as its own model (G1.5 row 04+). p = where it is (x, z; y = its height while it flies),
+ *  v = velocity while thrown (Duckov's toss: rotation frozen), rest = settled. obj comes from a per-model pool */
+export type Pickup = { id: number; item: string; p: THREE.Vector3; obj: THREE.Object3D; vy: number; landed: boolean; t: number; n?: number; v?: THREE.Vector3; key?: string; land?: number };
 
 export const G = {
   stage: null as unknown as Stage, input: null as unknown as Input, intent: null as unknown as Intent,

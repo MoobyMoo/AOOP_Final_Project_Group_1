@@ -7,7 +7,7 @@ type Point = { x: number; z: number };
 type Weapon = "pistol" | "melee" | "unknown";
 export type BotObservation = Omit<BotView, "exits" | 'enemies'> & {
   enemies: (BotView['enemies'][number] & { boss?: boolean; escort?: boolean })[];
-  exits: { id: "hatch" | "raft" | "tunnel"; x: number; z: number; open?: boolean }[];
+  exits: { id: "hatch" | "raft" | "tunnel" | "boat"; x: number; z: number; open?: boolean }[];
   portals?: (Point & { id: string; to: Point })[];
   gates?: (Point & { id: string; open: boolean; breakable: boolean; usable: boolean; nx: number; nz: number })[];
   safePath?: (fx: number, fz: number, tx: number, tz: number, allow: (x: number, z: number) => boolean) => Point[];
@@ -19,7 +19,7 @@ export type BotObservation = Omit<BotView, "exits" | 'enemies'> & {
   extracting?: boolean;
   exitArmed?: Record<string, boolean | undefined>;
   upgrades?: SaveV1["upgrades"];
-  outcome?: { type: "extract"; exit: "hatch" | "raft" | "tunnel"; value: number; raidT: number } | { type: "bonk-out"; raidT?: number };
+  outcome?: { type: "extract"; exit: "hatch" | "raft" | "tunnel" | "boat"; value: number; raidT: number } | { type: "bonk-out"; raidT?: number };
   combatEvents?: { serial: number; type: "shot" | "kill"; enemyId?: number; weapon: "pistol" | "melee" | "environment"; raidT?: number }[];
 };
 export const botTelemetry: { raidId: number; outcome?: BotObservation["outcome"]; combatEvents: NonNullable<BotObservation["combatEvents"]> } = { raidId: 0, combatEvents: [] };
@@ -413,7 +413,10 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
       }
     }
     if (extracting && goal?.kind !== "exit" && goal?.kind !== "arm") {
-      const preferred = greed >= 0.65 && v.player.hearts > 1 ? ((v.raidId ?? v.raids) % 3 === 2 ? "tunnel" : "raft") : "hatch";
+      // the demo slice (G1.5-13) shuts the raft and the tunnel: the greedy bot rows the cove boat home, and the middle
+      // bot takes it every other raid, so a campaign tests both of the slice's exits
+      const raftOpen = v.exits.some(exit => exit.id === "raft" && exit.open !== false), raid = v.raidId ?? v.raids;
+      const preferred = greed >= 0.65 && v.player.hearts > 1 ? (raftOpen ? (raid % 3 === 2 ? "tunnel" : "raft") : "boat") : !raftOpen && greed >= 0.45 && raid % 2 === 1 ? "boat" : "hatch";
       const tunnel = v.exits.find(exit => exit.id === "tunnel");
       if (preferred === "tunnel" && tunnel?.open === false) {
         const rubble = v.gates?.find(gate => gate.id === "grotto-rubble" && !gate.open);
