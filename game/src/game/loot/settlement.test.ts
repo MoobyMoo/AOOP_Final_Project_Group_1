@@ -307,3 +307,4 @@ assert(advanceExit(EXIT_DEFS.hatch, 2, 1, { inside: true, alive: false, open: tr
   assert(payQuest(settled, "keeper_lanterns", { pack: [], slots: 8 }) === null, "a paid raid job can't be paid again");
 }
 console.log(`Settlement self-test: PASS (${checks} checks; 150 seeds × 100 operations, migration, reload, capacity, delivery, crafting, fares, atomic failure, extraction, job payouts)`);
+await import("./economy.test"); // Progression v0.2: factory, wagers, Double or Nothing, lockboxes (all conserved)

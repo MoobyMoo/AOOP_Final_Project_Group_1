@@ -19,6 +19,7 @@ import { ROADS, START } from "../world/layout";
 import { mulberry32 } from "../loot/tables";
 import { itemType } from "../loot/instances";
 import { homeItems, unlocked } from "./quests";
+import { credit, debit, title } from "./wallet";
 
 export type EntryPoint = { id: string; group: string; x: number; z: number; facing: number; safeRadius: number };
 export type DestinationDef = {
@@ -29,8 +30,9 @@ export type DestinationDef = {
   requires: Prereq[];                             // all must hold (Duckov MapSelectionEntry conditions); [] = always open
 };
 /** a destination condition and the lock reason the card shows while it fails */
-export type Prereq = { unlock: string; reason: string } | { item: string; reason: string };
-export const prereqMet = (p: Prereq, save: SaveV1) => "unlock" in p ? unlocked(save, p.unlock) : homeItems(save).some((inst) => itemType(inst) === p.item);
+/** netWorth = a rich-list title index (core/networth.ts TITLES): the destination opens once your net worth reaches it */
+export type Prereq = { unlock: string; reason: string } | { item: string; reason: string } | { netWorth: number; reason: string };
+export const prereqMet = (p: Prereq, save: SaveV1) => "unlock" in p ? unlocked(save, p.unlock) : "netWorth" in p ? title(save) >= p.netWorth : homeItems(save).some((inst) => itemType(inst) === p.item);
 export const SAFE_RADIUS = 12;
 const facePlantation = (x: number, z: number) => Math.atan2(4 - x, 21 - z); // yaw toward the Old Plantation's yard
 /** where each destination drops you. Beach: 3 authored spots around the hatch. Plantation road: taken from the road
@@ -78,14 +80,16 @@ export const pendingDeploy = () => pending;
 export function deploy(id: string, save: SaveV1, write: (s: SaveV1) => void): { ok: true; req: DeployRequest } | { ok: false; reason: string } {
   const d = destOf(id), can = canDeploy(id, save);
   if (!d || !can.ok) return { ok: false, reason: can.reason };
-  save.money -= d.cost; write(save);
+  if (d.cost && !debit(save, "fare", d.cost, { note: d.id })) return { ok: false, reason: `The fare is 🍌 ${d.cost}` };
+  write(save);
   pending = { destinationId: d.id, name: d.name, entryGroup: d.entryGroup, paid: d.cost };
   return { ok: true, req: pending };
 }
 export function settleDeploy() { pending = null; }
 export function cancelDeploy(save: SaveV1, write: (s: SaveV1) => void) {
   if (!pending) return;
-  save.money += pending.paid; write(save); pending = null;
+  if (pending.paid) credit(save, "refund", pending.paid, { note: `fare ${pending.destinationId}` });
+  write(save); pending = null;
 }
 
 export type SpawnPick = { entry: EntryPoint; clearance: number; fallback: null | "crowded" | "start" };
