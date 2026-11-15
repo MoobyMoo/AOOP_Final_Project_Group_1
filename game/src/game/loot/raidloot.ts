@@ -81,7 +81,7 @@ export function setupCrates() {
     obj.position.set(s.x, groundHeight(s.x, s.z) + (s.y ?? 0), s.z); obj.rotation.y = s.yaw ?? (host ? (host.yaw ?? 0) + (Math.floor(G.rng() * 2) * Math.PI) : G.rng() * 6.28);
     G.stage.scene.add(obj);
     const box = new THREE.Box3().setFromObject(obj), r = Math.max(0.45, Math.min(0.75, Math.max(box.max.x - box.min.x, box.max.z - box.min.z) * 0.42));
-    block(s.x, s.z, r, true);
+    if (!s.wall) block(s.x, s.z, r, true); // a wall cabinet hangs above the floor: nothing to walk into
     const c: Crate = { id: nid++, x: s.x, z: s.z, tier: s.type === "weapon" ? "green" : "wood", obj, opened: false, search: 0, items: null, kind: "container", type: s.type, label: CONTAINERS[s.type].label, socket: s.id, note: s.note[0].toUpperCase() + s.note.slice(1), r };
     G.crates.push(c);
     obj.updateMatrixWorld(true); const at = b ? (b.parts.mark ?? b.parts.root).getWorldPosition(new THREE.Vector3()) : obj.position.clone().setY(obj.position.y + 0.6); at.y += 0.25;

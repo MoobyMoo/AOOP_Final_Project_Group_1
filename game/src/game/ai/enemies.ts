@@ -15,7 +15,7 @@ import { demoSpawns } from "./encounters";
 import { spawnFauna } from "./fauna";
 const QS_NOFAUNA = typeof location !== "undefined" && /[?&]nofauna\b/.test(location.search);
 import type { Spawn } from "../world/map/types";
-import { path as findPath, pathLength, los, collide, walkable, ramAt, gates, straightWalk } from "../world/grid";
+import { path as findPath, pathLength, los, collide, walkable, ramAt, gates, straightWalk, zoneAt } from "../world/grid";
 import { groundHeight, standHeight } from "../world/terrain";
 import { sfx } from "../core/audio";
 import { floatText, burst } from "../../fx";
@@ -215,9 +215,11 @@ function separate() {
     const dx = a.p.x - G.pp.x, dz = a.p.z - G.pp.z, d = Math.hypot(dx, dz), m = ra + 0.4;
     if (d < m && !(a.kind === "sleeper" && a.state === "charge")) { const nx = d > 1e-4 ? dx / d : 1, nz = d > 1e-4 ? dz / d : 0; a.p.x += nx * (m - d); a.p.z += nz * (m - d); }
   }
-  for (const e of live) { collide(e.p, e.rig.bounds.radius * 0.8); e.p.y = standHeight(e.p.x, e.p.z); e.rig.root.position.copy(e.p); }
+  for (const e of live) { collide(e.p, e.rig.bounds.radius * 0.8); e.p.y = waterlineOr(e, standHeight(e.p.x, e.p.z)); e.rig.root.position.copy(e.p); }
 }
 
+/** Fable's croc has its origin on the water line: in the swamp it rides the water, not the mud under it */
+function waterlineOr(e: Enemy, ground: number) { const w = e.fauna === "croc" ? zoneAt(e.p.x, e.p.z)?.water : undefined; return w !== undefined ? Math.max(ground, w) : ground; }
 export function updateEnemies(dt: number) {
   for (const [ally, alert] of sharedAlerts) {
     alert.delay -= dt;
@@ -246,7 +248,7 @@ export function updateEnemies(dt: number) {
     if (e.fauna) { // a boar or a croc: ai/fauna.ts runs its states and sets its velocity; this moves and poses it
       const nx = e.p.x + e.vel.x * dt, nz = e.p.z + e.vel.z * dt;
       if (walkable(nx, nz)) { e.p.x = nx; e.p.z = nz; } else e.vel.multiplyScalar(0.3);
-      collide(e.p, e.rig.bounds.radius * 0.8); e.p.y = standHeight(e.p.x, e.p.z); poseRig(e, dt); continue;
+      collide(e.p, e.rig.bounds.radius * 0.8); e.p.y = waterlineOr(e, standHeight(e.p.x, e.p.z)); poseRig(e, dt); continue;
     }
     e.t -= dt;
     if (isBoss(e)) updateBoss(e, dt);

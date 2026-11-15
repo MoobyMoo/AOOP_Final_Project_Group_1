@@ -596,7 +596,8 @@ export const CRATES: CrateSocket[] = [
  *  at rest and treatment spots, weapon crates in the two secured places. Budget 8 food, 6 ammo, 8 parts, 4 medical,
  *  2 weapon (DEMO_CONTAINER_BUDGET); loot/sockets.ts spawns a type-balanced share of them each raid. Each is its own
  *  model (kit_build container(type)), so it reads before you open it. Interior ones square up with their building. */
-export type ContainerSocket = { id: string; type: "weapon" | "food" | "ammo" | "parts" | "medical" | "lunchbox" | "toolbox" | "medcabinet" | "safe" | "trash" | "sack" | "jacket"; x: number; z: number; y?: number; in?: string; yaw?: number; note: string; /** spawns every raid (the grotto's den: worth the trip) */ always?: boolean };
+export type ContainerSocket = { id: string; type: "weapon" | "food" | "ammo" | "parts" | "medical" | "lunchbox" | "toolbox" | "medcabinet" | "safe" | "trash" | "sack" | "jacket"; x: number; z: number; y?: number; in?: string; yaw?: number; note: string; /** spawns every raid (the grotto's den: worth the trip) */ always?: boolean;
+  /** hung on a wall (Fable's cont_medcabinet: the origin on the wall plane at its foot, the box 0.82 up, 0.46 proud): no floor blocker */ wall?: boolean };
 const cs = (id: string, type: ContainerSocket["type"], p: { x: number; z: number }, note: string, o: Partial<ContainerSocket> = {}): ContainerSocket => ({ id, type, x: p.x, z: p.z, note, ...o });
 export const CONTAINER_SOCKETS: ContainerSocket[] = [
   // food: picnics, galleys, harvests, kitchens
@@ -652,7 +653,9 @@ export const CONTAINER_SOCKETS: ContainerSocket[] = [
   cs("hall-safe", "safe", { x: 174.6, z: 30.2 }, "the smugglers' strongroom"), cs("hall-junk", "trash", { x: 160.4, z: 22.6 }, "the smugglers' midden"),
   cs("mouth-sack", "sack", { x: 157, z: 60 }, "a sack by the grotto mouth"), cs("roots-tools", "toolbox", { x: 157.8, z: -21.2 }, "a toolbox in the root chamber"),
   cs("hall-lunch", "lunchbox", { x: 162.6, z: 28.2 }, "the smugglers' supper"), cs("hall-jacket", "jacket", { x: 161.4, z: 21.4 }, "a coat under the tarp"),
-  cs("roots-cabinet", "medcabinet", { x: 151.2, z: -19.6 }, "a medicine chest in the root chamber"),
+  cs("roots-cabinet", "medical", { x: 151.2, z: -19.6 }, "a medicine chest in the root chamber"),
+  // the medicine cabinet hangs on the farmhouse's north wall, inside, facing the room (the wall's inner face is 2.85 in)
+  cs("farm-cabinet", "medcabinet", at("farmhouse", -3.4, -2.83), "the farmhouse medicine cabinet", { in: "farmhouse", yaw: 0, wall: true }),
   // the grotto (open in the demo): a smugglers' den, so ammo, parts and a weapon crate, every raid
   cs("hall-ammo", "ammo", { x: 166, z: 33.2 }, "the smugglers' hall", { always: true }),
   cs("hall-parts", "parts", { x: 178, z: 24.6 }, "the smugglers' stores", { always: true }),
