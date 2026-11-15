@@ -86,12 +86,12 @@ def main():
     for item in list(body):
         body.remove(item)
 
-    body.append(heading(0, "專題名稱：AOOP_Final_Project_Group_1：Monkey Businessman"))
+    body.append(heading(0, "專題名稱：AOOP_Final_Project_Group_1"))
     body.append(heading(1, "小組成員：第 1 組"))
     body.append(paragraph("劉育麟 112511002　張倖嘉 112511004　譚羽良 112511017"))
     body.append(heading(2, "專題動機與目標"))
     body.append(paragraph(
-        "我們要做一款俯視角的卡通撤離射擊遊戲《Monkey Businessman》。玩家是一隻破產、穿西裝的猴子商人，"
+        "我們要做一款俯視角的卡通撤離射擊遊戲。玩家是一隻破產、穿西裝的猴子商人，"
         "從海灘碉堡出發，進入叢林搜刮香蕉、零件和寶物，一路對付搶匪與野生動物，"
         "並自己決定什麼時候撤離：走得越深收穫越多，但被打倒就會失去背包裡沒保住的東西。"
         "帶回家的戰利品可以出售、升級裝備、完成委託，讓下一趟出發更強。"
@@ -127,11 +127,11 @@ def main():
     drawing = deepcopy(image_run._r.find(tag("drawing")))
     drawing.xpath(".//*[local-name()='blip']")[0].set(f"{{{R}}}embed", "rIdAOOPArchitecture")
     docpr = drawing.xpath(".//*[local-name()='docPr']")[0]
-    docpr.set("descr", "Monkey Businessman 類別圖：場景、角色與 AI、物品與戰鬥、介面音效與存檔。")
+    docpr.set("descr", "遊戲類別圖：場景、角色與 AI、物品與戰鬥、介面音效與存檔。")
     diagram = paragraph("", keep=True)
     etree.SubElement(diagram, tag("r")).append(drawing)
     body.append(diagram)
-    body.append(paragraph("圖 1　Monkey Businessman 類別圖（空心箭頭為繼承或實作，實心菱形為組合，綠色點線為事件與存檔）。"))
+    body.append(paragraph("圖 1　遊戲類別圖（空心箭頭為繼承或實作，實心菱形為組合，綠色點線為事件與存檔）。"))
     body.append(heading(6, "物件導向設計說明："))
     for text in [
         "封裝：Actor 自己管理血量、體力與受傷規則，外部只呼叫 takeDamage(hit)；"
@@ -205,7 +205,7 @@ def main():
         final_text = "".join(etree.fromstring(final.read("word/document.xml")).xpath(".//w:t/text()", namespaces=NS))
         for forbidden in ["簡述為什麼", "請附上", "請簡述", "務必注意", "1112511004"]:
             assert forbidden not in final_text, forbidden
-        for required in ["112511002", "112511004", "112511017", "SFX", "介面與選單", "Monkey Businessman", "TypeScript", "EventBus"]:
+        for required in ["112511002", "112511004", "112511017", "SFX", "介面與選單", "TypeScript", "EventBus"]:
             assert required in final_text, required
     report = {"reference_sha256": sha256(REFERENCE.read_bytes()).hexdigest(),
               "output_sha256": sha256(OUTPUT.read_bytes()).hexdigest(),

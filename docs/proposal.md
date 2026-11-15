@@ -2,7 +2,7 @@
 
 ## 專題名稱與組員
 
-AOOP_Final_Project_Group_1：Monkey Businessman
+AOOP_Final_Project_Group_1
 
 第 1 組：劉育麟 112511002、張倖嘉 112511004、譚羽良 112511017。
 
@@ -29,7 +29,7 @@ AOOP_Final_Project_Group_1：Monkey Businessman
 
 ## 系統架構與物件導向設計
 
-![Monkey Businessman 類別圖](assets/proposal-architecture.png)
+![遊戲類別圖](assets/proposal-architecture.png)
 
 - **封裝**：Actor 管理自己的血量、體力與受傷規則，外部只呼叫 `takeDamage(hit)`；Inventory 管理格子與重量。
 - **繼承與多型**：Entity → Actor → Player／Enemy → Bandit、Gorilla、Boss；Item → Weapon、Consumable、Wearable。RaidScene 對所有實體呼叫 `update(dt)`；`Weapon.attack()` 由近戰武器與槍各自實作。

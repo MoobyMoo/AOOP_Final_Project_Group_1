@@ -1,4 +1,4 @@
-digraph bananaville {
+digraph architecture {
   graph [rankdir=BT, bgcolor="white", pad="0.2", nodesep="0.22", ranksep="0.45", fontname="Noto Sans CJK TC", fontsize=13, newrank=true, compound=true];
   node [shape=plain, fontname="Noto Sans CJK TC", fontsize=11];
   edge [color="#444444", arrowsize=0.75, fontname="Noto Sans CJK TC", fontsize=9];
