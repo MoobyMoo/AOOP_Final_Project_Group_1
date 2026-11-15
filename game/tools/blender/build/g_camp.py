@@ -382,6 +382,187 @@ def signpost(name, seed, boards):
     return a
 
 
+# ------------------------------------------------------------------ G1 council fix round 1: what makes the camp lived-in
+BAG = ["#b9a57a", "#a8946a", "#c4b185", "#9f8c62"]
+
+
+def sandbag(g, r, at, rz=0.0, L=0.62, W=0.36, Hh=0.22, col=None):
+    """one filled bag: a squashed, slightly slumped pillow with a tied neck"""
+    col = col or pick(r, BAG)
+    k1, k2 = r.uniform(4, 7), r.uniform(0, 3)
+    with g.at(T(*at, 0, 0, rz)):
+        g.emit(p_sphere(1.0, 8, 4), col, T(0, 0, Hh * 0.5) @ Matrix.Diagonal((L / 2, W / 2, Hh / 2 * 1.25, 1)), warp=lambda v: Vector((v.x, v.y * (1 + 0.1 * sin(v.x * k1 + k2)), max(-0.82, min(0.82, v.z)))), grad=(0.8, 1.05), smooth=70, jit=0.05)
+        g.box(0.07, W * 0.42, Hh * 0.42, (L / 2 - 0.01, 0, Hh * 0.28), col=shade(col, 0.82), b=0.02)
+
+
+def sandbags(name, seed, L=2.7, rows=4):
+    """a low sandbag line along x: staggered courses that slump into each other, a gap-toothed top course"""
+    a = Asset(name, G, footprint=1.2, blocksMove=True, blocksShot=False, seed=seed, ao_dist=0.9)
+    g, r = a.mesh(), a.rng
+    bl, bh = 0.6, 0.19
+    for row in range(rows):
+        n = int(L / bl) - (row % 2) - (1 if row == rows - 1 else 0)
+        x0 = -(n - 1) * bl / 2 + (0.12 if row == rows - 1 else 0)
+        for i in range(n):
+            if row == rows - 1 and i == 1:
+                continue
+            sandbag(g, r, (x0 + i * bl + r.uniform(-0.03, 0.03), r.uniform(-0.035, 0.035) + (0.02 * row), row * bh - 0.03), r.uniform(-7, 7), L=bl + 0.07, Hh=bh + 0.06)
+    # two bags that slid off, leaning on the foot of the line, and a shovel stuck in beside them
+    sandbag(g, r, (-L / 2 + 0.5, -0.4, -0.03), 24)
+    sandbag(g, r, (L / 2 - 0.75, -0.42, -0.03), -14)
+    g.pole((L / 2 - 0.2, -0.36, 0.02), (L / 2 - 0.08, -0.2, 1.08), 0.03, pick(r, WOOD), n=5)
+    g.box(0.2, 0.03, 0.26, (L / 2 - 0.215, -0.38, -0.12), (-8, 0, 36), col=STEEL_D, b=0.008)
+    return a
+
+
+def crate_shut(g, r, w, d, h, at, rz=0.0, pal=WOOD, mark=None):
+    """a nailed-shut plank crate (dressing: never opens)"""
+    t, post = 0.06, 0.12
+    with g.at(T(*at, 0, 0, rz)):
+        g.box(w - 2 * t + 0.01, d - 2 * t + 0.01, h - 0.03, (0, 0, 0.012), col="#2b1f17", b=0.0, jit=0)
+        rows_ = 3
+        ph = (h - 0.02) / rows_
+        for i in range(rows_):
+            z = 0.012 + ph * (i + 0.5)
+            for sy in (-1, 1):
+                plank(g, (-w / 2 + 0.075, sy * (d / 2 - t / 2), z), (w / 2 - 0.075, sy * (d / 2 - t / 2), z), ph - 0.025, t, wob=0.005, roll=90, pal=pal, b=0)      # side planks unbevelled: three crates have to fit the 2,000 triangle prop budget
+                plank(g, (sy * (w / 2 - t / 2), -d / 2 + 0.05, z), (sy * (w / 2 - t / 2), d / 2 - 0.05, z), t, ph - 0.025, wob=0.005, pal=pal, b=0)   # shorter than the x planks: their end bevels must not share a plane
+        for sx in (-1, 1):
+            for sy in (-1, 1):
+                g.box(post, post, h + 0.012, (sx * (w / 2 - post / 2 + 0.03), sy * (d / 2 - post / 2 + 0.03), 0), col=pick(r, WOOD_D), b=0.025, jit=0.05)
+        n = 3
+        pw = (d - 0.02) / n
+        for i in range(n):
+            y = -d / 2 + 0.01 + pw * (i + 0.5)
+            plank(g, (-w / 2 + 0.01, y, h + 0.02), (w / 2 - 0.01, y, h + 0.02), pw - 0.02, 0.055, wob=0.004, roll=0, pal=pal)
+        if mark:
+            mark(g, FRONT(0, -d / 2 - 0.004, h * 0.5))
+
+
+def crate_stack(name, seed):
+    """three shut crates: two on the ground at odds with each other, one across them, a rope and a tarp corner"""
+    a = Asset(name, G, footprint=1.2, blocksMove=True, blocksShot=True, seed=seed, ao_dist=1.2)
+    g, r = a.mesh(), a.rng
+    crate_shut(g, r, 1.15, 0.9, 0.78, (-0.55, 0.05, 0), 6, mark=lambda gg, M: icon_banana(gg, M, 0.42, "#5c4630"))
+    crate_shut(g, r, 1.0, 0.86, 0.7, (0.62, -0.08, 0), -11, pal=WOOD_PALE)
+    crate_shut(g, r, 0.95, 0.8, 0.62, (-0.02, 0.02, 0.792), 17, pal=WOOD_GREY, mark=lambda gg, M: gg.paint_x(0.3, M, "#5c4630", lift=0.008))
+    g.box(0.62, 0.5, 0.42, (1.42, 0.42, 0), (0, 0, 28), col=pick(r, WOOD), b=0.04, jit=0.04)                     # a small box leaning on the stack
+    g.box(0.66, 0.54, 0.05, (1.42, 0.42, 0.4), (0, 0, 28), col=pick(r, WOOD_D), b=0.015)
+    rope(g, [(-0.6, -0.5, 0.82), (0.0, -0.44, 1.42), (0.5, 0.44, 1.42), (1.0, 0.36, 0.74)], 0.03, sag=0.0, seg=2)
+    return a
+
+
+def washing_line(name, seed, L=4.4):
+    """two crooked poles, a sagging rope, the gang's laundry: long johns, a striped towel, a shirt, banana-print shorts"""
+    a = Asset(name, G, footprint=0.3, blocksMove=False, tall=True, seed=seed, ao_dist=1.6)
+    g, r = a.mesh(), a.rng
+    hz = 2.25
+    sagz = lambda x: hz - 0.3 * (1 - (2 * x / L) ** 2)
+    for sx in (-1, 1):
+        px = sx * L / 2
+        g.pole((px + sx * 0.1, 0, -0.1), (px, 0, hz + 0.22), 0.075, pick(r, WOOD_D), n=7, r2=0.06, cap=ENDGRAIN)
+        g.pole((px + sx * 0.62, 0.0, -0.05), (px + sx * 0.03, 0, hz - 0.55), 0.045, pick(r, WOOD_D), n=5)           # a prop
+        lashing(g, (px, 0, hz + 0.02), (0, 0, 1), 0.066, turns=2)
+        g.box(0.3, 0.3, 0.16, (px + sx * 0.1, 0, -0.06), (0, 0, 20), col=pick(r, STONE), b=0.05)                    # a stone at the foot
+    g.tube([(x, 0, sagz(x) + (0.3 if abs(x) > L / 2 - 0.01 else 0)) for x in [-L / 2 + L * k / 12 for k in range(13)]], 0.022, ROPE, n=5)
+
+    def hang(x0, x1, h, col, cut=None, stripes=None, wav=1.0):
+        """a cloth pegged to the line between x0 and x1, hanging h below it; cut(u, v) -> False drops a cell"""
+        nx_, nz_ = max(2, int((x1 - x0) / 0.16)), max(2, int(h / 0.2))
+        for i in range(nx_):
+            for k in range(nz_):
+                u0, u1, v0, v1 = i / nx_, (i + 1) / nx_, k / nz_, (k + 1) / nz_
+                if cut and not cut((u0 + u1) / 2, (v0 + v1) / 2):
+                    continue
+                c = col if not stripes else stripes[int((v0 if stripes[-1] == "h" else u0) * (len(stripes) - 1) * 0.999)]
+
+                def pt(u, v):
+                    x = x0 + (x1 - x0) * u
+                    return (x, 0.05 * wav * sin(u * 7 + v * 4 + x0) * v, sagz(x) + 0.012 - h * v)
+                g.emit(p_sheet([[pt(u0, v0), pt(u0, v1)], [pt(u1, v0), pt(u1, v1)]], 0.03), c, None, jit=0.015, smooth=70)
+        for x in (x0 + 0.06, x1 - 0.06):
+            g.box(0.035, 0.07, 0.11, (x, 0, sagz(x) - 0.05), col=pick(r, WOOD_PALE), b=0.006)                       # pegs
+
+    hang(-1.85, -1.0, 1.25, "#d9d2bc", cut=lambda u, v: v < 0.42 or abs(u - 0.5) > 0.1)                               # long johns
+    hang(-0.75, 0.05, 0.95, None, stripes=["#b5533c", CREAM, "#b5533c", CREAM, "#b5533c", "h"])                      # towel
+    hang(0.3, 1.15, 0.8, "#6f8f8a", cut=lambda u, v: v > 0.3 and v < 1.0 and True or abs(u - 0.5) < 0.52)            # shirt body
+    hang(1.4, 1.95, 0.5, BANANA, cut=lambda u, v: v < 0.55 or abs(u - 0.5) > 0.09)                                    # shorts
+    return a
+
+
+def lean_to(name, seed, W=3.2, D=2.5):
+    """a patched tarp slung from a ridge pole down to the ground, a bed and a box under it: somebody sleeps here"""
+    a = Asset(name, G, footprint=1.5, blocksMove=True, tall=False, seed=seed, ao_dist=2.2)
+    g, r = a.mesh(), a.rng
+    hf = 1.75
+    stripes = ["#a8a487", "#c9bf9c", "#a8a487", "#8f9a7a", "#c9bf9c", "#a8a487"]
+    grid = []
+    for i in range(9):
+        x = -W / 2 + W * i / 8
+        row = []
+        for k in range(7):
+            t = k / 6
+            sag = 0.22 * sin(pi * t) * sin(pi * i / 8)
+            row.append((x, -D / 2 + D * t, hf - (hf - 0.07) * t - sag))
+        grid.append(row)
+    g.sheet(grid, lambda c, tg: "#7d6a4e" if (0.2 < c.x < 0.95 and -0.5 < c.y < 0.1) else shade(stripes[int((c.x + W / 2) / W * 5.999)], 0.8 if c.y > D / 2 - 0.25 else 1.0), 0.05, smooth=50, jit=0.02)
+    for sx in (-1, 1):
+        x = sx * (W / 2 - 0.08)
+        g.pole((x, -D / 2 + 0.02, -0.05), (x + sx * 0.05, -D / 2 + 0.02, hf + 0.3), 0.09, pick(r, WOOD_D), n=7, cap=ENDGRAIN)
+        lashing(g, (x + sx * 0.04, -D / 2 + 0.02, hf + 0.06), (0, 0, 1), 0.09)
+        peg = Vector((sx * (W / 2 + 0.55), -D / 2 - 0.75, 0.03))
+        g.tube([(x + sx * 0.04, -D / 2 + 0.02, hf + 0.12), peg], 0.028, ROPE, n=4)
+        g.beam(peg + Vector((0, 0, -0.05)), peg + Vector((sx * 0.05, -0.05, 0.25)), 0.09, 0.09, pick(r, WOOD_D), b=0.015)
+        g.box(0.34, 0.3, 0.2, (sx * (W / 2 - 0.3), D / 2 - 0.1, -0.05), (0, 0, sx * 25), col=pick(r, STONE), b=0.06)    # stones hold the hem down
+    g.pole((-W / 2 - 0.2, -D / 2 + 0.02, hf + 0.1), (W / 2 + 0.2, -D / 2 + 0.02, hf + 0.1), 0.06, pick(r, WOOD_D), n=6, cap=ENDGRAIN)
+    # the bed pokes out of the open front and the box stands beside it, so the camera (which looks down on the tarp) sees them
+    bedroll(g, (-0.5, -0.95, 0.0), 186, laid=True, k=1)
+    g.box(0.62, 0.5, 0.4, (0.72, -1.0, 0), (0, 0, -12), col=pick(r, WOOD), b=0.04, jit=0.04)
+    g.box(0.66, 0.54, 0.05, (0.72, -1.0, 0.38), (0, 0, -12), col=pick(r, WOOD_D), b=0.015)
+    g.cyl(0.11, 0.2, (0.72, -1.0, 0.42), col="#6f8f8a", n=8, b=0.02)                                                  # a tin mug
+    return a
+
+
+def dummy_seated(name, seed):
+    """a decoy the gang props up to look like a sentry: a stuffed sack in a pot helmet and a red neckerchief, stick
+    arms, a broom for a rifle, slumped on a stump. Faces -y."""
+    a = Asset(name, G, footprint=0.6, blocksMove=True, blocksShot=False, seed=seed, ao_dist=1.2)
+    g, r = a.mesh(), a.rng
+    sack_c = "#b99a66"
+    g.cyl(0.36, 0.5, (0, 0.05, -0.04), col=pick(r, WOOD_D), n=9, r2=0.33, b=0.03, cap=ENDGRAIN)                       # the stump
+    with g.at(T(0, 0.05, 0.42, -7, 0, 0)):                                                                            # slumped back a little
+        warp = lambda v: Vector((v.x * (1 + 0.06 * sin(v.z * 8)), v.y * 0.82, v.z))
+        g.emit(p_lathe([(0.0, 0.0), (0.27, 0.02), (0.36, 0.2), (0.37, 0.48), (0.3, 0.72), (0.16, 0.86), (0.1, 0.9)], 10, cap1=False), sack_c, None, warp=warp, grad=(0.82, 1.05), smooth=70)
+        g.emit(p_lathe([(0.105, 0.87), (0.14, 0.9), (0.105, 0.94)], 8, cap0=False, cap1=False), RED, None)            # the neckerchief ties the neck off
+        g.emit(p_prism([(-0.02, 0.0), (0.2, -0.05), (0.06, -0.3)], 0.03), RED_D, T(0.02, -0.13, 0.88, 78, 0, 0), jit=0.03)
+        g.ball(0.26, (0, 0, 1.14), col=shade(sack_c, 1.06), n=10, m=6, s=(1, 0.95, 0.95), grad=(0.88, 1.05), smooth=75)
+        # the pot: a dented steel bowl worn low, with its handle
+        g.emit(p_lathe([(0.3, 1.2), (0.31, 1.22), (0.27, 1.4), (0.15, 1.5), (0.0, 1.52)], 10, cap0=False), STEEL, None, smooth=60, grad=(0.9, 1.05))
+        g.emit(p_lathe([(0.265, 1.165), (0.33, 1.185), (0.33, 1.22), (0.295, 1.235)], 10, cap0=False, cap1=False), STEEL_D, None)
+        g.tube([(0.3, 0.0, 1.3), (0.5, 0.0, 1.3), (0.56, 0.0, 1.36)], 0.028, IRON, n=5)
+        # the face: stitched crosses for eyes, a zigzag mouth, drawn on with charcoal
+        Fm = T(0, -0.249, 1.12, 90, 0, 0)
+        for sx in (-1, 1):
+            g.paint_line([(sx * 0.1 - 0.035, -0.02), (sx * 0.1 + 0.035, 0.05)], 0.02, Fm, DARK)
+            g.paint_line([(sx * 0.1 - 0.035, 0.05), (sx * 0.1 + 0.035, -0.02)], 0.02, Fm, DARK)
+        g.paint_line([(-0.09, -0.1), (-0.045, -0.075), (0.0, -0.1), (0.045, -0.075), (0.09, -0.1)], 0.018, Fm, DARK)
+        # stick arms through the sack, straw at the cuffs
+        for sx in (-1, 1):
+            g.pole((sx * 0.2, 0.0, 0.66), (sx * 0.56, -0.26, 0.4), 0.035, pick(r, WOOD_D), n=5)
+            g.emit(p_lathe([(0.03, 0.0), (0.085, 0.1), (0.0, 0.12)], 6, cap0=False), pick(r, STRAW_C), along((sx * 0.5, -0.215, 0.445), (sx * 0.68, -0.345, 0.315)), jit=0.05)
+    # stuffed trouser legs over the front of the stump
+    for sx in (-1, 1):
+        g.tube([(sx * 0.14, 0.02, 0.5), (sx * 0.17, -0.34, 0.5), (sx * 0.19, -0.5, 0.4), (sx * 0.2, -0.56, 0.08)], [0.115, 0.11, 0.1, 0.085], KHAKI[0], n=7, jit=0.04)
+        g.box(0.17, 0.3, 0.12, (sx * 0.2, -0.64, -0.03), (0, 0, sx * 8), col="#4a3a28", b=0.04)                       # boots
+    # the broom "rifle" across the lap
+    g.pole((-0.72, -0.34, 0.5), (0.62, -0.26, 0.68), 0.028, pick(r, WOOD), n=5)
+    g.emit(p_lathe([(0.03, 0.0), (0.11, 0.2), (0.0, 0.24)], 6, cap0=False), pick(r, STRAW_C), along((-0.7, -0.34, 0.503), (-1.0, -0.36, 0.46)), jit=0.05)
+    return a
+
+
+STRAW_C = ["#d9bd5c", "#cdae4e", "#e2c96c"]
+
+
 def build():
     tent_bell("tent_a", 21)
     tent_ridge("tent_b", 22)
@@ -401,6 +582,11 @@ def build():
     signpost("signpost_a", 36, [("banana", 1, -4), ("hatch", -1, 5)])
     signpost("signpost_raft", 37, [("raft", 1, 3), ("danger", -1, -6)])
     signpost("signpost_key", 38, [("key", 1, 0)])
+    sandbags("sandbags", 39)
+    crate_stack("crate_stack", 40)
+    washing_line("washing_line", 41)
+    lean_to("lean_to", 42)
+    dummy_seated("dummy_seated", 43)
 
 
 REVIEW = dict(cols=6, cell=4.6, dist=40)

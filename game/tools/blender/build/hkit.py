@@ -25,7 +25,10 @@ MOD = 2.0                  # module length
 DOOR_W, DOOR_H = 1.6, 2.3
 WIN_W, WIN_Z1 = 1.1, 2.25
 
-YELLOW, YELLOW_D = "#f0bd2e", "#c28d24"            # banana-yellow trim (BRAND gold family)
+YELLOW, YELLOW_D = "#f0bd2e", "#c28d24"            # banana yellow: door hardware and hazard marks only (things you use)
+# G1 council: yellow on screen has to mean loot or interact, so building trim (cap rails, door frames, bands, barge
+# boards) is a muted ochre on timber and tin, and a deep teal on the whitewashed stone.
+OCHRE, OCHRE_D = "#b98d4a", "#8f6a35"
 WHITE = ["#f0e6c9", "#e9dfc0", "#f4ecd2"]          # whitewash (warm, so it stays cream under the cool fill)
 WHITE_IN = ["#e6dcc0", "#ddd3b6"]
 DADO = ["#7fa39a", "#769a91", "#88aaa1"]           # painted institutional dado inside the cellblock
@@ -47,11 +50,11 @@ STRAW = ["#d9bd5c", "#cdae4e", "#e2c96c"]
 
 # wall styles. ext/int = board or paint palettes for the outside / inside faces
 STY = {
-    "plank": dict(kind="plank", th=0.26, core=SEAM, ext=PLANK_EXT, int=PLANK_INT, trim=YELLOW, post="#7a5636", vertical=False),
+    "plank": dict(kind="plank", th=0.26, core=SEAM, ext=PLANK_EXT, int=PLANK_INT, trim=OCHRE, post="#7a5636", vertical=False),
     "barn": dict(kind="plank", th=0.26, core="#3a261c", ext=BARN_RED, int=WOOD + WOOD_GREY[:1], trim=CREAM, post="#6e4b2e", vertical=True),
     "boat": dict(kind="plank", th=0.24, core=SEAM, ext=BOAT_EXT, int=BOAT_EXT + WOOD_PALE[:1], trim=TEAL, post="#6e5a48", vertical=True),
-    "stone": dict(kind="stone", th=0.34, core=WHITE[0], ext=WHITE, int=WHITE_IN, trim=YELLOW, post=WHITE[2]),
-    "tin": dict(kind="tin", th=0.2, core="#5c6a6c", ext=TIN_PAINT, int=TIN, trim=YELLOW, post="#6e4b2e"),
+    "stone": dict(kind="stone", th=0.34, core=WHITE[0], ext=WHITE, int=WHITE_IN, trim=TEAL_D, post=WHITE[2]),
+    "tin": dict(kind="tin", th=0.2, core="#5c6a6c", ext=TIN_PAINT, int=TIN, trim=OCHRE, post="#6e4b2e"),
 }
 
 
@@ -131,6 +134,7 @@ class House:
         kw.setdefault("ao_min", 0.5)
         self.a = Asset(name, group, footprint=footprint, blocksMove=True, blocksShot=True, tall=True, seed=seed, glow=1.6, **kw)
         self.name, self.r, self.single = name, self.a.rng, single
+        self.a.contact_z = FLOOR
         self.lo, self.em = self.a.mesh(), self.a.mesh("emissive")
         self.cols, self.doors, self.lights, self.rooms, self.brks, self.posts = [], [], [], [], [], set()
         self.box = [1e9, 1e9, -1e9, -1e9]
@@ -302,7 +306,7 @@ class House:
                         g.paint_line([(u, 0.02), (u + self.r.uniform(-0.03, 0.03), 0.38)], 0.035, Pm, STONE_D)
                     g.paint_line([(a * sgn + 0.05 * sgn, 0.2), (b * sgn - 0.05 * sgn, 0.2)], 0.03, Pm, STONE_D)
                 if not inner:
-                    g.paint_poly([(a + 0.02, 0.74), (b - 0.02, 0.74), (b - 0.02, 0.96), (a + 0.02, 0.96)], Fm, YELLOW)             # the yellow band
+                    g.paint_poly([(a + 0.02, 0.74), (b - 0.02, 0.74), (b - 0.02, 0.96), (a + 0.02, 0.96)], Fm, S["trim"])          # the painted band
                     chips(g, Fm, a, b, 0.42, 0.74, max(1, int(L / 1.3)), STONE[:3])
                     g.paint_poly([(-b + 0.02, 0.42), (-a - 0.02, 0.42), (-a - 0.02, 0.98), (-b + 0.02, 0.98)], Bm, pick(self.r, DADO))
                 else:
@@ -317,7 +321,7 @@ class House:
                 chips(g, Fm, a, b, FLOOR + 0.06, 0.6, max(1, int(L / 0.8)), RUST, rad=(0.1, 0.22), lift=0.016)
                 boards(g, Bm, a + 0.02, b - 0.02, FLOOR, CUT - 0.1, S["int"], pw=0.5, vertical=True, flip=True)
                 g.box(L - 0.006, th + 0.1, 0.16, (cx, 0, -0.04), col=S["post"], b=0)
-                g.box(L, th + 0.1, 0.1, (cx, 0, CUT - 0.1), col=capcol(YELLOW, 0.1), b=0)
+                g.box(L, th + 0.1, 0.1, (cx, 0, CUT - 0.1), col=capcol(S["trim"], 0.1), b=0)
 
     def _upper(self, M, a, b, z0, z1, S, inner, side, band=True):
         g, th, L, cx = self.up(side), S["th"], b - a, (a + b) / 2
@@ -333,7 +337,7 @@ class House:
                 g.box(L, th, z1 - z0, (cx, 0, z0), col=pick(self.r, WHITE if not inner else WHITE_IN), b=0, jit=0.02)
                 if not inner:
                     if band and z1 > H - 0.3:
-                        g.paint_poly([(a + 0.02, H - 0.3), (b - 0.02, H - 0.3), (b - 0.02, H - 0.12), (a + 0.02, H - 0.12)], Fm, YELLOW)
+                        g.paint_poly([(a + 0.02, H - 0.3), (b - 0.02, H - 0.3), (b - 0.02, H - 0.12), (a + 0.02, H - 0.12)], Fm, S["trim"])
                     chips(g, Fm, a, b, z0, min(z1, H - 0.32), int(L * (z1 - z0) / 2.6 + 0.5), STONE[:3])
             else:
                 g.box(L, th, z1 - z0, (cx, 0, z0), col=S["core"], b=0, jit=0.0)
@@ -462,7 +466,7 @@ class House:
 
     def _door(self, M, x0, x1, S, side, o, double=False):
         g, th, c = self.lo, S["th"], (x0 + x1) / 2
-        tr = S["trim"] if S["kind"] != "stone" else YELLOW
+        tr = S["trim"]
         top = 2.6 if double else DOOR_H
         swing = o.get("swing", "out")
         sy = -1 if swing == "out" else 1
@@ -727,7 +731,7 @@ class House:
         og = og if isinstance(og, (tuple, list)) else (og, og)
         ends = ends if isinstance(ends, (tuple, list)) else (ends, ends)
         rise = prof[-1][1]
-        tr = trim or YELLOW
+        tr = trim or OCHRE
         xa, xb = -(Lh + og[0]), Lh + og[1]
         for sg in (-1, 1):
             for i in range(len(prof) - 1):
@@ -787,7 +791,7 @@ class House:
                             continue
                         g.paint_poly([(a_, 0.0), (b_, 0.0), (b_, max(0.02, h1)), (a_, max(0.02, h0))], Fm, shade(pick(r, E["ext"]), r.uniform(0.92, 1.05)))
                 else:
-                    g.paint_poly([(-Sh * 0.55, 0.12), (Sh * 0.55, 0.12), (Sh * 0.5, 0.3), (-Sh * 0.5, 0.3)], Fm, YELLOW)
+                    g.paint_poly([(-Sh * 0.55, 0.12), (Sh * 0.55, 0.12), (Sh * 0.5, 0.3), (-Sh * 0.5, 0.3)], Fm, OCHRE)
         return R, hf
 
     def gable(self, x0, y0, x1, y1, axis="x", style="tin", rise=1.6, **kw):

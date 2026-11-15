@@ -214,11 +214,26 @@ def on_surface(zf, x, y):
 
 
 def bullet_holes(g, pts, z_of):
-    """dark holes ringed with red chalk circles. Only ever called for the wings."""
+    """punctures: a ragged dark hole, a chipped rim of bare metal round part of it, a hairline tear. Only ever called
+    for the wings (ep03: the holes are where the planes that came back were hit). G1 council: the red chalk rings read
+    as target stickers, so the hole itself carries the read now."""
+    rr = random.Random(len(pts) * 7919 + int(pts[0][0] * 100))
     for (x, y, s) in pts:
-        m = on_surface(z_of, x, y)
-        g.paint_poly(circle(0.075 * s, 7), m, "#1a1614", lift=0.01)
-        g.paint_line(circle(0.17 * s, 10), 0.045, m, RED, closed=True, lift=0.008)
+        m = on_surface(z_of, x, y) @ T(rz=rr.uniform(0, 360))
+        R = 0.105 * s
+        rim = [(cos(radians(k * 40)) * R * rr.uniform(1.25, 1.6), sin(radians(k * 40)) * R * rr.uniform(1.25, 1.6)) for k in range(6)]
+        g.paint_poly(rim, m, "#b3b89f", lift=0.007)
+        hole = [(cos(radians(k * 51.4 + 10)) * R * rr.uniform(0.75, 1.15), sin(radians(k * 51.4 + 10)) * R * rr.uniform(0.75, 1.15)) for k in range(7)]
+        g.paint_poly(hole, m, "#15110f", lift=0.011)
+        g.paint_line([(R * 0.9, 0.0), (R * 1.9, R * 0.35), (R * 2.6, R * 0.2)], 0.022 * s, m, "#1f1a16", taper=(1.0, 0.2), lift=0.009)
+
+
+def scorch(g, z_of, pts, col="#3a3b31"):
+    """soot burnt onto a wing skin: overlapping ragged patches, each laid on the surface where it sits"""
+    rr = random.Random(int(pts[0][0] * 1000) + 17)
+    for i, (x, y, s) in enumerate(pts):
+        m = on_surface(z_of, x, y) @ T(rz=rr.uniform(0, 360))
+        g.paint_poly([(cos(radians(k * 45)) * s * rr.uniform(0.7, 1.15), sin(radians(k * 45)) * s * 0.7 * rr.uniform(0.7, 1.15)) for k in range(8)], m, shade(col, rr.uniform(0.9, 1.12)), lift=0.0045 + 0.0012 * (i % 3))
 
 
 def propeller(a, name, hub, axis=(-1, 0, 0), bent=False):
@@ -241,14 +256,45 @@ def bomber(name, seed):
     a = Asset(name, G, footprint=1.3, blocksMove=True, blocksShot=True, tall=False, seed=seed, ao_dist=2.4)
     g, r = a.mesh(), a.rng
     zc = 0.78
-    secs = [(-4.9, 0.3, 0.36, 0.7), (-4.4, 0.62, 0.7, 0.74), (-3.4, 0.86, 0.95, 0.8), (-1.8, 0.95, 1.05, 0.82), (0.4, 0.92, 1.0, 0.8), (2.0, 0.78, 0.86, 0.8), (3.1, 0.62, 0.7, 0.82), (3.5, 0.56, 0.62, 0.84)]
+    # G1 council: the wreck was an intact fuselage. It has broken its back behind the wing now: the rear section has
+    # dropped and slewed, the seam gapes on the camera side, frames and stringers show in the gap, the skin round it is
+    # torn outward and burnt.
+    BX = 1.15
+    secs = [(-4.9, 0.3, 0.36, 0.7), (-4.4, 0.62, 0.7, 0.74), (-3.4, 0.86, 0.95, 0.8), (-1.8, 0.95, 1.05, 0.82), (0.4, 0.92, 1.0, 0.8), (BX, 0.854, 0.934, 0.8)]
+    rear = [(0.0, 0.828, 0.908, 0.8), (0.55, 0.78, 0.86, 0.8), (1.65, 0.62, 0.7, 0.82), (2.05, 0.56, 0.62, 0.84)]
+    SOOT = "#3f4034"
     rings = [fus_ring(x, ry, rz, z, 10, 0.18) for x, ry, rz, z in secs]
 
     def fcol(c, tg):
         if c.x < -4.0:
             return "#9fd0d6" if c.z > 0.5 else OD_D         # glazed nose
-        return OD_L if c.z < zc - 0.42 else OD
-    g.loft(rings, fcol, cap0=True, cap1=True, smooth=55, jit=0.0, grad=(0.86, 1.05), cap="#2a2622")
+        base = OD_L if c.z < zc - 0.42 else OD
+        return mix(base, SOOT, max(0.0, min(1.0, (c.x - (BX - 1.25)) / 1.0)) * (0.85 if c.z > zc - 0.3 else 0.45))
+    g.loft(rings, fcol, cap0=True, cap1=True, smooth=55, jit=0.0, grad=(0.86, 1.05), cap="#1d1a17")
+    RT = T(BX + 0.3, 0.14, -0.1, 5, 5, -10)
+    with g.at(RT):
+        g.loft([fus_ring(x, ry, rz, z, 10, 0.18) for x, ry, rz, z in rear], lambda c, tg: mix(OD_L if c.z < zc - 0.42 else OD, SOOT, max(0.0, 1.0 - c.x / 0.9) * 0.8), cap0=True, cap1=True, smooth=55, jit=0.0, grad=(0.86, 1.05), cap="#1d1a17")
+        # the first frame of the rear section stands proud in the gap
+        g.tube([(-0.06, cos(radians(k * 30)) * 0.76, 0.8 + sin(radians(k * 30)) * 0.83) for k in range(12)], 0.035, STEEL_D, n=4, closed=True)
+    # stringers still bridging the break: bent, they are what holds the two halves together
+    for (ang, bend) in ((75, 0.16), (130, 0.1), (20, 0.12), (-25, 0.08)):
+        p0 = Vector((BX - 0.12, cos(radians(ang)) * 0.76, 0.8 + sin(radians(ang)) * 0.83))
+        p1 = RT @ Vector((0.12, cos(radians(ang)) * 0.74, 0.8 + sin(radians(ang)) * 0.81))
+        mid = (p0 + p1) / 2 + Vector((0, cos(radians(ang)) * bend, sin(radians(ang)) * bend))
+        g.tube([p0, mid, p1], 0.028, STEEL_D, n=4)
+    # torn skin round both rims: plates bent outward
+    rt = random.Random(seed + 5)
+    for k in range(9):
+        ang = radians(-30 + k * 26 + rt.uniform(-6, 6))
+        for side, M0, rx_, ry_ in ((1, Matrix.Identity(4), 0.854, 0.934), (-1, RT, 0.828, 0.908)):
+            if rt.random() < 0.3:
+                continue
+            x0 = BX - 0.02 if side == 1 else 0.02
+            p = Vector((x0, cos(ang) * rx_, 0.8 + sin(ang) * ry_))
+            n = Vector((side * rt.uniform(0.5, 1.1), cos(ang), sin(ang))).normalized()
+            L_ = rt.uniform(0.2, 0.4)
+            with g.at(M0 @ along(p - n * 0.05, p + n) @ T(rz=rt.uniform(0, 360))):      # rooted 5 cm inside the skin, so every plate is attached
+                g.emit(p_prism([(-0.14, -0.12), (L_, -0.03), (L_ * 0.35, 0.15), (-0.12, 0.1)], 0.07), mix(OD, SOOT, rt.uniform(0.3, 0.8)), None, jit=0.03)
     # nose glazing frames + cockpit canopy
     for x in (-4.42, -4.02):
         ry, rz = (0.62, 0.7) if x < -4.2 else (0.74, 0.83)
@@ -263,7 +309,18 @@ def bomber(name, seed):
     g.lathe([(0.42, 0.0), (0.46, 0.06), (0.4, 0.2), (0.0, 0.3)], (0.8, 0, zc + 0.92), col=OD_D, n=10)
     # wings: left = +y (north), right = -y (south, snapped: the outer half lies on the ground)
     zw = zc + 0.05
-    wl = wing(g, (-1.9, 0.75, zw), (-1.2, 6.2, 0.42), 2.5, 1.3, 0.3, 0.14, OD)
+    # the left wing: sound to 80 percent of its span, then crumpled where the tip dug into the ground
+    wroot, wtip = Vector((-1.9, 0.75, zw)), Vector((-1.2, 6.2, 0.42))
+    CUT_T = 0.8
+    wl = wing(g, wroot, wroot.lerp(wtip, CUT_T), 2.5, 2.5 + (1.3 - 2.5) * CUT_T, 0.3, 0.3 + (0.14 - 0.3) * CUT_T, OD)
+    prof = [(0.0, 0.0), (0.12, 0.5), (0.4, 0.62), (0.75, 0.4), (1.0, 0.0), (0.75, -0.25), (0.4, -0.38), (0.12, -0.35)]
+    crings = []
+    for i, (t, fold, twist, drop, back) in enumerate([(0.8, 1.0, 0, 0.0, 0.0), (0.86, 1.9, 9, 0.05, 0.05), (0.92, 0.7, -14, 0.2, 0.16), (0.98, 1.7, 24, 0.3, 0.3), (1.04, 0.6, 38, 0.4, 0.5)]):
+        le = wroot.lerp(wtip, t)
+        c, th = 2.5 + (1.3 - 2.5) * t, (0.3 + (0.14 - 0.3) * t) * fold
+        ca, sa = cos(radians(twist)), sin(radians(twist))
+        crings.append([(le.x + back + (px * c) * ca - (pz * th) * sa * 0.0, le.y, le.z - drop + pz * th * ca - (px - 0.4) * c * sa) for px, pz in prof])
+    g.loft(crings, lambda c, tg: mix(OD, SOOT, max(0.0, min(1.0, (c.y - 5.0) / 1.0)) * 0.7), smooth=35, jit=0.03, grad=(0.82, 1.05), cap="#1d1a17")
     wr = wing(g, (-1.9, -0.75, zw), (-1.5, -3.5, 0.62), 2.5, 1.9, 0.3, 0.22, OD)
     with g.at(T(-1.2, -4.9, 0.14, 4, 7, -24)):
         wing(g, (0, 0.9, 0), (0.5, -1.9, 0), 1.9, 1.25, 0.22, 0.14, OD)
@@ -277,7 +334,9 @@ def bomber(name, seed):
 
     zl = wing_top((-1.9, 0.75, zw), (-1.2, 6.2, 0.42), 2.5, 1.3, 0.3, 0.14)
     zr = wing_top((-1.9, -0.75, zw), (-1.5, -3.5, 0.62), 2.5, 1.9, 0.3, 0.22)
-    bullet_holes(g, [(-0.6, 1.7, 1.0), (0.0, 2.0, 0.8), (-0.75, 3.3, 1.1), (-0.2, 3.5, 0.9), (-0.55, 5.05, 0.9), (-0.25, 5.4, 0.8), (-0.45, 5.8, 0.7), (0.05, 1.3, 0.9), (-0.25, 2.8, 1.0), (-0.9, 2.3, 0.8)], zl)
+    scorch(g, zl, [(-0.25, 2.6, 0.5), (0.1, 2.75, 0.42), (-0.05, 2.35, 0.36)])
+    scorch(g, zr, [(-0.2, -2.5, 0.5), (0.2, -2.3, 0.4), (-0.5, -2.75, 0.34)])
+    bullet_holes(g, [(-0.6, 1.7, 1.0), (0.0, 2.0, 0.8), (-0.75, 3.3, 1.1), (-0.2, 3.5, 0.9), (-0.7, 4.65, 0.9), (-0.25, 4.85, 0.8), (0.05, 1.3, 0.9), (-0.9, 2.3, 0.8), (-1.0, 3.9, 0.9)], zl)
     bullet_holes(g, [(-0.7, -1.5, 1.0), (-0.1, -1.2, 0.9), (0.2, -2.0, 1.0), (-0.9, -2.9, 0.9), (-0.3, -3.1, 1.0), (0.1, -2.7, 0.8)], zr)
     mr = on_surface(zl, -0.3, 4.3)
     g.paint_poly(circle(0.3, 12), mr, "#d9ae36", lift=0.008)
@@ -305,8 +364,42 @@ def bomber(name, seed):
     # the furrow it ploughed + dirt piled at the nose
     for (x, y, sx, sy, h, rz) in [(-5.0, 0.2, 1.3, 1.6, 0.75, 0), (-4.2, -1.2, 1.1, 0.9, 0.5, 20), (-4.1, 1.3, 1.0, 0.9, 0.5, -20), (2.6, 0.5, 1.6, 0.8, 0.42, -18), (2.2, -0.5, 1.5, 0.8, 0.42, 14)]:
         sand_drift(g, x, y, sx, sy, h, rz, col="#7a6248")
+    # dirt shoved up where the wreck rests: the crumpled wing tip, the dropped rear section, the tail, the snapped wing
+    for (x, y, sx, sy, h, rz) in [(-1.0, 6.2, 1.5, 0.8, 0.34, 8), (3.3, 0.5, 1.2, 1.0, 0.36, -10), (5.7, 0.62, 1.7, 1.2, 0.34, -22), (-0.8, -5.6, 1.4, 0.8, 0.26, -24)]:
+        sand_drift(g, x, y, sx, sy, h, rz, col="#7a6248")
     rubble(g, 6, -4.6, -1.6, 1.0, 0.2, 0.4, ["#6e5a44", "#806a52"], seed=seed, z=-0.0013)
     a.point("loot", (1.2, -1.6, 0.1))
+    return a
+
+
+def bomber_debris(name, seed, kind=0):
+    """what the bomber shed along its furrow: 0 = a torn wing panel on its ribs, 1 = a wheel and its snapped strut,
+    2 = an engine cowl ring and bits of skin. Each is one connected clump, half sunk in the dirt."""
+    a = Asset(name, G, footprint=0.8, blocksMove=False, seed=seed, ao_dist=1.0)
+    g, r = a.mesh(), a.rng
+    sand_drift(g, 0.0, 0.0, 1.0, 0.8, 0.13, r.uniform(0, 90), col="#a58a62")      # a low heap of the local dirt, not a dark disc
+    if kind == 0:
+        with g.at(T(0, 0, 0.05, 14, -9, 20)):
+            g.emit(p_prism([(-0.9, -0.5), (0.75, -0.62), (1.0, 0.1), (0.35, 0.55), (-0.2, 0.34), (-0.8, 0.5)], 0.06, 0.015), OD, None, jit=0.03, grad=(0.9, 1.05))
+            for x in (-0.5, 0.15, 0.7):
+                g.box(0.07, 0.95, 0.09, (x, -0.02, -0.07), col=STEEL_D, b=0.012)
+            g.paint_poly(circle(0.24, 10), T(0.05, -0.08, 0.06), "#d9ae36", lift=0.008)
+            g.paint_line(circle(0.24, 10), 0.06, T(0.05, -0.08, 0.06), "#2f3a2a", closed=True, lift=0.011)
+            g.paint_poly([(cos(radians(k * 51)) * 0.1, sin(radians(k * 51)) * 0.1) for k in range(7)], T(-0.45, 0.2, 0.06), "#15110f", lift=0.01)
+        g.box(0.5, 0.3, 0.05, (0.9, 0.55, 0.0), (10, 6, -30), col=shade(OD, 0.9), b=0.012)
+    elif kind == 1:
+        with g.at(T(0, 0, 0.02, 8, 0, 0)):
+            g.emit(p_lathe([(0.2, 0.0), (0.42, 0.03), (0.5, 0.12), (0.5, 0.2), (0.42, 0.29), (0.2, 0.32), (0.2, 0.0)], 12, cap0=False, cap1=False), "#2a2725", None, smooth=60, grad=(0.85, 1.05))
+            g.emit(p_lathe([(0.0, 0.21), (0.23, 0.21), (0.23, 0.11), (0.0, 0.11)], 10, cap0=False, cap1=False), STEEL, None)
+        g.pole((0.05, 0.02, 0.16), (0.95, 0.5, 0.42), 0.055, STEEL, n=6)
+        g.box(0.26, 0.2, 0.1, (0.98, 0.52, 0.36), (0, -18, 28), col=OD, b=0.02)
+        g.box(0.45, 0.32, 0.045, (-0.7, 0.3, 0.02), (6, -8, 50), col=OD, b=0.012)
+    else:
+        with g.at(T(0, 0, 0.0, 62, 0, 30)):
+            g.emit(p_lathe([(0.5, -0.2), (0.54, -0.1), (0.54, 0.2), (0.5, 0.26), (0.44, 0.2), (0.44, -0.1)], 10, cap0=False, cap1=False, arc=250), OD_D, None, smooth=55)
+        g.box(0.6, 0.36, 0.05, (0.7, -0.35, 0.02), (5, 9, 15), col=OD, b=0.012)
+        g.pole((-0.5, 0.3, 0.05), (0.15, 0.75, 0.3), 0.04, STEEL_D, n=5)
+        g.box(0.3, 0.24, 0.045, (-0.6, -0.4, 0.03), (-6, 4, 70), col=shade(OD, 0.85), b=0.012)
     return a
 
 
@@ -577,6 +670,9 @@ def build():
     falls("falls", 86)
     bottle("bottle", 87)
     lemon_stand("lemon_stand", 88)
+    bomber_debris("bomber_debris_a", 89, 0)
+    bomber_debris("bomber_debris_b", 90, 1)
+    bomber_debris("bomber_debris_c", 91, 2)
 
 
 REVIEW = dict(cols=4, cell=13, dist=84, focus=(0, 0, 0.6))

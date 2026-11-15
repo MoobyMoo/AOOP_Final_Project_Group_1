@@ -5,6 +5,32 @@ from kit import *
 G = "ruins"
 
 
+MOSS_J = ["#6f8448", "#7c8f50", "#62783f"]
+
+
+def joint_moss(g, r, p0, p1, w=0.15):
+    """moss that has crept along a tile joint: a low, ragged ribbon from p0 to p1 (not a disc on a tile)"""
+    p0, p1 = Vector((p0[0], p0[1])), Vector((p1[0], p1[1]))
+    d = p1 - p0
+    nrm = Vector((-d.y, d.x)).normalized()
+    p1 = p1 + nrm * r.choice((-1, 1)) * r.uniform(0.03, 0.06)      # a little askew, so its flanks never lie in a tile's side plane
+    d = p1 - p0
+    nrm = Vector((-d.y, d.x)).normalized()
+    n = max(3, int(d.length / 0.16))
+    left, right = [], []
+    for i in range(n + 1):
+        t = i / n
+        c = p0 + d * t + nrm * r.uniform(-0.025, 0.025)
+        hw = max(0.035, w / 2 * (0.3 + 0.7 * sin(pi * min(1.0, max(0.0, t * 1.1 - 0.05))) ** 0.6) * r.uniform(0.7, 1.25))
+        left.append(tuple(c + nrm * hw)); right.append(tuple(c - nrm * hw))
+    # rooted in the dark bed under the tiles (so it is one piece with the floor), its top just proud of the tile faces;
+    # every ribbon gets its own base and top level, so two that cross never share a plane
+    z0 = r.uniform(-0.011, 0.004)       # above the tile undersides, below the top of the bed
+    g.moss_n = getattr(g, "moss_n", 0) + 1
+    z0 -= 0.0017 * (g.moss_n % 9)
+    g.prism(left + right[::-1], 0.122 + 0.0021 * (g.moss_n % 9) - z0, (0, 0, z0), col=pick(r, MOSS_J), b=0.0, smooth=75, jit=0.07)
+
+
 def floor(name, seed, nx=4, ny=4, s=1.0, missing=()):
     a = Asset(name, G, footprint=0.1, seed=seed, ao_dist=0.6)
     g, r = a.mesh(), a.rng
@@ -19,10 +45,28 @@ def floor(name, seed, nx=4, ny=4, s=1.0, missing=()):
             g.box(s - 0.07, s - 0.07, 0.11, (x, y, zs), tilt, col=pick(r, STONE), b=0.035, jit=0.05)
             if r.random() < 0.22 and abs(tilt[0]) < 1:
                 g.paint_crack([(-0.3, 0.32), (-0.1, 0.1), (-0.16, -0.08), (0.1, -0.3)], 0.05, TOP(x, y, zs + 0.11) @ T(rz=r.uniform(0, 360)), "#7a674e")
+    # G1 council: the round moss discs on the tiles read as stickers. Moss grows in the joints instead: ragged ribbons
+    # along the gaps between tiles, thicker round a missing tile where the soil is open.
     for (i, k) in missing:
         x, y = (i - (nx - 1) / 2) * s, (k - (ny - 1) / 2) * s
-        moss_pad(g, 0.7, 0.55, (x, y, -0.01), rz=r.uniform(0, 180), h=0.07)
+        g.box(s - 0.16, s - 0.16, 0.05, (x, y, -0.018), (0, 0, r.uniform(-3, 3)), col="#6e5a40", b=0.0, jit=0.04)      # open soil in the hole
         rubble(g, 3, x, y, 0.3, 0.12, 0.24, STONE, seed=seed + i)
+        for (ex, ey, lx, ly) in ((0, 0.5, 0.5, 0), (0.5, 0, 0, 0.5), (0, -0.5, 0.5, 0)):
+            if r.random() < 0.75:
+                a0, a1 = r.uniform(-0.9, -0.2), r.uniform(0.2, 0.9)
+                if abs(x + ex * s) < nx * s / 2 - 0.1 and abs(y + ey * s) < ny * s / 2 - 0.1:      # never along the outer edge of the floor
+                    joint_moss(g, r, (x + ex * s + lx * a0 * s * 0.5, y + ey * s + ly * a0 * s * 0.5), (x + ex * s + lx * a1 * s * 0.5, y + ey * s + ly * a1 * s * 0.5), w=0.2)
+    for _ in range(int(nx * ny * 0.5)):
+        if r.random() < 0.5:      # along a joint that runs in x
+            k = r.randint(1, ny - 1)
+            x0 = r.uniform(-nx * s / 2 + 0.1, nx * s / 2 - 0.9)
+            y = (k - ny / 2) * s
+            joint_moss(g, r, (x0, y), (x0 + r.uniform(0.35, 1.1), y), w=r.uniform(0.1, 0.17))
+        else:
+            i = r.randint(1, nx - 1)
+            y0 = r.uniform(-ny * s / 2 + 0.1, ny * s / 2 - 0.9)
+            x = (i - nx / 2) * s
+            joint_moss(g, r, (x, y0), (x, y0 + r.uniform(0.35, 1.1)), w=r.uniform(0.1, 0.17))
     return a
 
 

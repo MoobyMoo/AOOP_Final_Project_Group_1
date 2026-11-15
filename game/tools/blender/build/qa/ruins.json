@@ -49,7 +49,7 @@
   },
   "ruin_floor_a": {
    "pass": true,
-   "tris": 728,
+   "tris": 1008,
    "errors": [],
    "warnings": [
     "asset lowest point z=-0.0606 (not resting on ground plane z=0)"
@@ -58,7 +58,7 @@
   },
   "ruin_floor_b": {
    "pass": true,
-   "tris": 1216,
+   "tris": 1428,
    "errors": [],
    "warnings": [
     "asset lowest point z=-0.056 (not resting on ground plane z=0)"
@@ -67,9 +67,10 @@
   },
   "ruin_floor_c": {
    "pass": true,
-   "tris": 520,
+   "tris": 608,
    "errors": [],
    "warnings": [
+    "hidden back-to-back faces: ruin_floor_c__matte (2 pairs) - delete to save tris",
     "asset lowest point z=-0.0528 (not resting on ground plane z=0)"
    ],
    "ground_z": -0.0528

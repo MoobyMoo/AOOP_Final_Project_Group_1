@@ -1,6 +1,6 @@
 {
  "group": "landmarks",
- "glb_bytes": 946796,
+ "glb_bytes": 1011500,
  "assets": {
   "ferry": {
    "tris": 6218,
@@ -15,7 +15,7 @@
    "glow": 1.8
   },
   "bomber": {
-   "tris": 3445,
+   "tris": 3900,
    "parts": [
     "prop_l",
     "prop_r"
@@ -96,6 +96,36 @@
    "points": [],
    "footprint": 0.6,
    "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "bomber_debris_a": {
+   "tris": 313,
+   "parts": [],
+   "points": [],
+   "footprint": 0.8,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "bomber_debris_b": {
+   "tris": 380,
+   "parts": [],
+   "points": [],
+   "footprint": 0.8,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "bomber_debris_c": {
+   "tris": 288,
+   "parts": [],
+   "points": [],
+   "footprint": 0.8,
+   "blocksMove": false,
    "blocksShot": false,
    "tall": false,
    "glow": 1.8

@@ -1,6 +1,6 @@
 {
  "group": "camp",
- "glb_bytes": 679948,
+ "glb_bytes": 998888,
  "assets": {
   "tent_a": {
    "tris": 684,
@@ -200,6 +200,56 @@
    "blocksMove": true,
    "blocksShot": false,
    "tall": true,
+   "glow": 1.8
+  },
+  "sandbags": {
+   "tris": 1372,
+   "parts": [],
+   "points": [],
+   "footprint": 1.2,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "crate_stack": {
+   "tris": 1578,
+   "parts": [],
+   "points": [],
+   "footprint": 1.2,
+   "blocksMove": true,
+   "blocksShot": true,
+   "tall": false,
+   "glow": 1.8
+  },
+  "washing_line": {
+   "tris": 1754,
+   "parts": [],
+   "points": [],
+   "footprint": 0.3,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": true,
+   "glow": 1.8
+  },
+  "lean_to": {
+   "tris": 1272,
+   "parts": [],
+   "points": [],
+   "footprint": 1.5,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8
+  },
+  "dummy_seated": {
+   "tris": 872,
+   "parts": [],
+   "points": [],
+   "footprint": 0.6,
+   "blocksMove": true,
+   "blocksShot": false,
+   "tall": false,
    "glow": 1.8
   }
  }

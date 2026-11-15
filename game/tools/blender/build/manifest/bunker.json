@@ -1,6 +1,6 @@
 {
  "group": "bunker",
- "glb_bytes": 1147108,
+ "glb_bytes": 1147628,
  "assets": {
   "bunker_room": {
    "tris": 9712,
@@ -68,7 +68,7 @@
    "glow": 1.8
   },
   "bunker_ladder": {
-   "tris": 824,
+   "tris": 836,
    "parts": [],
    "points": [
     "climb",

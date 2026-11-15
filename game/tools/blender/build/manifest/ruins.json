@@ -1,9 +1,9 @@
 {
  "group": "ruins",
- "glb_bytes": 1009404,
+ "glb_bytes": 1038876,
  "assets": {
   "ruin_floor_a": {
-   "tris": 728,
+   "tris": 1008,
    "parts": [],
    "points": [],
    "footprint": 0.1,
@@ -13,7 +13,7 @@
    "glow": 1.8
   },
   "ruin_floor_b": {
-   "tris": 1216,
+   "tris": 1428,
    "parts": [],
    "points": [],
    "footprint": 0.1,
@@ -23,7 +23,7 @@
    "glow": 1.8
   },
   "ruin_floor_c": {
-   "tris": 520,
+   "tris": 608,
    "parts": [],
    "points": [],
    "footprint": 0.1,

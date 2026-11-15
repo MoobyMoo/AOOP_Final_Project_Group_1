@@ -97,13 +97,24 @@ export const SEA_Z = 112;    // south of this is the sea
 export const RIVER_Z = -114; // north of this is the river
 export const UNDER_X = 120;  // the grotto sub-level lives east of this
 export const BOUNDS = { minX: -112, maxX: 204, minZ: -124, maxZ: 124 };
+/** decks over water: walkable, but the ground under them is river bed (terrain.ts carves it and lifts the walk height
+ *  to the deck). The landing pier runs north from the beach; a stub of its west arm still stands (G1 council fix round
+ *  1: the dock was a board strip on dry sand, the water a sliver in the corner of the frame). */
+export const PIER_Y = 0.36;
+export const PIERS = [
+  { id: "dock", x0: 15.55, x1: 18.45, z0: -115.8, z1: -103.4 },
+  { id: "dock-west", x0: 13.7, x1: 15.55, z0: -109.3, z1: -106.7 },
+];
+const PIER_PTS: [number, number, EdgeKind][] = [[18.45, -106.2, "river"], [18.45, -115.8, "river"], [15.55, -115.8, "river"], [15.55, -109.3, "river"], [13.7, -109.3, "river"], [13.7, -106.8, "river"]];
 const OVER: [number, number, EdgeKind][] = [
   [-100, 100, "coast"], [-84, 110, "coast"], [-40, 113, "coast"], [0, 114, "coast"], [40, 113, "coast"], [80, 110, "coast"],
   [98, 100, "cliff"], [102, 76, "jungle"], [100, 40, "jungle"], [103, 14, "cliff"], [100, -30, "jungle"], [102, -56, "cliff"],
   [96, -70, "cliff"], [74, -71, "cliff"], [73, -87, "cliff"], [59, -87, "cliff"], [58, -71, "cliff"], [52, -74, "cliff"], [50, -92, "jungle"],
-  [54, -108, "river"], [20, -116, "river"], [-30, -116, "river"], [-70, -112, "river"],
+  [54, -108, "river"], [40, -109.5, "river"], [30, -106.5, "river"], [22, -105.8, "river"], ...PIER_PTS, [12, -107, "river"], [4, -106.6, "river"], [0, -109, "river"], [-1.5, -116, "river"], [-30, -116, "river"], [-70, -112, "river"],
   [-90, -100, "jungle"], [-100, -70, "cliff"], [-104, -30, "jungle"], [-100, 0, "jungle"], [-102, 30, "cliff"], [-104, 70, "cliff"], [-103, 88, "cliff"],
 ];
+/** the land alone: the outline without the pier decks (what the terrain and the shore paint follow) */
+export const LAND: [number, number, EdgeKind][] = OVER.filter((q) => !PIER_PTS.includes(q));
 /** walkable outline. The grotto is carved space (chambers + corridors), which is what a cave is */
 export const SHAPES: Shape[] = [
   { t: "poly", pts: OVER },
@@ -165,7 +176,7 @@ const ROADS_: Omit<Road, "bb">[] = [
   { id: "falls-hollow", pts: [[54, -62], [36, -60], [17, -58]], w: 3.0, ground: "dirt" },
   { id: "river-road", pts: [[2, -72], [8, -84], [10, -98]], w: 3.4, ground: "dirt" },
   { id: "west-beach", pts: [[-66, -56], [-74, -74], [-70, -92], [-52, -100], [-20, -102], [8, -102]], w: 2.8, ground: "sand" },
-  { id: "dock", pts: [[22, -100], [22, -113]], w: 3.2, ground: "plank" },
+  { id: "dock", pts: [[17, -100.4], [17, -103.6]], w: 3.0, ground: "plank" },
   { id: "grotto-ab", pts: [[151, 58], [158, 44], [164, 32]], w: 3.0, ground: "cave" },
   { id: "grotto-bc", pts: [[164, 18], [159, 2], [156, -16]], w: 3.0, ground: "cave" },
   { id: "grotto-tunnel", pts: [[178, 30], [185, 37], [191, 43]], w: 2.6, ground: "cave" },
@@ -233,6 +244,17 @@ group(-66, 35, 0, [["lemon_stand", 0, 0, 0.3], ["barrel_teal", 2.2, 0.8], ["sack
 group(-70, 21, 0, [["banana_stash", 1.2, 2.4, 0.2], ["barrel_wood", -5.5, 1.4], ["sack_pile", -5, 6.5, 1.2], ["lantern_post", 3.4, -3.2, 2.2], ["barrel_rust", -6, -6.4]]);
 group(-49, 15, 0, [["barrel_wood", 0, 0], ["barrel_wood", 1, 0.8], ["sack_pile", -1.8, 0.4, 0.3], ["lantern_post", 0.8, 3.5, 3]]);
 group(-60, 43, 0, [["signpost_a", 3.2, 1.6, 0.3], ["barrel_wood", -3, 0.6], ["rockm", 4.5, 3], ["log", -4.8, 2.6, 0.5]]);
+// G1 council fix round 1: the camp read as equipment spaced out on clean sand. It is lived in now: a sandbag post
+// covering the south gate with a decoy sentry behind it, the gang's washing strung by the stores, a lean-to bunk, crates
+// stacked where they were unloaded, a second decoy propped by the fire.
+group(-57.0, 38.0, 0.2, [["sandbags", 0, 0], ["dummy_seated", 0.4, -1.3, -0.2], ["barrel_wood", 2.2, -1.1], ["ammo_box", -1.2, -1.0, 0.4]]);
+put("sandbags", -63.9, 38.9, -0.12);
+put("washing_line", -57.2, 34.2, 0.25);
+put("lean_to", -67.6, 30.9, 0.35);
+group(-67.6, 30.9, 0.35, [["lantern", 2.3, 1.9], ["sack", -2.3, 1.6, 0.4], ["barrel_teal", 2.6, -0.6]]);
+put("crate_stack", -48.6, 32.6, 0.3); put("crate_stack", -74.2, 37.0, -0.25);
+put("dummy_seated", -62.7, 24.3, 0.1);
+group(-69.4, 20.4, 0, [["sack_pile", 0, 0, 0.8], ["bedroll_a", 1.9, 0.9, 0.3], ["lantern", -1.4, 1.0]]);
 // the shortcut track east of the breakable palisade
 group(-34, 26, 0.1, [["barrel_wood", 0, 1.9], ["barrel_rust", 1, 2.6], ["crate_wood_b", -1.4, 2.4, 0.6], ["sack", 0.4, 3.4], ["stump", -2.6, -2.2], ["rockm", 3, -2.4]]);
 
@@ -301,6 +323,7 @@ wall("stone", 73.7, -22, 76.4, -22); wall("stone", 83.6, -22, 86, -22);
 // ---------------------------------------------------------------- Bomber Wreck (EGG ep03) and the road from the camp
 put("bomber", -66, -44, 0.3, 1, undefined, "bomber");
 group(-66, -44, 0.3, [["rubble_pile_rock", -7.6, 1.2], ["rubble_pile_rock", -8.4, -1.4, 1], ["barrel_rust", 3.4, 3.2], ["barrel_rust", 4.4, 3.8], ["crate_wood_b", 2.2, -3.4, 0.4], ["sack_pile", 5.6, -3.2, 0.3], ["stump", -4.4, 5.6], ["stump", -2.4, -6.4], ["log", 9.5, 5, 0.6], ["tarp", 9, -5.5, 0.4], ["bedroll_a", 9.2, -5.6, 1], ["campfire", 6.5, -8.5], ["log_bench_b", 4.6, -9.6, 0.4], ["rockl", -10, 6, 0, 1.3], ["lantern_post", 11.5, -2.4, 2]]);
+put("bomber_debris_a", -56.4, -46.2, 0.8); put("bomber_debris_b", -59.6, -51.6, 2.1); put("bomber_debris_c", -70.6, -51.4, 0.4); put("bomber_debris_a", -70.4, -38.4, 3.6); put("bomber_debris_c", -52.6, -48.8, 1.4); put("bomber_debris_b", -47.6, -51.2, 0.3);
 group(-58, -40, 0, [["rubble_pile_rock", 0, 0], ["stump", 2.4, 1.6], ["stump", -1.6, 2.6], ["log", 3.6, -1.6, 0.6], ["rockm", -3.2, -1.4], ["barrel_rust", 1.2, -2.8], ["sack", -2.4, -2.6], ["rubble_pile_rock", 4.6, 2.6, 1]]); // what the bomber shed along its furrow
 group(-70, -6, 0, [["tarp", 0, 0, 1.1], ["crate_wood_b", 0.4, 0.2, 0.3], ["barrel_wood", -2.6, 1.6], ["sack_pile", 2.4, -2, 0.4], ["bedroll_b", -0.6, -0.8, 1.2], ["lantern_post", 3.4, 2.4, 1], ["rockl", -4.5, -2.5, 0, 1.2]]); // a smuggler stash on the way
 group(-64, -22, 0, [["log", -3.6, 0.6, 0.2], ["log", 3.4, -0.4, -0.2], ["stump", -5.2, -1.8], ["rockl", 5.6, 2, 0, 1.3], ["rockm", -6, 2.4], ["signpost_a", 2.4, 2.6, 0.5]]); // a log barricade
@@ -330,10 +353,20 @@ fence(2.4, -84.5, 6.4, -84.5); put("gate", 8, -84.5, 0, 1, { open: true }); fenc
 put("building:guard_hut", 13.5, -88.5, -H, 1, undefined, "hut-north");
 group(8, -86, 0, [["signpost_raft", -3.6, 3.4, 0.2], ["barrel_wood", 2.6, 3.6], ["lantern_post", -2.8, -2.2, 2], ["sack_pile", -4.4, -3.6, 0.4], ["log_bench", 3.4, -5.6, 0.3], ["barrel_rust", -5.6, -2.2]]);
 put("building:boathouse", -6.5, -110.5, Math.PI, 1, { open: true }, "boathouse");
-put("raft", 22, -117.6, 0, 1, { y: -0.34 }, "raft");
-boardwalk([[22, -100], [22, -110]]);
-group(22, -104, 0, [["barrel_teal", 2.6, 2.6], ["barrel_teal", 3.4, 1.8], ["sack_pile", -3.2, 2.6, 0.4], ["lantern_post", 2.6, -3.4, 1], ["crate_wood_b", -3, -1.4, 0.3], ["driftwood", 5, -4, 0.6, 1.3], ["log", -5.6, 4.2, 0.3]]);
-group(-6.5, -104.5, 0, [["barrel_wood", 5.6, 0.4], ["barrel_rust", 6.2, 1.4], ["driftwood", -7, -2, 1, 1.4], ["log_bench", 0, -1.6, 0.1], ["lantern_post", -5.2, -1.2, 1], ["sack_pile", -7, 2.4, 1.3], ["palmlean", 8.5, -3, 2]]);
+// The landing: a pier on piles over the river. Sections are 4 u; the deck rides PIER_Y above the water line, a ramp
+// brings it down to the sand. The west arm broke off years ago: one section hangs on, its piles march on into the bay.
+const DOCK = { y: PIER_Y - 0.1 };
+put("boardwalk_ramp", 17, -102.3, -H, 1, DOCK);
+put("dock_a", 17, -105.6, H, 1, DOCK); put("dock_b", 17, -109.6, H, 1, DOCK); put("dock_a", 17, -113.6, H, 1, DOCK);
+put("dock_broken", 13.55, -108, Math.PI, 1, DOCK);
+put("dock_piles", 9.2, -108.1, 0.1, 1, DOCK); put("dock_piles", 5.4, -108.5, -0.25, 1, DOCK);
+put("raft", 17, -118.1, 0, 1, { y: -0.34 }, "raft");
+group(17, -102, 0, [["barrel_teal", 3.0, 0.3], ["barrel_teal", 3.8, -0.6], ["barrel_rust", 3.4, 1.3], ["sack_pile", -3.4, 0.5, 0.4], ["lantern_post", 2.4, -2.5, 1], ["crate_stack", -2.8, 3.6, 0.5], ["signpost_raft", -2.3, 1.9, 0.3], ["log_bench", 5.6, 2.4, 0.3], ["sandbags", 6.6, -1.4, 0.5]]);
+// what the river leaves on the high-water line (the wrack line the ground shader paints runs through these)
+for (const [x, z, yaw] of [[5.6, -104.6, 0.4], [9.4, -105.0, 2.1], [12.6, -105.1, 1.2], [21.6, -103.9, 0.2], [25.2, -104.2, 2.6], [28.8, -104.6, 0.9], [33.5, -105.6, 1.7], [38.5, -107.3, 0.3]]) group(x, z, yaw, [["driftwood", 0, 0, 0, rr(1.0, 1.4)], ["shells", 0.9, 0.3], ["pebbles", -0.8, 0.4], ["rocks", 0.3, -0.7, rr(0, 6), rr(0.8, 1.2)]]);
+group(7.6, -103.4, 0, [["rockm", 0, 0, 0.4, 1.1], ["beachgrass", 1.6, 1.2], ["rockl", -3.4, 0.9, 1, 1.1], ["beachgrass", -2.0, 2.2, 2]]);
+group(26, -102, 0, [["palmlean", 0, 0, 3.4], ["rockm", 2.4, 0.6], ["beachgrass", -1.6, 1.4], ["crate_wood_b", 3.6, -1.2, 0.4], ["barrel_wood", 4.5, -0.4]]);
+group(-6.5, -104.5, 0, [["barrel_wood", 5.6, 0.4], ["barrel_rust", 6.2, 1.4], ["driftwood", -7, -2, 1, 1.4], ["log_bench", 0, -1.6, 0.1], ["lantern_post", -5.2, -1.2, 1], ["sack_pile", -7, 2.4, 1.3], ["palmlean", 8.6, 1.2, 2]]);
 group(36, -100, 0, [["palm", 0, 0], ["rockl", 3.4, 2.4, 0, 1.3], ["driftwood", -2.6, -3.4, 0.3, 1.3], ["beachgrass", 2, -2], ["barrel_wood", -3.2, 1.6], ["shells", 0.6, 3.4]]);
 group(-30, -103, 0, [["palmlean", 0, 0, 1], ["driftwood", 3, -2, 1.2, 1.3], ["rockm", -3, 1.6], ["beachgrass", 2.4, 2.6], ["crate_wood_b", -1.6, -2.6, 0.5], ["barrel_wood", -2.8, -1.6]]);
 group(-56, -98, 0, [["rockl", 0, 0, 0, 1.4], ["rockl", 3.4, -2.6, 0, 1.2], ["palm", -3.6, 2.6], ["driftwood", 2.4, 3.4, 0.6], ["beachgrass", -2, -3]]);
@@ -349,6 +382,15 @@ group(154, -24, 0, [["roots", -4.4, -5.4], ["roots", 5.2, -4.6, 2], ["roots", 6.
 group(192, 44, 0, [["barrel_wood", -3.4, 2.4], ["lantern", 2.4, -2.6], ["crate_wood_b", -2.6, -2.8, 0.4], ["crystal", 3.6, 2.4]]);
 for (const [x, z] of [[155.6, 50], [160.4, 40], [162.6, 8], [157.4, -6]]) group(x, z, rr(0, 6), [["stalagmite", 1.7, 0.4, 0, rr(0.8, 1.2)], ["mushroom", -1.6, -0.6, 0, rr(0.9, 1.5)], ["crystal", -1.9, 1.2]]);
 
+/** worn footpaths (ground decals, dress.ts): where feet go every day. Drawn darker and patchy on the dirt */
+export const PATHS: Pt[][] = [
+  [[-60, 39.6], [-60.6, 34], [-61.4, 29.6]], [[-62.6, 25.2], [-63.6, 20], [-64, 13]],          // gate to fire to gate
+  [[-64.6, 26.6], [-68.4, 27.6]], [[-66.2, 18.6], [-63.4, 24.6]], [[-55.8, 18.2], [-60.4, 25.2]],  // tent mouths to the fire
+  [[-60.2, 26.4], [-55.4, 24], [-53.4, 23]], [[-60.6, 28.8], [-55, 31.4], [-53, 32.8]],          // to the well, to the stores
+  [[-63.6, 28.4], [-66.2, 30.6]], [[-63.2, 24.8], [-69.6, 19.2], [-71.6, 18.2]],                // to the lean-to, to the tower
+  [[10, -98], [13.4, -100.4], [16.6, -101.4]], [[8, -102], [12.6, -102.4], [15.8, -102.2]],       // down to the dock
+  [[-64, -42], [-60.6, -46.4], [-57, -47.8]],                                                  // round the wreck
+];
 export const PLACED: Placed[] = P;
 export const WALLS: Wall[] = WALLS_;
 
@@ -368,7 +410,7 @@ export const PORTALS: Portal[] = [
 /** one-way zipline from the plantation lookout down to the beach: a fast way home from the middle of the map */
 export const ZIPLINES = [{ id: "lookout", from: { x: 21, z: 8, h: 6 }, to: { x: 20, z: 99, h: 1.2 } }];
 export const POI = {
-  hatch: { x: -8, z: 102 }, raft: { x: 22, z: -112.6 }, tunnelExit: { x: 193.5, z: 44.5 },
+  hatch: { x: -8, z: 102 }, raft: { x: 17, z: -113.4 }, tunnelExit: { x: 193.5, z: 44.5 },
   campfire: { x: -62, z: 27 }, watchtower: { x: -73, z: 17 }, ruinCenter: { x: 68, z: 4 }, raftSign: { x: 0.6, z: -11.4 },
   sleeperBed: { x: 2, z: -57.4 }, giantTree: { x: -6, z: -66 }, vat: { x: -9, z: 31 }, plane: { x: -66, z: -44 }, falls: { x: 66, z: -72 },
 };
@@ -425,13 +467,13 @@ export const SPAWNS: Spawn[][] = [[...base,
   { kind: "bandit", x: 0.6, z: 84.6 }, { kind: "wild", x: -9.5, z: 67.5 }, { kind: "wild", x: 12, z: 66 }, { kind: "bandit", x: -39, z: 63 },
   { kind: "wild", x: 50.5, z: 58.5 }, { kind: "wild", x: 66, z: 20 }, { kind: "bandit", x: 62, z: 6, group: "ruin" }, { kind: "bandit", x: 65.5, z: -5.4, group: "ruin" }, { kind: "bandit", x: 77.5, z: -14, group: "ruin" },
   { kind: "bandit", x: -62, z: -40, group: "plane" }, { kind: "bandit", x: -58, z: -51, group: "plane" }, { kind: "wild", x: 60, z: -56 },
-  { kind: "brute", x: 8, z: -90.5, group: "landing" }, { kind: "bandit", x: -7.7, z: -111.5, group: "landing" }, { kind: "bandit", x: 16.5, z: -106, group: "landing" }, { kind: "bandit", x: 28, z: -107.5, group: "landing" }, { kind: "wild", x: 30, z: -99, group: "landing" },
+  { kind: "brute", x: 8, z: -90.5, group: "landing" }, { kind: "bandit", x: -7.7, z: -111.5, group: "landing" }, { kind: "bandit", x: 24.6, z: -101.2, group: "landing" }, { kind: "bandit", x: 32.6, z: -102.2, group: "landing" }, { kind: "wild", x: 30, z: -99, group: "landing" },
   { kind: "bandit", x: 166, z: 24, group: "grotto" }, { kind: "bandit", x: 172, z: 29, group: "grotto" },
 ], [...base,
   { kind: "wild", x: 8, z: 70 }, { kind: "wild", x: -80, z: 95 }, { kind: "wild", x: 42, z: 58 }, { kind: "wild", x: 64, z: 46 }, { kind: "bandit", x: 4, z: 50 },
   { kind: "wild", x: 72, z: 8, group: "ruin" }, { kind: "bandit", x: 69.5, z: -5.4, group: "ruin" }, { kind: "bandit", x: 76, z: -15, group: "ruin" },
   { kind: "bandit", x: -24, z: -11 }, { kind: "wild", x: -60, z: -16.5 }, { kind: "bandit", x: -70, z: -48, group: "plane" }, { kind: "wild", x: -56, z: -40 },
-  { kind: "wild", x: 36, z: -58 }, { kind: "brute", x: 8, z: -90, group: "landing" }, { kind: "bandit", x: 16.5, z: -105, group: "landing" }, { kind: "bandit", x: 27, z: -108, group: "landing" }, { kind: "bandit", x: -7.7, z: -111.5, group: "landing" }, { kind: "wild", x: -40, z: -101 }, { kind: "wild", x: 33, z: -100, group: "landing" },
+  { kind: "wild", x: 36, z: -58 }, { kind: "brute", x: 8, z: -90, group: "landing" }, { kind: "bandit", x: 24.2, z: -100.8, group: "landing" }, { kind: "bandit", x: 33, z: -102.6, group: "landing" }, { kind: "bandit", x: -7.7, z: -111.5, group: "landing" }, { kind: "wild", x: -40, z: -101 }, { kind: "wild", x: 33, z: -100, group: "landing" },
   { kind: "bandit", x: 165, z: 32, group: "grotto" }, { kind: "wild", x: 153, z: -21 },
 ]];
 /** allies share an alert only inside their group's ring (CODE_FINDINGS rule 11) */
