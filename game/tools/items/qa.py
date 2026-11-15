@@ -33,7 +33,10 @@ for ob in sorted((o for o in bpy.context.scene.objects if o.type == "MESH" and "
         print("@@    ERROR  ", e)
     for w in res["warnings"]:
         print("@@    warning", w)
-json.dump(out, open(os.path.join(ROOT, "spikes", "items", "qa.json"), "w"), indent=1)
+qp = os.path.join(ROOT, "spikes", "items", "qa.json")                  # a partial library (build.py --only) updates its own entries
+merged = json.load(open(qp)) if os.path.exists(qp) else {}
+merged.update(out)
+json.dump(merged, open(qp, "w"), indent=1)
 print(f"@@ QA gate: {len(out) - len(failed)}/{len(out)} pass" + (f"; FAILED: {failed}" if failed else ""))
 
 # ---- visual half of the gate: wireframe 3/4 + back view of every model (blender-asset-qa review_shots)

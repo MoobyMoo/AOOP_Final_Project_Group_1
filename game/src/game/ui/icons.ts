@@ -8,6 +8,8 @@ export const ICON_IDS: string[] = [
   // loot
   "bunch", "coconut", "rope", "plank", "golden", "honey", "gear", "spring", "boomerang", "mango", "compass", "idol",
   "smoothie", "bandage", "firstaid", "ammo", "key", "extmag", "radio_key",
+  // animal drops (ai/fauna.ts)
+  "meat", "hide",
   // wearables: head, face, back
   "bowler", "tophat", "fedora", "cap", "hardhat", "pith", "beanie", "crown",
   "shades", "aviators", "monocle", "eyepatch", "goggles", "heartglasses", "banditmask",
@@ -25,7 +27,7 @@ export const ICON_IDS: string[] = [
   // typed loot containers, for the looting screen and the map legend: iconUrl(`cont_${type}`)
   "cont_weapon", "cont_food", "cont_ammo", "cont_parts", "cont_medical",
   // G2 containers (tools/blender/build/g_containers.py)
-  "cont_lunchbox", "cont_toolbox", "cont_medcabinet", "cont_safe", "cont_trash", "cont_sack",
+  "cont_lunchbox", "cont_toolbox", "cont_medcabinet", "cont_safe", "cont_trash", "cont_sack", "cont_jacket",
 ];
 
 const KNOWN = new Set(ICON_IDS);

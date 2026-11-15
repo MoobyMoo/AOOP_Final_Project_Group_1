@@ -592,6 +592,56 @@ def cont_sack(name, seed, R=0.5, h=0.84):
     a.point("mark", (0, 0, h + 1.1))
     return a
 
+# ---------------------------------------------------------------- hanging jacket
+JACKET, JACKET_D, LINING = "#c7a55c", "#6b4a2c", "#eadfc4"
+
+
+def cont_jacket(name, seed, xj=-0.2, z0=0.8, z1=1.5):
+    """A coat rack on the wall: a board with three pegs and a hat shelf, a field jacket hung on the left peg, a bowler
+    on the shelf (the cue from above). Wall-mounted like the medicine cabinet: authored against the wall plane y = 0,
+    the origin on that plane at the foot of the wall, the hem z0 above the ground. The shelf stops short of the jacket, so the
+    camera above still sees it. The `lid` is the jacket's front
+    flap, hinged along its shoulder: the standard open throws it up and out, showing the lining and the inside pocket."""
+    a = Asset(name, G, footprint=0.3, blocksMove=False, seed=seed, ground=False, wall=0.0, ao_dist=0.9)
+    a.meta["wallMount"], a.meta["mountZ"] = True, z0
+    g = a.mesh()
+    zb = z1 - 0.04                                        # the board
+    g.box(1.1, 0.045, 0.17, (0, -0.0225, zb), col=pick(a.rng, WOOD_D), b=0.015, jit=0.04)
+    g.box(0.6, 0.3, 0.035, (0.29, -0.15, zb + 0.165), col=pick(a.rng, WOOD), b=0.012, jit=0.04)            # hat shelf, clear of the jacket
+    for x in (0.05, 0.53):
+        g.box(0.035, 0.2, 0.11, (x, -0.125, zb + 0.06), col=pick(a.rng, WOOD_D), b=0.0, taper=(1.0, 0.25))
+    for x in (xj, 0.16, 0.42):                            # pegs
+        g.pole((x, -0.03, zb + 0.065), (x, -0.185, zb + 0.1), 0.026, WOOD_PALE[1], n=6, b=0.008)
+        g.cyl(0.036, 0.022, (x, -0.185, zb + 0.1), (77, 0, 0), col=WOOD_PALE[0], n=6, b=0.0)
+    with g.at(T(0.31, -0.16, zb + 0.2, 0, -4, 20, 0.78)):  # a bowler left on the shelf, clear of the wall
+        g.lathe([(0.0, 0.0), (0.168, 0.0), (0.175, 0.012), (0.118, 0.02), (0.113, 0.075), (0.09, 0.118), (0.0, 0.132)], col="#343036", n=10, smooth=60, jit=0.02, hl=1.12)
+        g.lathe([(0.121, 0.021), (0.119, 0.05)], col="#f46a10", n=10, cap0=False, cap1=False, jit=0.02)
+    # the jacket: back, the right half of the front, collar, sleeves. The left half of the front is the lid.
+    g.box(0.58, 0.06, z1 - z0, (xj, -0.08, z0), col=shade(JACKET, 0.9), b=0.025, jit=0.02, grad=(0.86, 1.04))
+    g.box(0.25, 0.012, z1 - z0 - 0.1, (xj + 0.145, -0.113, z0 + 0.04), col=LINING, b=0.0, jit=0.02)        # lining, seen once the flap is up
+    g.box(0.15, 0.016, 0.14, (xj + 0.145, -0.125, z0 + 0.2), col=shade(LINING, 0.86), b=0.0)                # inside pocket
+    g.box(0.1, 0.014, 0.08, (xj + 0.15, -0.12, z0 + 0.31), (0, 8, 0), col="#6f9f58", b=0.0)                 # a wad of banana notes in it
+    g.box(0.114, 0.024, 0.022, (xj + 0.151, -0.127, z0 + 0.345), (0, 8, 0), col=CREAM, b=0.0)
+    g.box(0.34, 0.1, 0.1, (xj, -0.1, z1 - 0.035), col=JACKET_D, b=0.03, jit=0.02)                          # collar, over the peg
+    for sx in (-1, 1):                                    # sleeves hang at the sides
+        g.pole((xj + sx * 0.31, -0.085, z1 - 0.05), (xj + sx * 0.365, -0.09, z0 + 0.12), 0.075, JACKET, n=6, r2=0.062, b=0.02, jit=0.03)
+        g.pole((xj + sx * 0.365, -0.09, z0 + 0.13), (xj + sx * 0.371, -0.09, z0 + 0.06), 0.066, JACKET_D, n=6, b=0.0)
+
+    def half(q, sx):
+        """one half of the front: panel, lapel, patch pocket with its flap"""
+        x = xj + sx * 0.145
+        q.box(0.29, 0.04, z1 - z0, (x, -0.13, z0), col=JACKET, b=0.015, jit=0.02, grad=(0.88, 1.05))
+        q.box(0.1, 0.022, 0.21, (xj + sx * 0.065, -0.152, z1 - 0.27), (0, sx * 16, 0), col=JACKET_D, b=0.0)
+        q.box(0.17, 0.02, 0.15, (x + sx * 0.01, -0.153, z0 + 0.08), col=shade(JACKET, 0.9), b=0.0)
+        q.box(0.18, 0.026, 0.05, (x + sx * 0.01, -0.161, z0 + 0.215), col=JACKET_D, b=0.0)
+    half(g, -1)
+    for k in range(3):                                    # brass buttons down the fixed half
+        g.cyl(0.02, 0.014, (xj - 0.035, -0.15, z0 + 0.3 + k * 0.13), (90, 0, 0), col=BRASS, n=6, b=0.0, hl=1.2)
+    lid = a.part("lid", (xj + 0.145, -0.13, z1))
+    half(lid, 1)
+    a.point("mark", (0, -0.15, zb + 0.75))
+    return a
+
 
 
 def build():
@@ -606,6 +656,7 @@ def build():
     cont_safe("cont_safe", 29)
     cont_trash("cont_trash", 30)
     cont_sack("cont_sack", 31)
+    cont_jacket("cont_jacket", 32)
 
 
 REVIEW = dict(cols=6, cell=3.0, dist=26)

@@ -320,5 +320,21 @@
   "tris": 912,
   "islands": 4,
   "ground_z": 0.0
+ },
+ "hide": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 1378,
+  "islands": 14,
+  "ground_z": 0.0
+ },
+ "meat": {
+  "pass": true,
+  "errors": [],
+  "warnings": [],
+  "tris": 716,
+  "islands": 8,
+  "ground_z": 0.0
  }
 }

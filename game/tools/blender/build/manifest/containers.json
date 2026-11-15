@@ -1,6 +1,6 @@
 {
  "group": "containers",
- "glb_bytes": 693356,
+ "glb_bytes": 743300,
  "assets": {
   "cont_weapon": {
    "tris": 1616,
@@ -157,6 +157,22 @@
    "blocksShot": false,
    "tall": false,
    "glow": 1.8
+  },
+  "cont_jacket": {
+   "tris": 960,
+   "parts": [
+    "lid"
+   ],
+   "points": [
+    "mark"
+   ],
+   "footprint": 0.3,
+   "blocksMove": false,
+   "blocksShot": false,
+   "tall": false,
+   "glow": 1.8,
+   "wallMount": true,
+   "mountZ": 0.8
   }
  }
 }

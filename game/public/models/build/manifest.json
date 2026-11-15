@@ -446,8 +446,8 @@
    }
   },
   "containers": {
-   "glb_bytes": 693356,
-   "tris": 14079,
+   "glb_bytes": 743300,
+   "tris": 15039,
    "assets": {
     "cont_weapon": {
      "tris": 1616,
@@ -604,6 +604,22 @@
      "blocksShot": false,
      "tall": false,
      "glow": 1.8
+    },
+    "cont_jacket": {
+     "tris": 960,
+     "parts": [
+      "lid"
+     ],
+     "points": [
+      "mark"
+     ],
+     "footprint": 0.3,
+     "blocksMove": false,
+     "blocksShot": false,
+     "tall": false,
+     "glow": 1.8,
+     "wallMount": true,
+     "mountZ": 0.8
     }
    }
   },
@@ -3008,6 +3024,6 @@
    }
   }
  },
- "total_tris": 244520,
- "total_bytes": 12234912
+ "total_tris": 245480,
+ "total_bytes": 12284856
 }
