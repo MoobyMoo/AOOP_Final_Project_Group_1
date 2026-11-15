@@ -85,6 +85,15 @@ function ensureField() {
   for (let r = 0; r < FH; r++) for (let c = 0; c < FW; c++) { const x = FX0 + c, z = FZ0 + r; field[r * FW + c] = x > UNDER_X ? rawHeight(x, z) : clearOfWater(x, z, rawHeight(x, z)); }
   return field;
 }
+/** low platforms you step up onto (the hatch's 0.33 u plinth, radius 1.15): actors stand on them (standHeight), props and
+ *  decals keep using the ground under them. Without this the hero's feet sank into the plinth at every extraction (G1.5-12) */
+const PADS = PLACED.filter((p) => p.k === "hatch").map((p) => ({ x: p.x, z: p.z, r: 1.15, top: 0.33 }));
+/** where an actor's feet are: groundHeight, or on top of a pad, eased over its 0.25 u rim */
+export function standHeight(x: number, z: number) {
+  const g = groundHeight(x, z);
+  for (const p of PADS) { const d = Math.hypot(x - p.x, z - p.z); if (d < p.r + 0.25) return Math.max(g, terrainHeight(p.x, p.z) - 0.04 + p.top * (1 - sstep(d, p.r - 0.05, p.r + 0.25))); }
+  return g;
+}
 /** where things stand and walk: the terrain, or a pier deck over it */
 export function groundHeight(x: number, z: number) { const h = terrainHeight(x, z); return deckAt(x, z, h) ?? h; }
 /** the terrain surface itself (the mesh, decals, anything that lies on the ground under a deck) */

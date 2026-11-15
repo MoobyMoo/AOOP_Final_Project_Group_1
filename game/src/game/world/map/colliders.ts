@@ -46,7 +46,7 @@ const OPEN_NATURE = new Set(["bush", "fern", "bigleaf", "banana", "flowers", "re
 /** build kit: asset name -> colliders */
 const BUILD: Record<string, Collider[]> = {
   // camp
-  tent_a: [B(4.4, 3.6, true)], tent_b: [B(3.0, 2.6, true)], tarp: [C(0.18, true, false, -2.2, -2.0), C(0.18, true, false, 2.2, -2.0), C(0.18, true, false, -2.2, 1.8), C(0.18, true, false, 2.2, 1.8)],
+  tent_a: [B(3.3, 3.2, true)] /* the canvas body (was 4.4 x 3.6: an invisible wall past its ends, G1.5-12) */, tent_b: [B(3.0, 2.6, true)], tarp: [C(0.18, true, false, -2.2, -2.0), C(0.18, true, false, 2.2, -2.0), C(0.18, true, false, -2.2, 1.8), C(0.18, true, false, 2.2, 1.8)],
   campfire: [C(0.8)], lantern_post: [C(0.22)], fence_a: [B(2.6, 0.32)], fence_b: [B(2.6, 0.32)],
   gate: [C(0.32, true, true, -1.5, 0), C(0.32, true, true, 1.5, 0)],
   watchtower: [C(0.3, true, false, -1.35, -1.35), C(0.3, true, false, 1.35, -1.35), C(0.3, true, false, -1.35, 1.35), C(0.3, true, false, 1.35, 1.35)],

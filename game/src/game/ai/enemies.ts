@@ -10,7 +10,7 @@ import { ENEMY, aimRang } from "../combat/weapons";
 import { createRig } from "../actors/rig";
 import { SPAWNS, GROUP_RINGS } from "../world/layout";
 import { path as findPath, pathLength, los, collide, walkable, ramAt, gates, straightWalk } from "../world/grid";
-import { groundHeight } from "../world/terrain";
+import { groundHeight, standHeight } from "../world/terrain";
 import { sfx } from "../core/audio";
 import { floatText, burst } from "../../fx";
 import { hurtPlayer } from "../actors/player";
@@ -175,7 +175,7 @@ function separate() {
     const dx = a.p.x - G.pp.x, dz = a.p.z - G.pp.z, d = Math.hypot(dx, dz), m = ra + 0.4;
     if (d < m && !(a.kind === "sleeper" && a.state === "charge")) { const nx = d > 1e-4 ? dx / d : 1, nz = d > 1e-4 ? dz / d : 0; a.p.x += nx * (m - d); a.p.z += nz * (m - d); }
   }
-  for (const e of live) { collide(e.p, e.rig.bounds.radius * 0.8); e.p.y = groundHeight(e.p.x, e.p.z); e.rig.root.position.copy(e.p); }
+  for (const e of live) { collide(e.p, e.rig.bounds.radius * 0.8); e.p.y = standHeight(e.p.x, e.p.z); e.rig.root.position.copy(e.p); }
 }
 
 export function updateEnemies(dt: number) {
@@ -199,7 +199,7 @@ export function updateEnemies(dt: number) {
       collide(e.p, e.rig.bounds.radius * 0.8);
     }
     e.vel.multiplyScalar(e.state === "chase" || e.state === "flee" || e.state === "kite" || e.state === "return" || e.state === "patrol" ? 1 : Math.exp(-dt * 8));
-    e.p.y = groundHeight(e.p.x, e.p.z);
+    e.p.y = standHeight(e.p.x, e.p.z);
     poseRig(e, dt);
   }
   separate();

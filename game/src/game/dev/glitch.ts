@@ -660,3 +660,16 @@ export function partBox(name: string, part: string, open = false) {
   const b = name === "gate" ? K.gate(open) : K.asset(name); b.parts.root.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(b.parts[part]); return [box.min, box.max].map((v) => [r2(v.x), r2(v.y), r2(v.z)]);
 }
+/** debug: a placed piece's hard mesh in its own space at body height (0.2-1.5 u up): bounds, and the half-width
+ *  |z| profile along x in 0.5 u bins (fit colliders to set pieces) */
+export function localProfile(k: string, x: number, z: number, lo = 0.2, hi = 1.5) {
+  const w = owners().find((q) => q.o.k === k && Math.abs(q.o.x - x) < 0.1 && Math.abs(q.o.z - z) < 0.1); if (!w) return null;
+  const c = Math.cos(w.o.yaw), s = Math.sin(w.o.yaw), k1 = w.o.s; let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; const prof = new Map<number, number[]>();
+  for (let i = 0; i < w.hard.length; i += 3) {
+    const y = w.hard[i + 1] - w.base; if (y < lo || y > hi) continue;
+    const dx = w.hard[i] - w.o.x, dz = w.hard[i + 2] - w.o.z, lx = (dx * c - dz * s) / k1, lz = (dx * s + dz * c) / k1;
+    x0 = Math.min(x0, lx); x1 = Math.max(x1, lx); z0 = Math.min(z0, lz); z1 = Math.max(z1, lz);
+    const b = Math.round(lx * 2) / 2, e = prof.get(b) ?? prof.set(b, [1e9, -1e9]).get(b)!; e[0] = Math.min(e[0], lz); e[1] = Math.max(e[1], lz);
+  }
+  return { x: [r2(x0), r2(x1)], z: [r2(z0), r2(z1)], prof: [...prof].sort((a, b) => a[0] - b[0]).map(([b, e]) => [b, r2(e[0]), r2(e[1])]) };
+}

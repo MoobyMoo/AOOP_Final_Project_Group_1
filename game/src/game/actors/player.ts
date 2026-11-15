@@ -6,7 +6,7 @@ import { PLAYER, KINGPIN, BRIEFCASE, FEEL, HEALS } from "../combat/weapons";
 import { ENEMY_CRIT, SLOTS, equipDef, gearStats } from "../loot/equipment";
 import { EQUIP_MOVE, interruptEquip, protectPlayerHit, updateEquipment } from "../loot/equipment-actions";
 import { collide, walkable } from "../world/grid";
-import { groundHeight } from "../world/terrain";
+import { groundHeight, standHeight } from "../world/terrain";
 import { sfx } from "../core/audio";
 import { shoot, swingBriefcase, makeNoise } from "../combat/combat";
 import { hud } from "../ui/hud";
@@ -153,7 +153,7 @@ function move(d: THREE.Vector3) {
   if (!walkable(tmp.x, tmp.z) && walkable(G.pp.x, G.pp.z)) {
     if (walkable(tmp.x, G.pp.z)) tmp.z = G.pp.z; else if (walkable(G.pp.x, tmp.z)) tmp.x = G.pp.x; else tmp.copy(G.pp);
   }
-  G.pp.x = tmp.x; G.pp.z = tmp.z; collide(G.pp, PLAYER.radius); G.pp.y = groundHeight(G.pp.x, G.pp.z);
+  G.pp.x = tmp.x; G.pp.z = tmp.z; collide(G.pp, PLAYER.radius); G.pp.y = standHeight(G.pp.x, G.pp.z);
 }
 export function playerArmor(crit = false) { const stats = gearStats(G.gear); return crit ? stats.headArmor : stats.bodyArmor; }
 
