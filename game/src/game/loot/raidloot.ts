@@ -33,6 +33,8 @@ import { makeNoise } from "../combat/combat";
 import { takeModel, releaseModel, throwVelocity, stepThrow, poseModel, PICK_REACH, hullResolution } from "./ground";
 import { openLoot, closeLoot, lootOpen, type LootTarget } from "../ui/hud";
 import { lootTarget } from "../ui/lootview";
+import { own, itemType, withCount } from "./instances";
+import { consumeInstance } from "../core/raid-journal";
 
 export const containerType = (crate: Crate) => crate.type;
 export const RAR_COLOR: Record<string, string> = { common: "#f3ead6", uncommon: "#6ad16a", rare: "#4aa8ff", epic: "#c77dff" };
@@ -104,8 +106,8 @@ export function sessionOf(c: Crate): SearchSession | null {
     let items: string[];
     if (c.fixed === "satchel") items = [...(c.items ?? [])];
     else if (c.kind === "container" && c.type) items = rollContainer(c.type, G.rng, ctx);
-    else { ctx.fixed = c.fixed as LootContext["fixed"]; ctx.ownsExtendedMag = G.save.gun.mag === "att_mag_ext" || G.save.locker.includes("att_mag_ext") || G.pack.includes("att_mag_ext"); ctx.containerType = c.type; items = rollCrate(c.tier, ctx, G.rng); ctx.fixed = undefined; ctx.containerType = undefined; }
-    c.items = items;
+    else { ctx.fixed = c.fixed as LootContext["fixed"]; ctx.ownsExtendedMag = [G.save.gun.mag, ...G.save.locker, ...G.pack].some(inst => inst && itemType(inst) === "att_mag_ext"); ctx.containerType = c.type; items = rollCrate(c.tier, ctx, G.rng); ctx.fixed = undefined; ctx.containerType = undefined; }
+    items = items.map(own); c.items = items;
     c.session = createSearch(items, { openSeconds: c.kind === "container" && c.type ? CONTAINERS[c.type].openSeconds : OPEN[c.tier], searchFactor: factor });
   }
   return c.session ?? null;
@@ -136,7 +138,7 @@ export function beginSearch(c: Crate) {
   if (!c.started) {
     c.started = true; G.log.crates++; if (G.log.firstCrate < 0) G.log.firstCrate = G.raidT;
     if (c.kind !== "body") { sfx("crate"); squashOpen(c); makeNoise(V(c.x, c.z), { wood: 3, green: 6, gold: 10 }[c.tier], "loot"); }
-    if (c.fixed === "satchel") { G.save.satchel = null; hud.toast("You got your satchel back!"); }
+    if (c.fixed === "satchel") hud.toast("Your satchel. Take what fits; the rest stays here.");
   }
   if (!s || !s.slots.length) { c.opened = true; floatText(c.kind === "body" ? "pockets empty" : "empty... 🕸️", V(c.x, c.z, 1.6), "#8a7d6a", 22); return s; }
   searching = c;
@@ -234,6 +236,8 @@ export function beam(_at: THREE.Vector3, _color: string) { /* retired: a find is
 
 // ---------------------------------------------------------------- ground items
 function makePickup(item: string, x: number, y: number, z: number, n?: number): Pickup {
+  item = own(item);
+  if (n !== undefined && itemDef(item).kind === "ammo") item = withCount(item, n);
   const { obj, key } = takeModel(item);
   obj.rotation.y = G.rng() * Math.PI * 2; G.stage.scene.add(obj);
   const p: Pickup = { id: nid++, item, p: new THREE.Vector3(x, y, z), obj, vy: 0, landed: false, t: 0, n, key };
@@ -265,16 +269,18 @@ export function fits(item: string) {
 }
 /** put an item into the pack / the gun / the ammo pouch. Returns false if it did not fit (the caller keeps it) */
 export function giveItem(item: string, n?: number): boolean {
+  if (G.scene === "raid" && !G.alive) return false;
+  item = own(item);
   const d = itemDef(item);
   if (equipDef(item)?.bound) return false;
-  if (d.kind === "ammo") { const k = n ?? d.stack ?? 8; G.ammo += k; sfx("pick"); floatText(`+${k} rounds`, G.pp.clone().setY(2.4), "#ffcf6a", 20); hud.ammo(); return true; }
+  if (d.kind === "ammo") { const k = n ?? d.stack ?? 8; G.ammo += k; consumeInstance(item); sfx("pick"); floatText(`+${k} rounds`, G.pp.clone().setY(2.4), "#ffcf6a", 20); hud.ammo(); return true; }
   // gun attachments pack like loot; Duckov never fits a part on pickup (Tab, then drag it onto the Kingpin)
   if (G.pack.length >= G.packSlots) return false;
   if (isEquip(item)) { const result = collectEquipment(item); if (result !== "full") { sortPack(); sfx("pick"); hud.pack(); return true; } }
   G.pack.push(item); sortPack(); sfx("pick"); hud.pack();
   floatText(`${d.icon} ${d.name}`, G.pp.clone().setY(2.4), RAR_COLOR[d.rarity] === "#f3ead6" ? "#fff8ec" : RAR_COLOR[d.rarity], 20);
   if (d.kind === "attachment") hud.toast(`${d.name}: press Tab and drag it onto your Kingpin to fit it`);
-  if (item === "vine_key") hud.toast("The Vine Key! Get it home: the key opens the vault door from your next raid");
+  if (itemType(item) === "vine_key") hud.toast("The Vine Key! Get it home: the key opens the vault door from your next raid");
   return true;
 }
 /** E on a ground item. Returns true if it was taken */

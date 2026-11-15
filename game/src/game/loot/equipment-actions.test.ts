@@ -70,4 +70,8 @@ G.enemies = [{ id: 1, p: V(17, 0), vel: V(1, 0), down: false }, { id: 2, p: V(19
 assert(heardEnemies().length === 1 && heardEnemies()[0].id === 1, "hearing reports only moving living enemies in range");
 G.scene = "bunker"; assert(!heardEnemies().length, "no stale hearing markers at home");
 resetState();
+G.gear.head = "bowler@worn"; G.save.locker = ["bowler@stored"]; G.pack = ["hardhat#73@found"];
+assert(equipFromPack(0), "equip over identified legacy bound duplicate"); updateEquipment(1);
+assert(G.save.locker.includes("bowler@worn") && G.save.locker.includes("bowler@stored"), "distinct bound instances return home without type deduplication");
+resetState();
 console.log(`Equipment actions self-test: PASS (${checks} checks)`);

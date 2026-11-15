@@ -1,13 +1,14 @@
 import { itemQuality, searchSeconds } from './containers';
+import { own } from "./instances";
 
-export type SearchSlot = { readonly item: string; readonly revealAt: number; revealed: boolean; taken: boolean };
+export type SearchSlot = { item: string; readonly revealAt: number; revealed: boolean; taken: boolean };
 export type SearchSession = { elapsed: number; readonly slots: SearchSlot[]; readonly duration: number };
 export function createSearch(items: readonly string[], options: { openSeconds?: number; searchFactor?: number } = {}): SearchSession {
   const factor = Number.isFinite(options.searchFactor) && options.searchFactor! > 0 ? options.searchFactor! : 1;
   let duration = Math.max(0, options.openSeconds ?? 0.2) * factor;
   const slots = items.map(item => {
     duration += searchSeconds(itemQuality(item)) * factor;
-    return { item, revealAt: duration, revealed: false, taken: false };
+    return { item: own(item), revealAt: duration, revealed: false, taken: false };
   });
   return { elapsed: 0, slots, duration };
 }

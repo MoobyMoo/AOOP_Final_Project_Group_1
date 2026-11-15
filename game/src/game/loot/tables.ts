@@ -33,12 +33,16 @@ export const ITEMS: Record<string, ItemDef> = {
   plantation_seal: { id: 'plantation_seal', name: 'Plantation Workshop Seal', icon: '🔩', rarity: 'rare', value: 0, kind: 'key', weight: 0.2 },
   plank: { id: "plank", name: "Plank", icon: "🪵", rarity: "common", value: 8, kind: "part", weight: 2.0 },
   ...ATTACHMENT_ITEMS, // gun attachments (loot/attachments.ts; att_mag_ext is the old extended_mag)
+  oar: { id: "oar", name: "Cove boat oar", icon: "🪵", rarity: "common", value: 8, kind: "part", weight: 1.5 },
   ...Object.fromEntries(Object.values(EQUIP).map(def => [def.id, { id: def.id, name: def.name, icon: { head: "🎩", face: "🕶️", body: "🦺", back: "🎒", ears: "🎧" }[def.slot], rarity: def.rarity, value: def.value, weight: def.weight, kind: "wear" as const }])),
 };
+import { itemType, stackCount } from "./instances";
 export function itemDef(inst: string): ItemDef {
   const parsed = parseInst(inst);
   if (parsed) return { ...ITEMS[parsed.id], id: inst, value: saleValue(inst) };
-  return Object.hasOwn(ITEMS, inst) ? ITEMS[inst] : { id: inst, name: inst, icon: "❔", rarity: "common", value: 0, kind: "sell", weight: 0 };
+  const definition = ITEMS[itemType(inst)];
+  if (!Object.hasOwn(ITEMS, itemType(inst))) return { id: inst, name: inst, icon: "❔", rarity: "common", value: 0, kind: "sell", weight: 0 };
+  return definition.kind === "ammo" ? { ...definition, stack: stackCount(inst, definition.stack ?? 8), weight: stackCount(inst, definition.stack ?? 8) * 0.02 } : definition;
 }
 export const EQUIPMENT_CHANCE: Record<CrateTier, number> = { wood: 0.02, green: 0.10, gold: 0.28 };
 
@@ -78,7 +82,7 @@ export function mulberry32(seed: number): () => number {
 
 export function isUseful(id: string, ctx: RaidLootCtx): boolean {
   const item = itemDef(id);
-  return Boolean(item && (item.kind !== "sell" || item.value >= 39 || ctx.orderNeeds.includes(id)));
+  return Boolean(item && (item.kind !== "sell" || item.value >= 39 || ctx.orderNeeds.includes(itemType(id))));
 }
 
 function draw(pool: Record<string, number>, ctx: RaidLootCtx, rng: () => number): string {
@@ -143,7 +147,7 @@ export function rollEnemyDrop(kind: EnemyStyle["kind"], ctx: LootContext, rng: (
       if (rng() < 0.30) found.push("ammo45");
       break;
     case "bandit":
-      found = ctx.carried ? ctx.carried.filter(id => ITEMS[id]?.kind === "sell") : [draw({ banana: 0.25, coconut: 0.20, vine_rope: 0.30, old_gear: 0.25 }, ctx, rng)];
+      found = ctx.carried ? ctx.carried.filter(id => itemDef(id).kind === "sell") : [draw({ banana: 0.25, coconut: 0.20, vine_rope: 0.30, old_gear: 0.25 }, ctx, rng)];
       if (rng() < 0.35) found.push("ammo45");
       break;
     case "brute":

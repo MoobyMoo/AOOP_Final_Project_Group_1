@@ -13,7 +13,7 @@ const event = (entry: typeof G.equipmentEvents[number]) => {
   if (G.equipmentEvents.length > 64) G.equipmentEvents.shift();
 };
 function returnBound(inst: string) {
-  if (!G.save.locker.some(owned => equipDef(owned)?.id === equipDef(inst)?.id)) G.save.locker.push(inst);
+  if (!G.save.locker.includes(inst)) G.save.locker.push(inst);
 }
 export function refreshEquipment() {
   const gear = currentGear();

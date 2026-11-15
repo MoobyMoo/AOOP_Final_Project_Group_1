@@ -64,6 +64,7 @@ onTune((group) => { if (group === "gun" || group === "kingpin" || group === "sig
 export type FitResult = { ok: true; old: string | null } | { ok: false; why: string };
 /** fit an attachment id into its slot; returns the one it replaced (the caller puts it somewhere) */
 export function fit(id: string): FitResult {
+  if (G.scene === "raid" && !G.alive) return { ok: false, why: "The raid has ended" };
   const a = attachmentDef(id); if (!a) return { ok: false, why: "That doesn't fit the Kingpin" };
   if (G.scene === "raid" && G.reloadT >= 0) cancelReload();
   const gun = G.save.gun, old = gun[a.slot];
@@ -72,6 +73,7 @@ export function fit(id: string): FitResult {
 }
 /** take the attachment off a slot; returns its id (the caller puts it somewhere) */
 export function unfit(slot: AttSlot): string | null {
+  if (G.scene === "raid" && !G.alive) return null;
   const gun = G.save.gun, id = gun[slot]; if (!id) return null;
   if (G.scene === "raid" && G.reloadT >= 0) cancelReload();
   gun[slot] = null; refreshGun(); return id;

@@ -5,6 +5,7 @@
 // Pure data and math: safe in saves, the loot sim and node tests. The runtime side (fitting in a raid, the camera,
 // the sound) is combat/gunstats.ts; the screen is ui/lootview.ts.
 import type { AttSlot, GunAtts, ItemDef, Rarity } from "../contracts";
+import { itemType } from "./instances";
 
 /** the gun stats attachments can change. Our names; the Duckov stat key each stands for is in STAT_DUCKOV. */
 export type GunStat =
@@ -81,8 +82,8 @@ export const ATTACHMENTS: Record<string, AttachmentDef> = {
 export const LOOKS_LIKE: Record<string, string> = { att_laser_gold: "att_laser", att_muzzle_horn: "att_muzzle_comp", att_mag_drum: "att_mag_ext", att_mag_quick: "att_mag_ext" };
 /** ...and on the gun and on the ground, its model; the speed mag is a standard-size mag, so it shows no extension */
 export const MODEL_LIKE: Record<string, string> = { att_laser_gold: "att_laser", att_muzzle_horn: "att_muzzle_comp", att_mag_drum: "att_mag_ext" };
-export const isAttachment = (id: string | null | undefined): boolean => typeof id === "string" && Object.hasOwn(ATTACHMENTS, id);
-export const attachmentDef = (id: string | null | undefined): AttachmentDef | undefined => (id && Object.hasOwn(ATTACHMENTS, id) ? ATTACHMENTS[id] : undefined);
+export const isAttachment = (id: string | null | undefined): boolean => typeof id === "string" && Object.hasOwn(ATTACHMENTS, itemType(id));
+export const attachmentDef = (id: string | null | undefined): AttachmentDef | undefined => (id && Object.hasOwn(ATTACHMENTS, itemType(id)) ? ATTACHMENTS[itemType(id)] : undefined);
 /** the loot-table entries (tables.ts ITEMS spreads these in) */
 export const ATTACHMENT_ITEMS: Record<string, ItemDef> = Object.fromEntries(Object.values(ATTACHMENTS).map((a) => [a.id, { id: a.id, name: a.name, icon: a.icon, rarity: a.rarity, value: a.value, kind: "attachment" as const, weight: a.weight }]));
 

@@ -20,7 +20,7 @@ import { baseId, buildWearable, hasWearable, WEARABLES } from "../actors/wearabl
 import { MODEL_LIKE } from "./attachments";
 
 /** loot ids -> item GLB names (the icon set's short names; ui/itemicon.ts uses the same) */
-const ALIAS: Record<string, string> = { banana: "bunch", vine_rope: "rope", golden_banana: "golden", honey_pot: "honey", old_gear: "gear", sunset_mango: "mango", brass_compass: "compass", banana_idol: "idol", vine_key: "key", ammo45: "ammo", plantation_seal: "radio_key", ...MODEL_LIKE };
+const ALIAS: Record<string, string> = { banana: "bunch", vine_rope: "rope", golden_banana: "golden", honey_pot: "honey", old_gear: "gear", sunset_mango: "mango", brass_compass: "compass", banana_idol: "idol", vine_key: "key", ammo45: "ammo", plantation_seal: "radio_key", oar: "plank", ...MODEL_LIKE };
 const GLBS = ["ammo", "aviators", "bandage", "banditmask", "beanie", "bigpack", "boomerang", "bowler", "bunch", "cap", "coconut", "compass", "cratepack", "crown", "extmag", "eyepatch", "fedora", "firstaid", "gear", "goggles", "golden", "hardhat", "heartglasses", "honey", "idol", "key", "mango", "monocle", "pith", "plank", "radio_key", "rope", "satchel", "shades", "smoothie", "spring", "suit", "tophat"];
 /** flat things stood upright in their GLB (a jacket, a magazine, a monocle): they lie on their back on the ground */
 const LIE = new Set(["suit", "extmag", "monocle", "satchel", "firstaid", "att_mag_ext"]);

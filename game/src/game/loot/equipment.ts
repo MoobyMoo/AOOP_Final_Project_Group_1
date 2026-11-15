@@ -47,19 +47,19 @@ export const BOUND_KIT: Gear = { head: "bowler", face: "shades", body: "suit", b
 export const EQUIP_TIME = 1;
 export const EQUIP_MOVE = 0.55;
 export const ENEMY_CRIT = { chance: 0.12, damage: 1.5 };
-export type EquipInstance = { id: string; dur: number };
+export type EquipInstance = { id: string; dur: number; uid?: string };
 export function parseInst(inst: string): EquipInstance | null {
   if (typeof inst !== "string") return null;
-  const match = /^([a-z][a-z0-9_]*)(?:#(-?\d+(?:\.\d+)?))?$/.exec(inst);
+  const match = /^([a-z][a-z0-9_]*)(?:#(-?\d+(?:\.\d+)?))?(?:@([a-zA-Z0-9_-]+))?$/.exec(inst);
   if (!match || !Object.hasOwn(EQUIP, match[1])) return null;
   const dur = match[2] === undefined ? 100 : Number(match[2]);
-  return Number.isFinite(dur) ? { id: match[1], dur: Math.round(Math.max(0, Math.min(100, dur))) } : null;
+  return Number.isFinite(dur) ? { id: match[1], dur: Math.round(Math.max(0, Math.min(100, dur))), ...(match[3] ? { uid: match[3] } : {}) } : null;
 }
 export function fmtInst(id: string, dur = 100): string {
   const parsed = parseInst(id);
   if (!parsed || !Number.isFinite(dur)) throw new Error("Invalid equipment instance");
   const condition = Math.round(Math.max(0, Math.min(100, dur)));
-  return condition === 100 ? parsed.id : `${parsed.id}#${condition}`;
+  return (condition === 100 ? parsed.id : `${parsed.id}#${condition}`) + (parsed.uid ? `@${parsed.uid}` : "");
 }
 export const isEquip = (inst: string): boolean => parseInst(inst) !== null;
 export const equipDef = (inst: string | null | undefined): EquipDef | undefined => {
@@ -84,7 +84,7 @@ export function gearStats(gear: Gear) {
 export function wear(inst: string, hit: number): string {
   const parsed = parseInst(inst);
   if (!parsed || !EQUIP[parsed.id].dur || !Number.isFinite(hit) || hit <= 0) return inst;
-  return fmtInst(parsed.id, parsed.dur - Math.max(1, Math.ceil(hit * 0.5)));
+  return fmtInst(inst, parsed.dur - Math.max(1, Math.ceil(hit * 0.5)));
 }
 export function repairCost(inst: string): number {
   const parsed = parseInst(inst);

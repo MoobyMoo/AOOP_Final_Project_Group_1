@@ -3,7 +3,7 @@
 // No regular enemies and no loot (Duckov's map never shows them: research/duckov-map FINDINGS 3).
 import { ROUTE_LOCKS, BOSS_ARENA, DEMO, DEMO_BORDER, inDemo as worldInDemo, portalOpen } from "../world/map/grove";
 import { CLEARINGS, PORTALS, ZIPLINES, UNDER_X } from "../world/layout";
-import { exits } from "../world/props";
+import { exits, exitStatus } from "../world/props";
 import { inPoly, type Pt } from "../world/map/types";
 import { bossMarkers } from "../ai/enemies";
 import type { MapFrame } from "./mapbake";
@@ -57,7 +57,7 @@ export function areaLabels(l: Level) {
 export function marks(l: Level, pins: { x: number; z: number }[]): Mark[] {
   const f = frameOf(l), on = (x: number, z: number) => levelOf(x) === l && x >= f.minX && x <= f.maxX && z >= f.minZ && z <= f.maxZ;
   const out: Mark[] = [];
-  for (const e of exits) if (e.open && on(e.x, e.z) && inDemo(e.x, e.z)) out.push({ id: "exit-" + e.id, kind: e.id === "boat" ? "boat" : "exit", x: e.x, z: e.z, label: EXIT_NAMES[e.id] ?? "Extract" });
+  for (const e of exits) if (e.open && on(e.x, e.z) && inDemo(e.x, e.z)) { const state = exitStatus(e); out.push({ id: "exit-" + e.id, kind: e.id === "boat" ? "boat" : "exit", x: e.x, z: e.z, label: (EXIT_NAMES[e.id] ?? "Extract") + (state.open ? "" : ` · ${state.reason}`) }); }
   for (const p of PORTALS) for (const [q, other] of [[p.a, p.b], [p.b, p.a]] as const) {
     if (!portalOpen(p.id) || !on(q.x, q.z) || !inDemo(q.x, q.z) || !inDemo(other.x, other.z) || (p.oneWay && q === p.b)) continue;
     out.push({ id: "link-" + p.id + (q === p.a ? "a" : "b"), kind: "link", x: q.x, z: q.z, label: levelOf(other.x) === "under" ? "Way down" : "Way up" });
