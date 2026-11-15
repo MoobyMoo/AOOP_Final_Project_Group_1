@@ -425,8 +425,8 @@ def crate_shut(g, r, w, d, h, at, rz=0.0, pal=WOOD, mark=None):
         for i in range(rows_):
             z = 0.012 + ph * (i + 0.5)
             for sy in (-1, 1):
-                plank(g, (-w / 2 + 0.02, sy * (d / 2 - t / 2), z), (w / 2 - 0.02, sy * (d / 2 - t / 2), z), ph - 0.025, t, wob=0.005, roll=90, pal=pal)
-                plank(g, (sy * (w / 2 - t / 2), -d / 2 + 0.05, z), (sy * (w / 2 - t / 2), d / 2 - 0.05, z), t, ph - 0.025, wob=0.005, pal=pal)   # shorter than the x planks: their end bevels must not share a plane
+                plank(g, (-w / 2 + 0.075, sy * (d / 2 - t / 2), z), (w / 2 - 0.075, sy * (d / 2 - t / 2), z), ph - 0.025, t, wob=0.005, roll=90, pal=pal, b=0)      # side planks unbevelled: three crates have to fit the 2,000 triangle prop budget
+                plank(g, (sy * (w / 2 - t / 2), -d / 2 + 0.05, z), (sy * (w / 2 - t / 2), d / 2 - 0.05, z), t, ph - 0.025, wob=0.005, pal=pal, b=0)   # shorter than the x planks: their end bevels must not share a plane
         for sx in (-1, 1):
             for sy in (-1, 1):
                 g.box(post, post, h + 0.012, (sx * (w / 2 - post / 2 + 0.03), sy * (d / 2 - post / 2 + 0.03), 0), col=pick(r, WOOD_D), b=0.025, jit=0.05)

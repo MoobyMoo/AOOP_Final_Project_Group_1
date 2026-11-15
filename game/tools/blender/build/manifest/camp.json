@@ -1,6 +1,6 @@
 {
  "group": "camp",
- "glb_bytes": 1043432,
+ "glb_bytes": 998888,
  "assets": {
   "tent_a": {
    "tris": 684,
@@ -213,7 +213,7 @@
    "glow": 1.8
   },
   "crate_stack": {
-   "tris": 2730,
+   "tris": 1578,
    "parts": [],
    "points": [],
    "footprint": 1.2,

@@ -28,10 +28,10 @@
   },
   "crate_stack": {
    "pass": true,
-   "tris": 2730,
+   "tris": 1578,
    "errors": [],
    "warnings": [
-    "hidden back-to-back faces: crate_stack__matte (4 pairs) - delete to save tris"
+    "hidden back-to-back faces: crate_stack__matte (3 pairs) - delete to save tris"
    ],
    "ground_z": 0.0
   },

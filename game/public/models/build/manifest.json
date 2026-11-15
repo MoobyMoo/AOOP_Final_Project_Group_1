@@ -190,8 +190,8 @@
    }
   },
   "camp": {
-   "glb_bytes": 1043432,
-   "tris": 22634,
+   "glb_bytes": 998888,
+   "tris": 21482,
    "assets": {
     "tent_a": {
      "tris": 684,
@@ -404,7 +404,7 @@
      "glow": 1.8
     },
     "crate_stack": {
-     "tris": 2730,
+     "tris": 1578,
      "parts": [],
      "points": [],
      "footprint": 1.2,
@@ -2485,6 +2485,6 @@
    }
   }
  },
- "total_tris": 201769,
- "total_bytes": 10182364
+ "total_tris": 200617,
+ "total_bytes": 10137820
 }
