@@ -13,7 +13,8 @@ import { hud } from "../ui/hud";
 import { lootHooks } from "../ui/lootview";
 import { commitSave } from "../core/save";
 import { sfx } from "../core/audio";
-import { checkpointInventory } from "../core/raid-journal";
+import { checkpointInventory, noteFeat } from "../core/raid-journal";
+import { debit } from "../core/wallet";
 import { accept, homeItems, qs, questEvent, questOf, questStatus, radioIn, track, trackedQuest, unlocked, wantedItems, wantsNote, type QuestNotice } from "../core/quests";
 import { payQuest } from "../core/settlement";
 import { STORY_SOCKETS, inDemo } from "../world/map/grove";
@@ -110,7 +111,7 @@ export function storyStep(dt: number) {
   // visits
   if (G.area && G.area !== lastArea) { lastArea = G.area; notify(questEvent(G.save, { t: "visit", area: G.area })); }
   // knockouts (fauna don't count: no job asks for them)
-  for (const e of G.enemies) if (e.down && !koSeen.has(e.id)) { koSeen.add(e.id); if (!e.fauna) notify(questEvent(G.save, { t: "ko", kind: e.kind, boss: isBoss(e) })); }
+  for (const e of G.enemies) if (e.down && !koSeen.has(e.id)) { koSeen.add(e.id); if (!e.fauna) { if (isBoss(e)) noteFeat("ko:boss"); notify(questEvent(G.save, { t: "ko", kind: e.kind, boss: isBoss(e) })); } }
   // the Keeper
   if (keeper) {
     const d = flat(G.pp, keeper);
@@ -180,7 +181,7 @@ function keeperAct(a: string) {
   if (k === "trade") {
     const t = TRADES.find((q) => q.item === verb); if (!t || !(stock[t.item] > 0) || G.save.money < t.price) { sfx("nope"); return; }
     if (!giveItem(own(t.item))) { sfx("nope"); hud.toast("Your pack is full"); return; }
-    G.save.money -= t.price; stock[t.item]--; checkpointInventory(true); G.save = commitSave(G.save);
+    if (!debit(G.save, "trade", t.price, { note: t.item })) { sfx("nope"); return; } stock[t.item]--; checkpointInventory(true); G.save = commitSave(G.save);
     sfx("cash"); floatText(`−🍌 ${t.price}`, G.pp.clone().setY(2.6), "#fff3c4", 22); openKeeper(["A fair trade. The island approves."]); return;
   }
   if (k !== "q") return;

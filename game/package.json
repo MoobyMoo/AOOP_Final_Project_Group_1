@@ -7,7 +7,7 @@
     "dev": "vite --host",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host",
-    "sim": "rolldown src/game/loot/sim.ts --file /tmp/bv-sim.mjs --platform node && node /tmp/bv-sim.mjs",
+    "sim": "rolldown src/game/loot/sim.ts --no-codeSplitting --file /tmp/bv-sim.mjs --platform node --banner \"globalThis.location ??= { search: \\\"\\\" };\" && node /tmp/bv-sim.mjs",
     "test:save": "rolldown src/game/core/save.test.ts --file /tmp/bv-save.mjs --platform node --banner \"globalThis.location ??= { search: \\\"\\\" };\" && node /tmp/bv-save.mjs",
     "test:settlement": "rolldown src/game/loot/settlement.test.ts --no-codeSplitting --file /tmp/bv-settlement.mjs --platform node --banner \"globalThis.location ??= { search: \\\"\\\" };\" && node /tmp/bv-settlement.mjs"
   },

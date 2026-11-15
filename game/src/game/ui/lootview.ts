@@ -33,6 +33,7 @@ import { GUN, fit, unfit, statsFor } from "../combat/gunstats";
 import { CALIBERS, CLASS_LABEL, gunOf, isCaliber } from "../combat/guns";
 import { placeGun, takeGun, swapSlots, freeGunSlot } from "../combat/arsenal";
 import { tierAtLeast, tierOf } from "../loot/tiers";
+import { lockboxOf, oddsRows } from "../loot/lockbox";
 import { itemType, withCount } from "../loot/instances";
 import { checkpointInventory, consumeInstance } from "../core/raid-journal";
 
@@ -457,7 +458,8 @@ function tagHtml() {
   const worn = e && src.z !== "slot" ? gear()[e.slot] : null;
   const facts: string[] = [];
   const att = attachmentDef(inst);
-  if (d.kind !== "ammo" && d.kind !== "key") facts.push(`<li><span data-tip="What the Fence pays for it at home">Worth</span><span class="num">${e?.bound ? "Not for sale" : `🍌 ${d.value}`}</span></li>`);
+  if (d.kind === "lockbox") { const box = lockboxOf(itemType(inst)); if (box) { facts.push(`<li><span data-tip="The Fence opens it at home">Opening fee</span><span class="num">🍌 ${box.fee}</span></li>`); for (const r of oddsRows(box)) facts.push(`<li><span><i class="oddsdot" style="background:${r.color}"></i>${r.name} prize</span><span class="num">${r.pct}%</span></li>`); } }
+  else if (d.kind !== "ammo" && d.kind !== "key") facts.push(`<li><span data-tip="What the Fence pays for it at home, before today's market">Worth</span><span class="num">${e?.bound ? "Not for sale" : `🍌 ${d.value}`}</span></li>`);
   if (d.kind === "ammo" && src.z === "them") { const en = entries()[src.i]; facts.push(`<li><span>In this stack</span><span class="num">${en ? stackOf(en) : d.stack} rounds</span></li>`); }
   facts.push(`<li><span data-tip="Past 75% of your carry limit you slow down">Weight</span><span class="num">${(d.weight ?? 0).toFixed(1)} kg</span></li>`);
   if (e) facts.push(`<li><span>Slot</span><span>${SLOT_NAME[e.slot]}</span></li>`);

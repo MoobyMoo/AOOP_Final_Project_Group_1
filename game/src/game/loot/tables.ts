@@ -13,6 +13,7 @@ export const GUN_ITEMS: Record<string, ItemDef> = Object.fromEntries([
   ["kingpin", { id: "kingpin", name: GUNS.kingpin45.name, icon: "🔫", rarity: GUNS.kingpin45.tier, value: 0, kind: "gun" as const, weight: GUNS.kingpin45.weight }],
 ]);
 import { STORY_ITEMS } from "./storyitems";
+import { LOCKBOX_ITEMS } from "./lockbox-items";
 
 export type LootContext = RaidLootCtx & {
   fixed?: CrateSocket["fixed"] | "radio" | "radio_shack";
@@ -48,6 +49,14 @@ export const ITEMS: Record<string, ItemDef> = {
   scrap_tin: { id: "scrap_tin", name: "Scrap Tin", icon: "🥫", rarity: "common", value: 4, kind: "part", weight: 0.3 },
   banana_notes: { id: "banana_notes", name: "Banana Notes", icon: "💵", rarity: "uncommon", value: 25, kind: "sell", weight: 0.1 },
   plank: { id: "plank", name: "Plank", icon: "🪵", rarity: "common", value: 8, kind: "part", weight: 2.0 },
+  // Progression v0.2 (the vault is a factory): the coupon press's inputs turn up in office and camp containers; the
+  // ripening room and the scrap press make the other two (home/factory.ts). Values feed npm run sim's factory gate.
+  paper: { id: "paper", name: "Office Paper", icon: "📄", rarity: "common", value: 3, kind: "part", weight: 0.2 },
+  ink: { id: "ink", name: "Ink Cartridge", icon: "🖋️", rarity: "fine", value: 8, kind: "part", weight: 0.3 },
+  premium_bunch: { id: "premium_bunch", name: "Premium Bunch", icon: "🍌", rarity: "fine", value: 26, kind: "sell", weight: 1.0 },
+  machine_parts: { id: "machine_parts", name: "Machined Parts", icon: "🔧", rarity: "uncommon", value: 40, kind: "part", weight: 0.8 },
+  // sealed lockboxes (loot/lockbox.ts): raid-only finds, never sold; the Fence opens them for a fee
+  ...LOCKBOX_ITEMS,
   ...STORY_ITEMS, // lore notes, quest items, the Keeper carving (loot/storyitems.ts)
   ...ATTACHMENT_ITEMS, // gun attachments (loot/attachments.ts; att_mag_ext is the old extended_mag)
   ...GUN_ITEMS,

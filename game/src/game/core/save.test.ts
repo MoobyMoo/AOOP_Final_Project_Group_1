@@ -251,4 +251,21 @@ const cash = (save: { money: number }) => save.money; // read through a call: TS
   equal(m.notes, ["note_gang_dues"], "only valid note ids survive");
   equal(migrate(JSON.parse(JSON.stringify(messy))).quests, messy.quests, "the job state round-trips unchanged");
 }
+// Progression v0.2: the economy state migrates and round-trips (core/wallet.ts sanitizeEcon)
+{
+  const old = migrate({ v: 1, raids: 12, money: 2400, salMovedIn: true });
+  assert(old.econ!.lifetime === 2400 && old.econ!.reviewed === 2 && old.econ!.market.serial === 12 && Object.keys(old.econ!.market.movers).length === 6, "a save from before the economy starts at the net worth it holds (Manager, already reviewed) with today's market");
+  const cur = migrate({ v: 1, raids: 3, money: 90, econ: { v: 1, lifetime: 700, reviewed: 0, seq: 9, ledger: [{ seq: 8, k: "sale", n: 90, earned: 90, at: 2 }, { seq: 3, k: "printMoney", n: 1e6 }], totals: { sale: 700, fake: 5 },
+    lines: { ripen: { tier: 2, staff: 1, tray: ["premium_bunch@aa11", "nope@bb22"], cash: 0, rounds: 0, runs: ["r1"] }, coupon: { tier: 9, staff: -4, tray: "x", cash: -5 } },
+    wager: { id: "haul300", stake: 50, state: "placed" }, rolled: ["r1", "r1"], betNet: -100, betHigh: 40, market: { serial: 3, movers: { coconut: 1.35, banana: 99 } } } });
+  const e = cur.econ!;
+  assert(e.lifetime === 700 && e.reviewed === 0 && e.ledger.length === 1 && e.ledger[0].k === "sale" && e.totals.sale === 700 && !("fake" in e.totals), "valid ledger lines and totals survive; unknown kinds are dropped");
+  equal(e.lines.ripen.tray, ["premium_bunch@aa11"], "a tray keeps real item types only");
+  assert(e.lines.coupon.tier === 1 && e.lines.coupon.staff === 1 && e.lines.coupon.cash === 0 && e.lines.coupon.tray.length === 0, "bad line state falls back to tier 1, unstaffed, empty");
+  assert(e.wager?.id === "haul300" && e.wager.state === "placed" && e.rolled.length === 1 && e.betHigh === 40 && e.betNet === -100, "a placed wager, the rolled raids and betting's high-water mark survive");
+  equal(e.market.movers, { coconut: 1.35 }, "an out-of-range market factor is dropped");
+  save(cur); equal(load(), cur, "the economy round-trips through storage");
+  assert(load().econ!.lines.ripen.tray.every((inst) => /@/.test(inst)), "tray items keep owned identities");
+  assert(migrate({ v: 1, money: 5, econ: "garbage" }).econ!.lifetime === 5, "garbage economy data restarts from the wallet");
+}
 console.log(`Save self-test: PASS (${checks} checks; migration, corrupt data, nested types, storage failures, reset)`);

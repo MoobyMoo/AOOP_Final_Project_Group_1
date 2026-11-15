@@ -9,6 +9,8 @@ import { emptyBase, legacyBase, sanitizeBase } from "../home/facilities";
 import { itemType } from "../loot/instances";
 import { claimDelivery, identifySave, isLockerItem, settleRaid, validateOwnership } from "./settlement";
 import { freshQuests, sanitizeQuests } from "./quests";
+import { credit, freshEcon, sanitizeEcon } from "./wallet";
+import { refreshMarket } from "../loot/market";
 
 export function retainKeys(save: SaveV1, kept: readonly string[]) {
   for (const id of kept) if (itemDef(id).kind === "key" && !save.keys.includes(itemType(id))) save.keys.push(itemType(id));
@@ -25,14 +27,16 @@ const color = (value: unknown, fallback: string): string => typeof value === "st
 const choice = <Value extends string>(value: unknown, fallback: Value, choices: readonly Value[]): Value => typeof value === "string" && choices.includes(value as Value) ? value as Value : fallback;
 
 function fresh(): SaveV1 {
-  return {
+  const out: SaveV1 = {
     v: 1, createdAt: new Date().toISOString(), raids: 0, money: 0, ammo: { ...noRounds(), ammo45: KINGPIN.startAmmo },
     look: structuredClone(DEFAULT_LOOK), lookDone: false, gear: { ...BOUND_KIT }, locker: [], satchel: null,
     upgrades: { mag: 0, pack: 0, heart: 0 }, keys: [], trophies: [], reserved: [], order: null,
     fixtures: [], salMovedIn: false, guns: [{ inst: "kingpin", atts: { ...EMPTY_GUN } }, null], stats: { bonkOuts: 0, extracts: 0, best: 0 },
     base: emptyBase(), // a new vault starts empty (G1.5 row 17)
     quests: freshQuests(), // no jobs yet; the intro hasn't played (core/quests.ts)
+    econ: freshEcon(), // the banana ledger, net worth 0 (Intern), no lines (core/wallet.ts)
   };
+  refreshMarket(out); return out;
 }
 
 function look(value: unknown): MonkeyLook {
@@ -128,14 +132,15 @@ export function migrate(value: unknown): SaveV1 {
       const starter = BOUND_KIT[slot];
       if (starter && equipDef(worn[slot])?.id !== starter && !locker.some(inst => equipDef(inst)?.id === starter)) locker.push(starter);
     }
-    return {
+    const money = integer(raw.money, defaults.money);
+    const out: SaveV1 = {
       ...(raw.activeRaid && typeof raw.activeRaid === "object" ? { activeRaid: structuredClone(raw.activeRaid) as SaveV1["activeRaid"] } : {}),
       ...(Array.isArray(raw.settlements) ? { settlements: structuredClone(raw.settlements) as SaveV1["settlements"] } : {}),
       ...(Array.isArray(raw.delivery) ? { delivery: loot(raw.delivery) } : {}),
       ...(typeof object(raw.deployReceipt).id === "string" && integer(object(raw.deployReceipt).paid, -1) >= 0 ? { deployReceipt: { id: object(raw.deployReceipt).id as string, paid: object(raw.deployReceipt).paid as number } } : {}),
       v: 1,
       createdAt: typeof raw.createdAt === "string" && Number.isFinite(Date.parse(raw.createdAt)) ? raw.createdAt : defaults.createdAt,
-      raids: integer(raw.raids, defaults.raids), money: integer(raw.money, defaults.money), ammo: rounds(raw.ammo, defaults.ammo),
+      raids: integer(raw.raids, defaults.raids), money, ammo: rounds(raw.ammo, defaults.ammo),
       look: look(raw.look), lookDone: boolean(raw.lookDone, defaults.lookDone), gear: worn, locker, satchel: satchel(raw.satchel),
       upgrades: {
         mag: integer(upgrades.mag, 0, PRICES.upgrades.mag.length),
@@ -155,8 +160,11 @@ export function migrate(value: unknown): SaveV1 {
       // jobs (G1.5 row 40): validated, or built for a save from before them (Sal moved in = his first two jobs done; a
       // return already made keeps the plantation road it used to open; the intro never plays for a played save)
       quests: sanitizeQuests(raw.quests, { salMovedIn: boolean(raw.salMovedIn, false), extracts: integer(stats.extracts, 0), raids: integer(raw.raids, 0), lookDone: boolean(raw.lookDone, false) }),
+      // Progression v0.2 (core/wallet.ts): validated, or started for a save from before it (net worth = what it holds)
+      econ: sanitizeEcon(raw.econ, { money, items: loot }),
       ...(typeof object(raw.boundWeapons).kingpin === "string" && typeof object(raw.boundWeapons).briefcase === "string" ? { boundWeapons: { kingpin: object(raw.boundWeapons).kingpin as string, briefcase: object(raw.boundWeapons).briefcase as string } } : {}),
     };
+    refreshMarket(out); return out;
   } catch {
     return defaults;
   }
@@ -175,7 +183,7 @@ export function load(): SaveV1 {
     if (next.activeRaid) return commitSave(settleRaid(next, "reload", 2));
     if (next.deployReceipt) {
       const refunded = structuredClone(next);
-      refunded.money += refunded.deployReceipt!.paid; delete refunded.deployReceipt;
+      credit(refunded, "refund", refunded.deployReceipt!.paid, { note: "fare refund on reload" }); delete refunded.deployReceipt;
       return commitSave(refunded);
     }
     if (JSON.stringify(next) !== raw) return commitSave(next);

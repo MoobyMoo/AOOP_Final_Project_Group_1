@@ -18,6 +18,14 @@ const BLURB: Record<string, string> = {
   vine_rope: "Strong jungle rope. Smuggler Sal is always short of it.",
   golden_banana: "A banana that is somehow gold all the way through.",
   honey_pot: "Wild honey in a clay pot. Sells well.",
+  paper: "A ream of office paper. The coupon press eats it.",
+  ink: "A green ink cartridge. Very convincing green.",
+  premium_bunch: "Ripened in the vault, polished by hand. The Fence pays extra.",
+  machine_parts: "Pressed from scrap in the vault. Precise, shiny, very sellable.",
+  lockbox_fine: "Sealed tight. The odds are printed on the tag. The Fence has the key.",
+  lockbox_uncommon: "Sealed tight. The odds are printed on the tag. The Fence has the key.",
+  lockbox_rare: "An executive's lockbox. Heavy. Rattles promisingly.",
+  lockbox_epic: "A boardroom lockbox with a brass seal. Somebody important lost this.",
   old_gear: "A rusty cog from the plantation machines. Sal wants these.",
   sunset_mango: "The island's best mango. Collectors pay for it.",
   brass_compass: "An old ship's compass. It still points north.",
@@ -85,6 +93,10 @@ export function itemCopy(inst: string): ItemCopy {
     lines = statLines(id); does = lines.map((l) => l.text); blurb = a?.blurb ?? blurb;
     use = "Drag it onto the Kingpin, or double-click it in your pack, to fit it";
     rarityLine = `${r} ${a ? SLOT_LABEL[a.slot].toLowerCase() : "gun part"} attachment`;
+  } else if (d.kind === "lockbox") {
+    does = ["Sealed: the odds of each prize tier are on the tag", "Found only in raids; the Fence won't buy it sealed"];
+    use = "Bring it home and have the Fence open it for a fee";
+    rarityLine = `${r} lockbox`;
   } else if (d.kind === "part") {
     use = "Bring it home and sell it, or keep it for Sal's orders";
     rarityLine = `${r} part, sells at the Fence`;

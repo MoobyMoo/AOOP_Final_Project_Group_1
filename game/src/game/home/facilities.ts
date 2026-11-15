@@ -16,14 +16,17 @@
 import type { BaseLayout, SaveV1 } from "../contracts";
 import { itemType, own } from "../loot/instances";
 import { unlocked } from "../core/quests";
+import { TITLE, titleReason } from "../core/networth";
+import { debit, title } from "../core/wallet";
 
 export const AREA = { minX: -16, maxX: 16, minZ: -12, maxZ: 12 } as const;
 export const AREA_W = AREA.maxX - AREA.minX + 1, AREA_D = AREA.maxZ - AREA.minZ + 1; // 33 x 25
 
-export type FacilityId = "fence" | "bench" | "sal" | "trophy" | "med" | "stash" | "generator" | "press" | "desk" | "plant" | "radio";
+export type FacilityId = "fence" | "bench" | "sal" | "trophy" | "med" | "stash" | "generator" | "press" | "desk" | "plant" | "radio"
+  | "ripen" | "bottler" | "scrappress" | "coupon"; // factory lines (home/factory.ts; Progression v0.2)
 export type StarterId = "pod" | "board" | "locker" | "blueprints";
 /** what E does at a facility (home/bunker.ts open()) */
-export type StationId = "sell" | "bench" | "sal" | "trophies" | "med" | "stash" | "generator" | "press" | "deploy" | "locker" | "blueprints" | "radio" | "talk";
+export type StationId = "sell" | "bench" | "sal" | "trophies" | "med" | "stash" | "generator" | "press" | "deploy" | "locker" | "blueprints" | "radio" | "talk" | "line";
 export type FacilityDef = {
   id: FacilityId; name: string; does: string;   // name and one line on what it is for (catalog card)
   w: number; d: number;                         // footprint in cells at rotation 0 (w along x, d along z; front faces +z)
@@ -32,6 +35,8 @@ export type FacilityDef = {
   decor?: boolean;                              // no station: needs no free front row
   /** a job's unlock key (core/quests.ts) the blueprint needs, and the card's reason while it's missing */
   unlock?: { key: string; reason: string };
+  /** a rich-list title the blueprint needs (core/networth.ts; Progression v0.2: net-worth tiers unlock facilities) */
+  netWorth?: number;
   duckov: string;                               // the Duckov facility function it maps to (SYSTEMS_PORT H02 row)
 };
 /** Our catalog. Costs are bananas from loot/tables.ts's economy; npm run sim checks them (loot/sim.ts "Base"). The
@@ -49,6 +54,11 @@ export const CATALOG: FacilityDef[] = [
     unlock: { key: "fac:press", reason: "Blueprint from the Radio Operator's job \"Gang Frequencies\"" } },
   { id: "radio", name: "Radio Desk", does: "A desk for the Radio Operator: gang chatter, hints, raid warnings and his jobs", w: 2, d: 1, cost: 0, maxCount: 1, requires: [], station: "radio", label: "The Radio Operator", duckov: "H02 move-in NPC + E03 quest giver",
     unlock: { key: "fac:radio", reason: "Blueprint from Sal's job \"Office Supplies\"" } },
+  // the factory floor (Progression v0.2; home/factory.ts runs them once per completed raid). Net-worth titles gate them
+  { id: "ripen", name: "Banana Ripening Room", does: "Ripens 2 banana bunches into a Premium Bunch after every raid. Collect from the tray", w: 3, d: 2, cost: 150, maxCount: 1, requires: [], station: "line", label: "Ripening room: tray and upgrades", netWorth: TITLE.associate, duckov: "H02 production facility + H03 recipe (per-raid run)" },
+  { id: "bottler", name: "Smoothie Bottling Line", does: "Bottles bananas and a coconut into 2 smoothies after every raid", w: 4, d: 2, cost: 180, maxCount: 1, requires: [], station: "line", label: "Bottling line: tray and upgrades", netWorth: TITLE.associate, duckov: "H02 production facility + H03 recipe (per-raid run)" },
+  { id: "scrappress", name: "Scrap Press", does: "Presses an old gear, a spring and scrap tin into machined parts and rifle rounds. Needs the ammo press and power", w: 3, d: 2, cost: 260, maxCount: 1, requires: ["generator", "press"], station: "line", label: "Scrap press: tray and upgrades", netWorth: TITLE.manager, duckov: "H02 workshop production + H03 dismantle/craft (per-raid run)" },
+  { id: "coupon", name: "Counterfeit Coupon Press", does: "A cartoon money printer: paper and ink into bananas, at a slim margin. Needs power", w: 3, d: 2, cost: 400, maxCount: 1, requires: ["generator"], station: "line", label: "Coupon press: tray and upgrades", netWorth: TITLE.seniorManager, duckov: "H02 production facility (cash output, per-raid run)" },
   { id: "desk", name: "Manager's Desk", does: "Decor. Somewhere to put your feet up", w: 4, d: 2, cost: 25, maxCount: 1, requires: [], decor: true, duckov: "H02 #26 decoration (no action)" },
   { id: "plant", name: "Potted Palm", does: "Decor. A bit of green down here", w: 1, d: 1, cost: 10, maxCount: 3, requires: [], decor: true, duckov: "H02 #26 decoration (no action)" },
 ];
@@ -163,6 +173,7 @@ export function canBuild(save: SaveV1, id: string): { ok: boolean; reason: strin
   const missing = def.requires.filter((r) => !has(save, r));
   if (missing.length) return { ok: false, reason: `Needs the ${missing.map((m) => defOf(m)!.name).join(" and ")}`, free, cost };
   if (def.unlock && !free && !unlocked(save, def.unlock.key)) return { ok: false, reason: def.unlock.reason, free, cost }; // a packed-up one (a token) is already yours
+  if (def.netWorth && !free && title(save) < def.netWorth) return { ok: false, reason: titleReason(def.netWorth), free, cost };
   if (save.money < cost) return { ok: false, reason: `Needs 🍌 ${cost}`, free, cost };
   return { ok: true, reason: "", free, cost };
 }
@@ -173,7 +184,7 @@ export function build(save: SaveV1, id: string, x: number, z: number, r: number)
   if (!def || !can.ok) return { ok: false, reason: can.reason };
   const at = checkPlace(save.base, def, x, z, r & 3);
   if (!at.ok) return { ok: false, reason: at.reason };
-  if (can.free) save.base.tokens[id] = tokens(save, id) - 1; else save.money -= def.cost;
+  if (can.free) save.base.tokens[id] = tokens(save, id) - 1; else if (def.cost && !debit(save, "build", def.cost, { note: id })) return { ok: false, reason: `Needs 🍌 ${def.cost}` };
   if (!save.base.tokens[id]) delete save.base.tokens[id];
   const item: Item = { uid: save.base.next++, def: id, x, z, r: (r & 3) as Item["r"] };
   save.base.items.push(item);

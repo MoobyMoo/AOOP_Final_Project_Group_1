@@ -1,6 +1,7 @@
 import type { Gear, WearSlot } from "../contracts";
 import { G, flat } from "../core/state";
 import { save } from "../core/save";
+import { credit, debit } from "../core/wallet";
 import { armorMult } from "../combat/weapons";
 import { attachmentDef } from "./attachments";
 import { BOUND_KIT, EQUIP_MOVE, EQUIP_TIME, SLOTS, equipDef, fmtInst, gearStats, parseInst, repairCost, saleValue, visualGear, wear } from "./equipment";
@@ -110,21 +111,20 @@ export function sellEquip(index: number): number {
   const inst = G.save.locker[index], def = equipDef(inst), att = attachmentDef(inst);
   if ((!def || def.bound) && !att) return 0;
   const value = att ? att.value : saleValue(inst);
-  G.save.locker.splice(index, 1); G.save.money += value; save(G.save);
+  G.save.locker.splice(index, 1); credit(G.save, "gearSale", value, { in: [inst] }); save(G.save);
   return value;
 }
 export function repair(slot: WearSlot): boolean {
   if (G.scene !== "bunker" || !SLOTS.includes(slot)) return false;
   const inst = G.save.gear[slot], cost = inst ? repairCost(inst) : 0;
-  if (!inst || cost <= 0 || G.save.money < cost) return false;
-  G.save.money -= cost; G.save.gear[slot] = fmtInst(inst); G.gear = { ...G.save.gear };
+  if (!inst || cost <= 0 || !debit(G.save, "repair", cost, { note: slot })) return false;
+  G.save.gear[slot] = fmtInst(inst); G.gear = { ...G.save.gear };
   refreshEquipment(); save(G.save); return true;
 }
 export function repairAll(): number {
   if (G.scene !== "bunker") return 0;
   const cost = [...Object.values(G.save.gear), ...G.save.locker].reduce<number>((total, inst) => total + (inst ? repairCost(inst) : 0), 0);
-  if (!cost || G.save.money < cost) return 0;
-  G.save.money -= cost;
+  if (!cost || !debit(G.save, "repair", cost, { note: "all" })) return 0;
   for (const slot of SLOTS) if (G.save.gear[slot] && repairCost(G.save.gear[slot]!) > 0) G.save.gear[slot] = fmtInst(G.save.gear[slot]!);
   G.save.locker = G.save.locker.map(inst => repairCost(inst) > 0 ? fmtInst(inst) : inst); G.gear = { ...G.save.gear };
   refreshEquipment(); save(G.save); return cost;
