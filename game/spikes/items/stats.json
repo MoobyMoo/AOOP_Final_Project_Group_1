@@ -852,5 +852,60 @@
    0.3,
    0.963
   ]
+ },
+ "contraband_carbine": {
+  "name": "Contraband Carbine",
+  "kind": "weapon",
+  "tris": 2312,
+  "materials": 1,
+  "dims_m": [
+   0.256,
+   2.377,
+   0.883
+  ]
+ },
+ "cash_flow": {
+  "name": "Cash Flow",
+  "kind": "weapon",
+  "tris": 1952,
+  "materials": 1,
+  "dims_m": [
+   0.263,
+   1.835,
+   0.965
+  ]
+ },
+ "coconut_cracker": {
+  "name": "Coconut Cracker",
+  "kind": "weapon",
+  "tris": 2072,
+  "materials": 1,
+  "dims_m": [
+   0.31,
+   2.525,
+   0.732
+  ]
+ },
+ "bean_counter": {
+  "name": "Bean Counter",
+  "kind": "weapon",
+  "tris": 2308,
+  "materials": 1,
+  "dims_m": [
+   0.34,
+   2.943,
+   0.855
+  ]
+ },
+ "hostile_takeover": {
+  "name": "Hostile Takeover",
+  "kind": "weapon",
+  "tris": 2972,
+  "materials": 1,
+  "dims_m": [
+   0.301,
+   2.83,
+   1.033
+  ]
  }
 }

@@ -22,6 +22,8 @@ export const ICON_IDS: string[] = [
   "guard_helmet", "guard_plate",
   // weapons (tools/items/icon_kingpin.py stages the game GLB)
   "kingpin",
+  // the kit guns, by gunId (tools/items/icon_guns.py stages public/models/guns/<gunId>.glb)
+  "cash_flow", "contraband_carbine", "coconut_cracker", "bean_counter", "hostile_takeover",
   // Kingpin attachments, by their node id in attachments.glb (tools/items/icon_attachments.py stages that GLB)
   "att_sight_holo", "att_sight_2x", "att_muzzle_comp", "att_muzzle_supp", "att_mag_ext", "att_laser",
   // typed loot containers, for the looting screen and the map legend: iconUrl(`cont_${type}`)

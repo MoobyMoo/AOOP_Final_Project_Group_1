@@ -1,0 +1,487 @@
+{
+ "contraband_carbine": {
+  "name": "Contraband Carbine",
+  "class": "ar",
+  "tier": "mid",
+  "tris": 2312,
+  "tris_by_node": {
+   "frame": 1976,
+   "bolt": 92,
+   "mag": 244
+  },
+  "glb_bytes": 135800,
+  "bounds": [
+   [
+    -0.106,
+    -0.348,
+    -0.957
+   ],
+   [
+    0.15,
+    0.535,
+    1.42
+   ]
+  ],
+  "length": 2.377,
+  "nodes": [
+   "bolt",
+   "frame",
+   "mag"
+  ],
+  "points": {
+   "muzzle_flash": [
+    0,
+    0.33,
+    1.453
+   ],
+   "eject": [
+    0.12,
+    0.35,
+    0.26
+   ]
+  },
+  "sockets": {
+   "socket_mag": {
+    "at": [
+     0.0,
+     -0.2925,
+     0.6224
+    ],
+    "rides": "mag"
+   },
+   "socket_sight": {
+    "at": [
+     0,
+     0.495,
+     0.12
+    ],
+    "rides": "body"
+   },
+   "socket_muzzle": {
+    "at": [
+     0,
+     0.33,
+     1.42
+    ],
+    "rides": "body"
+   },
+   "socket_rail": {
+    "at": [
+     0,
+     0.196,
+     0.94
+    ],
+    "rides": "body"
+   },
+   "socket_grip": {
+    "at": [
+     0,
+     0.235,
+     0.7
+    ],
+    "rides": "body"
+   },
+   "socket_stock": {
+    "at": [
+     0,
+     0.31,
+     -0.42
+    ],
+    "rides": "body"
+   }
+  },
+  "pivots": {},
+  "extras": {
+   "moving": "bolt",
+   "travel": 0.17,
+   "mag": "mag"
+  }
+ },
+ "cash_flow": {
+  "name": "Cash Flow",
+  "class": "smg",
+  "tier": "mid",
+  "tris": 1952,
+  "tris_by_node": {
+   "frame": 1604,
+   "bolt": 140,
+   "mag": 208
+  },
+  "glb_bytes": 115728,
+  "bounds": [
+   [
+    -0.135,
+    -0.44,
+    -0.875
+   ],
+   [
+    0.128,
+    0.525,
+    0.96
+   ]
+  ],
+  "length": 1.835,
+  "nodes": [
+   "bolt",
+   "frame",
+   "mag"
+  ],
+  "points": {
+   "muzzle_flash": [
+    0,
+    0.33,
+    0.993
+   ],
+   "eject": [
+    0.11,
+    0.35,
+    0.24
+   ]
+  },
+  "sockets": {
+   "socket_mag": {
+    "at": [
+     0.0,
+     -0.384,
+     0.49
+    ],
+    "rides": "mag"
+   },
+   "socket_sight": {
+    "at": [
+     0,
+     0.485,
+     0.11
+    ],
+    "rides": "body"
+   },
+   "socket_muzzle": {
+    "at": [
+     0,
+     0.33,
+     0.96
+    ],
+    "rides": "body"
+   },
+   "socket_rail": {
+    "at": [
+     0,
+     0.199,
+     0.7
+    ],
+    "rides": "body"
+   },
+   "socket_stock": {
+    "at": [
+     0,
+     0.3,
+     -0.4
+    ],
+    "rides": "body"
+   }
+  },
+  "pivots": {},
+  "extras": {
+   "moving": "bolt",
+   "travel": 0.14,
+   "mag": "mag"
+  }
+ },
+ "coconut_cracker": {
+  "name": "Coconut Cracker",
+  "class": "shotgun",
+  "tier": "mid",
+  "tris": 2072,
+  "tris_by_node": {
+   "frame": 1468,
+   "tube": 100,
+   "fore_end": 504
+  },
+  "glb_bytes": 108128,
+  "bounds": [
+   [
+    -0.155,
+    -0.232,
+    -1.085
+   ],
+   [
+    0.155,
+    0.5,
+    1.44
+   ]
+  ],
+  "length": 2.525,
+  "nodes": [
+   "fore_end",
+   "frame",
+   "tube"
+  ],
+  "points": {
+   "muzzle_flash": [
+    0,
+    0.385,
+    1.473
+   ],
+   "eject": [
+    0.12,
+    0.37,
+    0.23
+   ]
+  },
+  "sockets": {
+   "socket_sight": {
+    "at": [
+     0,
+     0.5,
+     0.09
+    ],
+    "rides": "body"
+   },
+   "socket_muzzle": {
+    "at": [
+     0,
+     0.385,
+     1.44
+    ],
+    "rides": "body"
+   },
+   "socket_mag": {
+    "at": [
+     0,
+     0.255,
+     1.312
+    ],
+    "rides": "tube"
+   },
+   "socket_rail": {
+    "at": [
+     0,
+     0.124,
+     1.19
+    ],
+    "rides": "body"
+   },
+   "socket_stock": {
+    "at": [
+     0,
+     0.28,
+     -0.3
+    ],
+    "rides": "body"
+   }
+  },
+  "pivots": {},
+  "extras": {
+   "moving": "fore_end",
+   "travel": 0.15,
+   "mag": "tube"
+  }
+ },
+ "bean_counter": {
+  "name": "Bean Counter",
+  "class": "sniper",
+  "tier": "mid",
+  "tris": 2308,
+  "tris_by_node": {
+   "frame": 1456,
+   "bolt_handle": 100,
+   "scope_builtin": 664,
+   "mag": 88
+  },
+  "glb_bytes": 123592,
+  "bounds": [
+   [
+    -0.126,
+    -0.227,
+    -1.083
+   ],
+   [
+    0.214,
+    0.628,
+    1.86
+   ]
+  ],
+  "length": 2.943,
+  "nodes": [
+   "bolt_handle",
+   "frame",
+   "mag",
+   "scope_builtin"
+  ],
+  "points": {
+   "muzzle_flash": [
+    0,
+    0.33,
+    1.893
+   ],
+   "eject": [
+    0.1,
+    0.35,
+    0.11
+   ]
+  },
+  "sockets": {
+   "socket_mag": {
+    "at": [
+     0.0,
+     0.091,
+     0.5
+    ],
+    "rides": "mag"
+   },
+   "socket_sight": {
+    "at": [
+     0,
+     0.435,
+     0.08
+    ],
+    "rides": "body"
+   },
+   "socket_muzzle": {
+    "at": [
+     0,
+     0.33,
+     1.86
+    ],
+    "rides": "body"
+   },
+   "socket_rail": {
+    "at": [
+     0,
+     0.097,
+     0.76
+    ],
+    "rides": "body"
+   },
+   "socket_stock": {
+    "at": [
+     0,
+     0.25,
+     -0.28
+    ],
+    "rides": "body"
+   }
+  },
+  "pivots": {
+   "bolt_handle": [
+    0,
+    0.33,
+    0
+   ]
+  },
+  "extras": {
+   "moving": "bolt_handle",
+   "travel": 0.22,
+   "boltLift": 55.0,
+   "mag": "mag",
+   "builtinSight": "scope_builtin"
+  }
+ },
+ "hostile_takeover": {
+  "name": "Hostile Takeover",
+  "class": "lmg",
+  "tier": "high",
+  "tris": 2972,
+  "tris_by_node": {
+   "frame": 1996,
+   "bolt": 92,
+   "bipod": 172,
+   "box_mag": 712
+  },
+  "glb_bytes": 166856,
+  "bounds": [
+   [
+    -0.138,
+    -0.3,
+    -1.05
+   ],
+   [
+    0.163,
+    0.733,
+    1.78
+   ]
+  ],
+  "length": 2.83,
+  "nodes": [
+   "bipod",
+   "bolt",
+   "box_mag",
+   "frame"
+  ],
+  "points": {
+   "muzzle_flash": [
+    0,
+    0.33,
+    1.813
+   ],
+   "eject": [
+    0.125,
+    0.34,
+    0.28
+   ]
+  },
+  "sockets": {
+   "socket_mag": {
+    "at": [
+     0,
+     -0.184,
+     0.65
+    ],
+    "rides": "box_mag"
+   },
+   "socket_sight": {
+    "at": [
+     0,
+     0.535,
+     0.03
+    ],
+    "rides": "body"
+   },
+   "socket_muzzle": {
+    "at": [
+     0,
+     0.33,
+     1.78
+    ],
+    "rides": "body"
+   },
+   "socket_rail": {
+    "at": [
+     0,
+     0.151,
+     1.03
+    ],
+    "rides": "body"
+   },
+   "socket_grip": {
+    "at": [
+     0,
+     0.19,
+     0.9
+    ],
+    "rides": "body"
+   },
+   "socket_stock": {
+    "at": [
+     0,
+     0.31,
+     -0.46
+    ],
+    "rides": "body"
+   }
+  },
+  "pivots": {
+   "bipod": [
+    0.0,
+    0.225,
+    1.51
+   ]
+  },
+  "extras": {
+   "moving": "bolt",
+   "travel": 0.18,
+   "mag": "box_mag",
+   "bipodDeploy": -100.0
+  }
+ }
+}
