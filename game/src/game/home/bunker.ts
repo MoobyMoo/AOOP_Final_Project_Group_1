@@ -2,6 +2,8 @@
 // the fence's counter (sell everything, count-up), workbench (3 upgrades, each adds a visible fixture), order board
 // (Smuggler Sal's job), the mirror (character creator), trophies, and the ladder (island map → deploy).
 // PLACEHOLDER room art until Fable C2's bunker set lands; station logic stays here.
+import { attachmentDef } from "../loot/attachments";
+import { refreshGun } from "../combat/gunstats";
 import * as THREE from "three";
 import { G, V, flat } from "../core/state";
 import { mat } from "../render/shading";
@@ -148,7 +150,7 @@ function openLocker() {
   openLoot({ name: "Locker", items: G.save.locker, search: null, kind: "locker", sub: "Found gear comes home here", actions: [{ label: "Change your look", run: () => { closeLoot(); act("look"); } }] });
 }
 function gearSaleHtml() {
-  const rows = G.save.locker.map((inst, i) => ({ inst, i, d: equipDef(inst) })).filter((r) => r.d && !r.d.bound);
+  const rows = G.save.locker.map((inst, i) => ({ inst, i, d: equipDef(inst), a: attachmentDef(inst) })).filter((r) => (r.d && !r.d.bound) || r.a);
   if (!rows.length) return "";
   return `<h4 style="margin:16px 0 8px">Spare gear from your locker</h4><div class="rows">${rows.map(({ inst, i }) => { const d = itemDef(inst); return `<div class="row"><b>${iconHtml(inst, 26)} ${d.name}</b><small>${detailsLine(inst)}</small><button class="act" data-a="sellGear:${i}">🍌 ${d.value}</button></div>`; }).join("")}</div>`;
 }
@@ -159,7 +161,7 @@ function repairRow() {
 }
 function benchHtml() {
   const u = G.save.upgrades, row = (k: "mag" | "pack" | "heart", name: string, desc: string) => { const lvl = u[k], c = PRICES[k][lvl]; return `<div class="row"><b>${name}</b><small>${desc}</small>${c === undefined ? `<em class="act">Done</em>` : `<button class="act" data-a="up:${k}" ${G.save.money < c ? "disabled" : ""}>🍌 ${c}</button>`}</div>`; };
-  return `${head("Workbench", `🍌 ${G.save.money} to spend`)}<div class="rows">${row("mag", "Extended Mag", "Kingpin holds 12 rounds instead of 8" + (G.save.fixtures.includes("extended_mag") ? ". You already found one in the vault" : ""))}${row("pack", "Bigger Pack", "2 more pack slots")}${row("heart", "Banana Breakfast", "25 more max HP")}${repairRow()}</div><p class="dim" style="margin-top:10px">🔒 Contraband Carbine arrives with the Smuggler Caves.</p>`;
+  return `${head("Workbench", `🍌 ${G.save.money} to spend`)}<div class="rows">${row("mag", "Extended Mag", "A magazine attachment: the Kingpin holds 12 rounds instead of 8" + (G.save.gun.mag === "att_mag_ext" || G.save.locker.includes("att_mag_ext") ? ". You already have one" : ""))}${row("pack", "Bigger Pack", "2 more pack slots")}${row("heart", "Banana Breakfast", "25 more max HP")}${repairRow()}</div><p class="dim" style="margin-top:10px">🔒 Contraband Carbine arrives with the Smuggler Caves.</p>`;
 }
 function orderHtml() {
   if (G.save.salMovedIn) return `${head("Order board")}<p>Sal's job is done. New jobs arrive with new regions.</p>`;
@@ -190,7 +192,9 @@ function act(a: string) {
   }
   if (a.startsWith("up:")) {
     const k = a.slice(3) as "mag" | "pack" | "heart", c = PRICES[k][sv.upgrades[k]]; if (c === undefined || sv.money < c) { sfx("nope"); return; }
-    sv.money -= c; sv.upgrades[k]++; save(sv); sfx("buy"); money(); refreshFixtures(); closePanel();
+    sv.money -= c; sv.upgrades[k]++;
+    if (k === "mag") { if (!sv.gun.mag) sv.gun.mag = "att_mag_ext"; else sv.locker.push("att_mag_ext"); refreshGun(); } // the bench builds the magazine attachment: fitted, or into the locker if a mag is on
+    save(sv); sfx("buy"); money(); refreshFixtures(); closePanel();
     const f = fixtures.get(k)!; popIn(f); burst(f.getWorldPosition(new THREE.Vector3()), 24, "#ffd84a", 1); G.stage.trauma = 0.2;
     floatText({ mag: "Extended Mag!", pack: "Bigger Pack!", heart: "Banana Breakfast!" }[k], f.getWorldPosition(new THREE.Vector3()).add(V(0, 0, 1)), "#fff3c4", 30); return;
   }

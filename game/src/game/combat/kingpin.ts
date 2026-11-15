@@ -12,12 +12,18 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import type { GunView, GunFx } from "../contracts";
+import type { GunView, GunFx, GunAtts, AttSlot } from "../contracts";
 import type { Surface } from "./surface";
 import { patch, surf, TOON } from "../render/shading";
+import { MODEL_LIKE } from "../loot/attachments";
 
 const BRASS = "#f0b548";
 const KINGPIN_URL = `${import.meta.env.BASE_URL}models/kingpin45.glb`;
+/** gun attachments (G1.5 row 36): one node per attachment id (att_sight_holo ...), each modelled with its mount point at
+ *  its origin, +z forward like the gun. Optional: with no file, or no node for an id, the attachment has no visual. */
+const ATTACH_URL = `${import.meta.env.BASE_URL}models/attachments.glb`;
+/** which named empty in kingpin45.glb each attachment slot mounts on */
+export const SOCKET_OF: Record<AttSlot, string> = { sight: "socket_sight", muzzle: "socket_muzzle", mag: "socket_mag", laser: "socket_rail" };
 
 // ------------------------------------------------------------------------------------------------ geometry helpers (brass)
 /** paint a geometry one colour (vertex colours), non-indexed, no uv, so every part merges into one buffer */
@@ -107,7 +113,12 @@ type Asset = {
   rest: Float32Array; restInv: THREE.Quaternion[]; boneInv: THREE.Matrix4[]; fire: Clip; reload: Clip;
   muzzle: THREE.Vector3; eject: THREE.Vector3; map: THREE.Texture; orm: THREE.Texture;
   /** reloadT: the old magazine dissolves over [0], [1]; the new one appears over [2], [3] */ magFade: number[]; slideMin: number;
+  /** attachment sockets found in the GLB (body space), and the attachment models by item id (both may be empty) */
+  sockets: Partial<Record<AttSlot, { m: THREE.Matrix4; rides: string }>>; atts: Map<string, AttModel>;
 };
+/** one attachment model: its meshes (palette parts use the gun's material at mount time), the flash point of a muzzle
+ *  device (extras.muzzle) and the beam origin of a laser (extras.emit), both in the model's frame */
+type AttModel = { obj: THREE.Object3D; tip: THREE.Vector3 | null; emit: THREE.Vector3 | null };
 let ASSET: Asset | null = null, loading: Promise<void> | null = null, bodyMat: THREE.Material | null = null;
 
 function table(clip: THREE.AnimationClip, rest: Float32Array): Clip {
@@ -164,12 +175,48 @@ async function load(): Promise<void> {
   if (!map || !orm) throw new Error("kingpin45.glb: palette textures missing");
   for (const t of [map, orm]) { t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true; } // flat palette cells: no filtering across them
   const extras = node("kingpin45").userData as { magFade?: number[]; slideTravel?: number };
+  // attachment sockets: named empties anywhere under the gun, brought into the gun root's space
+  const sockets: Asset["sockets"] = {}, gunRoot = node("kingpin45"); gunRoot.updateMatrixWorld(true);
+  const rootInv = gunRoot.matrixWorld.clone().invert();
+  // extras.rides names the part a socket moves with ("slide": the sight rides the slide when it cycles; "body", "mag")
+  for (const [slot, name] of Object.entries(SOCKET_OF) as [AttSlot, string][]) { const o = gltf.scene.getObjectByName(name); if (o) sockets[slot] = { m: rootInv.clone().multiply(o.matrixWorld), rides: String((o.userData as { rides?: string }).rides ?? "body") }; }
+  const atts = await loadAttachments();
   ASSET = {
     body, mag: mesh("mag").geometry, magExt: mesh("mag_ext").geometry, sphere, rest, restInv, boneInv,
     fire: table(clip("fire"), rest), reload: table(clip("reload"), rest),
     muzzle: node("muzzle").position.clone(), eject: node("eject").position.clone(), map, orm,
     magFade: extras.magFade ?? [0.27, 0.42, 0.45, 0.5], slideMin: rest[SLIDE * S7 + 2] - (extras.slideTravel ?? 0.13),
+    sockets, atts,
   };
+}
+/** attachments.glb (Fable, de35941): one root node per attachment id, its mount point at its origin, axes as the gun's.
+ *  Palette parts use MAT_Kingpin with the gun's palette UVs and AO in COLOR_0, so the Kingpin's own material goes on at
+ *  mount time (userData.palette marks them); untextured parts (the sight dot, the laser lens) stay flat emissive colour.
+ *  Missing file = no attachment visuals. */
+async function loadAttachments(): Promise<Asset["atts"]> {
+  const out: Asset["atts"] = new Map();
+  let gltf: Awaited<ReturnType<GLTFLoader["loadAsync"]>>;
+  try { gltf = await new GLTFLoader().loadAsync(ATTACH_URL); } catch { return out; }
+  const glows = new Map<string, THREE.Material>();
+  const v3 = (a: unknown) => (Array.isArray(a) && a.length === 3 && a.every(Number.isFinite) ? new THREE.Vector3().fromArray(a as number[]) : null);
+  for (const top of [...gltf.scene.children, ...gltf.scene.children.flatMap((c) => c.children)]) {
+    if (!/^att_[a-z0-9_]+$/.test(top.name) || out.has(top.name)) continue;
+    const obj = top.clone(true); obj.position.set(0, 0, 0); obj.quaternion.identity(); obj.scale.setScalar(1);
+    obj.traverse((o) => {
+      const m = o as THREE.Mesh; if (!m.isMesh) return;
+      const src = m.material as THREE.MeshStandardMaterial;
+      if (!src.map) { // a glowing part: its emissive colour, unlit
+        const glow = src.emissive && src.emissive.getHex() !== 0 ? src.emissive.clone().multiplyScalar(Math.max(1, src.emissiveIntensity ?? 1) * 2.5) : src.color.clone();
+        let mat = glows.get(glow.getHexString()); if (!mat) { mat = new THREE.MeshBasicMaterial({ color: glow, toneMapped: false }); glows.set(glow.getHexString(), mat); }
+        m.material = mat; m.castShadow = false; return;
+      }
+      if (!m.geometry.attributes.color) { const n = m.geometry.attributes.position.count; m.geometry.setAttribute("color", new THREE.BufferAttribute(new Float32Array(n * 3).fill(1), 3)); }
+      m.userData.palette = true; m.castShadow = true; m.receiveShadow = true;
+    });
+    const ud = top.userData as { muzzle?: unknown; emit?: unknown };
+    out.set(top.name, { obj, tip: v3(ud.muzzle), emit: v3(ud.emit) });
+  }
+  return out;
 }
 /** Load the Kingpin's GLB (once). Await this at boot, before the first createKingpin(). */
 export function preloadKingpin(): Promise<void> { return (loading ??= load()); }
@@ -190,9 +237,40 @@ export function createKingpin(): GunView {
   const muzzle = new THREE.Object3D(); muzzle.name = "muzzle"; muzzle.position.copy(A.muzzle); body.add(muzzle);
   const eject = new THREE.Object3D(); eject.name = "eject"; eject.position.copy(A.eject); body.add(eject);
   const target: THREE.Object3D[] = [body, bones[1], bones[2], bones[3], mag];      // PARTS order
+  // attachment mounts: one group per socket the GLB has, under the part it rides (extras.rides: the sight rides the
+  // slide as it cycles, the mag extension rides the magazine through the reload; muzzle and rail ride the body)
+  const mounts: Partial<Record<AttSlot, THREE.Group>> = {};
+  const restOf = (p: number) => new THREE.Matrix4().compose(new THREE.Vector3().fromArray(A.rest, p * S7), new THREE.Quaternion().fromArray(A.rest, p * S7 + 3), new THREE.Vector3(1, 1, 1));
+  for (const [slot, k] of Object.entries(A.sockets) as [AttSlot, { m: THREE.Matrix4; rides: string }][]) {
+    const g = new THREE.Group(); g.name = SOCKET_OF[slot];
+    const p = k.rides === "slide" ? SLIDE : k.rides === "mag" ? PARTS.indexOf("mag") : -1, part = p >= 0 ? target[p] : body;
+    (p >= 0 ? restOf(p).invert().multiply(k.m) : k.m).decompose(g.position, g.quaternion, g.scale); part.add(g); mounts[slot] = g;
+  }
+  const shown: Partial<Record<AttSlot, string | null>> = {};
+  const model = (id: string | null) => (id ? A.atts.get(id) ?? (MODEL_LIKE[id] ? A.atts.get(MODEL_LIKE[id]) : undefined) : undefined);
+  const laser = new THREE.Object3D(); laser.name = "laserEmit";
   const view: GunView = {
-    root, muzzle, eject,
+    root, muzzle, eject, laser: null,
     setVariant(v) { mag.geometry = v.extMag ? A.magExt : A.mag; },
+    setAttachments(fitted: GunAtts) {
+      for (const slot of Object.keys(fitted) as AttSlot[]) {
+        const id = fitted[slot], g = mounts[slot]; if (shown[slot] === id) continue; shown[slot] = id;
+        const a = model(id);
+        if (g) {
+          g.clear();
+          if (a) {
+            const o = a.obj.clone(true);
+            // palette parts take the gun's material; the mag extension takes the magazine's, so it dissolves with it
+            o.traverse((q) => { const m = q as THREE.Mesh; if (m.isMesh && m.userData.palette) m.material = slot === "mag" ? magMat : bodyMat!; });
+            g.add(o);
+            if (a.emit && slot === "laser") { laser.position.copy(a.emit); g.add(laser); }
+          }
+        }
+        if (slot === "laser") view.laser = g && a?.emit ? laser : null;
+        // a muzzle device moves the flash and tracer origin to its own tip
+        if (slot === "muzzle") { if (a?.tip && g) muzzle.position.copy(a.tip).applyQuaternion(g.quaternion).add(g.position); else muzzle.position.copy(A.muzzle); }
+      }
+    },
     pose(s) {
       const f = s.fireT, r = s.reloadT, firing = f >= 0 && f < 1, reloading = r >= 0 && r <= 1, rest = A.rest;
       for (let p = 0; p < NP; p++) {

@@ -36,8 +36,9 @@ export const PLAYER = {
  *  Crit damage = damage x critMult x (1 + gear critDmg bonus), where the bonus is gearStats().critDmg - 1.5 (the
  *  eyepatch's +0.15 makes the Kingpin crit 1.3 x 1.15 = 1.5). Duckov's form is (gun + ammo) x (1 + holder). */
 export const KINGPIN = {
+  // extMag: what the extended mag attachment (att_mag_ext, +4 rounds) makes it
   id: "kingpin45", name: "Kingpin .45", mag: 8, extMag: 12, interval: 0.22, damage: 12, reload: 1.2, range: 16, pen: 1,
-  magnet: 7 * Math.PI / 180, magnetAds: 10 * Math.PI / 180, noise: 14, kick: 0.09, startAmmo: 24,
+  magnet: 7 * Math.PI / 180, magnetAds: 10 * Math.PI / 180, noise: 14, bulletSpeed: 48, kick: 0.09, startAmmo: 24,
   critMult: 1.3, reloadMode: "mag" as ReloadMode, perRound: 0.4, autoReload: false,
 };
 /** GUN HANDLING (combat/handling.ts; POLISH_FINDINGS 16 "Gun handling: scatter, recoil, ADS"). Duckov's mechanism with
@@ -61,9 +62,11 @@ export const KINGPIN_HANDLING = {
   walk: 0.6, sprint: 1.5, adsMove: 0.5, moveRate: 8,
   vMin: 0.85, vMax: 1.15, hMin: -0.4, hMax: 0.6, scaleV: 34, scaleH: 30, recoilTime: 0.06, recoverDelay: 0.1, recoverSpeed: 550, recoilMul: 1,
   /** ADS: time to full aim, walk multiplier while the button is held, camera lead factor (Duckov ADSAimDistanceFactor:
-   *  1.0 on every pistol, 1.1-3.68 on rifles; ours pushes 1.35 so the pistol aim visibly leans in) and the FOV scale at
-   *  full aim (Duckov 22.8/23.5 = 0.97; ours 0.93 because our 40 u telephoto barely shows 3%) */
-  adsTime: 0.3, adsWalk: 0.6, adsDist: 1.35, adsFov: 0.93,
+   *  1.0 on every pistol, 1.1-3.68 on rifles) and the FOV scale at full aim (Duckov 22.8/23.5 = 0.97; ours 0.93 because
+   *  our 40 u telephoto barely shows 3%). G1.5 row 36: sights carry the zoom (Duckov adds +0.16 holo .. +2.4 8x onto the
+   *  gun's factor), so the bare Kingpin is back near Duckov's pistol: 1.1, a visible lean and no more. The fitted
+   *  sight's numbers are in loot/attachments.ts and the live result in combat/gunstats.ts GUN. */
+  adsTime: 0.3, adsWalk: 0.6, adsDist: 1.1, adsFov: 0.93,
 };
 export type ReloadMode = "mag" | "round";
 /** a gun as the reload loop sees it (the Kingpin today; a scatter gun later uses mode "round") */

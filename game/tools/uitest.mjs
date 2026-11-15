@@ -7,6 +7,8 @@
 //   3 use a heal         Tab, double-click the bandage; also quick key 3 with the screen closed
 //   4 what does it do    Tab, click the compass: the leather tag names it and says what it is for; hover a fact
 //                        label for its tooltip
+//   5 fit a sight       open a weapon crate, drag the scope onto the Kingpin's sight slot, read its stat lines on
+//                        the tag, double-click the slot to take it off, double-click it in the pack to fit it again
 // Also: Ctrl-drag splits an ammo stack, R sorts, Esc and E close, nothing overlaps at 1280x720.
 // node tools/uitest.mjs [--headed]   BASE=http://127.0.0.1:5349 (never 5318 or 5340). Exit code 1 on any failure.
 import { chromium } from "playwright-core";
@@ -105,6 +107,26 @@ async function run(w, h) {
     if (name !== "Brass Compass" || !blurb.length || !/Worth/.test(worth)) return `tag shows "${name}"`;
     const w = await center('.lv-tagwrap .facts [data-tip]'); await p.mouse.move(w.x, w.y); await p.waitForTimeout(200);
     return (await p.locator(".tip3.on").count()) === 1 || "no tooltip on the tag";
+  });
+
+  // ---- 5 fit a sight from a weapon crate (G1.5 row 36)
+  await task("5 fit a sight (weapon crate, drag)", async () => {
+    await G(() => { const g = window.__G; g.pack.length = 0; for (const k of Object.keys(g.save.gun)) window.__gunStats.unfit(k); window.__ui.hud.pack(); window.__ui.crate("weapon", ["att_sight_2x"]); });
+    if (!(await until(() => window.__ui.lootDebug().them.includes("att_sight_2x"), null, 9000))) return "the scope was never revealed";
+    const z0 = await G(() => window.__gunStats.GUN.adsDist);
+    await drag('.lv-them button[aria-label="Lookout 2x Scope"]', '.lv-me [data-src="att:sight"]');
+    if (!(await until(() => window.__G.save.gun.sight === "att_sight_2x", null, 1500))) return "dragging onto the sight slot did not fit it";
+    const z1 = await G(() => window.__gunStats.GUN.adsDist);
+    const lines = await p.locator(".lv-tagwrap .does.stats").innerText();
+    if (!/Aim zoom \+72%/.test(lines)) return `tag lines: ${lines.replace(/\n/g, " | ")}`;
+    if (!(await p.locator('.lv-me [data-src="att:sight"] img, .lv-me [data-src="att:sight"] .emo').count())) return "slot not redrawn";
+    await dbl('.lv-me [data-src="att:sight"]');
+    if (!(await until(() => window.__G.save.gun.sight === null && window.__G.pack.includes("att_sight_2x"), null, 1500))) return "double-clicking the slot did not take it off";
+    await dbl(cell("me", "Lookout 2x Scope"));
+    if (!(await until(() => window.__G.save.gun.sight === "att_sight_2x" && !window.__G.pack.includes("att_sight_2x"), null, 1500))) return "double-clicking it in the pack did not fit it";
+    await drag('.lv-me [data-src="att:sight"]', '.lv-me .lv-grid');
+    if (!(await until(() => window.__G.save.gun.sight === null && window.__G.pack.includes("att_sight_2x"), null, 1500))) return "dragging it off did not remove it";
+    return `aim zoom x${z0.toFixed(2)} -> x${z1.toFixed(2)}; ${lines.replace(/\n/g, ", ")}`;
   });
 
   // ---- keys and layout

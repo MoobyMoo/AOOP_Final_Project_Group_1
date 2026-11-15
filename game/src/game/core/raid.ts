@@ -15,6 +15,8 @@ import { createRig } from "../actors/rig";
 import { createKingpin, createGunFx } from "../combat/kingpin";
 import { KINGPIN, KINGPIN_HANDLING, PLAYER } from "../combat/weapons";
 import { HS, resetHandling } from "../combat/handling";
+import { GUN, refreshGun } from "../combat/gunstats";
+import { updateLaser } from "../combat/laser";
 import { tuneObject } from "./tune";
 import { spawnEnemies, updateEnemies } from "../ai/enemies";
 import { setupCrates, updateLoot, renderLoot, sortPack, packValue, itemDef } from "../loot/raidloot";
@@ -78,7 +80,7 @@ export function startRaid(end: (r: RaidResult) => void) {
   G.pp.y = standHeight(G.pp.x, G.pp.z);
   G.vel.set(0, 0, 0); G.moveYaw = Math.PI; G.aimYaw = Math.PI;
   G.maxHp = PLAYER.hp + 25 * G.save.upgrades.heart; G.hp = G.maxHp; G.stamina = PLAYER.stamina.max; G.staminaDelay = 0; G.sprinting = false; G.painT = 0; G.useItem = null; G.iframes = 0;
-  G.magSize = G.save.upgrades.mag || G.save.fixtures.includes("extended_mag") ? KINGPIN.extMag : KINGPIN.mag; G.gun.setVariant({ extMag: G.magSize > KINGPIN.mag });
+  refreshGun(); // magazine size, the extended mag's look and the fitted attachments (combat/gunstats.ts)
   G.ammo = Math.max(KINGPIN.startAmmo, G.save.ammo); G.mag = Math.min(G.magSize, G.ammo); G.ammo -= G.mag;
   G.fireCd = 0; G.fireT = 1; G.reloadT = -1; G.meleeT = -1; G.rollT = -1; G.rollCd = 0; G.skidT = 0; G.zipping = null;
   G.pouchSlots = 2; G.pack = []; G.equipping = null; G.equipmentEvents = []; refreshEquipment();
@@ -141,15 +143,17 @@ export function renderRaid(dt: number) {
   G.gun.root.scale.setScalar(GUN_SCALE);
   G.gun.pose({ fireT: Math.min(1, G.fireT), reloadT: G.reloadT });
   updateDashFx(dt); // after the pose: the afterimages copy it
+  updateLaser(); // the laser attachment's beam and dot follow the posed gun
   G.fx.update(dt); renderBullets(); updateRangFx(dt); updateFeedback(dt); updateFx(dt); hud.update(dt); updateMinimap();
   updateHouses(dt, isUnder(G.pp.x)); updateProps(dt); renderLoot(dt); updateLightPool(dt, G.pp);
   U.uTime.value = G.time; U.uPlayer.value.copy(G.pp);
   // camera: damped follow + a lead toward the aim point (CODE_FINDINGS 8.1: aim lookahead, kept modest, rule 19). ADS
   // pushes it: lead factor and cap x the gun's ADS lead factor, FOV x its ADS scale, both by the aim amount
   // (POLISH_FINDINGS 16, Duckov GameCamera.LateUpdate / UpdateFov)
-  const C = CAMERA, push = 1 + (KINGPIN_HANDLING.adsDist - 1) * HS.ads;
+  // the lead factor and the FOV scale are the gun's with its sight fitted (combat/gunstats.ts GUN)
+  const C = CAMERA, push = 1 + (GUN.adsDist - 1) * HS.ads;
   G.stage.cam.pitch = THREE.MathUtils.degToRad(C.pitch); G.stage.cam.yaw = THREE.MathUtils.degToRad(C.yaw); G.stage.cam.dist = C.dist;
-  G.stage.setFov(C.fov, C.fovPortrait, 1 + (KINGPIN_HANDLING.adsFov - 1) * HS.ads);
+  G.stage.setFov(C.fov, C.fovPortrait, 1 + (GUN.adsFov - 1) * HS.ads);
   const lead = G.aimPoint.clone().sub(G.pp).setY(0); const L = Math.min(lead.length(), C.leadMax * push); lead.setLength(L * C.lead * push);
   { const y = focus.y; focus.lerp(G.pp.clone().add(lead), Math.min(1, dt * (G.fireCd > -0.2 ? C.followFiring : C.follow)));
     focus.y = y + (G.pp.y - y) * Math.min(1, dt * C.heightFollow); } // ground bumps reach the camera slowly: no step-by-step bob (Moo: dizzy)

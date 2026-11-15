@@ -1,7 +1,7 @@
 // Gun-handling checks (scatter, recoil, ADS, ?tune, the Esc settings plate): real mouse and keys on the built game,
 // numbers read from the page (combat/handling.ts __gun, core/raid.ts __cam, core/tune.ts __tune), crops saved.
 //   node tools/gunfeel.mjs <outdir> [scenario,...]     BASE=http://127.0.0.1:5356 (never 5318 or 5340)
-// scenarios: burst rest kick ads tune menu
+// scenarios: burst rest kick ads tune menu sights comp supp laser   (the last four: G1.5 row 36 attachments)
 import { chromium } from "playwright-core";
 import fs from "node:fs";
 const [OUT = "/tmp/bv-gun-shots", only = ""] = process.argv.slice(2);
@@ -196,6 +196,103 @@ if (want("menu")) { // the Esc settings plate: open/pause/volume/controls/resume
   out.bunker = { firstEsc: k1, secondEsc: k2, stationPanelEsc: k3 };
   await p.evaluate(() => { localStorage.removeItem("bv_settings"); localStorage.setItem("bv_volume", "{}"); });
   log.menu = { ...out, errs: p.errs };
+  await p.ctx.close();
+}
+// ---------------------------------------------------------------- attachments (G1.5 row 36)
+/** fit exactly this set on the Kingpin (setup through the capture hook; the loot-screen fitting is uitest's job) */
+const fitOnly = (p, ids) => p.evaluate((ids) => { const S = window.__gunStats, g = window.__g.G.save.gun; for (const k of Object.keys(g)) S.unfit(k); for (const id of ids) S.fit(id); return { ...S.GUN }; }, ids);
+const crossAt = (p) => p.evaluate(() => { const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(document.querySelector(".h3-cross").style.transform); return [+m[1], +m[2]]; });
+
+if (want("sights")) { // bare vs holo vs 2x: ADS camera lead, FOV, time to full aim; full-frame shots aimed
+  const p = await open("peace=1");
+  const [hx, hy] = await hero(p); const ax = hx + 330, ay = hy - 140;
+  const read = () => p.evaluate(() => { const G = window.__g.G, c = window.__cam; return { lead: +c.lead.length().toFixed(3), aimDist: +Math.hypot(G.aimPoint.x - G.pp.x, G.aimPoint.z - G.pp.z).toFixed(2), fov: +G.stage.camera.fov.toFixed(3), ads: +window.__gun.HS.ads.toFixed(3) }; });
+  const out = {};
+  for (const [name, ids] of [["bare", []], ["holo", ["att_sight_holo"]], ["2x", ["att_sight_2x"]]]) {
+    const gun = await fitOnly(p, ids);
+    await p.mouse.move(ax + 1, ay); await p.mouse.move(ax, ay); await p.waitForTimeout(1200);
+    const hip = await read();
+    // time to full aim, from a per-frame record of the aim amount and the game clock
+    await p.evaluate(() => { window.__ar = []; window.__arOn = true; const f = () => { window.__ar.push([window.__g.G.raidT, window.__gun.HS.ads]); if (window.__arOn) requestAnimationFrame(f); }; requestAnimationFrame(f); });
+    await p.mouse.down({ button: "right" }); await p.waitForTimeout(1800);
+    const ar = await p.evaluate(() => { window.__arOn = false; return window.__ar; });
+    const t0 = (ar.find((q) => q[1] > 0) ?? ar[0])[0], full = ar.find((q) => q[1] >= 0.999);
+    const aimed = await read(); await p.screenshot({ path: `${OUT}/sight_${name}_aimed.png` });
+    await p.mouse.up({ button: "right" }); await p.waitForTimeout(900);
+    out[name] = { adsDistFactor: r2(gun.adsDist), adsFovScale: +gun.adsFov.toFixed(3), adsTimeStat: r2(gun.adsTime), measuredFullAimS: full ? r2(full[0] - t0 + 1 / 60) : null,
+      hipLeadU: hip.lead, aimedLeadU: aimed.lead, leadPushU: r2(aimed.lead - hip.lead), hipFov: hip.fov, aimedFov: aimed.fov, fovScaleMeasured: +(aimed.fov / hip.fov).toFixed(3), aimDistU: aimed.aimDist };
+  }
+  await fitOnly(p, []);
+  log.sights = { ...out, errs: p.errs };
+  await p.ctx.close();
+}
+
+if (want("comp")) { // compensator: recoil kick px over 6 single shots, bare vs fitted (same raid seed, so the same random picks)
+  const out = {};
+  for (const [name, ids] of [["bare", []], ["comp", ["att_muzzle_comp"]]]) {
+    const p = await open("peace=1");
+    const gun = await fitOnly(p, ids);
+    const [hx, hy] = await hero(p); const ax = hx + 260, ay = hy - 80;
+    await p.mouse.move(ax, ay); await p.waitForTimeout(800);
+    await record(p); await p.waitForTimeout(200);
+    for (let s = 0; s < 6; s++) { await p.mouse.down(); await p.waitForTimeout(30); await p.mouse.up(); if (s === 0) { await p.waitForTimeout(40); await crop(p, `comp_${name}_kick`, ax, ay - 20, 200, 200); } await p.waitForTimeout(900); }
+    const rec = await stop(p), peaks = [], starts = [];
+    for (let i = 1; i < rec.length; i++) if (rec[i].shots > rec[i - 1].shots) starts.push(i);
+    starts.forEach((i, k) => { const end = starts[k + 1] ?? rec.length; const w = rec.slice(i, end).filter((q) => q.t - rec[i].t < 0.3); peaks.push(r2(Math.max(...w.map((q) => Math.hypot(q.rx, q.ry))))); });
+    out[name] = { scaleV: r2(gun.scaleV), scaleH: r2(gun.scaleH), shots: peaks.length, peakKickPx: peaks, meanPeakPx: r2(peaks.reduce((a, b) => a + b, 0) / Math.max(1, peaks.length)), errs: p.errs };
+    await p.ctx.close();
+  }
+  out.reduction = out.bare.meanPeakPx ? r2(1 - out.comp.meanPeakPx / out.bare.meanPeakPx) : null;
+  log.comp = out;
+}
+
+if (want("supp")) { // suppressor: AI hearing radius, a bandit 12 u behind you, the noise ring, and the shot's loudness
+  const out = {};
+  for (const [name, ids] of [["bare", []], ["supp", ["att_muzzle_supp"]]]) {
+    const p = await open("");
+    const gun = await fitOnly(p, ids);
+    const [hx, hy] = await hero(p); await p.mouse.move(hx + 260, hy - 60); await p.waitForTimeout(500);
+    // a patrolling bandit 12 u behind (outside its 10 u sight), the rest parked far away
+    const setup = await p.evaluate(() => {
+      const G = window.__g.G, aim = G.aimYaw, b = G.enemies.find((e) => e.kind === "bandit" && !e.down);
+      for (const e of G.enemies) if (e !== b) { e.p.set(e.p.x + 400, e.p.y, e.p.z + 400); }
+      b.p.set(G.pp.x - Math.sin(aim) * 12, G.pp.y, G.pp.z - Math.cos(aim) * 12); b.state = "patrol"; b.lastSeen = null; b.vel.set(0, 0, 0);
+      window.__rings = 0; const hud = window.__ui?.hud; if (hud && !hud.__wrapped) { const f = hud.noiseRing; hud.noiseRing = (...a) => { window.__rings++; return f.apply(hud, a); }; hud.__wrapped = true; }
+      return { banditDistU: +Math.hypot(b.p.x - G.pp.x, b.p.z - G.pp.z).toFixed(2), state: b.state };
+    });
+    // the loudness of one shot, read off the sfx bus (peak and RMS in dBFS, and the spectral centroid in Hz)
+    await p.mouse.click(hx + 260, hy - 60, { button: "right" }); await p.waitForTimeout(300); // a click unlocks audio
+    const tapOk = await p.evaluate(() => { window.__tap = window.__audio.tap(); window.__tapShot = window.__audio.tap(true); return !!window.__tap; });
+    // the whole sfx bus for loudness; the shot's crack + tail chain alone for its brightness (the brass and the slide
+    // click are not muffled, so they would skew a whole-bus centroid)
+    await p.evaluate(() => { const a = window.__tap, sh = window.__tapShot, ctx = window.__audio.ctx(); window.__lv = { peak: 0, sumSq: 0, n: 0, cent: [], shotSumSq: 0, shotN: 0 }; window.__lvOn = true; const buf = new Float32Array(a.fftSize), sb = new Float32Array(sh.fftSize), fb = new Float32Array(sh.frequencyBinCount);
+      const f = () => { a.getFloatTimeDomainData(buf); let pk = 0, ss = 0; for (const v of buf) { pk = Math.max(pk, Math.abs(v)); ss += v * v; } const L = window.__lv; L.peak = Math.max(L.peak, pk); L.sumSq += ss; L.n += buf.length;
+        sh.getFloatTimeDomainData(sb); let spk = 0, sss = 0; for (const v of sb) { spk = Math.max(spk, Math.abs(v)); sss += v * v; } L.shotSumSq += sss; L.shotN += sb.length;
+        if (spk > 0.005) { sh.getFloatFrequencyData(fb); let num = 0, den = 0; for (let i = 0; i < fb.length; i++) { const m = Math.pow(10, fb[i] / 20); num += m * i * ctx.sampleRate / sh.fftSize; den += m; } L.cent.push(num / Math.max(1e-9, den)); }
+        if (window.__lvOn) requestAnimationFrame(f); }; requestAnimationFrame(f); });
+    await p.mouse.down(); await p.waitForTimeout(30); await p.mouse.up(); await p.waitForTimeout(500);
+    const lv = await p.evaluate(() => { window.__lvOn = false; const L = window.__lv; return { busPeakDb: +(20 * Math.log10(L.peak + 1e-9)).toFixed(1), busRmsDb: +(10 * Math.log10(L.sumSq / Math.max(1, L.n) + 1e-12)).toFixed(1), shotLayerRmsDb: +(10 * Math.log10(L.shotSumSq / Math.max(1, L.shotN) + 1e-12)).toFixed(1), shotCentroidHz: L.cent.length ? Math.round(L.cent.reduce((a, b) => a + b, 0) / L.cent.length) : null }; });
+    const after = await p.evaluate(() => { const G = window.__g.G, b = G.enemies.find((e) => e.kind === "bandit" && !e.down && Math.hypot(e.p.x - G.pp.x, e.p.z - G.pp.z) < 30); return { state: b?.state, rings: window.__rings, shots: window.__gun.HS.shots }; });
+    out[name] = { noiseRadiusU: r2(gun.noise), suppressedFlag: gun.suppressed, shotLevel: await p.evaluate(() => (window.__audio.tone.suppressed ? window.__audio.tone.level : 1)), banditAt: setup.banditDistU, banditBefore: setup.state, banditAfter: after.state, noiseRingsDrawn: after.rings, tap: tapOk, loudness: lv, errs: p.errs };
+    await p.ctx.close();
+  }
+  if (out.bare.loudness && out.supp.loudness) { out.busDropDb = r2(out.bare.loudness.busRmsDb - out.supp.loudness.busRmsDb); out.shotLayerDropDb = r2(out.bare.loudness.shotLayerRmsDb - out.supp.loudness.shotLayerRmsDb); }
+  log.supp = out;
+}
+
+if (want("laser")) { // laser: the resting hip cone, standing and walking, bare vs fitted
+  const p = await open("peace=1");
+  const [hx, hy] = await hero(p); await p.mouse.move(hx + 240, hy - 30); await p.waitForTimeout(600);
+  const read = () => p.evaluate(() => { const g = window.__gun; return { sc: +g.currentScatter().toFixed(2), gapPx: parseFloat(document.querySelector(".h3-cross").style.getPropertyValue("--spread")) }; });
+  const out = {};
+  for (const [name, ids] of [["bare", []], ["laser", ["att_laser"]]]) {
+    const gun = await fitOnly(p, ids); await p.waitForTimeout(1500);
+    const stand = await read(); const c = await crossAt(p); await crop(p, `laser_${name}_cross`, c[0], c[1], 200, 200);
+    await p.keyboard.down("d"); await p.waitForTimeout(800); const walk = await read(); await p.keyboard.up("d"); await p.waitForTimeout(1200);
+    out[name] = { restHipDeg: r2(gun.rest), maxHipDeg: r2(gun.max), standingDeg: stand.sc, standingGapPx: stand.gapPx, walkingDeg: walk.sc };
+  }
+  await fitOnly(p, []);
+  log.laser = { ...out, errs: p.errs };
   await p.ctx.close();
 }
 fs.writeFileSync(`${OUT}/gunfeel.json`, JSON.stringify(log, null, 1));

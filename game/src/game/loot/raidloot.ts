@@ -104,7 +104,7 @@ export function sessionOf(c: Crate): SearchSession | null {
     let items: string[];
     if (c.fixed === "satchel") items = [...(c.items ?? [])];
     else if (c.kind === "container" && c.type) items = rollContainer(c.type, G.rng, ctx);
-    else { ctx.fixed = c.fixed as LootContext["fixed"]; ctx.ownsExtendedMag = G.save.upgrades.mag > 0 || G.save.fixtures.includes("extended_mag"); ctx.containerType = c.type; items = rollCrate(c.tier, ctx, G.rng); ctx.fixed = undefined; ctx.containerType = undefined; }
+    else { ctx.fixed = c.fixed as LootContext["fixed"]; ctx.ownsExtendedMag = G.save.gun.mag === "att_mag_ext" || G.save.locker.includes("att_mag_ext") || G.pack.includes("att_mag_ext"); ctx.containerType = c.type; items = rollCrate(c.tier, ctx, G.rng); ctx.fixed = undefined; ctx.containerType = undefined; }
     c.items = items;
     c.session = createSearch(items, { openSeconds: c.kind === "container" && c.type ? CONTAINERS[c.type].openSeconds : OPEN[c.tier], searchFactor: factor });
   }
@@ -260,7 +260,7 @@ export function spawnPickup(id: string, from: THREE.Vector3, k = 0, n = 1, n2?: 
 export function fits(item: string) {
   const d = itemDef(item);
   if (equipDef(item)?.bound) return false;
-  if (d.kind === "ammo" || d.kind === "attachment") return true;
+  if (d.kind === "ammo") return true;
   return G.pack.length < G.packSlots;
 }
 /** put an item into the pack / the gun / the ammo pouch. Returns false if it did not fit (the caller keeps it) */
@@ -268,11 +268,12 @@ export function giveItem(item: string, n?: number): boolean {
   const d = itemDef(item);
   if (equipDef(item)?.bound) return false;
   if (d.kind === "ammo") { const k = n ?? d.stack ?? 8; G.ammo += k; sfx("pick"); floatText(`+${k} rounds`, G.pp.clone().setY(2.4), "#ffcf6a", 20); hud.ammo(); return true; }
-  if (d.kind === "attachment") { if (!G.save.fixtures.includes("extended_mag")) G.save.fixtures.push("extended_mag"); G.magSize = KINGPIN.extMag; G.gun.setVariant({ extMag: true }); sfx("rare"); hud.banner("Kingpin Extended Mag: 12 rounds a mag!"); hud.ammo(); return true; }
+  // gun attachments pack like loot; Duckov never fits a part on pickup (Tab, then drag it onto the Kingpin)
   if (G.pack.length >= G.packSlots) return false;
   if (isEquip(item)) { const result = collectEquipment(item); if (result !== "full") { sortPack(); sfx("pick"); hud.pack(); return true; } }
   G.pack.push(item); sortPack(); sfx("pick"); hud.pack();
   floatText(`${d.icon} ${d.name}`, G.pp.clone().setY(2.4), RAR_COLOR[d.rarity] === "#f3ead6" ? "#fff8ec" : RAR_COLOR[d.rarity], 20);
+  if (d.kind === "attachment") hud.toast(`${d.name}: press Tab and drag it onto your Kingpin to fit it`);
   if (item === "vine_key") hud.toast("The Vine Key! Get it home: the key opens the vault door from your next raid");
   return true;
 }

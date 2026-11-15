@@ -14,6 +14,7 @@ import { recordBotCombat } from "../core/bot";
 import { gearStats } from "../loot/equipment";
 import type { KingpinFx } from "./kingpin";
 import { onShot } from "./handling";
+import { GUN } from "./gunstats";
 import { aimHead, headCenter } from "./headshot";
 import { damageNumber, hitMarker, clearFeedback } from "./feedback";
 import { surfaceAt } from "./surface";
@@ -27,10 +28,11 @@ const tmp = new THREE.Vector3(), to = new THREE.Vector3(), hitAt = new THREE.Vec
 // G1.5 row 03: the streak is what a 0.04 s trail behind the round would cover (Duckov's ordinary trail retention, its
 // width 0.19; ours 0.14), and when the round stops the tail keeps running into the stop point for those 0.04 s
 // instead of the whole streak blinking out. Bullets are pooled (MAX_BULLETS objects, reused).
-const BULLET_SPEED = 48, TRAIL_T = 0.04, BULLET_LEN = BULLET_SPEED * TRAIL_T;
-type Bullet = { p: THREE.Vector3; d: THREE.Vector3; left: number; flown: number; alive: boolean; dieT: number; damage: number; crit: boolean; head: Enemy | null };
+// Speed is per round (KINGPIN.bulletSpeed 48 u/s, a suppressor takes 10% off: combat/gunstats.ts GUN.bulletSpeed).
+const TRAIL_T = 0.04;
+type Bullet = { p: THREE.Vector3; d: THREE.Vector3; left: number; flown: number; alive: boolean; dieT: number; damage: number; crit: boolean; head: Enemy | null; speed: number };
 const MAX_BULLETS = 48;
-const pool: Bullet[] = Array.from({ length: MAX_BULLETS }, () => ({ p: new THREE.Vector3(), d: new THREE.Vector3(), left: 0, flown: 0, alive: false, dieT: -1, damage: 0, crit: false, head: null }));
+const pool: Bullet[] = Array.from({ length: MAX_BULLETS }, () => ({ p: new THREE.Vector3(), d: new THREE.Vector3(), left: 0, flown: 0, alive: false, dieT: -1, damage: 0, crit: false, head: null, speed: 48 }));
 let bulletMesh: THREE.InstancedMesh | null = null;
 const bm = new THREE.Matrix4(), bq = new THREE.Quaternion(), bs = new THREE.Vector3(), FWD = new THREE.Vector3(0, 0, 1);
 function ensureBulletMesh() {
@@ -44,7 +46,7 @@ function ensureBulletMesh() {
 }
 const fxk = () => G.fx as KingpinFx;
 /** crit damage multiplier for the Kingpin with the worn gear (weapons.ts CRITS) */
-export function critMultiplier() { return KINGPIN.critMult * (1 + gearStats(G.gear).critDmg - GEAR_CRIT_BASE); }
+export function critMultiplier() { return GUN.critMult * (1 + gearStats(G.gear).critDmg - GEAR_CRIT_BASE); }
 export function shoot() {
   G.log.shots++;
   if (G.bot) recordBotCombat("shot", "pistol", G.raidT);
@@ -52,7 +54,7 @@ export function shoot() {
   const stats = gearStats(G.gear);
   let yaw = G.aimYaw, target: Enemy | null = null, bestA = (G.ads ? KINGPIN.magnetAds : KINGPIN.magnet) + stats.aim * Math.PI / 180;
   for (const e of G.enemies) {
-    if (e.down || !e.active) continue; const d = flat(G.pp, e.p); if (d > KINGPIN.range) continue;
+    if (e.down || !e.active) continue; const d = flat(G.pp, e.p); if (d > GUN.range) continue;
     const a = Math.abs(angDiff(Math.atan2(e.p.x - G.pp.x, e.p.z - G.pp.z), G.aimYaw)) - Math.atan2(e.rig.bounds.radius, d);
     if (a < bestA) { bestA = a; target = e; }
   }
@@ -66,17 +68,17 @@ export function shoot() {
   // crit at aim time (headshot.ts): the cursor on a head makes this round critical; body shots crit only via gear perks
   const head = G.intent.aimNdc ? aimHead.enemy : null, critical = !!head || G.rng() < stats.crit;
   const b = pool.find((q) => !q.alive && q.dieT < 0) ?? pool.reduce((x, y) => (y.flown > x.flown ? y : x)); // full: recycle the oldest
-  b.p.copy(to); b.d.set(Math.sin(yaw), 0, Math.cos(yaw)); b.left = KINGPIN.range; b.flown = 0; b.alive = true; b.dieT = -1;
+  b.p.copy(to); b.d.set(Math.sin(yaw), 0, Math.cos(yaw)); b.left = GUN.range; b.speed = GUN.bulletSpeed; b.flown = 0; b.alive = true; b.dieT = -1;
   b.crit = critical; b.head = head; b.damage = Math.round(KINGPIN.damage * (critical ? critMultiplier() : 1));
   sfx("shot"); sfx("shell");
   G.stage.kick.add(tmp.set(-b.d.x, 0, -b.d.z).multiplyScalar(FEEL.shotKick));
-  makeNoise(G.pp, KINGPIN.noise, "shot");
+  makeNoise(G.pp, GUN.noise, "shot"); // a suppressor shrinks this (combat/gunstats.ts)
 }
 /** advance bullets one sim step; hits resolve on contact */
 export function updateBullets(dt: number) {
   for (const b of pool) {
     if (!b.alive) { if (b.dieT >= 0) { b.dieT += dt; if (b.dieT > TRAIL_T) b.dieT = -1; } continue; }
-    const step = Math.min(b.left, BULLET_SPEED * dt);
+    const step = Math.min(b.left, b.speed * dt);
     const wallD = rayShot(b.p.x, b.p.z, b.d.x, b.d.z, step + 0.01);
     let hit: Enemy | null = null, hitD = Math.min(step, wallD);
     for (const e of G.enemies) {
@@ -107,7 +109,7 @@ export function renderBullets() {
   for (const b of pool) {
     if (!b.alive && b.dieT < 0) continue;
     if (n >= MAX_BULLETS) break; // capacity, not m.count (count is how many we drew last frame)
-    const trail = Math.min(BULLET_LEN, b.flown + 0.2) - (b.alive ? 0 : BULLET_SPEED * b.dieT);
+    const trail = Math.min(b.speed * TRAIL_T, b.flown + 0.2) - (b.alive ? 0 : b.speed * b.dieT);
     if (trail <= 0.02) continue;
     bq.setFromUnitVectors(FWD, b.d); bs.set(1, 1, trail); bm.compose(b.p, bq, bs); m.setMatrixAt(n++, bm);
   }

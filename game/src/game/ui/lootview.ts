@@ -27,7 +27,9 @@ import { carryLimit, condition, gearSummary, SLOT_NAME } from "./equipui";
 import { iconHtml } from "./itemicon";
 import { iconUrl } from "./icons";
 import { itemCopy } from "./itemcopy";
-import type { WearSlot } from "../contracts";
+import type { AttSlot, WearSlot } from "../contracts";
+import { ATT_SLOTS, SLOT_LABEL, attachmentDef, isAttachment, statLines } from "../loot/attachments";
+import { GUN, fit, unfit } from "../combat/gunstats";
 
 export type LootTarget = {
   /** header title: "Ammo tin", "Peel Gang bandit" */
@@ -48,9 +50,11 @@ export type LootTarget = {
 /** set by hud.ts: refresh the HUD after a transfer */
 export const lootHooks = { changed: () => {} };
 
-type Src = { z: "pack"; i: number } | { z: "slot"; s: WearSlot } | { z: "fixed"; s: "gun" | "case" } | { z: "them"; i: number };
+type Src = { z: "pack"; i: number } | { z: "slot"; s: WearSlot } | { z: "fixed"; s: "gun" | "case" } | { z: "them"; i: number } | { z: "att"; s: AttSlot };
 type Entry = { item: string; revealed: boolean; idx: number; slot?: SearchSlot };
 const EQ_ORDER: (WearSlot | "gun" | "case")[] = ["gun", "case", "head", "body", "face", "ears", "back"];
+/** gun attachment slots (G1.5 row 36): what each is for, shown on an empty slot */
+const ATT_TIP: Record<AttSlot, string> = { sight: "Sights and scopes: aim zoom when you aim (right mouse).", muzzle: "Compensators cut recoil; a suppressor keeps your shots quiet.", mag: "Magazines: more rounds before you reload.", laser: "Lasers tighten your shots from the hip." };
 const EQ_TIP: Record<WearSlot, string> = { head: "Hats and helmets. Head armor stops critical hits.", face: "Glasses and masks.", body: "Vests and jackets. Body armor cuts damage.", back: "Bags. More pack slots and carry weight.", ears: "Headphones. Hear footsteps through walls." };
 const BRK = `<i class="brk tl"></i><i class="brk tr"></i><i class="brk bl"></i><i class="brk br"></i>`;
 const counts = new WeakMap<SearchSlot, number>();
@@ -79,6 +83,7 @@ function itemAt(src: Src | null): string | null {
   if (src.z === "pack") return (home() ? undefined : G.pack[src.i]) ?? null;
   if (src.z === "slot") return gear()[src.s] ?? null;
   if (src.z === "fixed") return src.s === "gun" ? "kingpin" : "briefcase";
+  if (src.z === "att") return G.save.gun[src.s];
   const e = entries()[src.i]; return e && e.revealed ? e.item : null;
 }
 const same = (a: Src | null, b: Src | null) => !!a && !!b && a.z === b.z && ("i" in a ? a.i === (b as { i: number }).i : (a as { s: string }).s === (b as { s: string }).s);
@@ -102,7 +107,8 @@ const packFull = () => G.pack.length >= G.packSlots;
 function takeFrom(i: number, opts: { half?: boolean; wear?: boolean; quiet?: boolean } = {}): boolean {
   const e = entries()[i]; if (!e || !target) return false;
   if (!e.revealed) { if (!opts.quiet) say("Still searching that one", true); return false; }
-  if (home()) { // the locker: taking a piece means wearing it
+  if (home()) { // the locker: taking a piece means wearing it (or fitting it)
+    if (isAttachment(e.item)) return fitFrom({ z: "them", i });
     if (!equipFromLocker(e.idx)) { say("That can't be worn", true); return false; }
     G.rig?.setGear?.(G.save.gear); save(G.save); sfx("ui"); say(`Wearing the ${itemDef(e.item).name}`); sel = null; changed(); return true;
   }
@@ -112,10 +118,7 @@ function takeFrom(i: number, opts: { half?: boolean; wear?: boolean; quiet?: boo
     G.ammo += k; if (e.slot && k < n) counts.set(e.slot, n - k); else removeEntry(e);
     sfx("pick"); say(`+${k} rounds for the Kingpin`); changed(); return true;
   }
-  if (d.kind === "attachment") {
-    removeEntry(e); if (!G.save.fixtures.includes("extended_mag")) G.save.fixtures.push("extended_mag");
-    G.magSize = KINGPIN.extMag; G.gun?.setVariant?.({ extMag: true }); sfx("rare"); say("Extended Mag fitted: 12 rounds a mag"); changed(); return true;
-  }
+  if (d.kind === "attachment" && opts.wear) return fitFrom({ z: "them", i }); // "Take and fit"; a plain take packs it (Duckov never fits from a container)
   if (packFull()) { if (!opts.quiet) say("Your pack is full. Put something back or drop it first.", true); return false; }
   if (isEquip(e.item)) {
     if (equipDef(e.item)?.bound) { say("That stays with its owner", true); return false; }
@@ -128,7 +131,7 @@ function takeFrom(i: number, opts: { half?: boolean; wear?: boolean; quiet?: boo
 function takeAllSearched() {
   let n = 0;
   for (let guard = 0; guard < 64; guard++) {
-    const list = entries(), i = list.findIndex((e) => e.revealed && (itemDef(e.item).kind === "ammo" || itemDef(e.item).kind === "attachment" || !packFull()));
+    const list = entries(), i = list.findIndex((e) => e.revealed && (itemDef(e.item).kind === "ammo" || !packFull()));
     if (i < 0) break; if (!takeFrom(i, { quiet: true })) break; n++;
   }
   const left = entries().filter((e) => e.revealed).length;
@@ -163,6 +166,31 @@ function takeOff(slot: WearSlot): boolean {
   if (home()) { G.rig?.setGear?.(G.save.gear); save(G.save); say(`Put the ${itemDef(inst).name} in the locker`); } else say(`Taking off the ${itemDef(inst).name}…`);
   sfx("ui"); sel = null; changed(); return true;
 }
+// ---- gun attachments: fit from the pack, a container or the locker; take off into the pack, a container or the locker
+const attName = (id: string) => attachmentDef(id)?.name ?? itemDef(id).name;
+function fitFrom(src: Src): boolean {
+  const id = itemAt(src), a = attachmentDef(id); if (!id || !a) { say("That doesn't go on the Kingpin", true); return false; }
+  if (src.z === "them") {
+    const e = entries()[src.i]; if (!e || !e.revealed) { say("Still searching that one", true); return false; }
+    removeEntry(e); const r = fit(id);
+    if (r.ok && r.old) { if (home()) G.save.locker.push(r.old); else if (!packFull()) G.pack.push(r.old); else putBack(r.old); }
+  } else if (src.z === "pack") {
+    if (G.equipping?.inst === id) return false;
+    G.pack.splice(src.i, 1); const r = fit(id);
+    if (r.ok && r.old) G.pack.splice(src.i, 0, r.old); // swap in place
+  } else return false;
+  if (home()) save(G.save);
+  sfx("rare", 0.6); say(`${a.name} fitted. ${statLines(id).map((l) => l.text).join(", ")}`); sel = { z: "att", s: a.slot }; changed(); return true;
+}
+/** put an item into the open container (raid) */
+function putBack(inst: string) { if (!target) return; target.items.push(inst); if (target.search) target.search.slots.push({ item: inst, revealAt: 0, revealed: true, taken: false }); }
+function unfitTo(slot: AttSlot, where: "pack" | "them"): boolean {
+  const id = G.save.gun[slot]; if (!id) return false;
+  if (home()) { unfit(slot); G.save.locker.push(id); save(G.save); say(`Put the ${attName(id)} in the locker`); }
+  else if (where === "them" && target) { unfit(slot); putBack(id); say(`Left the ${attName(id)} in the ${target.name.toLowerCase()}`); }
+  else { if (packFull()) { say("No room in your pack", true); return false; } unfit(slot); G.pack.push(id); say(`Took the ${attName(id)} off the Kingpin`); }
+  sfx("ui"); sel = null; changed(); return true;
+}
 function dropFromPack(i: number) {
   const inst = G.pack[i]; if (!inst || home()) return;
   if (G.equipping?.inst === inst) { say("You're putting that on", true); return; }
@@ -182,14 +210,18 @@ function sortMine() {
 function primary(src: Src) {
   if (src.z === "them") return void takeFrom(src.i);
   if (src.z === "slot") return void takeOff(src.s);
-  if (src.z === "fixed") return void say(src.s === "gun" ? "Your Kingpin never leaves your hand. Reload with R." : "Your briefcase. Swing it with V.");
+  if (src.z === "fixed") return void say(src.s === "gun" ? "Your Kingpin never leaves your hand. Drag sights, muzzles, mags and lasers onto it." : "Your briefcase. Swing it with V.");
+  if (src.z === "att") return void unfitTo(src.s, "pack");
   const inst = G.pack[src.i]; if (!inst) return;
+  if (isAttachment(inst)) return void fitFrom(src);
   if (target) return void putInto(src.i);
   if (isEquip(inst)) return void wearFromPack(src.i);
   if (HEALS[inst]) return void useHeal(inst);
   const cp = itemCopy(inst); say(`${cp.name}: ${cp.does[0] ?? cp.use}`);
 }
 function drop(src: Src, dst: Src | { z: "themGrid" } | { z: "packGrid" }, ctrl: boolean) {
+  if (dst.z === "att" || (dst.z === "fixed" && dst.s === "gun")) return void fitFrom(src);
+  if (src.z === "att") return void unfitTo(src.s, dst.z === "them" || dst.z === "themGrid" ? "them" : "pack");
   if (dst.z === "them" || dst.z === "themGrid") {
     if (src.z === "pack") return void putInto(src.i);
     if (src.z === "slot" && home()) return void takeOff(src.s);
@@ -213,6 +245,9 @@ function drop(src: Src, dst: Src | { z: "themGrid" } | { z: "packGrid" }, ctrl: 
 function canDrop(src: Src, k: string): boolean {
   const dst = k === "themGrid" || k === "packGrid" ? { z: k } as const : parse(k); if (!dst) return false;
   if (same(src, dst as Src)) return false;
+  if (dst.z === "att") { const a = attachmentDef(itemAt(src)); return !!a && a.slot === dst.s && src.z !== "att"; }
+  if (dst.z === "fixed") return dst.s === "gun" && !!attachmentDef(itemAt(src)) && src.z !== "att";
+  if (src.z === "att") return (dst.z === "pack" || dst.z === "packGrid") ? !home() : (dst.z === "them" || dst.z === "themGrid") && !!target;
   if (dst.z === "slot") { const d = equipDef(itemAt(src)); return !!d && d.slot === dst.s && src.z !== "slot"; }
   if (dst.z === "them" || dst.z === "themGrid") return !!target && (src.z === "pack" || (src.z === "slot" && home()));
   if (dst.z === "pack" || dst.z === "packGrid") return !home() && (src.z === "them" || src.z === "pack" || src.z === "slot");
@@ -229,12 +264,18 @@ function cellHtml(inst: string | undefined, k: string, o: { pouch?: boolean; cou
 }
 function eqHtml(s: WearSlot | "gun" | "case") {
   const k = (s === "gun" || s === "case" ? "fixed:" : "slot:") + s, isSel = sel && key(sel) === k ? " sel" : "";
-  if (s === "gun") return `<button class="e3${isSel}" style="--rar:var(--rar-common)" data-src="${k}" data-tip="Your Kingpin .45. Loaded / reserve rounds."><img src="${iconUrl("kingpin")}" alt="Kingpin" draggable="false">${home() ? "" : `<span class="q">${G.mag}/${G.ammo}</span>`}<span class="lab">Gun</span></button>`;
+  if (s === "gun") return `<button class="e3${isSel}" style="--rar:var(--rar-common)" data-src="${k}" data-tip="Your Kingpin .45. Loaded / reserve rounds. Drop attachments on it.">${ATT_SLOTS.some((q) => G.save.gun[q]) ? `<span class="pips">${ATT_SLOTS.map((q) => `<i class="${G.save.gun[q] ? "on" : ""}"></i>`).join("")}</span>` : ""}<img src="${iconUrl("kingpin")}" alt="Kingpin" draggable="false">${home() ? "" : `<span class="q">${G.mag}/${G.ammo}</span>`}<span class="lab">Gun</span></button>`;
   if (s === "case") return `<button class="e3${isSel}" style="--rar:var(--rar-common)" data-src="${k}" data-tip="Your briefcase: the V swing"><span class="emo">💼</span><span class="lab">Briefcase</span></button>`;
   const inst = gear()[s], d = equipDef(inst), busy = G.equipping?.slot === s;
   const c = inst ? condition(inst) : null, dur = c === null ? "" : `<span class="dur ${c <= 0 ? "broken" : c < 0.35 ? "low" : ""}"><i style="width:${Math.max(4, c * 100)}%"></i></span>`;
   return `<button class="e3${inst ? "" : " empty"}${isSel}${busy ? " busy" : ""}" style="--rar:${d ? `var(--rar-${d.rarity})` : "transparent"}" data-src="${k}" data-tip="${esc(SLOT_NAME[s] + ": " + (inst ? itemDef(inst).name : EQ_TIP[s]))}">${inst ? iconHtml(inst, 50) : ""}${d?.bound ? `<span class="lock" aria-label="yours for good">★</span>` : ""}${dur}<span class="lab">${SLOT_NAME[s]}</span></button>`;
 }
+/** one gun attachment slot (G1.5 row 36): drop an attachment here, double-click or drag it off to remove */
+function attHtml(slot: AttSlot) {
+  const k = "att:" + slot, id = G.save.gun[slot], a = attachmentDef(id), isSel = sel && key(sel) === k ? " sel" : "";
+  return `<button class="e3 a3${id ? "" : " empty"}${isSel}" style="--rar:${a ? `var(--rar-${a.rarity})` : "transparent"}" data-src="${k}" data-tip="${esc(SLOT_LABEL[slot] + ": " + (a ? a.name : ATT_TIP[slot]))}">${id ? iconHtml(id, 40) : ""}<span class="lab">${SLOT_LABEL[slot]}</span></button>`;
+}
+const zoomText = () => `×${GUN.adsDist.toFixed(2).replace(/0$/, "")}`;
 function weightHtml() {
   const w = carriedWeight(), lim = carryLimit(), r = w / lim;
   const band = r > 1 ? "over" : r > 0.75 ? "heavy" : r <= 0.25 ? "light" : "normal";
@@ -244,7 +285,8 @@ function weightHtml() {
 }
 function leftHtml() {
   const g = gearSummary(gear());
-  let body = `<div class="lv-sect">Wearing <span class="note num">armor ${g.body} body, ${g.head} head</span></div><div class="lv-eq">${EQ_ORDER.map(eqHtml).join("")}</div>`;
+  let body = `<div class="lv-sect">Wearing <span class="note num">armor ${g.body} body, ${g.head} head</span></div><div class="lv-eq">${EQ_ORDER.map(eqHtml).join("")}</div>
+    <div class="lv-sect">Kingpin slots <span class="note num" data-tip="Magazine size and aim zoom with what's fitted">${GUN.mag} rounds, aim zoom ${zoomText()}</span></div><div class="lv-eq lv-att">${ATT_SLOTS.map(attHtml).join("")}</div>`;
   if (home()) {
     const stash = G.save.reserved.length;
     body += `<div class="lv-sect">At home</div><p class="lv-empty">Gear you find comes home to this locker. ${stash ? `${stash} item${stash > 1 ? "s" : ""} wait in your stash for the Fence.` : "Your stash is empty."} Pieces marked ★ are yours for good.</p>`;
@@ -290,20 +332,23 @@ function tagHtml() {
       <li><kbd>Drag</kbd>Move it between panels or onto a slot</li>
       ${home() ? "" : `<li><kbd>Ctrl</kbd>Hold while dragging rounds to split the stack</li><li><kbd>R</kbd>Sort your pack</li>`}</ol></div>`;
   }
+  if (src.z === "att" && !inst) return `<div class="tag3 blank"><span class="hole"></span><p class="lead">${SLOT_LABEL[src.s]} slot</p><p class="blurb">${ATT_TIP[src.s]}</p><ol><li><kbd>Drag</kbd>An attachment onto this slot or onto the gun</li><li><kbd>Double-click</kbd>An attachment in your pack to fit it</li></ol></div>`;
   if (src.z === "fixed") {
     const gun = src.s === "gun";
     return `<div class="tag3" style="--rar:var(--rar-common)"><span class="hole"></span>${gun ? `<img class="big" src="${iconUrl("kingpin")}" alt="">` : `<div class="bigemo">💼</div>`}
       <h3>${gun ? "Kingpin .45" : "Briefcase"}</h3><div class="rar">Yours for good</div><p class="blurb">${itemCopy(gun ? "kingpin" : "briefcase").blurb}</p>
-      <ul class="facts">${gun ? `<li><span>Loaded</span><span class="num">${G.mag} of ${G.magSize}</span></li><li><span data-tip="Rounds you carry for reloads">Reserve</span><span class="num">${G.ammo} rounds</span></li><li><span>Damage</span><span class="num">${KINGPIN.damage} a shot</span></li>`
+      <ul class="facts">${gun ? `<li><span>Loaded</span><span class="num">${G.mag} of ${G.magSize}</span></li><li><span data-tip="Rounds you carry for reloads">Reserve</span><span class="num">${G.ammo} rounds</span></li><li><span>Damage</span><span class="num">${KINGPIN.damage} a shot</span></li><li><span data-tip="How far the view leans toward your aim when you aim (right mouse). Sights raise it.">Aim zoom</span><span class="num">${zoomText()}</span></li>${ATT_SLOTS.filter((q) => G.save.gun[q]).map((q) => `<li><span>${SLOT_LABEL[q]}</span><span>${esc(attName(G.save.gun[q]!))}</span></li>`).join("")}`
         : `<li><span>Swing</span><span>V</span></li><li><span>Best when</span><span>you're out of rounds</span></li>`}</ul></div>`;
   }
   const d = itemDef(inst), cp = itemCopy(inst), e = equipDef(inst), c = e ? condition(inst) : null;
   const worn = e && src.z !== "slot" ? gear()[e.slot] : null;
   const facts: string[] = [];
-  if (d.kind !== "ammo" && d.kind !== "key" && d.kind !== "attachment") facts.push(`<li><span data-tip="What the Fence pays for it at home">Worth</span><span class="num">${e?.bound ? "Not for sale" : `🍌 ${d.value}`}</span></li>`);
+  const att = attachmentDef(inst);
+  if (d.kind !== "ammo" && d.kind !== "key") facts.push(`<li><span data-tip="What the Fence pays for it at home">Worth</span><span class="num">${e?.bound ? "Not for sale" : `🍌 ${d.value}`}</span></li>`);
   if (d.kind === "ammo" && src.z === "them") { const en = entries()[src.i]; facts.push(`<li><span>In this stack</span><span class="num">${en ? stackOf(en) : d.stack} rounds</span></li>`); }
   facts.push(`<li><span data-tip="Past 75% of your carry limit you slow down">Weight</span><span class="num">${(d.weight ?? 0).toFixed(1)} kg</span></li>`);
   if (e) facts.push(`<li><span>Slot</span><span>${SLOT_NAME[e.slot]}</span></li>`);
+  if (att) { facts.push(`<li><span>Fits</span><span>Kingpin ${SLOT_LABEL[att.slot].toLowerCase()}</span></li>`); const on = G.save.gun[att.slot]; if (on && src.z !== "att") facts.push(`<li><span>On your Kingpin</span><span>${esc(attName(on))}</span></li>`); }
   if (c !== null) facts.push(`<li><span data-tip="Armor wears down as it takes hits. Repair it at the workbench.">Condition</span><span class="num"><span class="cond"><i style="width:${Math.max(3, c * 100)}%;${c < 0.35 ? "background:var(--a-warn)" : ""}"></i></span>${Math.round(c * 100)}%</span></li>`);
   if (worn && worn !== inst) facts.push(`<li><span>You're wearing</span><span>${esc(itemDef(worn).name)}</span></li>`);
   if (src.z === "pack" && src.i < G.pouchSlots) facts.push(`<li><span data-tip="The first slots of your pack. Kept even if you get bonked.">Cheek pouch</span><span>Safe if bonked</span></li>`);
@@ -315,20 +360,24 @@ function tagHtml() {
     else {
       acts.push(btn("primary", d.kind === "ammo" ? "Take the rounds" : "Take", true, "Double-click does the same"));
       if (e && !e.bound) acts.push(btn("wear", "Take and wear"));
+      if (att) acts.push(btn("wear", "Take and fit"));
       if (d.kind === "ammo" && (entries()[src.i] ? stackOf(entries()[src.i]) : 0) > 1) acts.push(btn("half", "Take half", false, "Or hold Ctrl while dragging"));
     }
+  } else if (src.z === "att") {
+    acts.push(btn("primary", home() ? "Put in locker" : "Take it off", false, "Double-click does the same, or drag it off"));
   } else if (src.z === "pack") {
     if (e) acts.push(btn("wear", "Wear it", !target, "Takes a second; a hit interrupts it"));
+    if (att) acts.push(btn("wear", "Fit it", !target, "Double-click does the same, or drag it onto the gun"));
     if (HEALS[inst]) acts.push(btn("use", "Use it", !target, "Or press its quick key, or Q"));
     if (target) acts.push(btn("primary", "Leave it here", true, `Puts it in the ${esc(target.name.toLowerCase())}. Double-click does the same.`));
     acts.push(btn("drop", "Drop"));
   } else if (src.z === "slot") {
     if (!(e?.bound && !home())) acts.push(btn("primary", home() ? "Put in locker" : "Take it off", false, "Double-click does the same"));
   }
-  const how = src.z === "them" && !home() ? "Double-click to take it, or drag it into your pack." : cp.use ? cp.use + "." : "";
+  const how = src.z === "att" ? "Double-click it, or drag it off the slot, to take it off." : src.z === "them" && !home() ? (att ? "Drag it onto the Kingpin to fit it, or into your pack." : "Double-click to take it, or drag it into your pack.") : cp.use ? cp.use + "." : "";
   return `<div class="tag3" style="--rar:var(--rar-${d.rarity})"><span class="hole"></span>${iconHtml(inst, 200).replace('class="ico"', 'class="ico big"')}
     <h3>${esc(d.name)}</h3><div class="rar">${esc(cp.rarityLine)}</div>${cp.blurb ? `<p class="blurb">${esc(cp.blurb)}</p>` : ""}
-    ${cp.does.length ? `<ul class="does">${cp.does.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>` : ""}<ul class="facts">${facts.join("")}</ul>
+    ${cp.lines?.length ? `<ul class="does stats">${cp.lines.map((l) => `<li class="${l.good ? "up" : "down"}">${esc(l.text)}</li>`).join("")}</ul>` : cp.does.length ? `<ul class="does">${cp.does.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>` : ""}<ul class="facts">${facts.join("")}</ul>
     ${acts.length ? `<div class="acts">${acts.join("")}</div>` : ""}${how ? `<p class="how">${esc(how)}</p>` : ""}</div>`.replace('<span class="emo"', '<span class="emo bigemo"');
 }
 const keysHtml = () => home()
@@ -338,7 +387,7 @@ const keysHtml = () => home()
 // ---------------------------------------------------------------- render (only on change)
 function sigs() {
   const g = gear(), q = G.equipping;
-  const left = [home() ? G.save.money : G.pack.join(","), Object.values(g ?? {}).join(","), q ? q.slot : "", G.mag, G.ammo, G.packSlots, home() ? G.save.reserved.length : carriedWeight().toFixed(1), sel ? key(sel) : ""].join("|");
+  const left = [home() ? G.save.money : G.pack.join(","), Object.values(g ?? {}).join(","), Object.values(G.save.gun).join(","), q ? q.slot : "", G.mag, G.ammo, G.packSlots, home() ? G.save.reserved.length : carriedWeight().toFixed(1), sel ? key(sel) : ""].join("|");
   const them = target ? entries().map((e) => e.item + (e.revealed ? "+" : "?") + (e.slot ? counts.get(e.slot) ?? "" : "")).join(",") + "|" + (sel ? key(sel) : "") : "";
   return { left, them };
 }
@@ -356,7 +405,7 @@ let tagKey = "";
 function renderTag() {
   if (!root) return;
   const src = sel ?? hover, inst = itemAt(src), en = src?.z === "them" ? entries()[src.i] : undefined;
-  const k = (src ? key(src) : "") + "|" + (inst ?? "") + "|" + (target?.name ?? "") + "|" + G.mag + "/" + G.ammo + "|" + (en ? stackOf(en) : "") + "|" + (src?.z === "slot" || src?.z === "pack" ? (gear() ? Object.values(gear()).join() : "") : "");
+  const k = (src ? key(src) : "") + "|" + (inst ?? "") + "|" + (target?.name ?? "") + "|" + G.mag + "/" + G.ammo + "|" + (en ? stackOf(en) : "") + "|" + (src?.z === "slot" || src?.z === "pack" ? (gear() ? Object.values(gear()).join() : "") : "") + "|" + Object.values(G.save.gun).join();
   if (k === tagKey) return; tagKey = k;
   (root.querySelector(".lv-tagwrap") as HTMLElement).innerHTML = tagHtml();
 }
@@ -435,7 +484,7 @@ function wire(r: HTMLDivElement) {
     if (a[0] === "x") { target?.actions?.[+a.slice(1)]?.run(); return; }
     if (!src) return;
     if (a === "primary") primary(src);
-    else if (a === "wear") { if (src.z === "pack") wearFromPack(src.i); else if (src.z === "them") takeFrom(src.i, { wear: true }); }
+    else if (a === "wear") { if (src.z === "pack") { if (isAttachment(G.pack[src.i])) fitFrom(src); else wearFromPack(src.i); } else if (src.z === "them") takeFrom(src.i, { wear: true }); }
     else if (a === "half" && src.z === "them") takeFrom(src.i, { half: true });
     else if (a === "use" && src.z === "pack") useHeal(G.pack[src.i]);
     else if (a === "drop" && src.z === "pack") dropFromPack(src.i);
@@ -500,5 +549,5 @@ function onKey(e: KeyboardEvent) {
   if (k === "control") root.classList.add("ctrl");
 }
 /** debug / test hooks: what the screen shows, by panel */
-export const lootDebug = () => ({ open: !!root, target: target?.name ?? null, them: entries().map((e) => (e.revealed ? e.item : "?")), sel: sel ? key(sel) : null });
+export const lootDebug = () => ({ open: !!root, target: target?.name ?? null, them: entries().map((e) => (e.revealed ? e.item : "?")), sel: sel ? key(sel) : null, gun: { ...G.save.gun } });
 void parseInst;

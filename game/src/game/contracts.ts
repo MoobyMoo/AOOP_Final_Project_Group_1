@@ -84,6 +84,11 @@ export interface GunView {
   root: THREE.Group;       // grip at origin, barrel along +z; long enough (>= 0.9 u incl. slide) to read at camera dist 40
   muzzle: THREE.Object3D; eject: THREE.Object3D;
   setVariant(v: { extMag: boolean }): void;
+  /** fitted attachments (G1.5 row 36): shows each on its named socket (socket_sight / socket_muzzle / socket_mag /
+   *  socket_rail) when the models are loaded; a slot with no model, or a gun with no sockets, shows nothing */
+  setAttachments?(fitted: GunAtts): void;
+  /** the fitted laser's beam origin (null with no laser, or no laser model) */
+  laser?: THREE.Object3D | null;
   pose(s: { fireT: number; reloadT: number }): void; // fireT: 0..1 after a shot (slide back/forward), reloadT: 0..1 (or -1 = not reloading)
 }
 export interface GunFx {   // pooled; no per-shot allocation
@@ -134,15 +139,22 @@ export type RaidLootCtx = { raid: number; cratesOpened: number; usefulFound: num
 // loot/tables.ts exports: ITEMS, CRATE_TABLES, rollCrate(tier, ctx, rng): string[] (may be [] = honest empty), rollEnemyDrop(kind, ctx, rng): string[]
 // Seeded: never Math.random. Explicit probabilities, independent of list order.
 
+/** GUN ATTACHMENTS (G1.5 row 36; Duckov's gun SlotCollection, research/duckov-re/POLISH_FINDINGS.md "Attachments").
+ *  The Kingpin is a pistol, so it has a pistol's slots. Each holds an attachment item id (loot/attachments.ts) or null.
+ *  Attachments carry stat modifiers (add, percent, multiply, applied in that order) onto the gun's handling stats. */
+export type AttSlot = "sight" | "muzzle" | "mag" | "laser";
+export type GunAtts = Record<AttSlot, string | null>;
+
 // ---------------------------------------------------------------- core/save.ts (Codex Sol)
 export type SaveV1 = {
   v: 1; createdAt: string; raids: number; money: number; ammo: number;
-  look: MonkeyLook; lookDone: boolean; gear: Gear; locker: string[]; // gear = worn instances; locker = equipment kept at home (instances)
+  look: MonkeyLook; lookDone: boolean; gear: Gear; locker: string[]; // gear = worn instances; locker = equipment and gun attachments kept at home (instances / ids)
   satchel: { items: string[]; x: number; z: number } | null; // pack dropped on a bonk-out: recoverable once next raid (Duckov corpse rule)
   upgrades: { mag: number; pack: number; heart: number };
   keys: string[]; trophies: string[]; reserved: string[];   // keys auto-kept, trophies shown in the bunker, order items reserved
   order: { id: string; progress: Record<string, number>; done: boolean } | null;
   fixtures: string[]; salMovedIn: boolean;
+  gun: GunAtts;                                              // what is fitted on the Kingpin (kept through a bonk-out: the gun is yours for good)
   stats: { bonkOuts: number; extracts: number; best: number };
 };
 // core/save.ts exports: load(): SaveV1; save(s: SaveV1): void (called only at home); reset(): SaveV1; migrate(raw: unknown): SaveV1

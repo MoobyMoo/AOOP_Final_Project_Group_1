@@ -3,6 +3,7 @@ import { BOUND_KIT, SLOTS, equipDef, fmtInst, parseInst } from "../loot/equipmen
 import { DEFAULT_LOOK, sanitizeLook, type MonkeyLookX } from "../actors/look";
 import { KINGPIN } from "../combat/weapons";
 import { ITEMS, PRICES, itemDef } from "../loot/tables";
+import { EMPTY_GUN, isAttachment, sanitizeGun } from "../loot/attachments";
 
 export function retainKeys(save: SaveV1, kept: readonly string[]) {
   for (const id of kept) if (itemDef(id).kind === "key" && !save.keys.includes(id)) save.keys.push(id);
@@ -23,7 +24,7 @@ function fresh(): SaveV1 {
     v: 1, createdAt: new Date().toISOString(), raids: 0, money: 0, ammo: KINGPIN.startAmmo,
     look: structuredClone(DEFAULT_LOOK), lookDone: false, gear: { ...BOUND_KIT }, locker: [], satchel: null,
     upgrades: { mag: 0, pack: 0, heart: 0 }, keys: [], trophies: [], reserved: [], order: null,
-    fixtures: [], salMovedIn: false, stats: { bonkOuts: 0, extracts: 0, best: 0 },
+    fixtures: [], salMovedIn: false, gun: { ...EMPTY_GUN }, stats: { bonkOuts: 0, extracts: 0, best: 0 },
   };
 }
 
@@ -57,13 +58,16 @@ function gear(value: unknown, legacy: boolean): Gear {
   }
   return out;
 }
-const instances = (value: unknown): string[] => Array.isArray(value) ? value.flatMap(inst => {
-  const parsed = typeof inst === "string" ? parseInst(inst) : null;
-  return parsed ? [fmtInst(parsed.id, parsed.dur)] : [];
+/** G1.5 row 36: the old one-off "extended_mag" item is the magazine attachment now */
+const renamed = (inst: string) => (inst === "extended_mag" ? "att_mag_ext" : inst);
+/** the locker: equipment instances and gun attachment ids */
+const instances = (value: unknown): string[] => Array.isArray(value) ? value.flatMap(raw => {
+  const inst = typeof raw === "string" ? renamed(raw) : null, parsed = inst ? parseInst(inst) : null;
+  return parsed ? [fmtInst(parsed.id, parsed.dur)] : inst && isAttachment(inst) ? [inst] : [];
 }) : [];
-const loot = (value: unknown): string[] => Array.isArray(value) ? value.flatMap(inst => {
-  if (typeof inst !== "string" || !inst) return [];
-  const parsed = parseInst(inst);
+const loot = (value: unknown): string[] => Array.isArray(value) ? value.flatMap(raw => {
+  if (typeof raw !== "string" || !raw) return [];
+  const inst = renamed(raw), parsed = parseInst(inst);
   return parsed ? [fmtInst(parsed.id, parsed.dur)] : Object.hasOwn(ITEMS, inst) ? [inst] : [];
 }) : [];
 function satchel(value: unknown): SaveV1["satchel"] {
@@ -82,6 +86,11 @@ export function migrate(value: unknown): SaveV1 {
     const locker = legacy ? [...new Set(instances(raw.locker ?? raw.wardrobe))] : instances(raw.locker);
     if (legacy) for (const inst of Object.values(worn)) { const index = inst ? locker.indexOf(inst) : -1; if (index >= 0) locker.splice(index, 1); }
     locker.push(...instances(raw.reserved));
+    // the Kingpin's attachments. A save from before attachments has no "gun": its extended mag (found in the vault =
+    // the "extended_mag" fixture, or bought at the workbench = upgrades.mag) becomes the fitted magazine attachment.
+    const gun = sanitizeGun(raw.gun), fixtures = strings(raw.fixtures);
+    if (!Object.hasOwn(raw, "gun") && (fixtures.includes("extended_mag") || integer(upgrades.mag, 0) > 0) && !locker.includes("att_mag_ext")) gun.mag ??= "att_mag_ext";
+    const fixturesOut = fixtures.filter(f => f !== "extended_mag");
     for (const slot of SLOTS) {
       const starter = BOUND_KIT[slot];
       if (starter && equipDef(worn[slot])?.id !== starter && !locker.some(inst => equipDef(inst)?.id === starter)) locker.push(starter);
@@ -96,13 +105,13 @@ export function migrate(value: unknown): SaveV1 {
         pack: integer(upgrades.pack, 0, PRICES.upgrades.pack.length),
         heart: integer(upgrades.heart, 0, PRICES.upgrades.heart.length),
       },
-      keys: strings(raw.keys), trophies: strings(raw.trophies), reserved: loot(raw.reserved).filter(inst => !equipDef(inst)),
+      keys: strings(raw.keys), trophies: strings(raw.trophies), reserved: loot(raw.reserved).filter(inst => !equipDef(inst) && !isAttachment(inst)),
       order: typeof order.id === "string" && order.id.length > 0 ? {
         id: order.id,
         progress: Object.fromEntries(Object.entries(object(order.progress)).filter((entry): entry is [string, number] => integer(entry[1], -1) >= 0)),
         done: boolean(order.done, false),
       } : null,
-      fixtures: strings(raw.fixtures), salMovedIn: boolean(raw.salMovedIn, defaults.salMovedIn),
+      fixtures: fixturesOut, salMovedIn: boolean(raw.salMovedIn, defaults.salMovedIn), gun,
       stats: { bonkOuts: integer(stats.bonkOuts, 0), extracts: integer(stats.extracts, 0), best: integer(stats.best, 0) },
     };
   } catch {

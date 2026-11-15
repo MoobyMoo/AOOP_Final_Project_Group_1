@@ -2,6 +2,7 @@ import type { Gear, WearSlot } from "../contracts";
 import { G, flat } from "../core/state";
 import { save } from "../core/save";
 import { armorMult } from "../combat/weapons";
+import { attachmentDef } from "./attachments";
 import { BOUND_KIT, EQUIP_MOVE, EQUIP_TIME, SLOTS, equipDef, fmtInst, gearStats, parseInst, repairCost, saleValue, visualGear, wear } from "./equipment";
 
 export { EQUIP_MOVE };
@@ -106,9 +107,9 @@ export function stash(index: number): boolean {
 }
 export function sellEquip(index: number): number {
   if (G.scene !== "bunker" || !Number.isInteger(index)) return 0;
-  const inst = G.save.locker[index], def = equipDef(inst);
-  if (!def || def.bound) return 0;
-  const value = saleValue(inst);
+  const inst = G.save.locker[index], def = equipDef(inst), att = attachmentDef(inst);
+  if ((!def || def.bound) && !att) return 0;
+  const value = att ? att.value : saleValue(inst);
   G.save.locker.splice(index, 1); G.save.money += value; save(G.save);
   return value;
 }

@@ -2,6 +2,7 @@ import type { CrateTier, EnemyStyle, ItemDef, RaidLootCtx } from "../contracts";
 import type { CrateSocket } from "../world/layout";
 import { EQUIP, enemyGear, parseInst, saleValue } from "./equipment";
 import { rollContainer, type ContainerType } from './containers';
+import { ATTACHMENT_ITEMS } from "./attachments";
 
 export type LootContext = RaidLootCtx & {
   fixed?: CrateSocket["fixed"] | "radio" | "radio_shack";
@@ -28,10 +29,10 @@ export const ITEMS: Record<string, ItemDef> = {
   ammo45: { id: "ammo45", name: ".45 Rounds", icon: "🔸", rarity: "common", value: 0, kind: "ammo", weight: 0, stack: 8 },
   vine_key: { id: "vine_key", name: "Vine Key", icon: "🗝️", rarity: "rare", value: 0, kind: "key", weight: 0.1 },
   radio_key: { id: "radio_key", name: "Radio Shack Key", icon: "🗝️", rarity: "rare", value: 0, kind: "key", weight: 0.1 },
-  extended_mag: { id: "extended_mag", name: "Kingpin Extended Mag", icon: "📎", rarity: "epic", value: 0, kind: "attachment", weight: 0.2 },
   spring: { id: "spring", name: "Spring", icon: "🌀", rarity: "common", value: 11, kind: "part", weight: 0.5 },
   plantation_seal: { id: 'plantation_seal', name: 'Plantation Workshop Seal', icon: '🔩', rarity: 'rare', value: 0, kind: 'key', weight: 0.2 },
   plank: { id: "plank", name: "Plank", icon: "🪵", rarity: "common", value: 8, kind: "part", weight: 2.0 },
+  ...ATTACHMENT_ITEMS, // gun attachments (loot/attachments.ts; att_mag_ext is the old extended_mag)
   ...Object.fromEntries(Object.values(EQUIP).map(def => [def.id, { id: def.id, name: def.name, icon: { head: "🎩", face: "🕶️", body: "🦺", back: "🎒", ears: "🎧" }[def.slot], rarity: def.rarity, value: def.value, weight: def.weight, kind: "wear" as const }])),
 };
 export function itemDef(inst: string): ItemDef {
@@ -123,7 +124,7 @@ export function rollCrate(tier: CrateTier, ctx: LootContext, rng: () => number):
   if (ctx.fixed === "vault") found.unshift(rng() < 0.5 ? "warden_vest" : "warden_helmet");
   if (ctx.fixed === "radio" || ctx.fixed === "radio_shack") found.unshift("radio_headset");
   if (ctx.fixed === "vault" && !ctx.ownsExtendedMag) {
-    found.unshift("extended_mag");
+    found.unshift("att_mag_ext");
     ctx.ownsExtendedMag = true;
   }
   if (ctx.usefulFound === 0 && !found.some(id => isUseful(id, ctx))) found.push("smoothie");

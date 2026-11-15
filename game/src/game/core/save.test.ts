@@ -107,4 +107,26 @@ assert(reset().v === 1, "Node without storage resets");
   const bx = (bad.look as unknown as { x?: { build?: number; jacket?: string } }).x;
   assert(bx?.build === 1 && bx.jacket === "two", "look.x out-of-range values clamp to safe defaults");
 }
+{ // gun attachments (G1.5 row 36): old saves fold their extended mag into the magazine slot, once
+  const fresh = migrate(null);
+  equal(fresh.gun, { sight: null, muzzle: null, mag: null, laser: null }, "a fresh save has a bare Kingpin");
+  const vaultMag = migrate({ v: 1, fixtures: ["extended_mag", "open:wall_1"], locker: ["hardhat"] });
+  assert(vaultMag.gun.mag === "att_mag_ext" && !vaultMag.fixtures.includes("extended_mag") && vaultMag.fixtures.includes("open:wall_1"), "an old vault extended mag becomes the fitted magazine attachment");
+  assert(!vaultMag.locker.includes("att_mag_ext"), "the migrated mag is not duplicated into the locker");
+  const boughtMag = migrate({ v: 1, upgrades: { mag: 1, pack: 0, heart: 0 } });
+  assert(boughtMag.gun.mag === "att_mag_ext" && boughtMag.upgrades.mag === 1, "a bought extended mag becomes the fitted magazine attachment and the bench stays done");
+  const noMag = migrate({ v: 1, upgrades: { mag: 0, pack: 1, heart: 0 } });
+  assert(noMag.gun.mag === null, "no extended mag, nothing fitted");
+  // a current save that has taken its mag off keeps it off (the grant only applies to saves from before attachments)
+  const takenOff = migrate({ v: 1, upgrades: { mag: 1, pack: 0, heart: 0 }, gun: { sight: "att_sight_2x", muzzle: null, mag: null, laser: null }, locker: ["att_mag_ext"] });
+  assert(takenOff.gun.mag === null && takenOff.gun.sight === "att_sight_2x" && takenOff.locker.filter((i) => i === "att_mag_ext").length === 1, "a removed mag stays in the locker, never re-granted");
+  const badGun = migrate({ v: 1, gun: { sight: "att_muzzle_supp", muzzle: "att_muzzle_supp", mag: 5, laser: "__proto__", extra: "att_laser" } });
+  equal(badGun.gun, { sight: null, muzzle: "att_muzzle_supp", mag: null, laser: null }, "wrong-slot, unknown and non-string attachments are dropped");
+  const oldItems = migrate({ v: 1, reserved: ["extended_mag", "banana", "att_laser"], satchel: { items: ["extended_mag", "att_sight_holo"], x: 1, z: 2 }, locker: ["att_laser", "nope"] });
+  assert(oldItems.locker.includes("att_mag_ext") && oldItems.locker.filter((i) => i === "att_laser").length === 2 && !oldItems.locker.includes("nope"), "attachments in the stash move to the locker; the locker keeps attachment ids");
+  equal(oldItems.reserved, ["banana"], "the Fence's stash keeps only sellable loot");
+  equal(oldItems.satchel?.items, ["att_mag_ext", "att_sight_holo"], "a dropped satchel keeps its attachments");
+  equal(migrate(vaultMag), vaultMag, "attachment migration is idempotent");
+  equal(migrate(takenOff), takenOff, "a current save round-trips unchanged");
+}
 console.log(`Save self-test: PASS (${checks} checks; migration, corrupt data, nested types, storage failures, reset)`);
