@@ -24,8 +24,8 @@ import { sellEquip, repairAll } from "../loot/equipment-actions";
 import { repairBill } from "../ui/equipui";
 import { openLoot, closeLoot, lootOpen, lootSwallowsInteract } from "../ui/lootview";
 import { AREA, STARTERS, SPAWN, RECIPES, canCraft, cellsOf, centreOf, craft, defOf, has, occupancy, powered, rotFoot, stashCapacity, stashUsed, type StationId } from "./facilities";
-import { buildVault, facilityModel, LAMPS, openBuild, closeBuild, buildOpen, stepBuild, placeBuildCamera, choose, confirmAt, startMove, packSelected, buildState } from "./basebuild";
-import { makePod, makeBoard, destinationsHtml, confirmHtml, showCurtain, type Pod, type Board } from "./dispatch";
+import { buildVault, facilityModel, animateFacilities, LAMPS, openBuild, closeBuild, buildOpen, stepBuild, placeBuildCamera, choose, confirmAt, startMove, packSelected, buildState } from "./basebuild";
+import { makePod, makeBoard, destinationsHtml, confirmHtml, showCurtain, POD_DOOR_OPEN, POD_GAUGE_REST, type Pod, type Board } from "./dispatch";
 import { deploy, destOf, type DeployRequest } from "../core/deployment";
 
 export const bunkerScene = new THREE.Scene();
@@ -106,7 +106,7 @@ export function enterBunker(deploy: (req: DeployRequest) => void, mirror: () => 
   G.rig.setLook?.(G.save.look); G.gear = { ...G.save.gear }; G.rig.setGear?.(G.save.gear); G.pack = []; bunkerScene.add(G.rig.root); G.gun.root.visible = false; // holstered at home (the raid shows it each frame)
   G.rig.root.scale.setScalar(1);
   pp.set(SPAWN.x, 0, SPAWN.z); vel.set(0, 0, 0); face = 0; G.rig.root.position.copy(pp);
-  if (pod) { pod.door.rotation.y = -1.9; pod.gauge.rotation.z = 1.9; }
+  if (pod) { pod.door.rotation.y = POD_DOOR_OPEN; pod.gauge.rotation.z = POD_GAUGE_REST; }
   sync(); drawHud();
   if (summary) showPanel(summary, "result");
 }
@@ -164,7 +164,7 @@ export function renderBunker(dt: number) {
   G.rig.root.scale.set(1 / Math.sqrt(squish), squish, 1 / Math.sqrt(squish));
   G.rig.pose({ time: G.time, speed: launching ? 0 : vel.length(), moveYaw: face, faceYaw: face, action: !launching && vel.lengthSq() > 0.1 ? "run" : "idle", actionT: 0, armed: "none", flash: 0 });
   if (salRig?.root.parent) salRig.pose({ time: G.time + 3, speed: 0, moveYaw: salRig.root.rotation.y, faceYaw: Math.atan2(pp.x - salRig.root.position.x, pp.z - salRig.root.position.z), action: "idle", actionT: 0, armed: "none", flash: 0 });
-  updateFx(dt);
+  updateFx(dt); animateFacilities(objects.values(), dt, G.time, powered(G.save));
   if (buildOpen()) { placeBuildCamera(dt); return; }
   const f = (launching ? new THREE.Vector3(0, 0, -9.5) : pp.clone()).setY(0.5).add(V(0, -1.2)); const d = G.stage.cam.dist; G.stage.cam.dist = 32; G.stage.setFov(); G.stage.place(f, dt, G.time); G.stage.cam.dist = d;
 }
@@ -259,7 +259,7 @@ function podSequence(req: DeployRequest) {
   sfx("step");
   tween(0.45, (k) => { pp.lerpVectors(from, into, easeInOut(k)); lift = Math.sin(k * Math.PI) * 0.25 + k * 0.4; face = 0; }, () => {
     sfx("door");
-    tween(0.25, (k) => { p.door.rotation.y = -1.9 * (1 - k); p.gauge.rotation.z = 1.9 - k * 1.2; });
+    tween(0.25, (k) => { p.door.rotation.y = POD_DOOR_OPEN * (1 - k); p.gauge.rotation.z = POD_GAUGE_REST - k * 1.2; });
     tween(0.35, (k) => { squish = 1 - 0.28 * Math.sin(k * Math.PI * 0.5); p.gauge.rotation.z = 0.7 - k * 2.2; }, () => {
       sfx("thunk"); sfx("dash"); squash(p.root, 0.08, 0.3); G.stage.trauma = 0.3; burst(new THREE.Vector3(0, 0.6, -11), 26, "#f3ead6", 1.2);
       tween(0.4, (k) => { squish = 0.72 + k * 0.8; lift = 0.4 + k * k * 11; }, () => {

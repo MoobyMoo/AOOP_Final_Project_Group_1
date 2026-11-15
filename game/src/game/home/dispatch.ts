@@ -2,79 +2,94 @@
 // island, and the departures board beside it. E at either opens the destination view; an entry opens a confirm step
 // with the fare; Launch pays once (core/deployment.ts), waits 0.5 s like Duckov's MapSelectionView, plays the pod
 // (step in, squash, whoosh up the pipe), then the loading curtain covers the raid build.
-// PLACEHOLDER models (clean blockouts) until Fable's pod and board land: see the TODO in the report / CHECKLIST.
+// The models are the vault kit's vault_pod and vault_board (home/vaultkit.ts); if the kit is missing, plain blockouts.
 import * as THREE from "three";
 import type { SaveV1 } from "../contracts";
 import { mat } from "../render/shading";
 import { DESTINATIONS, destOf, destinationState } from "../core/deployment";
 import { mapCrop } from "../ui/mapview";
+import { vaultModel } from "./vaultkit";
 
-const brass = () => mat("#c29a5b", { rough: 0.35 }), steel = () => mat("#3b4246", { rough: 0.6 }), dark = () => mat("#23272a", { rough: 0.7 });
+const brass = () => mat("#c29a5b", { rough: 0.35 }), dark = () => mat("#23272a", { rough: 0.7 });
 function mesh(g: THREE.BufferGeometry, m: THREE.Material, x = 0, y = 0, z = 0, parent?: THREE.Object3D) {
   const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; parent?.add(o); return o;
 }
-function label(text: string, w: number, h: number, o: { bg?: string; fg?: string; font?: string } = {}) {
-  const c = document.createElement("canvas"); c.width = 512; c.height = Math.round((512 * h) / w); const x = c.getContext("2d")!;
-  x.fillStyle = o.bg ?? "#1d1c20"; x.fillRect(0, 0, c.width, c.height);
-  x.strokeStyle = "#c29a5b"; x.lineWidth = 8; x.strokeRect(6, 6, c.width - 12, c.height - 12);
-  x.fillStyle = o.fg ?? "#f3d48a"; x.font = o.font ?? `700 ${Math.round(c.height * 0.5)}px "Barlow Condensed", "Arial Narrow", sans-serif`; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(text, c.width / 2, c.height / 2 + 2);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
-  return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: t, toneMapped: false }));
-}
 
 // ---------------------------------------------------------------- the pod (3 x 3 cells, front +z)
+/** door: the leaf, pivot on its hinge (rotation.y 0 shut, POD_DOOR_OPEN open). gauge: the needle, pivot on the dial's
+ *  axle (rotation.z POD_GAUGE_REST at rest, falling as the pressure climbs). lamp: the ready light, on its own
+ *  material (lamp_emit) so its colour can change. */
 export type Pod = { root: THREE.Group; gauge: THREE.Object3D; lamp: THREE.Mesh; puffAt: THREE.Vector3; door: THREE.Object3D };
+export const POD_DOOR_OPEN = -1.9, POD_GAUGE_REST = 1.9;
+const lampMat = () => { const m = new THREE.MeshBasicMaterial({ color: new THREE.Color("#7dff8a").multiplyScalar(2.2), toneMapped: false }); m.name = "lamp_emit"; return m; };
 export function makePod(): Pod {
+  try {
+    const root = vaultModel("vault_pod"), door = root.getObjectByName("pod_door"), gauge = root.getObjectByName("pod_needle"), lamp = root.getObjectByName("pod_lamp") as THREE.Mesh | undefined;
+    if (!door || !gauge || !lamp?.isMesh) throw new Error("vault_pod: a named node is missing");
+    lamp.material = lampMat();
+    door.rotation.y = POD_DOOR_OPEN; gauge.rotation.z = POD_GAUGE_REST;
+    return { root, gauge, lamp, puffAt: new THREE.Vector3(0, 0.5, 0), door };
+  } catch (e) { console.warn("pod: vault kit missing, blockout", e); return blockoutPod(); }
+}
+function blockoutPod(): Pod {
   const root = new THREE.Group(); root.name = "pod";
-  mesh(new THREE.CylinderGeometry(1.42, 1.5, 0.36, 28), steel(), 0, 0.18, 0, root);                  // plinth
-  mesh(new THREE.TorusGeometry(1.32, 0.07, 8, 32), brass(), 0, 0.37, 0, root).rotation.x = Math.PI / 2;
-  mesh(new THREE.CylinderGeometry(1.0, 1.0, 0.06, 28), mat("#5a4a32", { rough: 0.5 }), 0, 0.39, 0, root); // brass floor plate
-  const glass = new THREE.Mesh(new THREE.CylinderGeometry(1.02, 1.02, 3.1, 28, 1, true), new THREE.MeshStandardMaterial({ color: "#bfe8ff", transparent: true, opacity: 0.22, roughness: 0.05, metalness: 0.2, side: THREE.DoubleSide, depthWrite: false }));
-  glass.position.y = 1.95; glass.renderOrder = 2; root.add(glass);
-  for (const y of [0.55, 1.6, 2.55, 3.45]) mesh(new THREE.TorusGeometry(1.05, 0.06, 8, 32), brass(), 0, y, 0, root).rotation.x = Math.PI / 2;
-  for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 + Math.PI / 6; mesh(new THREE.CylinderGeometry(0.05, 0.05, 3.1, 6), brass(), Math.sin(a) * 1.05, 1.95, Math.cos(a) * 1.05, root); }
-  mesh(new THREE.CylinderGeometry(1.2, 1.12, 0.5, 28), brass(), 0, 3.75, 0, root);                    // cap
-  mesh(new THREE.CylinderGeometry(0.55, 1.12, 0.6, 24), mat("#a8834c", { rough: 0.4 }), 0, 4.3, 0, root); // funnel
-  // the pipe: up from the funnel, an elbow, and back into the wall (the vault wall is 6.4 u tall)
-  const pipe = () => mat("#9a7a48", { rough: 0.4 });
-  mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.8, 20), pipe(), 0, 5.0, 0, root);
-  // quarter elbow in the y-z plane: from the vertical pipe's top (0, 5.4, 0) round to (0, 6.2, -0.8), heading for the wall
-  const elbow = mesh(new THREE.TorusGeometry(0.8, 0.55, 14, 20, Math.PI / 2), pipe(), 0, 5.4, -0.8, root); elbow.rotation.y = -Math.PI / 2;
-  mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.9, 20), pipe(), 0, 6.2, -1.2, root).rotation.x = Math.PI / 2;
-  for (const y of [4.75, 5.3]) mesh(new THREE.TorusGeometry(0.58, 0.06, 8, 24), brass(), 0, y, 0, root).rotation.x = Math.PI / 2;
-  const sign = label("BANANA EXPRESS", 1.9, 0.38); sign.position.set(0, 3.75, 1.215); root.add(sign);
-  // the door: a brass-framed glass leaf on the front that swings shut before the launch (hinge on its -x edge)
+  mesh(new THREE.CylinderGeometry(1.42, 1.5, 0.36, 28), dark(), 0, 0.18, 0, root);
+  const glass = new THREE.Mesh(new THREE.CylinderGeometry(1.02, 1.02, 3.1, 28, 1, true), new THREE.MeshStandardMaterial({ color: "#bfe8ff", transparent: true, opacity: 0.22, roughness: 0.05, side: THREE.DoubleSide, depthWrite: false }));
+  glass.position.y = 1.95; root.add(glass);
+  mesh(new THREE.CylinderGeometry(1.2, 1.12, 0.5, 28), brass(), 0, 3.75, 0, root);
   const door = new THREE.Group(); door.position.set(-0.62, 0.42, 0.82); root.add(door);
-  mesh(new THREE.BoxGeometry(0.06, 2.9, 0.06), brass(), 0, 1.45, 0, door); mesh(new THREE.BoxGeometry(0.06, 2.9, 0.06), brass(), 1.24, 1.45, 0, door);
-  mesh(new THREE.BoxGeometry(1.3, 0.06, 0.06), brass(), 0.62, 2.9, 0, door);
-  door.rotation.y = -1.9; // open
-  // pressure gauge on a post at the front right, and a ready lamp
-  const post = mesh(new THREE.CylinderGeometry(0.06, 0.08, 1.2, 8), dark(), 1.25, 0.6, 1.05, root); void post;
-  const dial = mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.08, 20), brass(), 1.25, 1.3, 1.08, root); dial.rotation.x = Math.PI / 2;
-  mesh(new THREE.CircleGeometry(0.18, 20), mat("#f3ead6", { rough: 0.6 }), 1.25, 1.3, 1.125, root);
-  const gauge = mesh(new THREE.BoxGeometry(0.025, 0.16, 0.01), mat("#b2321f"), 1.25, 1.3, 1.135, root); gauge.geometry.translate(0, 0.07, 0); gauge.rotation.z = 1.9;
-  const lamp = mesh(new THREE.SphereGeometry(0.13, 14, 10), new THREE.MeshBasicMaterial({ color: new THREE.Color("#7dff8a").multiplyScalar(2.2), toneMapped: false }), 0.9, 4.1, 0.9, root);
+  mesh(new THREE.BoxGeometry(1.3, 2.9, 0.06), brass(), 0.62, 1.45, 0, door); door.rotation.y = POD_DOOR_OPEN;
+  const gauge = mesh(new THREE.BoxGeometry(0.025, 0.16, 0.01), mat("#b2321f"), 1.25, 1.3, 1.135, root); gauge.geometry.translate(0, 0.07, 0); gauge.rotation.z = POD_GAUGE_REST;
+  const lamp = mesh(new THREE.SphereGeometry(0.13, 14, 10), lampMat(), 0.9, 4.1, 0.9, root);
   return { root, gauge, lamp, puffAt: new THREE.Vector3(0, 0.5, 0), door };
 }
 
 // ---------------------------------------------------------------- the departures board (2 x 1 cells)
 export type Board = { root: THREE.Group; refresh(save: SaveV1): void };
+const FLAP = '700 25px "IBM Plex Mono", "DejaVu Sans Mono", monospace';
+/** one row of split-flap cells: a dark tile per character with the hinge line across its middle */
+function flaps(x: CanvasRenderingContext2D, text: string, x0: number, y: number, n: number, fg: string, right = false) {
+  const w = 20, h = 38, gap = 2, t = right ? text.slice(0, n).padStart(n) : text.slice(0, n).padEnd(n);
+  x.font = FLAP; x.textAlign = "center"; x.textBaseline = "middle";
+  for (let i = 0; i < n; i++) {
+    const cx = x0 + i * (w + gap);
+    x.fillStyle = "#26282d"; x.fillRect(cx, y - h / 2, w, h);
+    if (t[i] !== " ") { x.fillStyle = fg; x.fillText(t[i], cx + w / 2, y + 2); }
+    x.fillStyle = "#0f1012"; x.fillRect(cx, y - 1, w, 2);
+  }
+}
 export function makeBoard(): Board {
-  const root = new THREE.Group(); root.name = "board";
-  for (const x of [-0.9, 0.9]) mesh(new THREE.BoxGeometry(0.1, 2.6, 0.1), brass(), x, 1.3, 0, root);
-  mesh(new THREE.BoxGeometry(1.95, 1.25, 0.12), dark(), 0, 1.85, 0, root);
-  mesh(new THREE.BoxGeometry(2.05, 0.1, 0.22), brass(), 0, 2.53, 0, root);
   const c = document.createElement("canvas"); c.width = 512; c.height = 320; const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
-  const face = new THREE.Mesh(new THREE.PlaneGeometry(1.85, 1.15), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false })); face.position.set(0, 1.85, 0.065); root.add(face);
+  const faceMat = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false });
+  let root: THREE.Group;
+  try {
+    root = vaultModel("vault_board");
+    const face = root.getObjectByName("board_face") as THREE.Mesh | undefined;
+    if (!face?.isMesh) throw new Error("vault_board: board_face is missing");
+    // the kit ships no UVs: map the panel's own bounds to 0..1 (x across, y up; the panel only leans back about x)
+    const g = face.geometry = face.geometry.clone(); g.computeBoundingBox();
+    const bb = g.boundingBox!, pos = g.attributes.position, uv = new Float32Array(pos.count * 2);
+    for (let i = 0; i < pos.count; i++) { uv[i * 2] = (pos.getX(i) - bb.min.x) / (bb.max.x - bb.min.x); uv[i * 2 + 1] = (pos.getY(i) - bb.min.y) / (bb.max.y - bb.min.y); }
+    g.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+    face.material = faceMat; face.castShadow = false;
+  } catch (e) {
+    console.warn("board: vault kit missing, blockout", e);
+    root = new THREE.Group(); root.name = "board";
+    for (const x of [-0.9, 0.9]) mesh(new THREE.BoxGeometry(0.1, 2.6, 0.1), brass(), x, 1.3, 0, root);
+    mesh(new THREE.BoxGeometry(1.95, 1.25, 0.12), dark(), 0, 1.85, 0, root);
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(1.85, 1.15), faceMat); face.position.set(0, 1.85, 0.065); root.add(face);
+  }
   function refresh(save: SaveV1) {
     const x = c.getContext("2d")!; x.fillStyle = "#15171a"; x.fillRect(0, 0, 512, 320);
-    x.fillStyle = "#c29a5b"; x.font = `700 46px "Barlow Condensed", "Arial Narrow", sans-serif`; x.textAlign = "left"; x.textBaseline = "middle"; x.fillText("DEPARTURES", 24, 42);
-    x.fillStyle = "#3b3940"; x.fillRect(24, 74, 464, 3);
+    x.fillStyle = "#c29a5b"; x.font = `700 44px "Barlow Condensed", "Arial Narrow", sans-serif`; x.textAlign = "left"; x.textBaseline = "middle"; x.fillText("DEPARTURES", 20, 40);
+    x.font = `600 22px "Barlow Condensed", "Arial Narrow", sans-serif`; x.textAlign = "right"; x.fillStyle = "#8a7a5c"; x.fillText("FARE", 492, 46);
+    x.fillStyle = "#3b3940"; x.fillRect(20, 70, 472, 3);
     DESTINATIONS.forEach((d, i) => {
-      const st = destinationState(d.id, save), y = 124 + i * 78;
-      x.fillStyle = "#23262a"; x.fillRect(18, y - 30, 476, 60);
-      x.fillStyle = st.unlocked ? "#f3ead6" : "#7d7568"; x.font = `600 38px "Barlow Condensed", "Arial Narrow", sans-serif`; x.textAlign = "left"; x.fillText(d.name.toUpperCase(), 32, y + 2);
-      x.textAlign = "right"; x.fillStyle = !st.unlocked ? "#7d7568" : d.cost ? "#f3d48a" : "#7dff8a"; x.fillText(!st.unlocked ? "LOCKED" : d.cost ? `${d.cost}` : "FREE", 482, y + 2);
+      const st = destinationState(d.id, save), y = 112 + i * 56;
+      if (y > 300) return;
+      let name = d.name.toUpperCase(); while (name.length > 16 && name.includes(" ")) name = name.slice(0, name.lastIndexOf(" ")); // whole words only
+      flaps(x, name, 20, y, 16, st.unlocked ? "#f3ead6" : "#7d7568");
+      flaps(x, !st.unlocked ? "LOCK" : d.cost ? `${d.cost}` : "FREE", 406, y, 4, !st.unlocked ? "#7d7568" : d.cost ? "#f3d48a" : "#7dff8a", true);
     });
     tex.needsUpdate = true;
   }

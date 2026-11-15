@@ -1,176 +1,79 @@
-// The vault you build in (G1.5 row 17): the room shell, a 3D model per facility (from the structures and house
-// kits, blockouts where no model exists yet), and build mode: catalog cards, a ghost that snaps to the 1 m grid
+// The vault you build in (G1.5 row 17): the room shell and a 3D model per facility, both from the vault kit
+// (home/vaultkit.ts, public/models/build/vault.glb), and build mode: catalog cards, a ghost that snaps to the 1 m grid
 // (green fits, red blocked, the cells shown under it), R rotates, a click pays and places; click a built facility to
 // move it (free) or pack it up into storage (Duckov's return: placing it again is free). Rules live in facilities.ts.
 import * as THREE from "three";
-import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { G } from "../core/state";
-import { mat, patch } from "../render/shading";
+import { mat } from "../render/shading";
 import { sfx } from "../core/audio";
 import { save } from "../core/save";
-import { asset, piecesToObject } from "../world/kit_build";
-import { houseModule } from "../world/kit_house";
-import { bake, kitMaterial } from "../world/kitutil";
 import { burst, floatText, popIn, squash } from "../../fx";
 import {
   AREA, CATALOG, STARTERS, anchorAt, build, canBuild, cellsOf, centreOf, checkPlace, defOf, frontRow, move, packUp, rotFoot, tokens, builtCount,
   type FacilityDef, type Item,
 } from "./facilities";
+import { buildShell, sconce, vaultModel, SCONCES_N, SCONCES_E } from "./vaultkit";
 
 // ---------------------------------------------------------------- models
-/** a kit asset as one Object3D, recentred on its footprint (x/z centre of its bounds, floor at y 0), turned so its
- *  front faces +z (yaw), scaled by s. Parts stay addressable by name. */
-function kit(name: string, o: { house?: boolean; yaw?: number; s?: number; x?: number; z?: number; y?: number } = {}) {
-  const b = o.house ? houseModule(name) : asset(name);
-  const g = new THREE.Group(); g.name = name;
-  const body = piecesToObject(b.pieces, name); body.add(b.parts.root); // parts.root sits at the asset origin, same space as the pieces
-  const box = new THREE.Box3().setFromObject(body), c = box.getCenter(new THREE.Vector3());
-  body.position.set(-c.x, -box.min.y, -c.z);
-  const turn = new THREE.Group(); turn.add(body); turn.rotation.y = o.yaw ?? 0; turn.scale.setScalar(o.s ?? 1);
-  g.add(turn); g.position.set(o.x ?? 0, o.y ?? 0, o.z ?? 0);
-  g.userData.parts = b.parts;
-  return g;
-}
-const M_ = (c: string, rough = 0.8) => mat(c, { rough });
-function box(w: number, h: number, d: number, c: string, x: number, y: number, z: number, parent: THREE.Object3D, rough = 0.8) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), M_(c, rough)); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m;
-}
-/** the safe-deposit wall: a steel cabinet of small brass-knobbed doors (blockout, one merged mesh) */
-function depositWall() {
-  const geos: THREE.BufferGeometry[] = [], B = (w: number, h: number, d: number, c: string, x: number, y: number, z: number) => geos.push(bake(new THREE.BoxGeometry(w, h, d), c, new THREE.Matrix4().makeTranslation(x, y, z)));
-  B(2.8, 2.3, 0.7, "#4b5558", 0, 1.15, -0.1); B(2.9, 0.12, 0.8, "#c29a5b", 0, 2.36, -0.1); B(2.9, 0.12, 0.8, "#2c3133", 0, 0.06, -0.1);
-  for (let r = 0; r < 5; r++) for (let c = 0; c < 6; c++) {
-    const x = -1.12 + c * 0.448, y = 0.38 + r * 0.4;
-    B(0.4, 0.34, 0.04, (r + c) % 3 ? "#6a777b" : "#7c898c", x, y, 0.27);
-    geos.push(bake(new THREE.SphereGeometry(0.035, 8, 6), "#e2bf82", new THREE.Matrix4().makeTranslation(x + 0.12, y, 0.31)));
-  }
-  const g = new THREE.Group(); const m = new THREE.Mesh(mergeAll(geos), kitMaterial("matte")); m.castShadow = m.receiveShadow = true; g.add(m); return g;
-}
-/** the coin-op ammo press (blockout): a cast base, two columns, a crossbeam, the ram, a flywheel and an outlet tray */
-function ammoPress() {
-  const g = new THREE.Group();
-  box(1.5, 0.55, 1.0, "#3b4246", 0, 0.28, -0.1, g); box(1.2, 0.08, 0.8, "#c29a5b", 0, 0.59, -0.1, g, 0.35);
-  for (const x of [-0.55, 0.55]) box(0.16, 1.5, 0.16, "#2e3336", x, 1.35, -0.25, g);
-  box(1.35, 0.3, 0.4, "#c29a5b", 0, 2.15, -0.25, g, 0.35); box(0.3, 0.7, 0.3, "#9a7a48", 0, 1.65, -0.25, g, 0.4);
-  const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.07, 10, 28), M_("#8a6a3a", 0.4)); wheel.position.set(0.86, 1.4, -0.25); wheel.rotation.y = Math.PI / 2; wheel.castShadow = true; g.add(wheel); wheel.name = "flywheel";
-  for (let i = 0; i < 4; i++) box(0.05, 0.95, 0.05, "#8a6a3a", 0.86, 1.4, -0.25, g).rotation.x = (i * Math.PI) / 4;
-  box(0.6, 0.12, 0.4, "#5a4a32", 0, 0.68, 0.5, g); // outlet tray
-  const a = kit("ammo_box", { s: 0.8, x: -0.45, z: 0.55, y: 0 }); g.add(a);
-  return g;
-}
-const mergeAll = (geos: THREE.BufferGeometry[]) => mergeGeometries(geos, false)!;
-function postBoard(w: number, h: number, y: number, z: number, parent: THREE.Object3D) {
-  for (const x of [-w / 2 + 0.06, w / 2 - 0.06]) box(0.1, y + h, 0.1, "#5a4430", x, (y + h) / 2, z, parent);
-  return box(w, h, 0.08, "#6e5640", 0, y + h / 2, z - 0.02, parent);
-}
+/** facility id -> vault kit asset (the "blueprints" starter is fac_blueprint; the rest are fac_<id>) */
+const MODEL: Record<string, string> = { blueprints: "fac_blueprint" };
+/** nodes that stay hidden until something is bought (home/bunker.ts refreshFixtures shows them) */
+const HIDDEN = ["fx_mag", "fx_pack", "fx_heart", "neon"];
+/** moving parts: [node, rotation axis, radians per second, runs only with the generator built] */
+const SPIN: [string, "x" | "z", number, boolean][] = [["press_wheel", "x", 2.6, true], ["gen_wheel", "z", -5.2, false]];
+type Spinner = { o: THREE.Object3D; axis: "x" | "z"; speed: number; power: boolean };
 
 /** one facility's model: origin at its footprint centre (rotation 0), front +z, floor y 0, inside w x d.
- *  Named children are the visible upgrades home/bunker.ts toggles: fx_mag, fx_pack, fx_heart (bench), neon (Sal). */
+ *  Named nodes: fx_mag, fx_pack, fx_heart (bench) and neon (Sal) are the visible upgrades home/bunker.ts toggles;
+ *  slot0..8 (trophy wall) are the shelf points; press_wheel and gen_wheel turn (animateFacilities). */
 export function facilityModel(id: string): THREE.Group {
   const g = new THREE.Group(); g.name = `fac_${id}`;
   try {
-    if (id === "fence") g.add(kit("bunker_counter", { z: 0.1 }));
-    else if (id === "bench") {
-      g.add(kit("bunker_workbench", { z: 0.25 }));
-      postBoard(2.8, 1.6, 0.9, -0.8, g);
-      const mag = kit("bunker_fx_mag", { x: -0.45, y: 1.2, z: -0.66 }); mag.name = "fx_mag"; g.add(mag);
-      const pack = kit("bunker_fx_pack", { x: 0.95, y: 0.95, z: -0.6, s: 0.75 }); pack.name = "fx_pack"; g.add(pack);
-      const heart = kit("banana_stash", { x: 0.95, y: 1.0, z: 0.4, s: 0.55 }); heart.name = "fx_heart"; g.add(heart);
-    } else if (id === "sal") {
-      g.add(kit("desk", { house: true, z: 0.45 }));
-      g.add(kit("shelf_files", { house: true, z: -0.78, x: -0.9, s: 0.8 }));
-      g.add(kit("bunker_pinboard", { y: 1.0, z: -0.88, x: 0.55, s: 0.6 }));
-      const neon = kit("bunker_fx_neon", { y: 2.55, z: -0.9, s: 0.72 }); neon.name = "neon"; g.add(neon);
-    } else if (id === "trophy") g.add(kit("bunker_shelf", { yaw: Math.PI / 2, z: -0.1 }));
-    else if (id === "med") {
-      g.add(kit("table", { house: true, x: -0.55 }));
-      g.add(kit("cont_medical", { x: -0.55, y: 1.0, s: 0.95 }));
-      g.add(kit("cabinet", { house: true, x: 1.0, s: 1.15 }));
-    } else if (id === "stash") g.add(depositWall());
-    else if (id === "generator") {
-      g.add(kit("generator", { house: true, s: 1.7, z: -0.15 }));
-      g.add(kit("drum", { house: true, x: 0.62, z: 0.55, s: 0.85 }));
-      box(0.12, 1.6, 0.12, "#2e3336", -0.75, 0.8, -0.7, g); box(0.12, 0.12, 0.7, "#2e3336", -0.75, 1.55, -0.35, g);
-      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color("#ffd27a").multiplyScalar(2.4), toneMapped: false })); bulb.position.set(-0.75, 1.7, -0.7); g.add(bulb);
-    } else if (id === "press") g.add(ammoPress());
-    else if (id === "desk") { g.add(kit("bunker_desk", { yaw: -Math.PI / 2, z: 0.15 })); g.add(kit("chair", { house: true, z: -0.7, x: 0.4 })); }
-    else if (id === "plant") g.add(kit("plant", { house: true, s: 0.72 }));
-    else if (id === "locker") {
-      for (const x of [-1.05, -0.4]) g.add(kit("cabinet", { house: true, x, s: 1.35 }));
-      g.add(kit("bunker_mirror", { yaw: -Math.PI / 2, x: 0.75, s: 0.62 }));
-    } else if (id === "blueprints") {
-      g.add(kit("table", { house: true, z: 0 }));
-      const sheet = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.62), new THREE.MeshStandardMaterial({ map: blueprintTex(), roughness: 0.9 })); sheet.rotation.x = -Math.PI / 2; sheet.rotation.z = 0.08; sheet.position.set(-0.05, 1.125, 0.02); g.add(sheet);
-      g.add(kit("lantern", { house: true, x: 0.6, y: 1.11, z: -0.2 }));
-    }
-  } catch (e) { console.warn(`facility model ${id}: kit missing, blockout`, e); }
-  if (!g.children.length) { const d = defOf(id) ?? STARTERS.find((s) => s.id === id) ?? { w: 1, d: 1 }; box(d.w - 0.2, 1, d.d - 0.2, "#8a7a64", 0, 0.5, 0, g); }
-  g.traverse((o) => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    const m = vaultModel(MODEL[id] ?? `fac_${id}`); g.add(m);
+    for (const n of HIDDEN) { const f = m.getObjectByName(n); if (f) f.visible = false; }
+    const spin: Spinner[] = [];
+    for (const [n, axis, speed, power] of SPIN) { const o = m.getObjectByName(n); if (o) spin.push({ o, axis, speed, power }); }
+    if (spin.length) g.userData.spin = spin;
+    const lamp = m.getObjectByName("gen_lamp"); if (lamp) g.userData.lamp = lamp;
+  } catch (e) { console.warn(`facility model ${id}: vault kit missing, blockout`, e); }
+  if (!g.children.length) {
+    const d = defOf(id) ?? STARTERS.find((s) => s.id === id) ?? { w: 1, d: 1 };
+    const m = new THREE.Mesh(new THREE.BoxGeometry(d.w - 0.2, 1, d.d - 0.2), mat("#8a7a64")); m.position.y = 0.5; m.castShadow = m.receiveShadow = true; g.add(m);
+  }
   return g;
 }
-let BP: THREE.Texture | null = null;
-function blueprintTex() {
-  if (BP) return BP;
-  const c = document.createElement("canvas"); c.width = 256; c.height = 144; const x = c.getContext("2d")!;
-  x.fillStyle = "#2a5d9a"; x.fillRect(0, 0, 256, 144); x.strokeStyle = "rgba(220,235,255,.35)"; x.lineWidth = 1;
-  for (let i = 0; i < 256; i += 16) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, 144); x.stroke(); } for (let j = 0; j < 144; j += 16) { x.beginPath(); x.moveTo(0, j); x.lineTo(256, j); x.stroke(); }
-  x.strokeStyle = "#eaf3ff"; x.lineWidth = 3; x.strokeRect(30, 26, 120, 80); x.strokeRect(166, 40, 60, 52); x.beginPath(); x.moveTo(30, 66); x.lineTo(150, 66); x.stroke();
-  BP = new THREE.CanvasTexture(c); BP.colorSpace = THREE.SRGBColorSpace; return BP;
+/** flywheels and the generator's lamp (home/bunker.ts calls this every frame with the built facilities) */
+export function animateFacilities(objects: Iterable<THREE.Object3D>, dt: number, time: number, powered: boolean) {
+  for (const o of objects) {
+    const spin = o.userData.spin as Spinner[] | undefined;
+    if (spin) for (const s of spin) if (!s.power || powered) s.o.rotation[s.axis] += s.speed * dt;
+    const lamp = o.userData.lamp as THREE.Object3D | undefined;
+    if (lamp) lamp.scale.setScalar(1 + 0.07 * Math.sin(time * 9));
+  }
 }
 
 // ---------------------------------------------------------------- the room shell
 export const LAMPS: THREE.PointLight[] = [];
-/** the vault: a 33 x 25 m tiled floor (one tile = one build cell), steel walls with brass trim on three sides (the
- *  camera side is cut away, as before), pillars, a big round vault door on the back wall, ceiling lamps */
+/** the vault: a 33 x 25 m marble floor (one square = one build cell), panelled walls on the back and east sides (the
+ *  camera side is cut away: a kerb marks it), the round vault door, sconces on the pilasters. All of it is the vault
+ *  kit's shell pieces, placed by vaultkit.ts shellLayout(). */
 export function buildVault(scene: THREE.Scene) {
-  const W = AREA.maxX - AREA.minX + 1, D = AREA.maxZ - AREA.minZ + 1, x0 = AREA.minX - 0.5, x1 = AREA.maxX + 0.5, z0 = AREA.minZ - 0.5, z1 = AREA.maxZ + 0.5;
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), patch(new THREE.MeshStandardMaterial({ map: floorTex(W, D), roughness: 0.75 }), { rim: 0, cookie: false }));
-  floor.rotation.x = -Math.PI / 2; floor.position.set((x0 + x1) / 2, 0, (z0 + z1) / 2); floor.receiveShadow = true; scene.add(floor);
-  const geos: THREE.BufferGeometry[] = [], B = (w: number, h: number, d: number, c: string, x: number, y: number, z: number) => geos.push(bake(new THREE.BoxGeometry(w, h, d), c, new THREE.Matrix4().makeTranslation(x, y, z)));
-  const H = 6.4, T = 0.5;
-  B(W + 2 * T, 0.3, D + T, "#2c2621", (x0 + x1) / 2, -0.16, (z0 + z1) / 2 - T / 2); // slab under the floor edge
-  // back (north) and east walls; the camera looks in from the south-west, so the south and west sides are cut away
-  // (as the old bunker was) and only a brass-studded kerb marks the edge
-  B(W + T, H, T, "#3e4a48", (x0 + x1) / 2 + T / 2, H / 2, z0 - T / 2);
-  B(T, H, D + T, "#394543", x1 + T / 2, H / 2, (z0 + z1) / 2 - T / 2);
-  B(W, 1.1, 0.08, "#2b3432", (x0 + x1) / 2, 0.55, z0 + 0.04); B(0.08, 1.1, D, "#2b3432", x1 - 0.04, 0.55, (z0 + z1) / 2);
-  for (const y of [1.12, H - 0.15]) { B(W, 0.1, 0.14, "#c29a5b", (x0 + x1) / 2, y, z0 + 0.06); B(0.14, 0.1, D, "#c29a5b", x1 - 0.06, y, (z0 + z1) / 2); }
-  // pilasters sunk into the walls (they never reach into a build cell)
-  for (const x of [-8.5, 8.5, x1 + 0.1]) { B(0.8, H, 0.3, "#4c5a57", x, H / 2, z0 - 0.05); B(0.95, 0.22, 0.4, "#c29a5b", x, H - 0.1, z0 - 0.05); }
-  for (const z of [-4, 4]) { B(0.3, H, 0.8, "#4c5a57", x1 + 0.05, H / 2, z); B(0.4, 0.22, 0.95, "#c29a5b", x1 + 0.05, H - 0.1, z); }
-  B(0.18, 0.14, D + 0.3, "#2c2621", x0 - 0.09, 0.07, (z0 + z1) / 2); B(W + 0.3, 0.14, 0.18, "#2c2621", (x0 + x1) / 2, 0.07, z1 + 0.09); // kerbs
-  for (let i = 0; i <= W; i += 1) B(0.06, 0.04, 0.06, "#c29a5b", x0 + i, 0.16, z1 + 0.09);
-  for (let j = 0; j <= D; j += 1) B(0.06, 0.04, 0.06, "#c29a5b", x0 - 0.09, 0.16, z0 + j);
-  const shell = new THREE.Mesh(mergeAll(geos), kitMaterial("matte")); shell.castShadow = false; shell.receiveShadow = true; scene.add(shell);
-  // the vault door (decor): a big round steel door with a brass wheel, on the back wall west of the pod
-  const door = new THREE.Group(); door.position.set(13.2, 2.9, z0 + 0.02); door.scale.setScalar(0.95);
-  const dm = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 2.0, 0.35, 40), M_("#6a777b", 0.45)); dm.rotation.x = Math.PI / 2; dm.position.z = 0.18; door.add(dm);
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(2.05, 0.14, 10, 40), M_("#c29a5b", 0.35)); rim.position.z = 0.2; door.add(rim);
-  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.3, 16), M_("#c29a5b", 0.35)); hub.rotation.x = Math.PI / 2; hub.position.z = 0.45; door.add(hub);
-  for (let i = 0; i < 3; i++) { const sp = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.1, 0.1), M_("#c29a5b", 0.35)); sp.position.z = 0.5; sp.rotation.z = (i * Math.PI) / 3; door.add(sp); }
-  door.traverse((o) => { o.castShadow = false; }); scene.add(door);
-  // wall sconces (brass cups with a warm bulb) and their lights, in two banks: the generator switches on the second
-  const sconces: [number, number, number, number][] = [[-4.5, z0 + 0.12, 0, 0], [4.5, z0 + 0.12, 0, 0], [-13, z0 + 0.12, 0, 1], [x1 - 0.12, -8, -Math.PI / 2, 1], [x1 - 0.12, 0, -Math.PI / 2, 0], [x1 - 0.12, 8, -Math.PI / 2, 1]];
-  for (const [x, z, yaw, bank] of sconces) {
-    const g = new THREE.Group(); g.position.set(x, 3.3, z); g.rotation.y = yaw; scene.add(g);
-    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.14, 0.3, 14), M_("#c29a5b", 0.35)); cup.position.set(0, 0, 0.22); g.add(cup);
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.26), M_("#c29a5b", 0.35)); arm.position.set(0, -0.12, 0.1); g.add(arm);
-    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color("#ffd8a0").multiplyScalar(2.2), toneMapped: false })); bulb.position.set(0, 0.16, 0.22); g.add(bulb);
-    const l = new THREE.PointLight("#ffcf94", 24, 16, 1.3); l.position.set(x + Math.sin(yaw) * 1.2, 3.6, z + Math.cos(yaw) * 1.2); l.userData.bank = bank; l.userData.bulb = bulb; scene.add(l); LAMPS.push(l);
+  try { scene.add(buildShell()); }
+  catch (e) { // the kit did not load: a plain floor, so the base still works
+    console.warn("vault shell: kit missing, blockout floor", e);
+    const W = AREA.maxX - AREA.minX + 1, D = AREA.maxZ - AREA.minZ + 1;
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mat("#c9b490", { rim: 0, cookie: false })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
   }
-  // two unseen fill lights over the middle of the floor (the ceiling is out of frame)
-  for (const [x, z, bank] of [[-6, 2, 0], [6, 2, 1], [-13, 6, 0], [-13, -4, 1]] as const) { const l = new THREE.PointLight("#ffd6a8", 30, 20, 1.2); l.position.set(x, 5, z); l.userData.bank = bank; l.userData.bulb = new THREE.Object3D(); scene.add(l); LAMPS.push(l); }
-}
-/** tile floor: one 1 m tile per build cell (marble squares, brass inlay along the border) */
-function floorTex(W: number, D: number) {
-  const px = 48, c = document.createElement("canvas"); c.width = W * px; c.height = D * px; const x = c.getContext("2d")!;
-  for (let i = 0; i < W; i++) for (let j = 0; j < D; j++) {
-    const v = (i * 7919 + j * 104729) % 9, odd = (i + j) & 1;
-    x.fillStyle = odd ? `rgb(${178 + v},${160 + v},${130 + v})` : `rgb(${196 + v},${180 + v},${150 + v})`; x.fillRect(i * px, j * px, px, px);
+  // wall sconces and their lights, in two banks: the generator switches on the second
+  const lamp = (at: THREE.Vector3, bank: number, bulb: THREE.Object3D, power = 24, reach = 16, decay = 1.3, color = "#ffcf94") => {
+    const l = new THREE.PointLight(color, power, reach, decay); l.position.copy(at); l.userData.bank = bank; l.userData.bulb = bulb; scene.add(l); LAMPS.push(l);
+  };
+  for (const [list, q] of [[SCONCES_N, 0], [SCONCES_E, -1]] as const) for (const [along, bank] of list) {
+    try { const s = sconce(along, q); scene.add(s.obj); lamp(s.light, bank, s.bulb); }
+    catch { lamp(q ? new THREE.Vector3(AREA.maxX - 0.7, 3.6, along) : new THREE.Vector3(along, 3.6, AREA.minZ + 0.7), bank, new THREE.Object3D()); }
   }
-  x.strokeStyle = "rgba(60,44,30,.35)"; x.lineWidth = 2; for (let i = 0; i <= W; i++) { x.beginPath(); x.moveTo(i * px, 0); x.lineTo(i * px, D * px); x.stroke(); } for (let j = 0; j <= D; j++) { x.beginPath(); x.moveTo(0, j * px); x.lineTo(W * px, j * px); x.stroke(); }
-  x.strokeStyle = "#a8834c"; x.lineWidth = 6; x.strokeRect(px * 0.5, px * 0.5, (W - 1) * px, (D - 1) * px);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+  // unseen fill lights over the middle of the floor (the ceiling is out of frame)
+  for (const [x, z, bank] of [[-6, 2, 0], [6, 2, 1], [-13, 6, 0], [-13, -4, 1]] as const) lamp(new THREE.Vector3(x, 5, z), bank, new THREE.Object3D(), 30, 20, 1.2, "#ffd6a8");
 }
 
 // ---------------------------------------------------------------- build mode

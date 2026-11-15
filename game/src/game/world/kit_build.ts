@@ -73,7 +73,7 @@ export type Built = { pieces: KitPiece[]; parts: Record<string, THREE.Object3D> 
 type Meta = { footprint: number; blocksMove: boolean; blocksShot: boolean; tall: boolean; glow: number; tris: number };
 type Src = { name: string; meta: Meta; statics: { geo: THREE.BufferGeometry; mat: MatId }[]; nodes: THREE.Object3D[] };
 
-export const BUILD_GROUPS = ["loot", "camp", "walls", "ruins", "landmarks", "traversal", "bunker", "containers", "projectiles"] as const;
+export const BUILD_GROUPS = ["loot", "camp", "walls", "ruins", "landmarks", "traversal", "bunker", "containers", "projectiles", "vault"] as const;
 const LIB = new Map<string, Src>();
 let loading: Promise<void> | null = null;
 
@@ -100,7 +100,7 @@ function ingest(scene: THREE.Object3D) {
       ch.traverse((o) => {
         const mesh = o as THREE.Mesh; if (!mesh.isMesh) return;
         const mm = (o.userData.mat ?? "matte") as MatId;
-        mesh.geometry = normalise(mesh.geometry, mm, meta.glow, undefined, true); mesh.material = kitMaterial(mm);
+        mesh.geometry = normalise(mesh.geometry, mm, meta.glow, undefined, true); mesh.material = kitMaterial(mm) ?? kitMaterial("matte"); // the vault group's own mats (gloss, glass) are dressed by home/vaultkit.ts
         mesh.castShadow = mm !== "emissive"; mesh.receiveShadow = mm !== "emissive";
       });
       ch.name = (ch.userData.part as string) ?? ch.name;

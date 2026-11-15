@@ -200,3 +200,49 @@ Six more typed containers in the `containers` kit group, built and gated like th
 | `cont_sack` | 858 | the gathered neck of the sack, hinged at the back of the mouth: it flops back |
 
 Icons: `tools/items/icon_containers.py`, then `tools/items/render.py` and `tools/items/compose.py` with `--only`.
+
+## The Vault kit (`tools/blender/build/g_vault.py`, `vault_fac.py`, `vault_fac2.py`)
+
+The home base: the Banana Express pod, the departures board, the room shell and one model per facility. It is a group
+of the structures kit, so it builds, exports and loads the same way (`lib.py`, vertex colours with baked AO, no UVs).
+
+```
+B=/home/moo/.local/bin/blender
+$B -b --factory-startup --python-exit-code 1 --python tools/blender/build/build.py -- --group vault    # -> public/models/build/vault.glb + blend/vault.blend
+$B -b tools/blender/build/blend/vault.blend --python tools/blender/build/qa.py                          # QA gate, every piece
+python3 tools/blender/build/merge_manifest.py && $B -b --factory-startup --python tools/blender/build/verify_glb.py
+node tools/blender/build/check_vault.mjs                                                               # pieces, named nodes, lamp_emit
+$B -b tools/blender/build/blend/vault.blend --python-exit-code 1 -P tools/blender/build/vault_review.py -- /tmp/vault_shots all 560
+python3 tools/blender/build/vault_sheet.py /tmp/vault_shots research/look/vault_v3                      # the review sheets
+BASE=http://127.0.0.1:5354 node tools/vaultshots.mjs research/look/vault_v3/game                        # captures from a production build
+```
+`BUILD_TRIS=1` on the build prints the triangles each source line adds, per piece. `MONKEY_BLEND=<path>` tells the
+review mock where `monkey.blend` is (default: next to the script).
+
+**Space.** Front faces -y in Blender, +z in the game. Facilities, the pod and the board have their origin on the floor
+at the centre of their footprint (`home/facilities.ts`, 1 m cells) and stay inside it and under 2.45 m. Shell pieces
+that run along a wall have their origin on the floor on the edge of the build grid, and all of their geometry is on
+the wall's side of that line, so nothing below the sconces reaches into a build cell.
+
+**Nodes.** Parts keep their bare names in the GLB (`asset.bare`): `pod_door` (pivot on the hinge, rotation.y 0 shut,
+-1.9 open), `pod_needle` (pivot on the dial's axle, rotation.z), `pod_lamp` (material `lamp_emit`), `pod_glass`,
+`board_face`, `door_wheel`, `sconce_bulb`, `press_wheel` (axis x), `gen_wheel` (axis z), `gen_lamp`, `fx_mag`,
+`fx_pack`, `fx_heart`, `neon`, `bell`, `mirror_glass`, `bp_sheet`. Trophy points are `slot0..8`. Rename one and
+`home/basebuild.ts`, `home/dispatch.ts` or `home/bunker.ts` stops finding it; `check_vault.mjs` lists them all.
+
+**Materials.** `matte`, `gloss` (polished brass and lacquer), `glass`, `emissive`. The game's versions are in
+`src/game/home/vaultkit.ts`. They leave out the canopy cookie the island's kit materials carry, because the vault is
+indoors.
+
+**What `lib.py` gained for this kit.** Digits 2, 3, 6, 7, 8, 9 in the stroke font. `Geo.ghost = True` for a fixture
+that is hidden until bought: it is lit against everything, but the piece it sits on carries no shadow of it.
+`Geo.matname` to name a part's material. Glass never occludes.
+
+**Budget rule.** Under 2,500 triangles a facility, 4,000 for the pod. In this group a box thinner than 7.5 cm or a
+rod thinner than 6 cm gets no bevel (`g_vault.py` wraps `Geo.box` and `Geo.cyl`): the bevel is under a pixel at the
+bunker camera and costs 32 triangles a box.
+
+**QA habits that bit here.** Two unbevelled boxes that share a face plane z-fight in the gate even when the faces are
+hidden, so let trims stop a few millimetres short or stand on the surface instead of sinking into it. Strokes of one
+painted letter must not share a plane: leave `paint_text`'s lift on automatic. A loose prop on the floor counts as a
+floating part unless it stands on something that belongs to the piece (a rug, a drip tray).
