@@ -3,8 +3,9 @@
 //  - Search (POLISH_FINDINGS 1; Sol's loot/search.ts): a container opens after its own delay, then reveals one item at a
 //    time (1 s, 1.5 s rare, 2 s epic, times the gear's search factor). Walking away pauses it; coming back resumes the same
 //    session. Bodies hold what the enemy wore and carried (loot/bodies.ts), searched the same way.
-//  - The looting screen (row 05) belongs to the lead's UI: it registers on lootHook (loot/lootables.ts) and shows the
-//    session's slots. Until it does, and always for the bot, each revealed item is tossed out onto the ground instead.
+//  - E opens the shared looting screen (ui/lootview.ts openLoot, UI v3) on the lootable's session: it reveals one item at
+//    a time only while it is open and keeps the items list and the session in step. The bot can't use a screen: with
+//    G.bot set the world runs the same session itself and tosses each revealed item onto the ground for it to pick up.
 //  - Ground items (loot/ground.ts): Duckov's toss when something is dropped, at rest when it is placed, E to pick up the
 //    selected one (the nearest within reach, drawn with a warm rim). A full pack never deletes loot: the find stays on
 //    the ground and E swaps it for your cheapest loose item (rule 20).
@@ -30,7 +31,8 @@ import { hud } from "../ui/hud";
 import { KINGPIN } from "../combat/weapons";
 import { makeNoise } from "../combat/combat";
 import { takeModel, releaseModel, throwVelocity, stepThrow, poseModel, PICK_REACH, hullResolution } from "./ground";
-import { lootHook } from "./lootables";
+import { openLoot, closeLoot, lootOpen, type LootTarget } from "../ui/hud";
+import { lootTarget } from "../ui/lootview";
 
 export const containerType = (crate: Crate) => crate.type;
 export const RAR_COLOR: Record<string, string> = { common: "#f3ead6", uncommon: "#6ad16a", rare: "#4aa8ff", epic: "#c77dff" };
@@ -76,7 +78,7 @@ export function setupCrates() {
     G.stage.scene.add(obj);
     const box = new THREE.Box3().setFromObject(obj), r = Math.max(0.45, Math.min(0.75, Math.max(box.max.x - box.min.x, box.max.z - box.min.z) * 0.42));
     block(s.x, s.z, r, true);
-    const c: Crate = { id: nid++, x: s.x, z: s.z, tier: s.type === "weapon" ? "green" : "wood", obj, opened: false, search: 0, items: null, kind: "container", type: s.type, label: CONTAINERS[s.type].label, socket: s.id, r };
+    const c: Crate = { id: nid++, x: s.x, z: s.z, tier: s.type === "weapon" ? "green" : "wood", obj, opened: false, search: 0, items: null, kind: "container", type: s.type, label: CONTAINERS[s.type].label, socket: s.id, note: s.note[0].toUpperCase() + s.note.slice(1), r };
     G.crates.push(c);
     obj.updateMatrixWorld(true); const at = (b.parts.mark ?? b.parts.root).getWorldPosition(new THREE.Vector3()); at.y += 0.25; addMark(c, at, TYPE_COLOR[s.type]);
   }
@@ -115,7 +117,20 @@ let searching: Crate | null = null;
 export const currentSearch = () => searching;
 /** the nearest thing to search within reach (bodies a little closer: you crouch over them) */
 export function nearestCrate(r = 1.9) { let best: Crate | null = null, bd = r; for (const c of G.crates) { if (c.opened) continue; const d = flat(c, G.pp) - (c.kind === "body" ? 0.3 : 0); if (d < bd) { bd = d; best = c; } } return best; }
-/** start (or resume) searching a lootable. Returns its session */
+/** what the looting screen calls a container (the lead's names, by type) */
+export const CONTAINER_NAME: Record<ContainerType, string> = { weapon: "Weapon crate", food: "Food box", ammo: "Ammo tin", parts: "Material crate", medical: "Medical box" };
+const BODY_NAME: Record<Enemy["kind"], string> = { wild: "Wild monkey", bandit: "Peel Gang bandit", brute: "Plantation brute", sleeper: "The Sleeper" };
+/** the screen's view of a lootable: the live items list and its session (they stay in step: the screen splices both) */
+function lootTargetOf(c: Crate, s: SearchSession): LootTarget {
+  if (c.kind === "body") c.items = s.slots.filter((q) => !q.taken).map((q) => q.item);
+  c.items ??= s.slots.filter((q) => !q.taken).map((q) => q.item);
+  const name = c.kind === "body" ? (c.enemy?.tag === "plantation-foreman" ? "Foreman Knucklebark" : BODY_NAME[c.enemy?.kind ?? "bandit"]) : c.kind === "container" && c.type ? CONTAINER_NAME[c.type] : c.fixed === "satchel" ? "Your satchel" : c.fixed === "key" ? "Gang strongbox" : `${c.tier[0].toUpperCase()}${c.tier.slice(1)} crate`;
+  const sub = c.kind === "body" ? "Knocked out" : c.note;
+  return { name, sub, kind: c.kind === "body" ? "body" : "container", items: c.items, search: s,
+    near: () => G.alive && G.rollT < 0 && flat(c, G.pp) < 2.2,
+    onClose: () => { if (searching === c) searching = null; if (emptied(c)) c.opened = true; } };
+}
+/** start (or resume) searching a lootable: opens the looting screen on it (the bot: the world runs the search). Returns its session */
 export function beginSearch(c: Crate) {
   const s = sessionOf(c);
   if (!c.started) {
@@ -123,12 +138,12 @@ export function beginSearch(c: Crate) {
     if (c.kind !== "body") { sfx("crate"); squashOpen(c); makeNoise(V(c.x, c.z), { wood: 3, green: 6, gold: 10 }[c.tier], "loot"); }
     if (c.fixed === "satchel") { G.save.satchel = null; hud.toast("You got your satchel back!"); }
   }
-  searching = c; sfx("crateTick");
-  if (s && !s.slots.length) { c.opened = true; floatText(c.kind === "body" ? "pockets empty" : "empty... 🕸️", V(c.x, c.z, 1.6), "#8a7d6a", 22); searching = null; }
-  else lootHook.ui?.open(c);
+  if (!s || !s.slots.length) { c.opened = true; floatText(c.kind === "body" ? "pockets empty" : "empty... 🕸️", V(c.x, c.z, 1.6), "#8a7d6a", 22); return s; }
+  searching = c;
+  if (!G.bot) openLoot(lootTargetOf(c, s)); else sfx("crateTick");
   return s;
 }
-export function endSearch() { if (searching) lootHook.ui?.close(searching); searching = null; hud.search(null, 0); }
+export function endSearch() { if (searching && lootOpen() && lootTarget()) closeLoot(); searching = null; hud.search(null, 0); }
 
 // ---------------------------------------------------------------- bodies (row 18)
 /** a knocked-out enemy becomes a searchable body where it fell (it stays down with its stars, ai/enemies.ts) */
@@ -162,8 +177,9 @@ export function updateLoot(dt: number) {
       if (G.intent.interact) beginSearch(near);
     }
   }
-  // the search itself
-  if (searching) {
+  // the search itself: the looting screen runs it (ui/lootview.ts); for the bot the world does, and tosses each find out
+  if (searching && !G.bot) { if (!lootOpen()) searching = null; else if (emptied(searching)) searching.opened = true; }
+  else if (searching) {
     const c = searching, s = c.session;
     if (flat(c, G.pp) > 2.2 || G.rollT >= 0 || !G.alive || !s) endSearch();
     else {
@@ -172,8 +188,7 @@ export function updateLoot(dt: number) {
       c.search = s.duration > 0 ? s.elapsed / s.duration : 1;
       hud.search(c, c.search);
       if (shown.length) sfx("crateTick");
-      // no looting screen yet (or the bot): each revealed item is tossed out toward you
-      if (!lootHook.ui || G.bot) {
+      {
         for (let i = before; i < s.slots.length; i++) {
           const slot = s.slots[i]; if (!slot.revealed || slot.taken) continue;
           const item = take(s, i); if (!item) continue;
@@ -187,7 +202,6 @@ export function updateLoot(dt: number) {
         }
       }
       if (emptied(c)) { c.opened = true; endSearch(); }
-      else if (s.elapsed >= s.duration && lootHook.ui && !G.bot) { /* fully revealed: the screen stays open until you close it */ }
     }
   }
   for (const k of marks) {
@@ -227,6 +241,8 @@ export function placeItem(item: string, x: number, z: number, n?: number) {
 }
 /** the old entry point: k of n items around a point. Placed at rest on open ground in reach of the point */
 export function spawnPickup(id: string, from: THREE.Vector3, k = 0, n = 1, n2?: number) {
+  // dropped by you (the loot screen's Drop: from your own position): Duckov's toss along your aim, not a placement
+  if (n === 1 && k === 0 && G.scene === "raid" && flat(from, G.pp) < 0.3) return dropItem(id, from.clone().setY(G.pp.y + 1), G.aimYaw, n2);
   let a = (k / Math.max(1, n)) * Math.PI * 2 + G.rng(), r = 1.2 + G.rng() * 0.5, tx = from.x, tz = from.z;
   for (let t = 0; t < 12; t++) { tx = from.x + Math.cos(a) * r; tz = from.z + Math.sin(a) * r; if (walkable(tx, tz) && los(from.x, from.z, tx, tz)) break; a += 2.4; if (t % 3 === 2) r = Math.max(0.9, r - 0.2); if (t === 11) { tx = G.pp.x; tz = G.pp.z; } }
   return placeItem(id, tx, tz, n2);

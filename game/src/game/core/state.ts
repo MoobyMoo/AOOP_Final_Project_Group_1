@@ -20,7 +20,7 @@ export type Rang = { p: THREE.Vector3; from: THREE.Vector3; dir: THREE.Vector3; 
 export type Crate = {
   id: number; x: number; z: number; tier: "wood" | "green" | "gold"; fixed?: string; obj: THREE.Object3D; opened: boolean; search: number; items: string[] | null; beam?: THREE.Object3D;
   kind?: "crate" | "container" | "body"; type?: "weapon" | "food" | "ammo" | "parts" | "medical"; label?: string; socket?: string;
-  session?: import("../loot/search").SearchSession | null; started?: boolean; enemy?: Enemy; r?: number;
+  session?: import("../loot/search").SearchSession | null; started?: boolean; enemy?: Enemy; r?: number; note?: string;
 };
 /** an item lying in the world as its own model (G1.5 row 04+). p = where it is (x, z; y = its height while it flies),
  *  v = velocity while thrown (Duckov's toss: rotation frozen), rest = settled. obj comes from a per-model pool */
