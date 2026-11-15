@@ -97,9 +97,9 @@ class Gun:
     def socket(self, name, at, rides="body"): self.sockets[name] = (tuple(round(v, 4) for v in at), rides)
     def point(self, name, at): self.points[name] = tuple(round(v, 4) for v in at)
     def pivot(self, node, at): self.pivots[node] = tuple(round(v, 4) for v in at)
-    def muzzle(self, at):
+    def muzzle(self, at, rides="body"):
         """the crown: where muzzle devices mount, and the flash point just ahead of it"""
-        self.socket("socket_muzzle", at)
+        self.socket("socket_muzzle", at, rides)
         self.point("muzzle_flash", (at[0], at[1], at[2] + FLASH_LEAD))
 
 # ------------------------------------------------------------------------------------------------ 2D helpers
@@ -256,6 +256,44 @@ def rail_under(name, zs, ys, mat):
     for dz in (-0.089, -0.022, 0.045):
         parts.append(prism(name + "_lug", [(x, ys + y) for x, y in LUG], zs + dz, zs + dz + 0.045, "z", mat))
     return parts
+
+def rail_stub(name, zs, ys, mat):
+    """the makeshift guns' rail: the bar alone, no lugs. The laser's clamp still closes round it."""
+    return box(name, (-0.05, ys + 0.015, zs - 0.094), (0.05, ys + 0.046, zs + 0.094), mat)
+
+def stripe_facets(ob, cx, cy, seg, mat, period=2, offset=0):
+    """repaint every `period`-th side facet of a lathe turned about z: a revolver's flutes, a can's ribs"""
+    for p in ob.data.polygons:
+        if abs(p.normal.z) > 0.3: continue
+        k = int(((atan2(p.center.y - cy, p.center.x - cx) % (2 * pi)) / (2 * pi / seg))) + offset
+        if k % period == 0: p.material_index = mat
+    return ob
+
+def slide_shell(name, z0, z1, y0, top, mat, inlay=M.gold, hw=0.095, stripes=True, stations=None, band=(0.035, 0.051)):
+    """a pistol slide with the Kingpin's section (its flat top is a sight saddle along its whole length): a faceted
+    shell lofted along the bore, an inlay down the spine and a pinstripe along each flank"""
+    def ring(z):
+        R = [(hw, y0), (hw, y0 + band[0]), (hw, y0 + band[1]), (hw, top - 0.07), (0.050, top), (0.014, top)]
+        return [(x, y, z) for x, y in R + [(-x, y) for x, y in reversed(R)]]
+    L = z1 - z0
+    ST = stations or [z0, z0 + 0.018, z0 + 0.19, z0 + L * 0.42, z0 + L * 0.62, z1 - 0.22, z1 - 0.122, z1 - 0.055, z1]
+    n = len(ST)
+    def matf(i, j):
+        if inlay is not None and j == 5 and 2 <= i <= n - 4: return inlay
+        if inlay is not None and stripes and j in (1, 9) and 2 <= i <= n - 3: return inlay
+        return mat
+    body = loft(name, [ring(z) for z in ST], matf)
+    def w(a, b, ang):
+        if ang < radians(12): return 0
+        d = b - a; y = (a.y + b.y) / 2
+        if abs(d.z) > 0.9 * d.length:
+            if y < y0 + 0.015: return 0.004
+            return 0.009 if y > top - 0.115 else 0
+        if abs(d.z) < 1e-5:
+            if a.z < z0 + 0.005: return 0.012
+            if a.z > z1 - 0.005: return 0.007
+        return 0
+    return bevel(body, w)
 
 def barrel(name, z0, z1, r, y, mat=M.steel, seg=12, steps=(), x=0.0, bore=M.dark):
     """a barrel from z0 to its crown at z1. steps: [(z, r)] changes of radius on the way. Whatever its radius, it ends

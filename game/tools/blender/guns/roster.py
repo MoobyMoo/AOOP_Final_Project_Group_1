@@ -4,6 +4,8 @@ A gun is a function that fills a gk.Gun: parts into nodes (`frame` plus the movi
 the sockets, the flash point, and the few numbers the game needs in g.extras:
   moving   the node that cycles on a shot      travel   how far it goes, along -z (gun units)
   mag      the node that holds the ammunition  loose    nodes that can be hidden or swung away (own AO only)
+  magKind  "tube", "cylinder" or "shells" when the magazine is not a box (a box extension cannot hang from those)
+  swing    a moving part that turns instead of sliding: degrees about +x, at its pivot
 Classes share a chassis function (ar_chassis, smg_chassis ...) that takes a style and returns where things ended up.
 """
 from math import radians, sin, cos, pi
@@ -11,6 +13,7 @@ from mathutils import Vector
 import gk
 from gk import (M, BORE, Gun, slab, strap, band_slab, tube, disc, rod, bead, plate, saddle, rail_top, rail_under, barrel, magazine, mag_body, mag_foot,
                 arc_path, pistol_grip, grip_wrap, trigger_guard, trigger, sight_post, sight_notch, sling_loop, round_top, port, scope, banana, medallion,
+                rail_stub, stripe_facets, slide_shell,
                 outline, prism, loft, lathe, box, add_box, bevel, bevel_all, cut, mirror_x, move, mk, rim)
 
 GUNS = {}
@@ -182,7 +185,7 @@ def coconut_cracker(g):
     g.socket("socket_rail", (0, SG_TUBE - 0.131, 1.19))
     g.socket("socket_stock", (0, 0.28, -0.30))
     g.point("eject", (0.12, 0.37, 0.23))
-    g.extras.update(moving="fore_end", travel=0.15, mag="tube")
+    g.extras.update(moving="fore_end", travel=0.15, mag="tube", magKind="tube")
 
 # ================================================================================================ sniper rifles
 def bolt_action(g, z_root=-0.30, travel=0.22, knob=M.steel, body=M.steel, lift=55.0, r=0.036):
@@ -296,3 +299,347 @@ def hostile_takeover(g):
     g.socket("socket_stock", (0, 0.31, -0.46))
     g.point("eject", (0.125, 0.34, 0.28))
     g.extras.update(moving="bolt", travel=0.18, mag="box_mag", loose=["bipod"], bipodDeploy=-100.0)
+
+
+@gun("insider_trader", "Insider Trader", "smg", "high")
+def insider_trader(g):
+    """Integrally suppressed premium SMG: a polished receiver, a fat suppressor in pinstripes with gold bands, a walnut
+    grip and cheek. Signature: the red wax seal on its flank, ribbons and all. Strictly confidential."""
+    TOP, R = 0.49, 0.092
+    GM, Au = M.gunmetal, M.gold
+    up = slab("upper", [(-0.42, 0.235, 0.03), (-0.42, 0.425, 0.05), (0.52, 0.425, 0.03), (0.56, 0.235, 0.02)], 0.086, GM, 0.014)
+    port(up, 0.04, 0.40, 0.31, 0.39, 0.054)
+    g.add("frame", up, slab("lower", [(-0.38, 0.165, 0.03), (-0.38, 0.275), (0.60, 0.275), (0.60, 0.19), (0.585, 0.09, 0.015), (0.37, 0.09, 0.015), (0.37, 0.165)], 0.094, M.blued, 0.010))
+    g.add("bolt", bolt_side(0.04, 0.40, 0.31, 0.39, 0.14, M.steel, Au, 0.020, 0.05, 0.080))
+    g.add("frame", rail_top("rail", -0.30, 0.50, TOP, 0.10, GM), sight_notch("rear_sight", -0.37, 0.425, 0.105))
+    for sx, z0 in ((-1, -0.115), (1, -0.36)):                      # the left one starts clear of the seal
+        g.add("frame", slab("stripe", [(z0, 0.286), (0.54, 0.286), (0.54, 0.298), (z0, 0.298)], 0.004, Au, 0.0, 1, 1, sx * 0.0885))
+    # the suppressor: gold bands at both ends, four pinstripes down its length, the crown poking out of its face
+    prof = [(0.50, 0), (0.50, R - 0.02), (0.52, R), (0.555, R), (0.559, R + 0.007), (0.60, R + 0.007), (0.604, R), (1.06, R), (1.064, R + 0.007), (1.105, R + 0.007),
+            (1.109, R), (1.13, R), (1.15, R - 0.02), (1.15, 0)]
+    g.add("frame", tube("suppressor", prof, BORE, [GM, GM, GM, Au, Au, Au, GM, Au, Au, Au, GM, GM, GM], 12), barrel("crown", 1.13, 1.215, 0.042, BORE))
+    for deg in (30, 150, 210, 330):
+        a = radians(deg); x, y = cos(a) * R * 0.966, BORE + sin(a) * R * 0.966
+        g.add("frame", rod("pinstripe", (x, y, 0.625), (x, y, 1.04), 0.006, Au, 4))
+    g.add("frame", plate("fs_base", (-0.018, BORE + 0.075, 1.0), (0.018, BORE + 0.135, 1.045), GM, 0.004), sight_post("front_sight", 1.025, BORE + 0.135, 0.06, Au, 0.012, 0.04))
+    g.add("frame", plate("rail_block", (-0.056, BORE - 0.125, 0.63), (0.056, BORE - 0.07, 0.84), M.blued, 0.004), rail_under("rail_under", 0.735, BORE - 0.164, M.blued))
+    g.add("frame", pistol_grip("grip", M.walnut), trigger_guard("guard", M.blued, z1=0.40, y_top=0.18), trigger("trigger", Au))
+    g.add("frame", strap("stock", [(-0.39, 0.378), (-0.86, 0.378, 0.05), (-0.86, 0.02, 0.05), (-0.36, 0.20)], 0.038, 0.032, GM),
+          slab("cheek", [(-0.46, 0.375), (-0.46, 0.432, 0.03), (-0.78, 0.432, 0.03), (-0.78, 0.375)], 0.046, M.walnut, 0.016, 2),
+          plate("butt", (-0.05, -0.02, -0.905), (0.05, 0.415, -0.865), M.rubber, 0.012))
+    parts, at = magazine("mag", [(0.475, 0.17), (0.49, -0.46)], 0.165, 0.050, M.blued, Au, round_at=(0.47, 0.185))
+    g.add("mag", parts)
+    g.socket("socket_mag", at, "mag")
+    # the wax seal, left flank: a red disc with a gold stamp, two ribbon tails
+    g.add("frame", medallion("seal", -0.20, 0.31, -0.086, -1, 0.062, M.red, M.red, 0.012, 10), disc("seal_stamp", -0.079, -0.0945, -0.20, 0.31, 0.027, Au, 8),
+          slab("ribbon_a", [(-0.235, 0.265), (-0.195, 0.265), (-0.215, 0.13), (-0.235, 0.155), (-0.262, 0.14)], 0.004, M.red, 0.0, 1, 1, -0.096),
+          slab("ribbon_b", [(-0.205, 0.258), (-0.165, 0.258), (-0.135, 0.145), (-0.16, 0.165), (-0.185, 0.14)], 0.004, M.red, 0.0, 1, 1, -0.1005))
+    g.add("frame", both(disc("pin", 0.07, 0.099, -0.30, 0.215, 0.014, Au, 6)), slab("selector", [(-0.02, 0.20), (0.12, 0.208), (0.12, 0.232), (-0.02, 0.244)], 0.008, Au, 0.0, 1, 1, -0.097))
+    g.socket("socket_sight", (0, TOP, 0.10))
+    g.muzzle((0, BORE, 1.215))
+    g.socket("socket_rail", (0, BORE - 0.164, 0.735))
+    g.socket("socket_stock", (0, 0.30, -0.42))
+    g.point("eject", (0.11, 0.35, 0.24))
+    g.extras.update(moving="bolt", travel=0.14, mag="mag")
+
+@gun("board_meeting", "Board Meeting", "ar", "high")
+def board_meeting(g):
+    """Premium rifle: a polished receiver, a full-length top rail over a blued handguard, walnut stock and grip, gold
+    pinstripes and bands, no iron sights to spoil the optic. Signature: the charging handle is a chairman's gavel,
+    and the stock carries his brass nameplate."""
+    TOP, Au = 0.495, M.gold
+    rec = ar_receiver(M.gunmetal)
+    port(rec, 0.03, 0.45, 0.30, 0.395)
+    g.add("frame", rec)
+    g.add("bolt", bolt_side(0.03, 0.45, 0.30, 0.395, 0.17, M.steel, Au, 0.015, 0.06),
+          tube("gavel", [(0.345, 0), (0.345, 0.030), (0.357, 0.037), (0.369, 0.030), (0.431, 0.030), (0.443, 0.037), (0.455, 0.030), (0.455, 0)], 0.3475,
+               [M.walnut, Au, Au, M.walnut, Au, Au, M.walnut], 8, 0.165))
+    HG = [(0.625, 0.235), (0.625, 0.425, 0.02), (1.24, 0.425, 0.03), (1.24, 0.235, 0.03)]
+    hg = slab("handguard", HG, 0.086, M.blued, 0.02, 2)
+    slots = gk.bmesh.new()
+    for sx in (-1, 1):
+        for zc in (0.80, 0.94, 1.08):
+            add_box(slots, (sx * 0.086, 0.34, zc), (0.012, 0, 0), (0, 0.014, 0), (0, 0, 0.045), M.dark)
+    cut(hg, mk("hg_cut", slots))
+    g.add("frame", hg, band_slab("hg_ring", HG, 0.086, 0.655, 0.695, Au, 0.004, 0.0, 0.02), band_slab("hg_ring", HG, 0.086, 1.175, 1.215, Au, 0.004, 0.0, 0.02))
+    g.add("frame", rail_top("rail", -0.32, 1.20, TOP, 0.12, M.gunmetal))
+    g.add("frame", plate("bus_rear", (-0.032, TOP - 0.004, -0.305), (0.032, TOP + 0.028, -0.235), M.dark, 0.006), plate("bus_front", (-0.032, TOP - 0.004, 1.10), (0.032, TOP + 0.028, 1.17), M.dark, 0.006))
+    g.add("frame", barrel("barrel", 0.60, 1.60, 0.046, BORE), tube("muzzle_ring", [(1.44, 0), (1.44, 0.062), (1.50, 0.062), (1.50, 0)], BORE, Au, 10))
+    g.add("frame", rail_under("rail_under", 1.0, 0.196, M.gunmetal))
+    STOCK = [(-0.39, 0.405), (-0.98, 0.395, 0.03), (-1.0, -0.04, 0.05), (-0.86, -0.04, 0.05), (-0.74, 0.15, 0.08), (-0.39, 0.205)]
+    g.add("frame", slab("stock", STOCK, 0.07, M.walnut, 0.024, 2), band_slab("butt", STOCK, 0.07, -1.1, -0.965, M.rubber, 0.006, 0.0, 0.024, 2),
+          slab("cheek", [(-0.52, 0.385), (-0.52, 0.452, 0.03), (-0.88, 0.452, 0.03), (-0.88, 0.385)], 0.05, M.gunmetal, 0.016, 2),
+          both(disc("cheek_knob", 0.04, 0.066, -0.70, 0.40, 0.022, Au, 8, 0.004)))
+    g.add("frame", both(plate("plaque", (0.064, 0.165, -0.82), (0.0765, 0.275, -0.56), M.brass, 0.003)),
+          both(plate("plaque_line", (0.074, 0.228, -0.795), (0.0795, 0.242, -0.585), M.brass_dk, 0.0)), both(plate("plaque_line", (0.074, 0.192, -0.795), (0.0795, 0.204, -0.66), M.brass_dk, 0.0)))
+    g.add("frame", pistol_grip("grip", M.walnut), trigger_guard("guard", M.gunmetal), trigger("trigger", Au))
+    for sx in (-1, 1):
+        g.add("frame", slab("stripe", [(-0.36, 0.262), (0.60, 0.262), (0.60, 0.274), (-0.36, 0.274)], 0.004, Au, 0.0, 1, 1, sx * 0.0975),
+              slab("stripe_hg", [(0.72, 0.262), (1.15, 0.262), (1.15, 0.274), (0.72, 0.274)], 0.004, Au, 0.0, 1, 1, sx * 0.0885))
+    g.add("frame", both(disc("pin", 0.07, 0.100, -0.30, 0.235, 0.014, Au, 6)), slab("selector", [(-0.03, 0.212), (0.13, 0.220), (0.13, 0.244), (-0.03, 0.256)], 0.008, Au, 0.0, 1, 1, -0.098))
+    parts, at = magazine("mag", [(0.49, 0.17), (0.515, -0.24)], 0.235, 0.056, M.blued, Au, round_at=(0.47, 0.19))
+    g.add("mag", parts)
+    g.socket("socket_mag", at, "mag")
+    g.socket("socket_sight", (0, TOP, 0.12))
+    g.muzzle((0, BORE, 1.60))
+    g.socket("socket_rail", (0, 0.196, 1.0))
+    g.socket("socket_grip", (0, 0.235, 0.74))
+    g.socket("socket_stock", (0, 0.31, -0.42))
+    g.point("eject", (0.12, 0.35, 0.26))
+    g.extras.update(moving="bolt", travel=0.17, mag="mag")
+
+@gun("the_audit", "The Audit", "shotgun", "high")
+def the_audit(g):
+    """Semi-auto shotgun, drum-ready: a polished receiver with a magazine well, a blued barrel under a ventilated rib,
+    a walnut stock and forearm, a gold bead. Signature: it comes wrapped in red tape."""
+    TOP, Au = 0.50, M.gold
+    rec = slab("receiver", [(-0.30, 0.22, 0.04), (-0.33, 0.36, 0.05), (-0.20, 0.455, 0.06), (0.62, 0.455, 0.02), (0.62, 0.19, 0.02), (0.605, 0.17), (0.605, 0.07, 0.015),
+                            (0.40, 0.07, 0.015), (0.40, 0.165), (0.02, 0.165, 0.03)], 0.092, M.gunmetal, 0.014)
+    port(rec, 0.08, 0.44, 0.33, 0.41, 0.06)
+    g.add("frame", rec, saddle("sight_base", -0.14, 0.30, TOP, M.gunmetal))
+    g.add("bolt", bolt_side(0.08, 0.44, 0.33, 0.41, 0.16, M.steel, Au, 0.022, 0.06, 0.085))
+    for sx in (-1, 1):
+        for y in (0.262, 0.288):
+            g.add("frame", slab("stripe", [(-0.18, y), (0.58, y), (0.58, y + 0.01), (-0.18, y + 0.01)], 0.004, Au, 0.0, 1, 1, sx * 0.0945))
+    # barrel, ventilated rib, bead
+    g.add("frame", barrel("barrel", 0.58, 1.50, 0.070, SG_BORE, M.blued), slab("rib", [(0.63, SG_BORE + 0.088), (1.41, SG_BORE + 0.088), (1.41, SG_BORE + 0.104), (0.63, SG_BORE + 0.104)], 0.017, M.gunmetal, 0.0),
+          bead("bead", (0, SG_BORE + 0.118, 1.37), 0.022, Au, "z", 6))
+    for z in (0.66, 0.84, 1.02, 1.20, 1.36):
+        g.add("frame", plate("rib_post", (-0.009, SG_BORE + 0.058, z), (0.009, SG_BORE + 0.094, z + 0.03), M.gunmetal, 0.0))
+    # gas tube in a walnut forearm, with the rail
+    FA = [(0.64, SG_TUBE - 0.085, 0.03), (0.64, SG_TUBE + 0.07, 0.03), (1.12, SG_TUBE + 0.07, 0.03), (1.12, SG_TUBE - 0.085, 0.04)]
+    g.add("frame", tube("gas_tube", [(0.60, 0), (0.60, 0.046), (1.19, 0.046), (1.20, 0.05), (1.235, 0.05), (1.245, 0.04), (1.245, 0)], SG_TUBE, [M.blued, M.blued, Au, Au, Au, Au], 8),
+          slab("forearm", FA, 0.09, M.walnut, 0.028, 2), rail_under("rail_under", 0.88, SG_TUBE - 0.124, M.gunmetal))
+    S, st = long_stock(M.walnut)
+    g.add("frame", st, band_slab("butt", S, 0.072, -1.2, -1.03, M.rubber, 0.006, 0.0, 0.03, 2))
+    # the red tape
+    g.add("frame", band_slab("red_tape", FA, 0.09, 0.685, 0.735, M.red, 0.005, 0.0, 0.028, 2), band_slab("red_tape", FA, 0.09, 1.025, 1.075, M.red, 0.005, 0.0, 0.028, 2),
+          band_slab("red_tape", S, 0.072, -0.50, -0.43, M.red, 0.005, -0.5, 0.028, 2), band_slab("red_tape", S, 0.072, -0.95, -0.89, M.red, 0.005, 0.0, 0.028, 2))
+    parts, at = magazine("mag", [(0.502, 0.15), (0.502, -0.17)], 0.172, 0.062, M.blued, Au)
+    g.add("mag", parts)
+    g.socket("socket_mag", at, "mag")
+    g.add("frame", trigger_guard("guard", M.gunmetal, -0.17, 0.425, 0.18, -0.07), trigger("trigger", Au, 0.25, 0.14))
+    g.add("frame", both(disc("pin", 0.07, 0.098, -0.16, 0.24, 0.015, Au, 6)), disc("safety", 0.07, 0.102, -0.10, 0.32, 0.02, M.red, 8, 0.004))
+    g.socket("socket_sight", (0, TOP, 0.09))
+    g.muzzle((0, SG_BORE, 1.50))
+    g.socket("socket_rail", (0, SG_TUBE - 0.124, 0.88))
+    g.socket("socket_stock", (0, 0.28, -0.30))
+    g.point("eject", (0.12, 0.37, 0.27))
+    g.extras.update(moving="bolt", travel=0.16, mag="mag")
+
+@gun("long_ledger", "Long Ledger", "sniper", "high")
+def long_ledger(g):
+    """Long elegant rifle: banker-green lacquered stock, brass fittings, a polished action, a barrel that goes on and
+    on, a long scope in brass rings. Signature: the butt is ruled like a ledger page, gold lines and a red margin."""
+    TOP, Br = 0.435, M.brass
+    S, st = long_stock(M.green, front=[(0.06, 0.10, 0.05), (0.50, 0.135, 0.2), (1.22, 0.15, 0.04), (1.22, 0.295, 0.03), (-0.20, 0.295)])
+    g.add("frame", st, band_slab("butt", S, 0.072, -1.2, -1.035, Br, 0.006, 0.0, 0.03, 2), band_slab("tip", S, 0.072, 1.15, 1.3, Br, 0.005, 0.0, 0.028, 2),
+          slab("cheek", [(-0.96, 0.185), (-0.96, 0.29, 0.03), (-0.66, 0.29, 0.06), (-0.60, 0.185)], 0.05, M.green_dk, 0.02, 2))
+    g.add("frame", tube("action", [(-0.28, 0), (-0.28, 0.058), (-0.265, 0.068), (0.44, 0.068), (0.47, 0.052), (0.47, 0)], BORE, M.gunmetal, 10), saddle("scope_base", -0.24, 0.40, TOP, Br, 0.06))
+    g.add("frame", barrel("barrel", 0.44, 2.16, 0.052, BORE, M.blued, 10, [(1.25, 0.044)]),
+          tube("barrel_band", [(1.17, 0), (1.17, 0.06), (1.235, 0.06), (1.235, 0)], BORE, Br, 8), tube("muzzle_band", [(2.02, 0), (2.02, 0.052), (2.08, 0.052), (2.08, 0)], BORE, Br, 8))
+    bolt_action(g, knob=Br)
+    g.add("frame", plate("port", (0.045, BORE - 0.012, -0.02), (0.072, BORE + 0.042, 0.24), M.dark, 0.0))
+    g.add("scope_builtin", scope("scope", 0.14, TOP + 0.128, 1.20, base_y=TOP, rings=(-0.22, 0.20), ring_mat=Br, body=M.gunmetal, r=0.050, r_obj=0.084, r_eye=0.068, obj_len=0.24, eye_len=0.14))
+    parts, at = magazine("mag", [(0.50, 0.21), (0.50, 0.075)], 0.20, 0.046, M.blued, Br)
+    g.add("mag", parts)
+    g.socket("socket_mag", at, "mag")
+    g.add("frame", trigger_guard("guard", Br, -0.17, 0.38, 0.14, -0.075), trigger("trigger", M.gold, 0.23, 0.115))
+    g.add("frame", rail_under("rail_under", 0.90, 0.101, M.blued), sling_loop("loop_rear", -0.86, -0.17, Br), sling_loop("loop_front", 0.56, 0.138, Br, 0.024))
+    # the ledger page: three gold rules and a red margin on each flank of the butt, a ruled brass plate under the action
+    for sx in (-1, 1):
+        for y in (0.085, 0.02, -0.045):
+            g.add("frame", slab("rule", [(-1.0, y), (-0.63, y), (-0.63, y + 0.012), (-1.0, y + 0.012)], 0.004, M.gold, 0.0, 1, 1, sx * 0.074))
+        g.add("frame", slab("margin", [(-0.955, -0.085), (-0.943, -0.085), (-0.943, 0.135), (-0.955, 0.135)], 0.004, M.red, 0.0, 1, 1, sx * 0.0775),
+              slab("ledger_plate", [(-0.02, 0.165, 0.012), (0.36, 0.165, 0.012), (0.36, 0.26, 0.012), (-0.02, 0.26, 0.012)], 0.004, Br, 0.0, 1, 1, sx * 0.0735))
+        for y in (0.188, 0.212, 0.236):
+            g.add("frame", slab("plate_rule", [(0.01, y), (0.33, y), (0.33, y + 0.007), (0.01, y + 0.007)], 0.003, M.brass_dk, 0.0, 1, 1, sx * 0.0775))
+    g.socket("socket_sight", (0, TOP, 0.08))
+    g.muzzle((0, BORE, 2.16))
+    g.socket("socket_rail", (0, 0.101, 0.90))
+    g.socket("socket_stock", (0, 0.25, -0.28))
+    g.point("eject", (0.10, BORE + 0.02, 0.11))
+    g.extras.update(mag="mag", loose=["scope_builtin"], builtinSight="scope_builtin")
+
+
+# ================================================================================================ the low tier
+@gun("peel_sprayer", "Peel Sprayer", "smg", "low")
+def peel_sprayer(g):
+    """Taped-together SMG: a length of pipe for a receiver, a rusty trigger housing, a punched tin shroud, a wire stock,
+    a plank grip in electrical tape. Signature: the curved stick magazine is painted up as a banana."""
+    TOP = 0.455
+    rec = tube("receiver", [(-0.42, 0), (-0.42, 0.07), (-0.40, 0.085), (0.50, 0.085), (0.52, 0.07), (0.52, 0)], BORE, M.pipe, 10)
+    port(rec, 0.06, 0.38, 0.30, 0.385, 0.05)
+    g.add("frame", rec, tube("rust_band", [(-0.33, 0), (-0.33, 0.0895), (-0.19, 0.0895), (-0.19, 0)], BORE, M.rust, 10))
+    g.add("bolt", bolt_side(0.06, 0.38, 0.30, 0.385, 0.14, M.steel, M.banana, 0.020, 0.05, 0.074))
+    g.add("frame", slab("housing", [(-0.26, 0.16, 0.02), (-0.26, 0.27), (0.585, 0.27), (0.585, 0.19), (0.57, 0.09, 0.012), (0.385, 0.09, 0.012), (0.385, 0.16)], 0.062, M.rust_dk, 0.008))
+    g.add("frame", saddle("sight_base", -0.20, 0.22, TOP, M.rust_dk, 0.055), sight_notch("rear_sight", -0.335, BORE + 0.075, 0.105, M.rust_dk))
+    # barrel, a tin shroud with punched slots, a band of yellow tape, a bent nail for a front sight
+    shroud = stripe_facets(tube("shroud", [(0.54, 0), (0.54, 0.066), (0.81, 0.066), (0.81, 0)], BORE, M.tin, 8), 0, BORE, 8, M.dark)
+    g.add("frame", barrel("barrel", 0.50, 0.94, 0.042, BORE, M.pipe), shroud, tube("yellow_tape", [(0.745, 0), (0.745, 0.071), (0.795, 0.071), (0.795, 0)], BORE, M.banana, 8),
+          rod("nail", (0, BORE + 0.05, 0.70), (0, BORE + 0.155, 0.70), 0.008, M.steel, 4), rod("nail_head", (0, BORE + 0.15, 0.695), (0, BORE + 0.15, 0.735), 0.008, M.steel, 4))
+    g.add("frame", plate("rail_block", (-0.056, BORE - 0.092, 0.555), (0.056, BORE - 0.05, 0.735), M.rust_dk, 0.004), rail_stub("rail_stub", 0.645, BORE - 0.131, M.rust_dk))
+    g.add("frame", pistol_grip("grip", M.wood_lt, 0.0, 0.17, 0.07, 0.012, 1), grip_wrap("grip_tape", M.tape_blk, -0.20, -0.03, 0.0, 0.07, 0.14, 0.006, 0.012),
+          trigger_guard("guard", M.rust_dk, z1=0.38, y_top=0.18), trigger("trigger", M.steel))
+    # wire stock, taped where the shoulder goes
+    g.add("frame", strap("stock", [(-0.40, 0.36), (-0.88, 0.36, 0.04), (-0.88, 0.05, 0.04), (-0.375, 0.262)], 0.024, 0.014, M.pipe),
+          plate("butt_tape", (-0.03, 0.10, -0.906), (0.03, 0.31, -0.862), M.tape, 0.008))
+    # the banana: a curved stick magazine in yellow, a brown tip, a wrap of tape round its middle
+    path = arc_path(0.485, 0.17, 0.50, -0.06, 0.62)
+    parts, at = magazine("mag", path, [0.15, 0.15, 0.15, 0.145, 0.135, 0.12], 0.045, M.banana, M.walnut, 0.068, 0.05, round_at=(0.475, 0.185))
+    mz, my = path[3]
+    g.add("mag", parts, plate("mag_tape", (-0.05, my - 0.03, mz - 0.092), (0.05, my + 0.03, mz + 0.092), M.tape, 0.004))
+    g.socket("socket_mag", at, "mag")
+    g.socket("socket_sight", (0, TOP, 0.01))
+    g.muzzle((0, BORE, 0.94))
+    g.socket("socket_rail", (0, BORE - 0.131, 0.645))
+    g.socket("socket_stock", (0, 0.30, -0.42))
+    g.point("eject", (0.11, 0.345, 0.24))
+    g.extras.update(moving="bolt", travel=0.14, mag="mag")
+
+@gun("bootleg_rifle", "Bootleg Rifle", "ar", "low")
+def bootleg_rifle(g):
+    """Makeshift rifle from mismatched parts: a rusted receiver with a tin patch riveted on, a crate plank for a stock,
+    a red-brown handguard held on with tape, a soup can for a barrel shroud, two magazines taped side by side.
+    Signature: the moonshiner's XXX painted down the stock."""
+    TOP = 0.49
+    rec = ar_receiver(M.rust_dk)
+    port(rec, 0.03, 0.45, 0.30, 0.395)
+    g.add("frame", rec, saddle("sight_base", -0.14, 0.30, TOP, M.pipe), sight_notch("rear_sight", -0.33, 0.43, 0.10, M.pipe))
+    g.add("bolt", bolt_side(0.03, 0.45, 0.30, 0.395, 0.17, M.steel, M.pipe))
+    g.add("frame", slab("patch", [(-0.31, 0.30), (-0.04, 0.325), (-0.07, 0.41), (-0.33, 0.395)], 0.004, M.tin, 0.0, 1, 1, -0.0965))
+    for z, y in ((-0.29, 0.325), (-0.09, 0.345), (-0.085, 0.395), (-0.305, 0.38)):
+        g.add("frame", disc("rivet", -0.09, -0.105, z, y, 0.011, M.rust, 6))
+    # a crate plank for a stock, XXX on both flanks, tape where it meets the shoulder
+    STOCK = [(-0.39, 0.40, 0.012), (-0.96, 0.37, 0.015), (-0.96, 0.02, 0.015), (-0.39, 0.215, 0.012)]
+    g.add("frame", slab("stock", STOCK, 0.05, M.wood_lt, 0.008), band_slab("butt_tape", STOCK, 0.05, -1.0, -0.90, M.tape, 0.005, 0.0, 0.008))
+    marks = gk.bmesh.new()
+    for sx in (-1, 1):
+        for zc in (-0.52, -0.66, -0.80):
+            for k, lift in ((1, 0.0015), (-1, 0.0045)):                 # the two strokes of an X sit 3 mm apart, so they never share a plane
+                add_box(marks, (sx * (0.05 + lift), 0.215, zc), (0.003, 0, 0), (0, 0.040, k * 0.040), (0, 0.006, -k * 0.006), M.dark)
+    g.add("frame", mk("xxx", marks))
+    # the handguard off some other gun, taped on
+    HG = [(0.625, 0.24), (0.625, 0.42, 0.015), (1.02, 0.42, 0.02), (1.02, 0.24, 0.02)]
+    g.add("frame", slab("handguard", HG, 0.08, M.wood_red, 0.012), band_slab("hg_tape", HG, 0.08, 0.70, 0.76, M.tape_blk, 0.005, 0.0, 0.012),
+          band_slab("hg_tape", HG, 0.08, 0.90, 0.96, M.tape_blk, 0.005, 0.0, 0.012), rail_stub("rail_stub", 0.83, 0.201, M.rust_dk))
+    # a pipe barrel through a soup can, a nail on top
+    can = stripe_facets(tube("can", [(1.04, 0), (1.04, 0.074), (1.055, 0.08), (1.205, 0.08), (1.22, 0.074), (1.22, 0)], BORE, M.tin, 10), 0, BORE, 10, M.dark, 5)
+    g.add("frame", barrel("barrel", 0.60, 1.36, 0.048, BORE, M.pipe), can, tube("can_label", [(1.085, 0), (1.085, 0.085), (1.175, 0.085), (1.175, 0)], BORE, M.red, 10),
+          rod("nail", (0, BORE + 0.06, 1.20), (0, BORE + 0.165, 1.20), 0.008, M.steel, 4))
+    g.add("frame", pistol_grip("grip", M.wood_lt, 0.0, 0.17, 0.07, 0.012, 1), grip_wrap("grip_tape", M.tape_blk, -0.22, -0.06, 0.0, 0.07, 0.14, 0.006, 0.012),
+          trigger_guard("guard", M.rust_dk), trigger("trigger", M.steel))
+    g.add("frame", both(disc("pin", 0.07, 0.100, 0.56, 0.30, 0.014, M.pipe, 6)))
+    # two magazines taped side by side, the spare one rustier and hanging lower
+    parts, at = magazine("mag", [(0.49, 0.17), (0.53, -0.30)], 0.235, 0.054, M.pipe, M.rust_dk, round_at=(0.47, 0.19))
+    spare = move(mag_body("mag_spare", [(0.50, -0.02), (0.54, -0.42)], 0.235, 0.054, M.rust), lambda c: c + Vector((-0.116, 0, 0)))
+    g.add("mag", parts, spare, plate("mag_tape", (-0.176, -0.20, 0.385), (0.062, -0.12, 0.66), M.tape, 0.006))
+    g.socket("socket_mag", at, "mag")
+    g.socket("socket_sight", (0, TOP, 0.08))
+    g.muzzle((0, BORE, 1.36))
+    g.socket("socket_rail", (0, 0.201, 0.83))
+    g.socket("socket_grip", (0, 0.24, 0.67))
+    g.socket("socket_stock", (0, 0.31, -0.42))
+    g.point("eject", (0.12, 0.35, 0.26))
+    g.extras.update(moving="bolt", travel=0.17, mag="mag")
+
+@gun("pipe_dream", "Pipe Dream", "shotgun", "low")
+def pipe_dream(g):
+    """Pipe-and-wood single shot: a fat pipe for a receiver, a thinner one for a barrel that slides back into it to
+    fire, a plank stock in tape, three spare shells strapped to the butt. Signature: a red valve wheel still on the
+    plumbing."""
+    TOP, PY = 0.50, 0.36
+    g.add("frame", tube("receiver", [(-0.27, 0), (-0.27, 0.07), (-0.25, 0.088), (0.42, 0.088), (0.42, 0.067), (0.395, 0.067), (0.395, 0)], PY, [M.pipe] * 4 + [M.dark, M.dark], 10),
+          tube("cap", [(-0.315, 0), (-0.315, 0.082), (-0.30, 0.095), (-0.235, 0.095), (-0.235, 0)], PY, M.rust, 8), tube("cap_nut", [(-0.345, 0), (-0.345, 0.032), (-0.30, 0.032), (-0.30, 0)], PY, M.pipe, 6))
+    g.add("frame", saddle("sight_base", -0.16, 0.26, TOP, M.rust_dk), slab("housing", [(-0.22, 0.16, 0.02), (-0.22, 0.30), (0.40, 0.30), (0.40, 0.20, 0.03)], 0.05, M.rust_dk, 0.008))
+    # the barrel: slides in the receiver. A wooden grip is clamped under it; the rail and the crown ride it
+    g.add("fore_end", barrel("barrel", 0.25, 1.36, 0.062, PY, M.pipe), tube("barrel_rust", [(0.96, 0), (0.96, 0.0665), (1.07, 0.0665), (1.07, 0)], PY, M.rust, 12),
+          slab("pump", [(0.60, PY - 0.165, 0.03), (0.60, PY - 0.03), (0.98, PY - 0.03), (0.98, PY - 0.165, 0.03)], 0.068, M.wood_red, 0.016),
+          plate("clamp", (-0.079, PY - 0.175, 0.655), (0.079, PY + 0.072, 0.705), M.tape, 0.008), plate("clamp", (-0.079, PY - 0.175, 0.875), (0.079, PY + 0.072, 0.925), M.tape, 0.008),
+          bead("bead", (0, PY + 0.07, 1.27), 0.022, M.rust_dk, "z", 6),
+          plate("rail_block", (-0.056, PY - 0.105, 1.075), (0.056, PY - 0.045, 1.285), M.rust_dk, 0.004), rail_stub("rail_stub", 1.18, PY - 0.144, M.rust_dk))
+    S, st = long_stock(M.wood_lt, 0.055, 0.012)
+    g.add("frame", st, band_slab("wrist_tape", S, 0.055, -0.40, -0.26, M.tape, 0.006, -0.6, 0.012), band_slab("butt_tape", S, 0.055, -1.0, -0.93, M.tape_blk, 0.006, 0.0, 0.012))
+    g.add("frame", trigger_guard("guard", M.rust_dk, -0.17, 0.40, 0.18, -0.07), trigger("trigger", M.steel, 0.25, 0.175))
+    # the valve wheel, left flank
+    g.add("frame", disc("valve_stem", -0.07, -0.131, 0.08, PY, 0.016, M.pipe, 6), disc("valve_wheel", -0.118, -0.14, 0.08, PY, 0.078, M.red, 8, 0.006),
+          disc("valve_hub", -0.13, -0.154, 0.08, PY, 0.024, M.pipe, 6))
+    # three spare shells in a canvas loop on the butt, left flank
+    X = -0.083
+    for z in (-0.80, -0.72, -0.64):
+        g.add("shells", rod("shell", (X, -0.045, z), (X, 0.085, z), 0.03, M.red, 6), rod("shell_base", (X, -0.075, z), (X, -0.04, z), 0.032, M.brass, 6))
+    g.add("frame", plate("shell_loop", (-0.119, -0.01, -0.845), (-0.05, 0.045, -0.595), M.canvas, 0.004))
+    g.socket("socket_sight", (0, TOP, 0.05))
+    g.muzzle((0, PY, 1.36), "fore_end")
+    g.socket("socket_mag", (X, 0.0, -0.72), "shells")
+    g.socket("socket_rail", (0, PY - 0.144, 1.18), "fore_end")
+    g.socket("socket_stock", (0, 0.28, -0.27))
+    g.point("eject", (0.10, PY, 0.42))
+    g.extras.update(moving="fore_end", travel=0.12, mag="shells", magKind="shells")
+
+# ================================================================================================ pistols
+@gun("pocket_change", "Pocket Change", "pistol", "low")
+def pocket_change(g):
+    """Snub revolver that has seen better decades: a dull frame, a cylinder gone to rust in stripes, a rusty stub of a
+    barrel, a red-brown grip wrapped in tape. Signature: a copper penny for a front sight, another set in the grip."""
+    AX, CY, TOP = 0.335, 0.285, 0.435
+    g.add("frame", slab("frame", [(-0.215, 0.13, 0.03), (-0.245, 0.30, 0.04), (-0.135, 0.405, 0.035), (0.27, 0.405, 0.012), (0.27, 0.225, 0.02), (0.19, 0.17, 0.02), (-0.03, 0.17)], 0.042, M.pipe, 0.010),
+          saddle("sight_base", -0.10, 0.20, TOP, M.pipe, 0.035))
+    g.add("cylinder", stripe_facets(tube("cylinder", [(-0.065, 0), (-0.065, 0.088), (-0.053, 0.10), (0.163, 0.10), (0.175, 0.088), (0.175, 0)], CY, M.steel, 10), 0, CY, 10, M.dark, 2, 1))
+    g.add("frame", barrel("barrel", 0.24, 0.52, 0.046, AX, M.rust_dk), slab("lug", [(0.22, 0.20), (0.22, 0.31), (0.455, 0.31), (0.455, 0.245, 0.02), (0.40, 0.20, 0.02)], 0.03, M.pipe, 0.006),
+          disc("penny", -0.007, 0.007, 0.45, AX + 0.066, 0.036, M.copper, 10), rail_stub("rail_stub", 0.345, 0.161, M.rust_dk))
+    g.add("hammer", slab("hammer", [(-0.20, 0.27), (-0.175, 0.40, 0.01), (-0.215, 0.455, 0.012), (-0.275, 0.47, 0.01), (-0.285, 0.445, 0.01), (-0.235, 0.425, 0.015), (-0.235, 0.27)], 0.02, M.rust_dk, 0.004))
+    g.pivot("hammer", (0, 0.31, -0.215))
+    g.add("frame", pistol_grip("grip", M.wood_red, 0.0, 0.17, 0.054, 0.02, 2, -0.22, 0.10), grip_wrap("grip_tape", M.tape, -0.185, -0.06, 0.0, 0.054, 0.10, 0.006, 0.02, -0.22),
+          both(disc("coin", 0.04, 0.0625, -0.075, 0.06, 0.036, M.copper, 10, 0.004)))
+    g.add("frame", trigger_guard("guard", M.pipe, 0.07, 0.25, 0.22, -0.05, 0.02, 0.028, 0.05), trigger("trigger", M.rust_dk, 0.15, 0.15, 0.015))
+    g.socket("socket_sight", (0, TOP, 0.055))
+    g.muzzle((0, AX, 0.52))
+    g.socket("socket_mag", (0, CY, -0.065), "cylinder")
+    g.socket("socket_rail", (0, 0.161, 0.345))
+    g.point("eject", (0.10, CY, 0.05))
+    g.extras.update(moving="hammer", travel=0.0, swing=-32.0, mag="cylinder", magKind="cylinder")
+
+@gun("golden_parachute", "Golden Parachute", "pistol", "high")
+def golden_parachute(g):
+    """Gold-trimmed hand cannon: a long, tall slide with a gold spine and pinstripes, a heavy barrel in a gold bushing,
+    walnut grips, a gold baseplate, trigger and hammer. Signature: the ripcord handle hanging off the butt, and the
+    parachute on its medallion."""
+    BY, TOP, Au = 0.36, 0.475, M.gold
+    sf = lambda y: 0.066 + (y + 0.262) * 0.14
+    sb = lambda y: -0.207 + (y + 0.24) * 0.158
+    slide = slide_shell("slide_body", -0.37, 0.93, 0.214, TOP, M.gunmetal, band=(0.032, 0.078))
+    cut(slide, box("port_cut", (0.022, TOP - 0.09, 0.10), (0.13, TOP + 0.04, 0.30), M.dark))
+    g.add("slide", slide, sight_notch("rear_sight", -0.315, TOP, 0.045, M.dark, 0.06, 0.05), sight_post("front_sight", 0.845, TOP, 0.042, Au, 0.016, 0.08),
+          tube("bushing", [(0.905, 0), (0.905, 0.072), (0.94, 0.072), (0.948, 0.064), (0.948, 0.056), (0.936, 0.056), (0.936, 0)], BY, [Au] * 5 + [M.dark], 12))
+    FR = [(-0.335, 0.218), (0.89, 0.218), (0.89, 0.168, 0.026), (0.86, 0.128, 0.022), (sf(0.128), 0.128, 0.032), (sf(-0.30), -0.30, 0.03), (-0.226, -0.30, 0.03),
+          (-0.196, -0.10, 0.2), (-0.162, 0.045, 0.085, 4), (-0.362, 0.150, 0.024), (-0.372, 0.200, 0.024)]
+    g.add("frame", slab("frame", FR, 0.095, M.graphite, 0.016, 2), barrel("barrel", 0.04, 1.04, 0.052, BY, Au),
+          plate("hood", (0.016, TOP - 0.115, 0.103), (0.086, TOP - 0.012, 0.297), M.steel, 0.004), rail_under("rail", 0.62, 0.089, M.graphite))
+    g.add("frame", trigger_guard("guard", Au, 0.078, 0.392, 0.17, -0.096, 0.024, 0.04, 0.062), trigger("trigger", Au, 0.25, 0.145, 0.021))
+    # walnut panels, the gold medallion with its parachute
+    PAD = [(sf(0.04) - 0.036, 0.04, 0.03), (sf(-0.252) - 0.031, -0.252, 0.03), (sb(-0.252) + 0.031, -0.252, 0.03), (sb(0.04) + 0.036, 0.04, 0.03)]
+    X1 = 0.108
+    canopy = [(-0.05 + 0.03 * cos(radians(a)), -0.092 + 0.03 * sin(radians(a))) for a in range(0, 181, 36)]
+    for ob in (slab("pad", PAD, 0.0095, M.walnut, 0.007, 2, 2, X1 - 0.0095), medallion("medal", -0.05, -0.098, X1, 1, 0.047),
+               prism("canopy", canopy, X1 + 0.004, X1 + 0.0105, "x", Au), plate("payload", (X1 + 0.004, -0.128, -0.057), (X1 + 0.0105, -0.113, -0.043), Au, 0.0)):
+        g.add("frame", both(ob))
+    g.add("frame", slab("hammer", [(-0.33, 0.20), (-0.30, 0.30, 0.01), (-0.335, 0.345, 0.01), (-0.40, 0.352, 0.008), (-0.405, 0.327, 0.008), (-0.365, 0.31, 0.012), (-0.365, 0.20)], 0.024, Au, 0.005),
+          slab("safety", [(-0.272, 0.206), (-0.205, 0.206), (-0.168, 0.193), (-0.168, 0.180), (-0.272, 0.176)], 0.012, Au, 0.004, 1, 1, -0.097),
+          both(disc("pin", 0.07, 0.0985, 0.335, 0.172, 0.012, Au, 6)))
+    parts, at = magazine("mag", [(-0.075 + 0.1529 * 0.395, 0.095), (-0.075 - 0.1529 * 0.016, -0.316)], 0.23, 0.05, M.steel, Au, 0.166, 0.091, round_at=(-0.02, 0.102))
+    g.add("mag", parts)
+    g.socket("socket_mag", at, "mag")
+    # the ripcord: a gold D-handle on a stud at the heel of the grip, a red pull tab in it
+    g.add("frame", rod("rip_stud", (0, -0.215, -0.195), (0, -0.215, -0.262), 0.012, Au, 6), sling_loop("ripcord", -0.275, -0.215, Au, 0.04, 0.016, 0.014),
+          plate("rip_tab", (-0.009, -0.295, -0.30), (0.009, -0.262, -0.25), M.red, 0.004))
+    g.socket("socket_sight", (0, TOP, 0.45), "slide")
+    g.muzzle((0, BY, 1.04))
+    g.socket("socket_rail", (0, 0.089, 0.62))
+    g.point("eject", (0.115, TOP - 0.02, 0.20))
+    g.extras.update(moving="slide", travel=0.16, mag="mag")
+
+# the roster in class order, low to high (manifest.json and the sheets follow it)
+ORDER = ["pocket_change", "golden_parachute", "peel_sprayer", "cash_flow", "insider_trader", "bootleg_rifle", "contraband_carbine", "board_meeting",
+         "pipe_dream", "coconut_cracker", "the_audit", "bean_counter", "long_ledger", "hostile_takeover"]
+GUNS = {k: GUNS[k] for k in ORDER}

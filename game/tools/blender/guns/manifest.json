@@ -1,4 +1,544 @@
 {
+ "pocket_change": {
+  "name": "Pocket Change",
+  "class": "pistol",
+  "tier": "low",
+  "tris": 988,
+  "tris_by_node": {
+   "frame": 792,
+   "cylinder": 80,
+   "hammer": 116
+  },
+  "glb_bytes": 54612,
+  "bounds": [
+   [
+    -0.095,
+    -0.22,
+    -0.281
+   ],
+   [
+    0.095,
+    0.468,
+    0.52
+   ]
+  ],
+  "length": 0.801,
+  "nodes": [
+   "cylinder",
+   "frame",
+   "hammer"
+  ],
+  "points": {
+   "muzzle_flash": [
+    0,
+    0.335,
+    0.553
+   ],
+   "eject": [
+    0.1,
+    0.285,
+    0.05
+   ]
+  },
+  "sockets": {
+   "socket_sight": {
+    "at": [
+     0,
+     0.435,
+     0.055
+    ],
+    "rides": "body"
+   },
+   "socket_muzzle": {
+    "at": [
+     0,
+     0.335,
+     0.52
+    ],
+    "rides": "body"
+   },
+   "socket_mag": {
+    "at": [
+     0,
+     0.285,
+     -0.065
+    ],
+    "rides": "cylinder"
+   },
+   "socket_rail": {
+    "at": [
+     0,
+     0.161,
+     0.345
+    ],
+    "rides": "body"
+   }
+  },
+  "pivots": {
+   "hammer": [
+    0,
+    0.31,
+    -0.215
+   ]
+  },
+  "extras": {
+   "moving": "hammer",
+   "travel": 0.0,
+   "swing": -32.0,
+   "mag": "cylinder",
+   "magKind": "cylinder"
+  }
+ },
+ "golden_parachute": {
+  "name": "Golden Parachute",
+  "class": "pistol",
+  "tier": "high",
+  "tris": 2324,
+  "tris_by_node": {
+   "frame": 1624,
+   "slide": 564,
+   "mag": 136
+  },
+  "glb_bytes": 116788,
+  "bounds": [
+   [
+    -0.119,
+    -0.356,
+    -0.404
+   ],
+   [
+    0.119,
+    0.52,
+    1.04
+   ]
+  ],
+  "length": 1.444,
+  "nodes": [
+   "frame",
+   "mag",
+   "slide"
+  ],
+  "points": {
+   "muzzle_flash": [
+    0,
+    0.36,
+    1.073
+   ],
+   "eject": [
+    0.115,
+    0.455,
+    0.2
+   ]
+  },
+  "sockets": {
+   "socket_mag": {
+    "at": [
+     0.0,
+     -0.3,
+     -0.0774
+    ],
+    "rides": "mag"
+   },
+   "socket_sight": {
+    "at": [
+     0,
+     0.475,
+     0.45
+    ],
+    "rides": "slide"
+   },
+   "socket_muzzle": {
+    "at": [
+     0,
+     0.36,
+     1.04
+    ],
+    "rides": "body"
+   },
+   "socket_rail": {
+    "at": [
+     0,
+     0.089,
+     0.62
+    ],
+    "rides": "body"
+   }
+  },
+  "pivots": {},
+  "extras": {
+   "moving": "slide",
+   "travel": 0.16,
+   "mag": "mag"
+  }
+ },
+ "peel_sprayer": {
+  "name": "Peel Sprayer",
+  "class": "smg",
+  "tier": "low",
+  "tris": 1236,
+  "tris_by_node": {
+   "frame": 900,
+   "bolt": 92,
+   "mag": 244
+  },
+  "glb_bytes": 74648,
+  "bounds": [
+   [
+    -0.085,
+    -0.347,
+    -0.906
+   ],
+   [
+    0.124,
+    0.51,
+    0.94
+   ]
+  ],
+  "length": 1.846,
+  "nodes": [
+   "bolt",
+   "frame",
+   "mag"
+  ],
+  "points": {
+   "muzzle_flash": [
+    0,
+    0.33,
+    0.973
+   ],
+   "eject": [
+    0.11,
+    0.345,
+    0.24
+   ]
+  },
+  "sockets": {
+   "socket_mag": {
+    "at": [
+     0.0,
+     -0.291,
+     0.6068
+    ],
+    "rides": "mag"
+   },
+   "socket_sight": {
+    "at": [
+     0,
+     0.455,
+     0.01
+    ],
+    "rides": "body"
+   },
+   "socket_muzzle": {
+    "at": [
+     0,
+     0.33,
+     0.94
+    ],
+    "rides": "body"
+   },
+   "socket_rail": {
+    "at": [
+     0,
+     0.199,
+     0.645
+    ],
+    "rides": "body"
+   },
+   "socket_stock": {
+    "at": [
+     0,
+     0.3,
+     -0.42
+    ],
+    "rides": "body"
+   }
+  },
+  "pivots": {},
+  "extras": {
+   "moving": "bolt",
+   "travel": 0.14,
+   "mag": "mag"
+  }
+ },
+ "cash_flow": {
+  "name": "Cash Flow",
+  "class": "smg",
+  "tier": "mid",
+  "tris": 1952,
+  "tris_by_node": {
+   "frame": 1604,
+   "bolt": 140,
+   "mag": 208
+  },
+  "glb_bytes": 115728,
+  "bounds": [
+   [
+    -0.135,
+    -0.44,
+    -0.875
+   ],
+   [
+    0.128,
+    0.525,
+    0.96
+   ]
+  ],
+  "length": 1.835,
+  "nodes": [
+   "bolt",
+   "frame",
+   "mag"
+  ],
+  "points": {
+   "muzzle_flash": [
+    0,
+    0.33,
+    0.993
+   ],
+   "eject": [
+    0.11,
+    0.35,
+    0.24
+   ]
+  },
+  "sockets": {
+   "socket_mag": {
+    "at": [
+     0.0,
+     -0.384,
+     0.49
+    ],
+    "rides": "mag"
+   },
+   "socket_sight": {
+    "at": [
+     0,
+     0.485,
+     0.11
+    ],
+    "rides": "body"
+   },
+   "socket_muzzle": {
+    "at": [
+     0,
+     0.33,
+     0.96
+    ],
+    "rides": "body"
+   },
+   "socket_rail": {
+    "at": [
+     0,
+     0.199,
+     0.7
+    ],
+    "rides": "body"
+   },
+   "socket_stock": {
+    "at": [
+     0,
+     0.3,
+     -0.4
+    ],
+    "rides": "body"
+   }
+  },
+  "pivots": {},
+  "extras": {
+   "moving": "bolt",
+   "travel": 0.14,
+   "mag": "mag"
+  }
+ },
+ "insider_trader": {
+  "name": "Insider Trader",
+  "class": "smg",
+  "tier": "high",
+  "tris": 1924,
+  "tris_by_node": {
+   "frame": 1696,
+   "bolt": 92,
+   "mag": 136
+  },
+  "glb_bytes": 113812,
+  "bounds": [
+   [
+    -0.105,
+    -0.5,
+    -0.905
+   ],
+   [
+    0.13,
+    0.53,
+    1.215
+   ]
+  ],
+  "length": 2.12,
+  "nodes": [
+   "bolt",
+   "frame",
+   "mag"
+  ],
+  "points": {
+   "muzzle_flash": [
+    0,
+    0.33,
+    1.248
+   ],
+   "eject": [
+    0.11,
+    0.35,
+    0.24
+   ]
+  },
+  "sockets": {
+   "socket_mag": {
+    "at": [
+     0.0,
+     -0.444,
+     0.49
+    ],
+    "rides": "mag"
+   },
+   "socket_sight": {
+    "at": [
+     0,
+     0.49,
+     0.1
+    ],
+    "rides": "body"
+   },
+   "socket_muzzle": {
+    "at": [
+     0,
+     0.33,
+     1.215
+    ],
+    "rides": "body"
+   },
+   "socket_rail": {
+    "at": [
+     0,
+     0.166,
+     0.735
+    ],
+    "rides": "body"
+   },
+   "socket_stock": {
+    "at": [
+     0,
+     0.3,
+     -0.42
+    ],
+    "rides": "body"
+   }
+  },
+  "pivots": {},
+  "extras": {
+   "moving": "bolt",
+   "travel": 0.14,
+   "mag": "mag"
+  }
+ },
+ "bootleg_rifle": {
+  "name": "Bootleg Rifle",
+  "class": "ar",
+  "tier": "low",
+  "tris": 1636,
+  "tris_by_node": {
+   "frame": 1336,
+   "bolt": 92,
+   "mag": 208
+  },
+  "glb_bytes": 105004,
+  "bounds": [
+   [
+    -0.176,
+    -0.42,
+    -0.965
+   ],
+   [
+    0.15,
+    0.53,
+    1.36
+   ]
+  ],
+  "length": 2.325,
+  "nodes": [
+   "bolt",
+   "frame",
+   "mag"
+  ],
+  "points": {
+   "muzzle_flash": [
+    0,
+    0.33,
+    1.393
+   ],
+   "eject": [
+    0.12,
+    0.35,
+    0.26
+   ]
+  },
+  "sockets": {
+   "socket_mag": {
+    "at": [
+     0.0,
+     -0.284,
+     0.53
+    ],
+    "rides": "mag"
+   },
+   "socket_sight": {
+    "at": [
+     0,
+     0.49,
+     0.08
+    ],
+    "rides": "body"
+   },
+   "socket_muzzle": {
+    "at": [
+     0,
+     0.33,
+     1.36
+    ],
+    "rides": "body"
+   },
+   "socket_rail": {
+    "at": [
+     0,
+     0.201,
+     0.83
+    ],
+    "rides": "body"
+   },
+   "socket_grip": {
+    "at": [
+     0,
+     0.24,
+     0.67
+    ],
+    "rides": "body"
+   },
+   "socket_stock": {
+    "at": [
+     0,
+     0.31,
+     -0.42
+    ],
+    "rides": "body"
+   }
+  },
+  "pivots": {},
+  "extras": {
+   "moving": "bolt",
+   "travel": 0.17,
+   "mag": "mag"
+  }
+ },
  "contraband_carbine": {
   "name": "Contraband Carbine",
   "class": "ar",
@@ -97,30 +637,30 @@
    "mag": "mag"
   }
  },
- "cash_flow": {
-  "name": "Cash Flow",
-  "class": "smg",
-  "tier": "mid",
-  "tris": 1952,
+ "board_meeting": {
+  "name": "Board Meeting",
+  "class": "ar",
+  "tier": "high",
+  "tris": 2300,
   "tris_by_node": {
-   "frame": 1604,
-   "bolt": 140,
-   "mag": 208
+   "frame": 1976,
+   "bolt": 188,
+   "mag": 136
   },
-  "glb_bytes": 115728,
+  "glb_bytes": 136896,
   "bounds": [
    [
-    -0.135,
-    -0.44,
-    -0.875
+    -0.106,
+    -0.3,
+    -1.004
    ],
    [
-    0.128,
-    0.525,
-    0.96
+    0.199,
+    0.523,
+    1.6
    ]
   ],
-  "length": 1.835,
+  "length": 2.604,
   "nodes": [
    "bolt",
    "frame",
@@ -130,28 +670,28 @@
    "muzzle_flash": [
     0,
     0.33,
-    0.993
+    1.633
    ],
    "eject": [
-    0.11,
+    0.12,
     0.35,
-    0.24
+    0.26
    ]
   },
   "sockets": {
    "socket_mag": {
     "at": [
      0.0,
-     -0.384,
-     0.49
+     -0.224,
+     0.515
     ],
     "rides": "mag"
    },
    "socket_sight": {
     "at": [
      0,
-     0.485,
-     0.11
+     0.495,
+     0.12
     ],
     "rides": "body"
    },
@@ -159,23 +699,31 @@
     "at": [
      0,
      0.33,
-     0.96
+     1.6
     ],
     "rides": "body"
    },
    "socket_rail": {
     "at": [
      0,
-     0.199,
-     0.7
+     0.196,
+     1.0
+    ],
+    "rides": "body"
+   },
+   "socket_grip": {
+    "at": [
+     0,
+     0.235,
+     0.74
     ],
     "rides": "body"
    },
    "socket_stock": {
     "at": [
      0,
-     0.3,
-     -0.4
+     0.31,
+     -0.42
     ],
     "rides": "body"
    }
@@ -183,8 +731,99 @@
   "pivots": {},
   "extras": {
    "moving": "bolt",
-   "travel": 0.14,
+   "travel": 0.17,
    "mag": "mag"
+  }
+ },
+ "pipe_dream": {
+  "name": "Pipe Dream",
+  "class": "shotgun",
+  "tier": "low",
+  "tris": 1384,
+  "tris_by_node": {
+   "frame": 820,
+   "fore_end": 444,
+   "shells": 120
+  },
+  "glb_bytes": 79472,
+  "bounds": [
+   [
+    -0.154,
+    -0.228,
+    -1.077
+   ],
+   [
+    0.095,
+    0.5,
+    1.36
+   ]
+  ],
+  "length": 2.437,
+  "nodes": [
+   "fore_end",
+   "frame",
+   "shells"
+  ],
+  "points": {
+   "muzzle_flash": [
+    0,
+    0.36,
+    1.393
+   ],
+   "eject": [
+    0.1,
+    0.36,
+    0.42
+   ]
+  },
+  "sockets": {
+   "socket_sight": {
+    "at": [
+     0,
+     0.5,
+     0.05
+    ],
+    "rides": "body"
+   },
+   "socket_muzzle": {
+    "at": [
+     0,
+     0.36,
+     1.36
+    ],
+    "rides": "fore_end"
+   },
+   "socket_mag": {
+    "at": [
+     -0.083,
+     0.0,
+     -0.72
+    ],
+    "rides": "shells"
+   },
+   "socket_rail": {
+    "at": [
+     0,
+     0.216,
+     1.18
+    ],
+    "rides": "fore_end"
+   },
+   "socket_stock": {
+    "at": [
+     0,
+     0.28,
+     -0.27
+    ],
+    "rides": "body"
+   }
+  },
+  "pivots": {},
+  "extras": {
+   "moving": "fore_end",
+   "travel": 0.12,
+   "mag": "shells",
+   "magKind": "shells"
   }
  },
  "coconut_cracker": {
@@ -197,7 +836,7 @@
    "tube": 100,
    "fore_end": 504
   },
-  "glb_bytes": 108128,
+  "glb_bytes": 108148,
   "bounds": [
    [
     -0.155,
@@ -274,7 +913,98 @@
   "extras": {
    "moving": "fore_end",
    "travel": 0.15,
-   "mag": "tube"
+   "mag": "tube",
+   "magKind": "tube"
+  }
+ },
+ "the_audit": {
+  "name": "The Audit",
+  "class": "shotgun",
+  "tier": "high",
+  "tris": 1732,
+  "tris_by_node": {
+   "frame": 1552,
+   "bolt": 92,
+   "mag": 88
+  },
+  "glb_bytes": 96936,
+  "bounds": [
+   [
+    -0.098,
+    -0.228,
+    -1.083
+   ],
+   [
+    0.145,
+    0.518,
+    1.5
+   ]
+  ],
+  "length": 2.583,
+  "nodes": [
+   "bolt",
+   "frame",
+   "mag"
+  ],
+  "points": {
+   "muzzle_flash": [
+    0,
+    0.385,
+    1.533
+   ],
+   "eject": [
+    0.12,
+    0.37,
+    0.27
+   ]
+  },
+  "sockets": {
+   "socket_mag": {
+    "at": [
+     0.0,
+     -0.154,
+     0.502
+    ],
+    "rides": "mag"
+   },
+   "socket_sight": {
+    "at": [
+     0,
+     0.5,
+     0.09
+    ],
+    "rides": "body"
+   },
+   "socket_muzzle": {
+    "at": [
+     0,
+     0.385,
+     1.5
+    ],
+    "rides": "body"
+   },
+   "socket_rail": {
+    "at": [
+     0,
+     0.131,
+     0.88
+    ],
+    "rides": "body"
+   },
+   "socket_stock": {
+    "at": [
+     0,
+     0.28,
+     -0.3
+    ],
+    "rides": "body"
+   }
+  },
+  "pivots": {},
+  "extras": {
+   "moving": "bolt",
+   "travel": 0.16,
+   "mag": "mag"
   }
  },
  "bean_counter": {
@@ -350,6 +1080,106 @@
      0,
      0.097,
      0.76
+    ],
+    "rides": "body"
+   },
+   "socket_stock": {
+    "at": [
+     0,
+     0.25,
+     -0.28
+    ],
+    "rides": "body"
+   }
+  },
+  "pivots": {
+   "bolt_handle": [
+    0,
+    0.33,
+    0
+   ]
+  },
+  "extras": {
+   "moving": "bolt_handle",
+   "travel": 0.22,
+   "boltLift": 55.0,
+   "mag": "mag",
+   "builtinSight": "scope_builtin"
+  }
+ },
+ "long_ledger": {
+  "name": "Long Ledger",
+  "class": "sniper",
+  "tier": "high",
+  "tris": 2368,
+  "tris_by_node": {
+   "frame": 1516,
+   "bolt_handle": 100,
+   "scope_builtin": 664,
+   "mag": 88
+  },
+  "glb_bytes": 128996,
+  "bounds": [
+   [
+    -0.089,
+    -0.227,
+    -1.083
+   ],
+   [
+    0.214,
+    0.644,
+    2.16
+   ]
+  ],
+  "length": 3.243,
+  "nodes": [
+   "bolt_handle",
+   "frame",
+   "mag",
+   "scope_builtin"
+  ],
+  "points": {
+   "muzzle_flash": [
+    0,
+    0.33,
+    2.193
+   ],
+   "eject": [
+    0.1,
+    0.35,
+    0.11
+   ]
+  },
+  "sockets": {
+   "socket_mag": {
+    "at": [
+     0.0,
+     0.091,
+     0.5
+    ],
+    "rides": "mag"
+   },
+   "socket_sight": {
+    "at": [
+     0,
+     0.435,
+     0.08
+    ],
+    "rides": "body"
+   },
+   "socket_muzzle": {
+    "at": [
+     0,
+     0.33,
+     2.16
+    ],
+    "rides": "body"
+   },
+   "socket_rail": {
+    "at": [
+     0,
+     0.101,
+     0.9
     ],
     "rides": "body"
    },

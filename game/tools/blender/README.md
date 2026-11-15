@@ -361,7 +361,9 @@ the game's material changes. Code that reads `COLOR_0` as a grey AO value must r
 | Extra | Meaning |
 |---|---|
 | `moving`, `travel` | the node that cycles on a shot, and how far it goes along -z in gun units (`slide`, `bolt`, `fore_end` on a pump, `bolt_handle` on a bolt gun) |
-| `mag` | the node that holds the ammunition (`mag`, `tube` on a tube shotgun, `box_mag` on the LMG) |
+| `swing` | a moving part that turns instead of sliding (the revolver's `hammer`, `travel` 0): degrees about +x at its pivot |
+| `magKind` | `tube`, `cylinder` or `shells` when the magazine is not a box. `socket_mag` then marks where it loads; a box extension cannot hang there |
+| `mag` | the node that holds the ammunition (`mag`, `tube` on a tube shotgun, `box_mag` on the LMG, `cylinder` on the revolver, `shells` on the single shot) |
 | `boltLift` | bolt guns: degrees the `bolt_handle` turns about +z before it draws back. Its origin is on the bore axis |
 | `builtinSight` | a scope the gun ships with (`scope_builtin`): hide it when a sight is fitted on `socket_sight` |
 | `bipodDeploy` | the LMG: degrees about +x that swing the folded `bipod` down. Its origin is on its hinge |
@@ -379,11 +381,35 @@ attachments fit unchanged because the kit builds the same mounting surfaces:
 |---|---|
 | `saddle()`, `rail_top()` | the Kingpin slide's top section, solid from 0.15 behind `socket_sight` to 0.125 ahead of it. Never give it vertical sides: they z-fight a receiver of the same width |
 | `barrel()` | whatever its radius, it ends in the Kingpin's crown (r 0.042 for the last 0.05), which the muzzle devices' collar swallows |
-| `rail_under()` | the Kingpin's three lugs round `socket_rail`. The underside there is flat, 0.039 above the socket, clear from 0.10 behind to 0.21 ahead |
+| `rail_under()`, `rail_stub()` | the Kingpin's three lugs round `socket_rail` (the makeshift guns get the bar alone). The underside there is flat, 0.039 above the socket, clear from 0.10 behind to 0.21 ahead |
 | `magazine()`, `mag_foot()` | a baseplate under `socket_mag` that the magazine extension's sleeve swallows |
 
-A tube shotgun's `socket_mag` is the tube's cap, on its axis: it takes a tube extension, and `att_mag_ext` (a box
-piece) has nothing to hang from there, so `qa_guns.py` skips that pair.
+Three guns have no box magazine (`magKind`): the pump's `socket_mag` is the tube's cap, the revolver's is the back of
+the cylinder, the single shot's is the shell loop on the butt. `att_mag_ext` (a box piece) has nothing to hang from
+there, so `qa_guns.py` skips those pairs.
+
+**The roster** (from `manifest.json`; lengths in gun units, the Kingpin is 1.08; the game draws guns at 0.65):
+
+| gunId | Name | Class | Tier | Tris | Length | Moving part | Magazine | Other nodes | Sockets |
+|---|---|---|---|---|---|---|---|---|---|
+| `pocket_change` | Pocket Change | pistol | low | 988 | 0.80 | `hammer` swings -32 deg about +x | `cylinder` (cylinder) | - | sight, muzzle, mag (rides `cylinder`), rail |
+| `golden_parachute` | Golden Parachute | pistol | high | 2,324 | 1.44 | `slide` 0.16 back | `mag` | - | mag (rides `mag`), sight (rides `slide`), muzzle, rail |
+| `peel_sprayer` | Peel Sprayer | smg | low | 1,236 | 1.85 | `bolt` 0.14 back | `mag` | - | mag (rides `mag`), sight, muzzle, rail, stock |
+| `cash_flow` | Cash Flow | smg | mid | 1,952 | 1.83 | `bolt` 0.14 back | `mag` | - | mag (rides `mag`), sight, muzzle, rail, stock |
+| `insider_trader` | Insider Trader | smg | high | 1,924 | 2.12 | `bolt` 0.14 back | `mag` | - | mag (rides `mag`), sight, muzzle, rail, stock |
+| `bootleg_rifle` | Bootleg Rifle | ar | low | 1,636 | 2.33 | `bolt` 0.17 back | `mag` | - | mag (rides `mag`), sight, muzzle, rail, grip, stock |
+| `contraband_carbine` | Contraband Carbine | ar | mid | 2,312 | 2.38 | `bolt` 0.17 back | `mag` | - | mag (rides `mag`), sight, muzzle, rail, grip, stock |
+| `board_meeting` | Board Meeting | ar | high | 2,300 | 2.60 | `bolt` 0.17 back | `mag` | - | mag (rides `mag`), sight, muzzle, rail, grip, stock |
+| `pipe_dream` | Pipe Dream | shotgun | low | 1,384 | 2.44 | `fore_end` 0.12 back | `shells` (shells) | - | sight, muzzle (rides `fore_end`), mag (rides `shells`), rail (rides `fore_end`), stock |
+| `coconut_cracker` | Coconut Cracker | shotgun | mid | 2,072 | 2.52 | `fore_end` 0.15 back | `tube` (tube) | - | sight, muzzle, mag (rides `tube`), rail, stock |
+| `the_audit` | The Audit | shotgun | high | 1,732 | 2.58 | `bolt` 0.16 back | `mag` | - | mag (rides `mag`), sight, muzzle, rail, stock |
+| `bean_counter` | Bean Counter | sniper | mid | 2,308 | 2.94 | `bolt_handle` lifts 55 deg about +z, then 0.22 back | `mag` | `scope_builtin` | mag (rides `mag`), sight, muzzle, rail, stock |
+| `long_ledger` | Long Ledger | sniper | high | 2,368 | 3.24 | `bolt_handle` lifts 55 deg about +z, then 0.22 back | `mag` | `scope_builtin` | mag (rides `mag`), sight, muzzle, rail, stock |
+| `hostile_takeover` | Hostile Takeover | lmg | high | 2,972 | 2.83 | `bolt` 0.18 back | `box_mag` | `bipod` | mag (rides `box_mag`), sight, muzzle, rail, grip, stock |
+
+Every gun also has the points `muzzle_flash` and `eject`. `pipe_dream` fires by slamming its barrel back, so its
+barrel is the `fore_end` and the crown and the rail ride it. `pocket_change`'s `cylinder` can spin about the z axis
+through (0, 0.285). The Kingpin .45 (`kingpin45`, pistol, mid) is the fifteenth gun and is not built by the kit.
 
 **Tiers.** Low: tape, rust, mismatched wood, pipe. Mid: clean steel, the Kingpin's level. High: polished, blued or
 gold-trimmed, walnut. Each gun carries one business-monkey detail; `roster.py`'s docstrings name them.

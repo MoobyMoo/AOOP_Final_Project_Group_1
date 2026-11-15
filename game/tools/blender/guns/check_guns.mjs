@@ -60,7 +60,7 @@ for (const id of ids) {
   if (meshes.sort().join() !== [...want.nodes].sort().join()) fail(`${id}: meshes are ${meshes}, manifest says ${want.nodes}`);
   // ---- the moving part and the magazine
   for (const k of ["moving", "mag", "builtinSight"]) if (ud[k] !== undefined && !want.nodes.includes(ud[k])) fail(`${id}: extras.${k} = "${ud[k]}" is not a mesh node`);
-  if (!ud.moving || !(ud.travel > 0)) fail(`${id}: extras need moving + travel`);
+  if (!ud.moving || !(ud.travel > 0 || ud.swing)) fail(`${id}: extras need moving, and travel or swing`);
   if (!ud.mag) fail(`${id}: extras need mag`);
   // ---- points and sockets
   for (const name of ["muzzle_flash", "eject"]) {

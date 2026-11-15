@@ -24,7 +24,8 @@ const ALIAS: Record<string, string> = { banana: "bunch", vine_rope: "rope", gold
 const GLBS = ["ammo", "aviators", "bandage", "banditmask", "beanie", "bigpack", "boomerang", "bowler", "bunch", "cap", "coconut", "compass", "cratepack", "crown", "extmag", "eyepatch", "fedora", "firstaid", "gear", "goggles", "golden", "hardhat", "heartglasses", "hide", "honey", "idol", "key", "mango", "meat", "monocle", "pith", "plank", "radio_key", "rope", "satchel", "shades", "smoothie", "spring", "suit", "tophat"];
 /** the kit guns (public/models/guns/<gunId>.glb, tools/blender/guns): a gun on the ground is its own model, lying on
  *  its side at the size it has in the hand (core/raid.ts GUN_SCALE) */
-const GUN_GLBS = ["cash_flow", "contraband_carbine", "coconut_cracker", "bean_counter", "hostile_takeover"];
+const GUN_GLBS = ["pocket_change", "golden_parachute", "peel_sprayer", "cash_flow", "insider_trader", "bootleg_rifle", "contraband_carbine", "board_meeting",
+  "pipe_dream", "coconut_cracker", "the_audit", "bean_counter", "long_ledger", "hostile_takeover"];
 const GUNS = new Set(GUN_GLBS), GUN_SCALE = 0.65;
 /** flat things stood upright in their GLB (a jacket, a magazine, a monocle): they lie on their back on the ground */
 const LIE = new Set(["suit", "extmag", "monocle", "satchel", "firstaid", "att_mag_ext"]);

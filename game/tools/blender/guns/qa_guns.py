@@ -82,8 +82,9 @@ for gid in ONLY:
     builtin = entry["extras"].get("builtinSight")
     for att, socket in FIT.items():
         if socket not in entry["sockets"]: continue
-        if att == "att_mag_ext" and entry["extras"].get("mag") == "tube":      # a box extension has nothing to hang from on a tube magazine
-            print(f"@@ SKIP {gid}: att_mag_ext (socket_mag is the tube's cap; it takes a tube extension, not this box piece)"); continue
+        kind = entry["extras"].get("magKind", "box")
+        if att == "att_mag_ext" and kind != "box":            # a box extension has nothing to hang from on a tube, a cylinder or loose shells
+            print(f"@@ SKIP {gid}: att_mag_ext (the magazine is a {kind}; socket_mag marks where it loads, and takes its own kind of extension)"); continue
         ob = O[att]
         base = [o for o in gun if not (socket == "socket_sight" and o.name == builtin)]
         ob.parent = O[socket]; ob.matrix_parent_inverse = Matrix.Identity(4); ob.matrix_basis = Matrix.Identity(4)
