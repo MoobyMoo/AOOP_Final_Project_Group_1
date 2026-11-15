@@ -108,7 +108,7 @@ export function sfx(kind: Sfx, vol = 1) {
 /** per-kind mix: gain (after the offline loudness normalise), pitch jitter, voice cap, optional hard length cap */
 type Mix = { g: number; jit?: number; cap?: number; max?: number; climb?: boolean };
 const MIX: Partial<Record<Sfx | "shotCore" | "shotMech" | "shotTail", Mix>> = {
-  shotCore: { g: 1.0, jit: 0.05, cap: 6 }, shotMech: { g: 0.45, jit: 0.06, cap: 4, max: 0.35 }, shotTail: { g: 0.5, jit: 0.04, cap: 3, max: 1.4 },
+  shotCore: { g: 0.42, jit: 0.05, cap: 6, max: 0.9 }, shotMech: { g: 0.22, jit: 0.06, cap: 4, max: 0.35 }, shotTail: { g: 0.25, jit: 0.04, cap: 3, max: 1.4 },
   shell: { g: 0.25, jit: 0.1, cap: 3, max: 0.6 }, dry: { g: 0.5, cap: 1 }, reloadOut: { g: 0.6, cap: 1 }, reloadIn: { g: 0.65, cap: 1 },
   slide: { g: 0.65, cap: 1 }, reloadRound: { g: 0.5, jit: 0.06, cap: 2 },
   hit: { g: 0.55, jit: 0.08, cap: 4, max: 0.4 }, hitCrit: { g: 0.7, jit: 0.04, cap: 3, max: 0.5 }, kill: { g: 0.7, cap: 2, max: 0.8 }, killCrit: { g: 0.8, cap: 2, max: 1.0 },

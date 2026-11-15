@@ -1,8 +1,10 @@
 // The ninja dash look (G1.5 row 14; Moo: "instead of the roll copying the front flip like Duckov, a ninja dash with
 // trailing effects"). Gameplay is the unchanged ROLL CONTRACT (combat/weapons.ts: 0.34 s, full protection, 3.2 u,
 // stamina 10, the skid); this module only draws it:
-// - afterimages: up to 5 frozen copies of the hero's body, one every 0.07 s of the dash, each an unlit cool-teal
-//   silhouette that fades out over 0.26 s. They are pooled SkinnedMeshes sharing the hero's geometry; each keeps its
+// - afterimages: up to 3 frozen copies of the hero's body, one every 0.1 s of the dash (~0.95 u apart, wider than the
+//   body, so each reads as its own crisp silhouette instead of a smear; Moo 2026-11-15: the 5-ghost trail at 0.07 s
+//   "looks blurred, low quality"), each an unlit cool-teal silhouette that fades out over 0.22 s. Each ghost writes
+//   depth so its overlapping limbs do not double up into uneven alpha. They are pooled SkinnedMeshes sharing the hero's geometry; each keeps its
 //   own snapshot of the bone matrices (its skeleton never updates), so a ghost costs one draw call and no skinning
 //   work on the CPU. Wearables (hat, shades, satchel) are not copied: the silhouette reads as the body.
 // - speed lines: thin white streaks left behind along the dash, drawn in the gun FX sprite batch (no extra draw call).
@@ -14,7 +16,7 @@ import type { KingpinFx } from "../combat/kingpin";
 import { PLAYER } from "../combat/weapons";
 import { zoneAt } from "../world/grid";
 
-const GHOSTS = 5, EVERY = 0.07, LIFE = 0.26, ALPHA = 0.62, TINT = new THREE.Color(0.12, 0.72, 1.0).multiplyScalar(1.25);
+const GHOSTS = 3, EVERY = 0.1, LIFE = 0.22, ALPHA = 0.55, TINT = new THREE.Color(0.12, 0.72, 1.0).multiplyScalar(1.25);
 type Ghost = { mesh: THREE.SkinnedMesh; skel: THREE.Skeleton; mat: THREE.MeshBasicMaterial; t: number; live: boolean };
 const ghosts: Ghost[] = [];
 const dir = new THREE.Vector3(), at = new THREE.Vector3();
@@ -29,7 +31,7 @@ function ghostFor(s: THREE.SkinnedMesh): Ghost {
   let g = ghosts.find((q) => !q.live);
   if (!g && ghosts.length < GHOSTS) {
     // pushed back in depth, so where a ghost overlaps the live hero (a dash into a wall) the hero always wins
-    const mat = new THREE.MeshBasicMaterial({ color: TINT, transparent: true, opacity: ALPHA, depthWrite: false, toneMapped: false, fog: false, polygonOffset: true, polygonOffsetFactor: 6, polygonOffsetUnits: 60 });
+    const mat = new THREE.MeshBasicMaterial({ color: TINT, transparent: true, opacity: ALPHA, depthWrite: true, toneMapped: false, fog: false, polygonOffset: true, polygonOffsetFactor: 6, polygonOffsetUnits: 60 });
     const mesh = new THREE.SkinnedMesh(s.geometry, mat);
     const skel = new THREE.Skeleton(s.skeleton.bones, s.skeleton.boneInverses);
     skel.update = () => {};                               // frozen: the snapshot below is all it ever draws
@@ -74,7 +76,7 @@ export function updateDashFx(dt: number) {
     } else {
       while (dashT >= nextGhost && nextGhost < PLAYER.roll.time) { snapshot(); nextGhost += EVERY; }
       while (dashT >= nextLine) {
-        nextLine += 0.025;
+        nextLine += 0.05;
         const len = 1.1 + Math.random() * 0.9, side = (Math.random() - 0.5) * 1.1, h = 0.35 + Math.random() * 1.3;
         at.set(G.pp.x - dir.x * (len + 0.2) + dir.z * side, G.pp.y + h, G.pp.z - dir.z * (len + 0.2) - dir.x * side);
         fx().speedLine(at, dir.x * len, 0, dir.z * len, 0.035 + Math.random() * 0.025, 0.14 + Math.random() * 0.06, 0.9);

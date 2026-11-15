@@ -266,7 +266,10 @@ void main() {
     float rb = mix(0.2, len, pow(1.0 - m, 2.6)), d = r - rb, w = fwidth(d);
     a = 1.0 - smoothstep(-w, w, d); core = 1.0 - smoothstep(0.05, 0.3, r);
   }
-  else if (sh == 3) { a = 1.0 - smoothstep(0.8, 1.0, r); }
+  else if (sh == 3) {                            // a cartoon cloud: three lobes, a crisp anti-aliased edge, a lit top
+    float d = min(min(length(p - vec2(-0.32, -0.16)) - 0.5, length(p - vec2(0.33, -0.12)) - 0.46), length(p - vec2(0.02, 0.24)) - 0.56), w = fwidth(d);
+    a = 1.0 - smoothstep(-w, w, d); core = 0.28 * smoothstep(-0.1, 0.7, p.y);
+  }
   else if (sh == 4) { a = 1.0; }
   else if (sh == 5) {
     float v = p.y * 0.5 + 0.5, w = mix(0.3, 1.0, v), x = abs(p.x) / w;
@@ -456,8 +459,9 @@ export function createGunFx(scene: THREE.Scene): KingpinFx {
   function dust(at: THREE.Vector3, dx: number, dz: number, count: number, color: string, size = 1) {
     dustC.set(color);
     for (let i = 0; i < count; i++) {
-      const a = rnd() * 6.283, sp = rr(0.3, 1.1), sz = rr(0.16, 0.24) * size;
-      emit(FREE, PUFF, at.x + Math.cos(a) * 0.15, at.y + 0.08, at.z + Math.sin(a) * 0.15, dx * rr(0.6, 1.2) + Math.cos(a) * sp, rr(0.4, 1.0), dz * rr(0.6, 1.2) + Math.sin(a) * sp, sz, sz, rr(2.2, 2.8), rr(0.45, 0.6), dustC, 0.7, 0, 0.35, -0.4, 3.6, 0, 0, 0.3);
+      // small and short-lived: grows 1.3-1.6x (it was 2.2-2.8x, a metre-wide smudge at the feet; Moo 2026-11-15 "blurred, low quality")
+      const a = rnd() * 6.283, sp = rr(0.3, 1.0), sz = rr(0.12, 0.17) * size;
+      emit(FREE, PUFF, at.x + Math.cos(a) * 0.15, at.y + 0.08, at.z + Math.sin(a) * 0.15, dx * rr(0.6, 1.2) + Math.cos(a) * sp, rr(0.4, 0.9), dz * rr(0.6, 1.2) + Math.sin(a) * sp, sz, sz, rr(1.3, 1.6), rr(0.34, 0.44), dustC, 0.9, 0, 0.35, -0.4, 3.6, 0, 0, 0.3);
     }
   }
   const lineC = col("#d8f6ff", 1.6); // a cool white, matching the dash afterimages
