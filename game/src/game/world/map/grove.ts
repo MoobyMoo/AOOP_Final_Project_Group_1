@@ -488,6 +488,12 @@ export const PATHS: Pt[][] = [
   [[-63.6, 28.4], [-66.2, 30.6]], [[-63.2, 24.8], [-69.6, 19.2], [-71.6, 18.2]],                // to the lean-to, to the tower
   [[10, -98], [13.4, -100.4], [16.6, -101.4]], [[8, -102], [12.6, -102.4], [15.8, -102.2]],       // down to the dock
   [[-64, -42], [-60.6, -46.4], [-57, -47.8]],                                                  // round the wreck
+  // G1.5 row 09, the demo slice: where feet and wheels go at the checkpoint, the plantation, the foreman's yard, the cove
+  [[4.2, 77.6], [1.6, 79.4], [-0.6, 80.2]], [[-6.6, 73.4], [-4.2, 76.8], [-1.6, 79.6]],         // hut door and bunk to the gate
+  [[-5.2, 17.2], [0.4, 19.8], [6.4, 22.6], [12.8, 24.2]], [[-6.2, 29.4], [-2.2, 29.8], [0.4, 28.6]], // porch to barn, vat to the yard
+  [[5.2, 29.6], [2.6, 26.4], [1.6, 22.6]], [[19.2, 20.4], [22.4, 15.6], [25.2, 12.4]],            // tractor to the yard, barn to the east gate
+  [[-1.3, 41.6], [-1.6, 47.6], [-1.1, 53.6], [-0.6, 59.8]], [[1.3, 41.8], [1.0, 47.8], [1.5, 53.8], [2.0, 59.6]], // cart ruts through the foreman's yard
+  [[-80.6, 97.2], [-84.4, 100.6], [-88.6, 103.6]],                                             // the smugglers' path to their boat
 ];
 P.forEach(pinVariant); // multi-rock and leaning nature pieces get a fixed variant (colliders.ts)
 /** the demo's border, west to east, as one line that must be closed: the west seal, the camp's north wall (its gate is
