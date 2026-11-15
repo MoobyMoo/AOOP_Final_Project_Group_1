@@ -646,6 +646,8 @@ export const CONTAINER_SOCKETS: ContainerSocket[] = [
   cs("boss-safe", "safe", { x: -73.9, z: 28.9 }, "the gang boss's corner"), cs("fire-lunch", "lunchbox", { x: -63.6, z: 22 }, "by the cookfire"),
   cs("office-safe", "safe", at("farmhouse", -0.6, 1.4), "the plantation office", { in: "farmhouse" }), cs("farm-lunch", "lunchbox", at("farmhouse", -0.4, -1.0), "the farmhouse table", { in: "farmhouse" }),
   cs("yard-junk", "trash", { x: 8.6, z: 18.6 }, "the yard's scrap heap"), cs("field-sack", "sack", { x: -14.2, z: 30.4 }, "a harvest sack by the rows"),
+  cs("jetty-sack", "sack", { x: 44.4, z: 68.4 }, "the jetty's landed supplies"), cs("bw-ammo", "ammo", { x: 64.4, z: 43.4 }, "a sentry's tin on the boardwalk"),
+  cs("swamp-food", "food", { x: 55, z: 52 }, "a basket left on the boardwalk"),
   cs("hub-tools", "toolbox", { x: 46.2, z: 51.6 }, "the boardwalk hub"), cs("bw-junk", "trash", { x: 66.6, z: 45.6 }, "rubbish on the boardwalk"),
   cs("hall-safe", "safe", { x: 174.6, z: 30.2 }, "the smugglers' strongroom"), cs("hall-junk", "trash", { x: 160.4, z: 22.6 }, "the smugglers' midden"),
   cs("mouth-sack", "sack", { x: 157, z: 60 }, "a sack by the grotto mouth"), cs("roots-tools", "toolbox", { x: 157.8, z: -21.2 }, "a toolbox in the root chamber"),

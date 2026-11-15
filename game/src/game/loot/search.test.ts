@@ -50,7 +50,7 @@ check(JSON.stringify(takeAll(body)) === JSON.stringify(expected), 'body uses sha
 check(bodyContents(enemy).length === 0 && bodySearch(enemy) === body, 'reopening cannot duplicate loot');
 check(enemy.carry.length === 0 && enemy.stolen.length === 0 && enemy.gear.head === null, 'ownership transferred out of enemy');
 const demo = demoRaidLoot(1, 'hatch');
-check(demo.containers === 6 && demo.items.includes('ammo45'), 'demo hatch includes an explicit ammo stop');
+check(demo.containers === 10 && demo.items.includes('ammo45'), 'demo hatch includes an explicit ammo stop'); // 10: the population pass's route (loot/demo-economy.ts)
 check(!demo.items.includes('plantation_seal'), 'first upgrade does not require boss progression');
 check(demoRaidLoot(1, 'boss').items.includes('plantation_seal'), 'boss reward is guaranteed');
 const gunner = { kind: 'bandit' as const, down: false, carry: [] as string[], stolen: [] as string[] };
