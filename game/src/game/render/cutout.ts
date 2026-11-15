@@ -9,6 +9,7 @@
 // same per piece (G1.5-12; Moo's dithered banana plants): every tall chunk piece carries aObj = its base x, z, its top
 // y and its reach (dress.ts), and a piece is cut only if it stands taller than the hero's chest, sits between the
 // camera and the target, and reaches up into the sight line there. Low plants beside or in front of the hero stay whole.
+// Nothing within 0.6 u of the hero's ground is ever cut (a building's floor and porch are part of its one tall piece).
 import * as THREE from "three";
 
 /** hole radius and dissolve width in world units at the target's depth (Duckov: viewRange 4, viewFadeRange 1) */
@@ -58,19 +59,19 @@ export function withCutout<T extends THREE.Material>(m: T): T {
   m.onBeforeCompile = (sh, r) => {
     prev(sh, r); Object.assign(sh.uniforms, CUT);
     sh.vertexShader = sh.vertexShader
-      .replace("#include <common>", "#include <common>\nattribute vec4 aObj;\nvarying vec4 vObj;")
-      .replace("#include <begin_vertex>", `#include <begin_vertex>\n  vObj = aObj / vec4(${OBJ_SCALE.map((v) => v.toFixed(1)).join(", ")});`);
+      .replace("#include <common>", "#include <common>\nattribute vec4 aObj;\nvarying vec4 vObj;\nvarying vec3 vCutW;")
+      .replace("#include <begin_vertex>", `#include <begin_vertex>\n  vObj = aObj / vec4(${OBJ_SCALE.map((v) => v.toFixed(1)).join(", ")});\n  vCutW = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
     sh.fragmentShader = sh.fragmentShader
-      .replace("#include <common>", `#include <common>\nuniform vec2 uHeroPx; uniform float uHeroDepth; uniform vec2 uAimPx; uniform float uAimDepth; uniform float uCutR; uniform float uCutFade; uniform float uCutOn; uniform vec3 uHeroW; uniform vec3 uAimW;\nvarying vec4 vObj;\n${IGN}\n${BLOT}`)
+      .replace("#include <common>", `#include <common>\nuniform vec2 uHeroPx; uniform float uHeroDepth; uniform vec2 uAimPx; uniform float uAimDepth; uniform float uCutR; uniform float uCutFade; uniform float uCutOn; uniform vec3 uHeroW; uniform vec3 uAimW;\nvarying vec4 vObj;\nvarying vec3 vCutW;\n${IGN}\n${BLOT}`)
       .replace("void main() {", `void main() {
-  if (uCutOn > 0.5) {
+  if (uCutOn > 0.5 && vCutW.y > uHeroW.y - 0.5) {                // ankle-high and lower never opens: floors, porches, steps, roots
     float keep = 1.0;
     if (cut_occl(uHeroW)) keep = cut_keep(gl_FragCoord.xy, uHeroPx, uHeroDepth, uCutR, uCutFade);
     if (cut_occl(uAimW)) keep = min(keep, cut_keep(gl_FragCoord.xy, uAimPx, uAimDepth, uCutR * 0.8, uCutFade));
     if (keep < cut_ign(gl_FragCoord.xy) * 0.35) discard;
   }`);
   };
-  m.customProgramCacheKey = () => (key ? key() : "") + "cut4";
+  m.customProgramCacheKey = () => (key ? key() : "") + "cut5";
   return m;
 }
 const v = new THREE.Vector3(), size = new THREE.Vector2(), camPos = new THREE.Vector3();

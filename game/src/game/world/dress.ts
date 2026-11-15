@@ -85,7 +85,7 @@ function settle(k: string, x: number, z: number): THREE.Quaternion | undefined {
 }
 const tallMats: Partial<Record<MatId, THREE.Material>> = {};
 function tallMaterial(id: MatId) {
-  if (!tallMats[id]) { const base = kitMaterial(id) as THREE.MeshStandardMaterial; const m = base.clone(); m.onBeforeCompile = base.onBeforeCompile; m.customProgramCacheKey = base.customProgramCacheKey; tallMats[id] = id === "emissive" ? m : withCutout(m); }
+  if (!tallMats[id]) { const base = kitMaterial(id) as THREE.MeshStandardMaterial; const m = base.clone(); m.onBeforeCompile = base.onBeforeCompile; m.customProgramCacheKey = base.customProgramCacheKey; tallMats[id] = withCutout(m); } // emissive too: a lantern's flame goes with its lantern (it floated on in the hole, G1.5-12)
   return tallMats[id]!;
 }
 /** the world is a few million triangles of non-indexed vertices: store normals as int8 and colours as uint8
