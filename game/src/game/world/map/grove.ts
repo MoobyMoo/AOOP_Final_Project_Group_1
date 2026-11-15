@@ -456,8 +456,9 @@ if (DEMO) {
   seal([[-4.6, -2.6], [-1.6, -3.4], [1.4, -3.0], [4.4, -2.2]], 2.0, 1.05);
   group(0, -2.4, 0, [["rockm", -1.9, 2.2, 0.4, 1.2], ["rockm", 1.7, 2.5, 2.2, 1.1], ["rocks", -2.4, 3.6, 0.2, 1.3], ["rocks", 2.2, 3.9, 1.6, 1.1], ["rocks", 0.4, 4.6, 3.1, 1.2], ["rockm", 3.6, 2.8, 0.6], ["log", -3.2, 2.9, 0.7], ["signpost_raft", -0.6, 4.0, 2.4]]);
   // ---- east: the central ridge's end to the colony's west wall; the rockfall in the colony's west gate
-  seal([[44.8, -6.4], [46.0, -7.0], [47.2, -7.6]], 1.8);
+  seal([[44.8, -6.4], [46.0, -7.0], [46.8, -7.4]], 1.8); put("rockm", 48.7, -7.9, 1.1, 1.3); // the last metre to the colony wall
   seal([[53.2, 0.4], [53.2, 2.0], [53.2, 3.6]], 1.7, 1.0); // just inside the gateway, clear of its pillars and the wall
+  put("rockm", 51.6, -0.9, 0.7, 1.3); put("rockm", 51.6, 4.7, 2.3, 1.3); // the corners between the pillars and the pile
   group(48, 2.2, 0, [["rockm", -1.2, -1.4, 0.6, 1.1], ["rockm", -1.4, 1.6, 2.4, 1.0], ["rocks", -2.6, 0.2, 0.4, 1.3], ["rocks", -3.6, 2.6, 1.9, 1.0], ["rockm", -2.2, -2.8, 0.2]]);
   // ---- the collapsed boardwalk: its last span and the ramp are gone; a broken section hangs into the water, the piles
   // stand on; behind it the colony's south arch has fallen into its own gateway
