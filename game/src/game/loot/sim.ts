@@ -4,6 +4,8 @@ import manifest from "../../../public/models/build/manifest.json";
 import { initGrid, path, walkable } from "../world/grid";
 import { CRATE_TABLES, PRICES, isUseful, itemDef, mulberry32, rollCrate, rollEnemyDrop, type LootContext } from "./tables";
 import { demoRaidLoot, DEMO_ROUTES, upgradePacing } from './demo-economy';
+import { CATALOG } from '../home/facilities';
+import { DESTINATIONS } from '../core/deployment';
 
 function assert(ok: boolean, message: string): asserts ok {
   if (!ok) throw new Error(message);
@@ -88,3 +90,20 @@ const pass = affordable === 1 && median8 < firstTwo && raidsToAll === 4 && bough
 console.log(`Prices: ${JSON.stringify(PRICES)}`);
 console.log(`Economy gate: ${pass ? "PASS" : "FAIL"} | first hatch median ${median8}; affordable upgrades ${affordable}; all three in ${raidsToAll} median raids (pack growth included).`);
 assert(pass, "economy pacing gate");
+
+// The vault (G1.5 row 17): what building it costs against the same median income. The two stations a new vault needs
+// (selling and the bench) are free, so the upgrade gate above is unchanged by the empty start. The rest is a choice
+// against the upgrades: the whole catalog plus all three upgrades should take a handful of median raids, not dozens.
+// Prices are bananas; the plantation road's fare must stay a small slice of a raid.
+{
+  const essential = CATALOG.filter(def => def.station === 'sell' || def.station === 'bench');
+  const catalog = CATALOG.reduce((sum, def) => sum + def.cost * def.maxCount, 0);
+  const upgrades = Object.values(PRICES.upgrades).reduce((sum, list) => sum + list.reduce((a, b) => a + b, 0), 0);
+  let balance = 0, raids = 0; while (balance < catalog + upgrades && raids < 100) { balance += raids === 0 ? median8 : median10; raids++; }
+  const fare = Math.max(...DESTINATIONS.map(dest => dest.cost));
+  const cheapUseful = Math.min(...CATALOG.filter(def => def.cost > 0 && !def.decor).map(def => def.cost));
+  const ok = essential.length === 2 && essential.every(def => def.cost === 0) && raids <= 8 && fare <= median8 * 0.15 && median8 - PRICES.upgrades.mag[0] >= 0 && cheapUseful <= median8 - PRICES.upgrades.mag[0] + median10;
+  console.log(`Base: ${CATALOG.map(def => `${def.id} ${def.cost}${def.maxCount > 1 ? `x${def.maxCount}` : ''}`).join(', ')}`);
+  console.log(`Base gate: ${ok ? 'PASS' : 'FAIL'} | essentials free; whole catalog ${catalog} + upgrades ${upgrades} = ${catalog + upgrades} in ${raids} median raids; plantation fare ${fare} = ${(100 * fare / median8).toFixed(0)}% of a first raid; cheapest useful facility ${cheapUseful} affordable by raid 2.`);
+  assert(ok, 'base economy gate');
+}

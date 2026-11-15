@@ -144,7 +144,11 @@ export type SaveV1 = {
   order: { id: string; progress: Record<string, number>; done: boolean } | null;
   fixtures: string[]; salMovedIn: boolean;
   stats: { bonkOuts: number; extracts: number; best: number };
+  base: BaseLayout; // the vault's built facilities (home/facilities.ts; G1.5 row 17). Old saves migrate to the old room's stations
 };
+/** the vault's saved layout (Duckov BuildingManager save: building id, grid cell, rotation, tokens). x, z = the
+ *  footprint's min-corner cell, r = quarter turns; tokens = facilities packed up into storage (placing one is free) */
+export type BaseLayout = { v: 1; next: number; items: { uid: number; def: string; x: number; z: number; r: 0 | 1 | 2 | 3 }[]; tokens: Record<string, number> };
 // core/save.ts exports: load(): SaveV1; save(s: SaveV1): void (called only at home); reset(): SaveV1; migrate(raw: unknown): SaveV1
 
 // ---------------------------------------------------------------- core/bot.ts (Codex Sol)
