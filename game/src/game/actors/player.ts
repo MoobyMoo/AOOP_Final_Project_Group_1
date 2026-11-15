@@ -2,7 +2,9 @@
 // melee, pain), weight states, timed healing, aim-down-sights. Implements the roll contract and the one cancel rule.
 import * as THREE from "three";
 import { G, V, flat, angDiff, type Enemy } from "../core/state";
-import { PLAYER, KINGPIN, BRIEFCASE, FEEL, HEALS } from "../combat/weapons";
+import { PLAYER, KINGPIN, KINGPIN_HANDLING, BRIEFCASE, FEEL, HEALS } from "../combat/weapons";
+import { updateHandling, kickedNdc } from "../combat/handling";
+import { tuneObject } from "../core/tune";
 import { ENEMY_CRIT, SLOTS, equipDef, gearStats } from "../loot/equipment";
 import { EQUIP_MOVE, interruptEquip, protectPlayerHit, updateEquipment } from "../loot/equipment-actions";
 import { collide, walkable } from "../world/grid";
@@ -17,6 +19,19 @@ import { startReload, cancelReload, updateReload, emptyTrigger } from "../combat
 import { startDash, dustColor } from "./dash";
 import type { KingpinFx } from "../combat/kingpin";
 
+tuneObject("player", PLAYER, {
+  speed: { min: 1, max: 12, step: 0.1, label: "walk speed (u/s)" }, sprint: { min: 1, max: 16, step: 0.1, label: "sprint speed (u/s)" },
+  "stamina.max": { min: 10, max: 300, step: 1, label: "stamina max" }, "stamina.sprintDrain": { min: 0, max: 40, step: 0.5, label: "sprint drain /s" },
+  "stamina.recover": { min: 0, max: 100, step: 1, label: "stamina recover /s" }, "stamina.delay": { min: 0, max: 5, step: 0.05, label: "recover delay (s)" },
+  "stamina.sprintStart": { min: 0, max: 100, step: 1, label: "stamina needed to start a sprint" }, "stamina.roll": { min: 0, max: 50, step: 1, label: "dash cost" },
+  "stamina.melee": { min: 0, max: 50, step: 1, label: "briefcase cost" }, "stamina.pain": { min: 0, max: 50, step: 1, label: "pain cost" },
+  "pain.time": { min: 0, max: 3, step: 0.05, label: "pain slow time (s)" }, "pain.slow": { min: 0, max: 0.9, step: 0.01, label: "pain slow" },
+  "roll.time": { min: 0.1, max: 1, step: 0.01, label: "dash time (s)" }, "roll.dist": { min: 0.5, max: 8, step: 0.1, label: "dash distance (u)" },
+  "roll.skid": { min: 0, max: 1, step: 0.01, label: "skid time (s)" }, "roll.skidSpeed": { min: 0, max: 1, step: 0.01, label: "skid speed" },
+  "roll.cooldown": { min: 0, max: 3, step: 0.05, label: "dash cooldown (s)" },
+  "weight.lightBonus": { min: 0, max: 0.6, step: 0.01, label: "light load bonus" }, "weight.heavySlow": { min: 0, max: 0.9, step: 0.01, label: "heavy load slow" },
+  "weight.overSlow": { min: 0, max: 0.95, step: 0.01, label: "overloaded slow" }, maxWeight: { min: 5, max: 100, step: 1, label: "carry limit (kg)" },
+}, { note: "movement and stamina (combat/weapons.ts PLAYER)" });
 const UP = new THREE.Vector3(0, 1, 0);
 const tmp = new THREE.Vector3();
 let stepT = 0, dryLatch = false;
@@ -45,13 +60,16 @@ export function updatePlayer(dt: number) {
   updateEquipment(dt);
   G.weight = carriedWeight();
 
-  // ---- aim (RMB = aim down sights: steadier, longer camera lead, wider magnet)
-  G.ads = i.ads && G.rollT < 0;
+  // ---- aim (RMB = aim down sights over 0.3 s: tighter scatter, longer camera lead, slower walk, wider magnet).
+  // combat/handling.ts runs the aim amount, scatter recovery and the recoil kick; the kick moves the cursor itself, so
+  // the aim point, the crosshair, the head check and the next shot all see it
+  updateHandling(dt, i);
   if (i.aimNdc) {
-    const p = st.pick(i.aimNdc.x, i.aimNdc.y, G.pp.y + 1.0); G.aimPoint.copy(p);
+    const ndc = kickedNdc(i.aimNdc);
+    const p = st.pick(ndc.x, ndc.y, G.pp.y + 1.0); G.aimPoint.copy(p);
     // on a head (headshot.ts): half the correction toward the head centre, Duckov's aim-height fix, so the shot and the
     // crosshair go for the enemy the cursor is on, not for the ground plane behind its head
-    if (updateAimHead(i.aimNdc)) { G.aimPoint.x += (aimHead.point.x - G.aimPoint.x) * 0.5; G.aimPoint.z += (aimHead.point.z - G.aimPoint.z) * 0.5; }
+    if (updateAimHead(ndc)) { G.aimPoint.x += (aimHead.point.x - G.aimPoint.x) * 0.5; G.aimPoint.z += (aimHead.point.z - G.aimPoint.z) * 0.5; }
     G.aimYaw = Math.atan2(G.aimPoint.x - G.pp.x, G.aimPoint.z - G.pp.z); G.lockTarget = null;
   } else {
     updateAimHead(null);
@@ -86,7 +104,7 @@ export function updatePlayer(dt: number) {
 
   // ---- move: walk/sprint, weight state, pain, skid, item use, shooting/ADS
   const mv = moveVec(i.move), moving = mv.lengthSq() > 0.01;
-  const busy = G.fireCd > -0.25 || G.ads || G.useItem || G.equipping || G.meleeT >= 0; // reloading does not stop a sprint (row 20)
+  const busy = G.fireCd > -0.25 || i.ads || G.useItem || G.equipping || G.meleeT >= 0; // reloading does not stop a sprint (row 20)
   if (G.sprinting) { if (!i.sprint || !moving || busy || G.stamina <= 0) G.sprinting = false; }
   else if (i.sprint && moving && !busy && G.stamina >= S.sprintStart) G.sprinting = true;
   if (G.sprinting) useStamina(S.sprintDrain * dt);
@@ -97,7 +115,7 @@ export function updatePlayer(dt: number) {
   if (G.skidT > 0) speed *= PLAYER.roll.skidSpeed; G.skidT -= dt;
   if (G.painT > 0) speed *= 1 - PLAYER.pain.slow;
   if (G.useItem) speed *= 1 - HEALS[G.useItem.id].slow;
-  if (G.ads) speed *= 0.7; else if (G.fireCd > -0.25) speed *= 0.85;
+  if (G.ads) speed *= KINGPIN_HANDLING.adsWalk; else if (G.fireCd > -0.25) speed *= 0.85; // Duckov: walk x AdsWalkSpeedMultiplier while aiming
   G.vel.lerp(mv.multiplyScalar(speed), Math.min(1, dt * 14));
   move(G.vel.clone().multiplyScalar(dt));
   if (G.vel.lengthSq() > 0.3) {

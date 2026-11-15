@@ -40,6 +40,31 @@ export const KINGPIN = {
   magnet: 7 * Math.PI / 180, magnetAds: 10 * Math.PI / 180, noise: 14, kick: 0.09, startAmmo: 24,
   critMult: 1.3, reloadMode: "mag" as ReloadMode, perRound: 0.4, autoReload: false,
 };
+/** GUN HANDLING (combat/handling.ts; POLISH_FINDINGS 16 "Gun handling: scatter, recoil, ADS"). Duckov's mechanism with
+ *  our numbers. Scatter is the full cone angle in degrees (a round leaves at +-scatter/2 around the aim, flat on the
+ *  ground plane like Duckov's yaw-only spread). Each value is lerped hip -> ADS by the aim amount (0..1, reached over
+ *  adsTime, released at least 4/s). After a shot scatter grows by `grow`, clamped to [rest, max]; it falls back to
+ *  `rest` at recover x grow x shots-per-second degrees/s (Duckov's formula; 6x faster when below rest).
+ *  Anchors (stat values x ScatterFactor): Duckov's low-tier 13-round pistol rests at 6.0 deg, peaks at 16.0, grows
+ *  7.8/shot (ADS 4.2 / 12.0 / 5.0); its 8-round pistol rests 6.1, peaks 22.4, grows 11.0 (ADS 3.6 / 13.2 / 5.3).
+ *  The Kingpin is our heavy 8-round .45, so it sits between them and kicks harder than the 13-rounder.
+ *  Movement (ours; Duckov's player path has no movement term, see POLISH_FINDINGS 16): the live scatter is multiplied
+ *  by 1 + walk x (speed / walk speed) + sprint while sprinting, with the added part scaled by adsMove in ADS, eased
+ *  at moveRate /s. Duckov applies character multipliers the same way (GunScatterMultiplier, x4 for an AI whose target
+ *  runs).
+ *  Recoil moves the aim point in screen pixels (1440-tall reference, scaled to the window): V along the line from the
+ *  hero to the cursor (outward), H across it, each a uniform pick in [min, max] x scale, applied over recoilTime, then
+ *  held until recoverDelay and pulled back at recover px/s. Moving the mouse against it cancels that much of it. */
+export const KINGPIN_HANDLING = {
+  rest: 6, max: 18, grow: 9, recover: 0.5,
+  restAds: 3.5, maxAds: 12, growAds: 5.5, recoverAds: 0.6,
+  walk: 0.6, sprint: 1.5, adsMove: 0.5, moveRate: 8,
+  vMin: 0.85, vMax: 1.15, hMin: -0.4, hMax: 0.6, scaleV: 34, scaleH: 30, recoilTime: 0.06, recoverDelay: 0.1, recoverSpeed: 550, recoilMul: 1,
+  /** ADS: time to full aim, walk multiplier while the button is held, camera lead factor (Duckov ADSAimDistanceFactor:
+   *  1.0 on every pistol, 1.1-3.68 on rifles; ours pushes 1.35 so the pistol aim visibly leans in) and the FOV scale at
+   *  full aim (Duckov 22.8/23.5 = 0.97; ours 0.93 because our 40 u telephoto barely shows 3%) */
+  adsTime: 0.3, adsWalk: 0.6, adsDist: 1.35, adsFov: 0.93,
+};
 export type ReloadMode = "mag" | "round";
 /** a gun as the reload loop sees it (the Kingpin today; a scatter gun later uses mode "round") */
 export type GunDef = { mag: number; reload: number; reloadMode: ReloadMode; perRound: number; autoReload: boolean };

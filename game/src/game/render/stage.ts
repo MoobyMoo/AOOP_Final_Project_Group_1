@@ -66,7 +66,14 @@ export class Stage {
   }
   resize() {
     this.renderer.setSize(innerWidth, innerHeight, false); this.composer.setSize(innerWidth, innerHeight); inkU.uRes.value.set(innerWidth, innerHeight);
-    this.camera.aspect = innerWidth / innerHeight; this.camera.fov = this.camera.aspect < 1 ? 34 : 24; this.camera.updateProjectionMatrix();
+    this.camera.aspect = innerWidth / innerHeight; this.camera.fov = 0; this.setFov(this.fovLand, this.fovPortrait, this.fovScale);
+  }
+  /** base FOV (landscape / portrait) times a scale (the raid's ADS zoom); the projection is rebuilt only on a change */
+  fovLand = 24; fovPortrait = 34; fovScale = 1;
+  setFov(land = 24, portrait = 34, scale = 1) {
+    this.fovLand = land; this.fovPortrait = portrait; this.fovScale = scale;
+    const f = (this.camera.aspect < 1 ? portrait : land) * scale;
+    if (Math.abs(f - this.camera.fov) > 1e-4) { this.camera.fov = f; this.camera.updateProjectionMatrix(); }
   }
   /** move the camera to look at `target` (smoothed by caller); applies kick + shake */
   place(target: THREE.Vector3, dt: number, t: number) {

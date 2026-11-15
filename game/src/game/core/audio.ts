@@ -6,6 +6,7 @@
 //  - the shot is three layers mixed at runtime: core crack, slide mechanism a beat later, and the tail
 //  - each kind has a voice cap; the oldest voice is cut with a short fade when the cap is hit
 //  - three buses (sfx, ui, music) into one compressor so music can duck under combat later
+import { tuneObject } from "./tune";
 let ctx: AudioContext | null = null, master: GainNode | null = null, noiseBuf: AudioBuffer | null = null;
 let sfxBus: GainNode | null = null, uiBus: GainNode | null = null;
 export let musicBus: GainNode | null = null;
@@ -16,6 +17,9 @@ const BUS_BASE = { master: 0.7, sfx: 1, ui: 0.8, music: 0.5 };
 export function setVolume(bus: keyof typeof VOLUME, v: number) {
   VOLUME[bus] = Math.min(1, Math.max(0, v)); localStorage.setItem("bv_volume", JSON.stringify(VOLUME)); applyVolume();
 }
+// ?tune "audio": the same four buses (the setting persists through setVolume, not the tune store)
+tuneObject("audio", VOLUME, { master: { min: 0, max: 1, step: 0.01 }, sfx: { min: 0, max: 1, step: 0.01, label: "effects" }, ui: { min: 0, max: 1, step: 0.01, label: "interface" }, music: { min: 0, max: 1, step: 0.01 } },
+  { persist: false, onChange: (k, v) => setVolume(k as keyof typeof VOLUME, v), note: "bus volumes (core/audio.ts; the settings menu writes the same values)" });
 function applyVolume() {
   if (!ctx) return; const t = ctx.currentTime;
   for (const [bus, node] of [["master", master], ["sfx", sfxBus], ["ui", uiBus], ["music", musicBus]] as const) node?.gain.setTargetAtTime(BUS_BASE[bus] * VOLUME[bus], t, 0.03);

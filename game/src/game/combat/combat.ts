@@ -13,6 +13,7 @@ import { breakWallVisual } from "../world/props";
 import { recordBotCombat } from "../core/bot";
 import { gearStats } from "../loot/equipment";
 import type { KingpinFx } from "./kingpin";
+import { onShot } from "./handling";
 import { aimHead, headCenter } from "./headshot";
 import { damageNumber, hitMarker, clearFeedback } from "./feedback";
 import { surfaceAt } from "./surface";
@@ -56,7 +57,9 @@ export function shoot() {
     if (a < bestA) { bestA = a; target = e; }
   }
   if (target) yaw = Math.atan2(target.p.x - G.pp.x, target.p.z - G.pp.z);
-  yaw += (G.rng() - 0.5) * (G.ads ? 0.02 : 0.05); // a little spread so a burst looks alive
+  // scatter (combat/handling.ts): the round leaves somewhere inside the live cone, then the cone grows and the cursor kicks
+  tmp.copy(G.pp).setY(G.pp.y + 1).project(G.stage.camera);
+  yaw += onShot({ x: tmp.x * innerWidth * 0.5, y: tmp.y * innerHeight * 0.5 });
   G.gun.pose({ fireT: 0, reloadT: -1 }); G.gun.root.updateMatrixWorld(true);
   G.gun.muzzle.getWorldPosition(to);
   G.fx.fire(G.gun.muzzle, G.gun.eject, to, "none"); // flash, light, brass; the bullet itself draws the tracer
