@@ -66,7 +66,8 @@ export type Sfx = "shot" | "shell" | "dry" | "reloadOut" | "reloadIn" | "slide" 
   | "kill" | "killCrit" | "impactDirt" | "impactWood" | "impactMetal" | "impactFoliage" | "impactStone" | "dash" | "ko" | "hurt" | "heal"
   | "step" | "crateTick" | "crate" | "pop" | "rare" | "pick" | "throw" | "whirr" | "windup" | "slam" | "roar" | "thunk" | "notice"
   | "snatch" | "tick" | "extract" | "cash" | "buy" | "nope" | "ui" | "door"
-  | "squawk" | "grunt" | "squeal" | "splash" | "scuttle"; // wildlife (ai/fauna.ts): parrot flush, boar telegraph + charge, croc lunge, crab
+  | "squawk" | "grunt" | "squeal" | "splash" | "scuttle"
+  | "coinFlip" | "coinLand" | "rouletteSpin" | "lockboxOpen"; // the Fence's games and lockboxes (home/econ-ui.ts) // wildlife (ai/fauna.ts): parrot flush, boar telegraph + charge, croc lunge, crab
 const combo: Record<string, { n: number; t: number }> = {}, warned = new Set<string>();
 /** play a sound; vol scales it (e.g. by distance) */
 export function sfx(kind: Sfx, vol = 1) {
@@ -75,46 +76,115 @@ export function sfx(kind: Sfx, vol = 1) {
   if (!playSample(kind, vol, c.n) && import.meta.env.DEV && loaded && !warned.has(kind)) { warned.add(kind); console.warn(`sfx "${kind}" has no samples`); }
 }
 
-/** a gunshot voiced for one gun (combat/guns.ts GunDef.sound): the shared shot layers at this pitch and gain, with
- *  the tail held up to `tail` s (a sniper's rings on, an SMG's is clipped). TODO(audio): per-class ElevenLabs takes
- *  (shotgun boom, sniper crack with a long tail, LMG chug) replace the pitched layers; research/audio/QUEUE.md. */
-export function gunShot(sound: { pitch: number; gain: number; tail: number }, vol = 1) {
+// ---- guns: one sampled layer set per class (combat/guns.ts GunDef.sound) ----
+/** the layer sets: "pistol" is the Kingpin's original takes, the rest are per-class ElevenLabs takes; "zapper" is the
+ *  novelty ray gun (no shell, no mechanism) */
+export type GunSet = "pistol" | "smg" | "rifle" | "shotgun" | "sniper" | "lmg" | "zapper";
+export type GunLayer = "shotCore" | "shotMech" | "shotTail" | "smgCore" | "smgMech" | "smgTail" | "rifleCore" | "rifleMech" | "rifleTail"
+  | "shotgunCore" | "shotgunTail" | "sniperCore" | "sniperTail" | "lmgCore" | "lmgBelt" | "lmgTail" | "zapperCore"
+  | "pumpRack" | "boltCycle" | "breakClunk" | "smgMagOut" | "smgMagIn" | "rifleMagOut" | "rifleMagIn" | "shellInsert" | "lmgBoxOut" | "lmgBoxIn"
+  | "dryHeavy" | "dryLight" | "dry" | "reloadOut" | "reloadIn" | "slide" | "reloadRound";
+type Kit = {
+  core: GunLayer; tail?: GunLayer; /** the action, `mechAt` s after the shot (a bolt or pump cycles later than a gas action) */ mech?: GunLayer; mechAt?: number;
+  dry: GunLayer; /** mag reload: out at 15 %, in at 65 %, close at 85 % */ out?: GunLayer; in?: GunLayer; close?: GunLayer;
+  /** round reload: each round, plus open at the start and close when it ends (only when a gun sets them) */ round?: GunLayer; open?: GunLayer;
+};
+const GUN_KITS: Record<GunSet, Kit> = {
+  pistol: { core: "shotCore", mech: "shotMech", mechAt: 0.035, tail: "shotTail", dry: "dry", out: "reloadOut", in: "reloadIn", close: "slide", round: "reloadRound" },
+  smg: { core: "smgCore", mech: "smgMech", mechAt: 0.02, tail: "smgTail", dry: "dryLight", out: "smgMagOut", in: "smgMagIn", close: "slide" },
+  rifle: { core: "rifleCore", mech: "rifleMech", mechAt: 0.03, tail: "rifleTail", dry: "dryHeavy", out: "rifleMagOut", in: "rifleMagIn", close: "slide" },
+  shotgun: { core: "shotgunCore", tail: "shotgunTail", dry: "dryHeavy", round: "shellInsert", out: "rifleMagOut", in: "rifleMagIn", close: "slide" },
+  sniper: { core: "sniperCore", mech: "boltCycle", mechAt: 0.45, tail: "sniperTail", dry: "dryHeavy", out: "rifleMagOut", in: "rifleMagIn", close: "boltCycle" },
+  lmg: { core: "lmgCore", mech: "lmgBelt", mechAt: 0.025, tail: "lmgTail", dry: "dryHeavy", out: "lmgBoxOut", in: "lmgBoxIn", close: "lmgBelt" },
+  zapper: { core: "zapperCore", dry: "dryLight", out: "reloadOut", in: "reloadIn", close: "slide" },
+};
+/** a gun's sound: its class set, a gain on top of the set's mix, the tail's longest ring (s), and per-gun overrides of
+ *  the kit (a pump gun's rack as its mechanism and reload close, a break action's clunk as its reload open) */
+export type GunSound = { set: GunSet; gain: number; tail: number } & Partial<Pick<Kit, "mech" | "mechAt" | "open" | "close">>;
+const kitOf = (s: GunSound): Kit => ({ ...GUN_KITS[s.set], ...(s.mech ? { mech: s.mech, mechAt: s.mechAt } : {}), ...(s.open ? { open: s.open } : {}), ...(s.close ? { close: s.close } : {}) });
+const jit = (k: string) => 1 + (Math.random() - 0.5) * 2 * (MIX[k as keyof typeof MIX]?.jit ?? 0);
+/** a gunshot voiced for one gun: core crack (rotating takes, never the same twice in a row, so auto fire doesn't
+ *  machine-gun), the action a beat later, and the tail held up to `tail` s. Core and tail go through the suppressor
+ *  filter; the action does not (a suppressor does not quiet the bolt) */
+export function gunShot(sound: GunSound, vol = 1) {
   if (!ctx || !master || vol <= 0.01) return;
-  const core = pickBuf("shotCore"); if (!core) return;
-  const j = (k: "shotCore" | "shotMech" | "shotTail") => sound.pitch * (1 + (Math.random() - 0.5) * 2 * (MIX[k]?.jit ?? 0)), v = vol * sound.gain;
-  voice("shotCore", core, v, j("shotCore"), 0, shotLp ?? sfxBus!);
-  const mech = pickBuf("shotMech"); if (mech) voice("shotMech", mech, v, j("shotMech"), 0.035 / sound.pitch, sfxBus!);
-  const tail = pickBuf("shotTail"); if (tail) voice("shotTail", tail, v * (0.6 + 0.4 * vol), j("shotTail"), 0.01, shotLp ?? sfxBus!, sound.tail);
+  const kit = kitOf(sound), core = pickBuf(kit.core); if (!core) return;
+  const v = vol * sound.gain;
+  voice(kit.core, core, v, jit(kit.core), 0, shotLp ?? sfxBus!);
+  const mech = kit.mech && pickBuf(kit.mech); if (mech) voice(kit.mech!, mech, v, jit(kit.mech!), kit.mechAt ?? 0.03, sfxBus!);
+  const tail = kit.tail && pickBuf(kit.tail); if (tail) voice(kit.tail!, tail, v * (0.6 + 0.4 * vol), jit(kit.tail!), 0.01, shotLp ?? sfxBus!, sound.tail);
+}
+/** a reload stage for one gun (combat/reload.ts): "open" | "out" | "in" | "close" | "round"; a stage the kit has no
+ *  layer for is silent */
+export function gunReload(sound: GunSound, stage: "open" | "out" | "in" | "close" | "round") {
+  if (!ctx || !master) return;
+  const k = kitOf(sound)[stage], buf = k && pickBuf(k); if (buf) voice(k!, buf, 1, jit(k!), 0, sfxBus!);
+}
+/** the empty-gun click: light for pistols, SMGs and the zapper, heavy for long guns */
+export function gunDry(sound: GunSound) {
+  if (!ctx || !master) return;
+  const k = kitOf(sound).dry, buf = pickBuf(k); if (buf) voice(k, buf, 1, jit(k), 0, sfxBus!);
 }
 // ---- samples ----
 /** per-kind mix: gain, pitch jitter, voice cap, optional hard length cap. The gains level every kind against the gun: each
  *  is set from the kind's measured punch (loudest 100 ms RMS of its peak-normalised takes) plus a role offset in dB
  *  relative to shotCore, which stays at 0.42 (about -7.5 dB): hit-confirms -1..-3, boss cues +1, gun handling -8..-10,
- *  impacts -9, UI -6..-12, footsteps -16/-17, wildlife -1..-3 (crab -18). Re-derive them when takes change (research/audio/QUEUE.md, "Mix"). */
+ *  impacts -9, UI -6..-12, footsteps -16/-17, wildlife -1..-3 (crab -18), guns by class: smg -2, rifle/lmg +1, shotgun +2, sniper +3, zapper -1 (their actions, tails and reloads -4..-10). Re-derive them when takes change (research/audio/QUEUE.md, "Mix"). */
 type Mix = { g: number; jit?: number; cap?: number; max?: number; climb?: boolean };
-const MIX: Partial<Record<Sfx | "shotCore" | "shotMech" | "shotTail" | StepKind, Mix>> = {
-  shotCore: { g: 0.42, jit: 0.05, cap: 6, max: 0.9 }, shotMech: { g: 0.26, jit: 0.06, cap: 4, max: 0.35 }, shotTail: { g: 0.25, jit: 0.04, cap: 3, max: 1.4 },
-  shell: { g: 0.15, jit: 0.1, cap: 3, max: 0.6 }, dry: { g: 0.36, cap: 1 }, reloadOut: { g: 0.4, cap: 1 }, reloadIn: { g: 0.57, cap: 1 },
-  slide: { g: 0.27, cap: 1 }, reloadRound: { g: 0.23, jit: 0.06, cap: 2 },
-  hit: { g: 0.26, jit: 0.08, cap: 4, max: 0.4 }, hitCrit: { g: 0.35, jit: 0.04, cap: 3, max: 0.5 }, kill: { g: 0.3, cap: 2, max: 0.8 }, killCrit: { g: 0.3, cap: 2, max: 1.0 },
-  ko: { g: 0.11, jit: 0.05, cap: 2, max: 1.2 }, bonk: { g: 0.39, jit: 0.06, cap: 2, max: 0.7 }, swing: { g: 0.14, jit: 0.08, cap: 2, max: 0.5 },
-  impactDirt: { g: 0.13, jit: 0.12, cap: 4, max: 0.4 }, impactWood: { g: 0.18, jit: 0.1, cap: 4, max: 0.45 }, impactMetal: { g: 0.23, jit: 0.08, cap: 3, max: 0.6 },
-  impactFoliage: { g: 0.25, jit: 0.15, cap: 3, max: 0.45 }, impactStone: { g: 0.37, jit: 0.1, cap: 4, max: 0.45 },
-  dash: { g: 0.07, jit: 0.05, cap: 1, max: 0.6 }, hurt: { g: 0.21, jit: 0.06, cap: 1, max: 0.7 }, heal: { g: 0.26, cap: 1, max: 1.5 }, step: { g: 0.13, jit: 0.15, cap: 2, max: 0.35 },
-  windup: { g: 0.19, cap: 2, max: 1.0 }, throw: { g: 0.16, jit: 0.06, cap: 2, max: 0.8 }, roar: { g: 0.37, cap: 1, max: 2.5 }, slam: { g: 0.26, cap: 1, max: 1.5 },
-  notice: { g: 0.3, cap: 2, max: 0.7 }, snatch: { g: 0.13, cap: 1, max: 0.7 }, thunk: { g: 0.22, cap: 2, max: 1.0 },
-  crate: { g: 0.3, cap: 1, max: 1.2 }, crateTick: { g: 0.18, cap: 2, max: 0.35, climb: true }, door: { g: 0.07, cap: 2, max: 1.5 },
-  extract: { g: 0.23, cap: 1, max: 3 }, tick: { g: 0.3, cap: 1, max: 0.3 }, whirr: { g: 0.32, cap: 1, max: 1.0 },
-  pick: { g: 0.39, cap: 3, max: 0.4, climb: true }, rare: { g: 0.24, cap: 1, max: 2 }, cash: { g: 0.34, cap: 3, max: 0.8, climb: true }, buy: { g: 0.27, cap: 1, max: 1.2 },
-  ui: { g: 0.28, cap: 2, max: 0.25 }, pop: { g: 0.18, cap: 3, max: 0.4, climb: true }, nope: { g: 0.47, cap: 1, max: 0.5 },
+const MIX: Partial<Record<Sfx | GunLayer | StepKind | HumKind, Mix>> = {
+  shotCore: { g: 0.42, jit: 0.05, cap: 6, max: 0.9 }, shotMech: { g: 0.29, jit: 0.06, cap: 4, max: 0.35 }, shotTail: { g: 0.24, jit: 0.04, cap: 3, max: 1.4 },
+  shell: { g: 0.18, jit: 0.1, cap: 3, max: 0.6 }, dry: { g: 0.39, cap: 1 }, reloadOut: { g: 0.35, cap: 1 }, reloadIn: { g: 0.5, cap: 1 },
+  slide: { g: 0.24, cap: 1 }, reloadRound: { g: 0.2, jit: 0.06, cap: 2 },
+  hit: { g: 0.26, jit: 0.08, cap: 4, max: 0.4 }, hitCrit: { g: 0.32, jit: 0.04, cap: 3, max: 0.5 }, kill: { g: 0.27, cap: 2, max: 0.8 }, killCrit: { g: 0.27, cap: 2, max: 1.0 },
+  ko: { g: 0.1, jit: 0.05, cap: 2, max: 1.2 }, bonk: { g: 0.51, jit: 0.06, cap: 2, max: 0.7 }, swing: { g: 0.18, jit: 0.08, cap: 2, max: 0.5 },
+  impactDirt: { g: 0.15, jit: 0.12, cap: 4, max: 0.4 }, impactWood: { g: 0.26, jit: 0.1, cap: 4, max: 0.45 }, impactMetal: { g: 0.22, jit: 0.08, cap: 3, max: 0.6 },
+  impactFoliage: { g: 0.32, jit: 0.15, cap: 3, max: 0.45 }, impactStone: { g: 0.37, jit: 0.1, cap: 4, max: 0.45 },
+  dash: { g: 0.07, jit: 0.05, cap: 1, max: 0.6 }, hurt: { g: 0.18, jit: 0.06, cap: 1, max: 0.7 }, heal: { g: 0.23, cap: 1, max: 1.5 }, step: { g: 0.14, jit: 0.15, cap: 2, max: 0.35 },
+  windup: { g: 0.17, cap: 2, max: 1.0 }, throw: { g: 0.14, jit: 0.06, cap: 2, max: 0.8 }, roar: { g: 0.35, cap: 1, max: 2.5 }, slam: { g: 0.23, cap: 1, max: 1.5 },
+  notice: { g: 0.27, cap: 2, max: 0.7 }, snatch: { g: 0.12, cap: 1, max: 0.7 }, thunk: { g: 0.19, cap: 2, max: 1.0 },
+  crate: { g: 0.27, cap: 1, max: 1.2 }, crateTick: { g: 0.2, cap: 2, max: 0.35, climb: true }, door: { g: 0.06, cap: 2, max: 1.5 },
+  extract: { g: 0.2, cap: 1, max: 3 }, tick: { g: 0.26, cap: 1, max: 0.3 }, whirr: { g: 0.28, cap: 1, max: 1.0 },
+  pick: { g: 0.4, cap: 3, max: 0.4, climb: true }, rare: { g: 0.21, cap: 1, max: 2 }, cash: { g: 0.38, cap: 3, max: 0.8, climb: true }, buy: { g: 0.24, cap: 1, max: 1.2 },
+  ui: { g: 0.28, cap: 2, max: 0.25 }, pop: { g: 0.21, cap: 3, max: 0.4, climb: true }, nope: { g: 0.41, cap: 1, max: 0.5 },
+  // guns by class (GUN_KITS): cores rotate takes; voice caps let auto fire overlap; gains from measured punch (QUEUE.md "Mix")
+  smgCore: { g: 0.47, jit: 0.05, cap: 8, max: 0.5 }, rifleCore: { g: 0.38, jit: 0.04, cap: 6, max: 0.7 }, shotgunCore: { g: 0.31, jit: 0.03, cap: 3, max: 1.0 },
+  sniperCore: { g: 0.53, jit: 0.03, cap: 2, max: 1.0 }, lmgCore: { g: 0.26, jit: 0.05, cap: 8, max: 0.6 }, zapperCore: { g: 0.29, jit: 0.06, cap: 4, max: 0.8 },
+  smgMech: { g: 0.24, jit: 0.08, cap: 4, max: 0.3 }, rifleMech: { g: 0.24, jit: 0.06, cap: 4, max: 0.35 }, lmgBelt: { g: 0.24, jit: 0.08, cap: 4, max: 0.4 },
+  pumpRack: { g: 0.23, jit: 0.03, cap: 1, max: 0.9 }, boltCycle: { g: 0.26, jit: 0.03, cap: 1, max: 1.1 }, breakClunk: { g: 0.35, jit: 0.04, cap: 1, max: 0.9 },
+  smgTail: { g: 0.14, jit: 0.05, cap: 3, max: 0.9 }, rifleTail: { g: 0.36, jit: 0.04, cap: 3, max: 1.6 }, shotgunTail: { g: 0.21, jit: 0.03, cap: 2, max: 1.9 },
+  sniperTail: { g: 0.33, jit: 0.02, cap: 2, max: 3.2 }, lmgTail: { g: 0.27, jit: 0.04, cap: 3, max: 1.3 },
+  smgMagOut: { g: 0.24, jit: 0.04, cap: 1 }, smgMagIn: { g: 0.43, jit: 0.04, cap: 1 }, rifleMagOut: { g: 0.27, jit: 0.04, cap: 1 }, rifleMagIn: { g: 0.28, jit: 0.04, cap: 1 },
+  shellInsert: { g: 0.39, jit: 0.06, cap: 2 }, lmgBoxOut: { g: 0.22, jit: 0.04, cap: 1 }, lmgBoxIn: { g: 0.17, jit: 0.04, cap: 1, max: 1.1 },
+  dryHeavy: { g: 0.27, cap: 1 }, dryLight: { g: 0.23, cap: 1 },
+  // the economy (home/econ-ui.ts): coin -6/-5, roulette -6, lockbox -4; factory hums -20 at their closest (factoryHum)
+  coinFlip: { g: 0.21, jit: 0.05, cap: 1, max: 1.0 }, coinLand: { g: 0.35, jit: 0.05, cap: 1, max: 1.2 }, rouletteSpin: { g: 0.74, cap: 1, max: 3.6 }, lockboxOpen: { g: 0.43, cap: 1, max: 2 },
+  facRipen: { g: 0.02 }, facBottler: { g: 0.06 }, facScrappress: { g: 0.03 }, facCoupon: { g: 0.04 },
   // wildlife (ai/fauna.ts): squawk -1 (it gives you away, so it carries), grunt -2 (the charge warning), squeal -3, splash -2, scuttle -18
-  squawk: { g: 0.34, jit: 0.06, cap: 2, max: 0.8 }, grunt: { g: 0.32, jit: 0.06, cap: 2, max: 0.8 }, squeal: { g: 0.21, jit: 0.05, cap: 2, max: 0.7 },
-  splash: { g: 0.17, jit: 0.05, cap: 1, max: 1.2 }, scuttle: { g: 0.11, jit: 0.15, cap: 2, max: 0.5 },
+  squawk: { g: 0.38, jit: 0.06, cap: 2, max: 0.8 }, grunt: { g: 0.36, jit: 0.06, cap: 2, max: 0.8 }, squeal: { g: 0.18, jit: 0.05, cap: 2, max: 0.7 },
+  splash: { g: 0.15, jit: 0.05, cap: 1, max: 1.2 }, scuttle: { g: 0.1, jit: 0.15, cap: 2, max: 0.5 },
   // footsteps per ground (stepOn): low under everything, wide jitter so a walk never repeats exactly
-  stepDirt: { g: 0.13, jit: 0.12, cap: 2, max: 0.35 }, stepSand: { g: 0.07, jit: 0.12, cap: 2, max: 0.5 }, stepGrass: { g: 0.08, jit: 0.12, cap: 2, max: 0.5 },
-  stepPlank: { g: 0.1, jit: 0.1, cap: 2, max: 0.35 }, stepStone: { g: 0.06, jit: 0.1, cap: 2, max: 0.35 }, stepMud: { g: 0.09, jit: 0.1, cap: 2, max: 0.4 },
-  stepCave: { g: 0.08, jit: 0.1, cap: 2, max: 0.45 },
+  stepDirt: { g: 0.14, jit: 0.12, cap: 2, max: 0.35 }, stepSand: { g: 0.07, jit: 0.12, cap: 2, max: 0.5 }, stepGrass: { g: 0.1, jit: 0.12, cap: 2, max: 0.5 },
+  stepPlank: { g: 0.1, jit: 0.1, cap: 2, max: 0.35 }, stepStone: { g: 0.08, jit: 0.1, cap: 2, max: 0.35 }, stepMud: { g: 0.11, jit: 0.1, cap: 2, max: 0.4 },
+  stepCave: { g: 0.1, jit: 0.1, cap: 2, max: 0.45 },
 };
+// ---- factory hums (home/bunker.ts): one looping voice per line, faded toward the level the bunker sets each frame ----
+export type HumKind = "facRipen" | "facBottler" | "facScrappress" | "facCoupon";
+const hums: Partial<Record<HumKind, { src: AudioBufferSourceNode; g: GainNode }>> = {};
+/** a factory line's hum at `level` 0..1 (distance falloff and whether it runs; 0 fades it out and stops it) */
+export function factoryHum(kind: HumKind, level: number) {
+  if (!ctx || !sfxBus) return;
+  let h = hums[kind];
+  if (!h && level > 0.005) {
+    const buf = pickBuf(kind); if (!buf) return;
+    const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = buf; src.loop = true; g.gain.value = 0;
+    src.connect(g).connect(sfxBus); src.start(0, Math.random() * buf.duration); h = hums[kind] = { src, g };
+  }
+  if (!h) return;
+  h.g.gain.setTargetAtTime(level * (MIX[kind]?.g ?? 0.1), ctx.currentTime, 0.25);
+  if (level <= 0.005 && h.g.gain.value < 0.002) { h.src.stop(); delete hums[kind]; }
+}
+/** silence every factory hum at once (leaving the bunker) */
+export function stopFactoryHums() { for (const k of Object.keys(hums) as HumKind[]) { hums[k]!.src.stop(); delete hums[k]; } }
 type StepKind = "stepDirt" | "stepSand" | "stepGrass" | "stepPlank" | "stepStone" | "stepMud" | "stepCave";
 /** a footstep on the given ground (world/map/types Ground); falls back to the generic step while that surface has no takes */
 export function stepOn(ground: string | undefined, vol = 1) {

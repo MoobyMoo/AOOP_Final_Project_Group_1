@@ -6,7 +6,7 @@
 // State for the HUD: G.reloadT (0..1 overall progress, -1 = not reloading), G.reloadTime (seconds for this reload),
 // G.mag / G.ammo (loaded / reserve). Events: onReload(fn) gets "start" | "round" | "done" | "cancel" | "dry" | "empty".
 import { G } from "../core/state";
-import { sfx } from "../core/audio";
+import { gunReload, gunDry, type GunSound } from "../core/audio";
 import type { GunDef } from "./weapons";
 
 export type ReloadEvent = "start" | "round" | "done" | "cancel" | "dry" | "empty";
@@ -15,7 +15,7 @@ const listeners = new Set<(e: ReloadEvent) => void>();
 export function onReload(fn: (e: ReloadEvent) => void) { listeners.add(fn); return () => listeners.delete(fn); }
 const emit = (e: ReloadEvent) => { for (const f of listeners) f(e); };
 
-let elapsed = 0, need = 0, inserted = 0, mode: GunDef["reloadMode"] = "mag", lastDry = -1;
+let elapsed = 0, need = 0, inserted = 0, mode: GunDef["reloadMode"] = "mag", lastDry = -1, snd: GunSound = { set: "pistol", gain: 1, tail: 1 };
 /** reload-speed gain from gear or skills later (Duckov: time / (1 + gain)); 0 today */
 const speedGain = () => 0;
 
@@ -25,7 +25,7 @@ export function startReload(gun: GunDef): boolean {
   if (G.reloadT >= 0 || G.mag >= G.magSize || G.ammo <= 0 || G.useItem) return false;
   mode = gun.reloadMode; need = Math.min(G.magSize - G.mag, G.ammo); inserted = 0; elapsed = 0;
   G.reloadTime = (mode === "round" ? need * gun.perRound : gun.reload) / (1 + speedGain());
-  G.reloadT = 0; emit("start");
+  G.reloadT = 0; snd = gun.sound; gunReload(snd, "open"); emit("start"); // the class's reload sounds (core/audio.ts GUN_KITS)
   return true;
 }
 /** stop a reload (dash, briefcase, heal, death). "round" mode keeps the rounds already inserted */
@@ -38,24 +38,24 @@ export function updateReload(dt: number) {
   const before = elapsed; elapsed += dt;
   const T = G.reloadTime, k0 = before / T, k1 = elapsed / T;
   if (mode === "mag") {
-    if (k0 < 0.15 && k1 >= 0.15) sfx("reloadOut");
-    if (k0 < 0.65 && k1 >= 0.65) sfx("reloadIn");
-    if (k0 < 0.85 && k1 >= 0.85) sfx("slide");
+    if (k0 < 0.15 && k1 >= 0.15) gunReload(snd, "out");
+    if (k0 < 0.65 && k1 >= 0.65) gunReload(snd, "in");
+    if (k0 < 0.85 && k1 >= 0.85) gunReload(snd, "close");
     if (k1 >= 1) { const n = Math.min(G.magSize - G.mag, G.ammo); G.mag += n; G.ammo -= n; G.reloadT = -1; emit("done"); return; }
   } else {
     const per = T / Math.max(1, need);
     while (inserted < need && elapsed >= (inserted + 1) * per) {
       if (G.ammo <= 0 || G.mag >= G.magSize) break;
-      G.mag++; G.ammo--; inserted++; sfx("reloadRound"); emit("round");
+      G.mag++; G.ammo--; inserted++; gunReload(snd, "round"); emit("round");
     }
-    if (inserted >= need || G.ammo <= 0 || G.mag >= G.magSize) { G.reloadT = -1; emit("done"); return; }
+    if (inserted >= need || G.ammo <= 0 || G.mag >= G.magSize) { G.reloadT = -1; if (snd.close) gunReload(snd, "close"); emit("done"); return; } // a pump racks after loading
   }
   G.reloadT = Math.min(0.999, k1);
 }
 /** the trigger on an empty gun: a dry click (at most one per 200 ms) and, on a fresh pull with rounds in reserve, a
  *  reload. click = this attempt should click (a fresh pull, or the first held attempt after the gun ran dry) */
 export function emptyTrigger(gun: GunDef, click: boolean, fresh: boolean): boolean {
-  if (click && G.time - lastDry >= 0.2) { lastDry = G.time; sfx("dry"); emit("dry"); }
+  if (click && G.time - lastDry >= 0.2) { lastDry = G.time; gunDry(gun.sound); emit("dry"); }
   if (G.ammo > 0) return fresh && startReload(gun);
   if (fresh) emit("empty");
   return false;

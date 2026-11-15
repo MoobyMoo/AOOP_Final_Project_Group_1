@@ -10,7 +10,7 @@ import { Input } from "./core/input";
 import { G } from "./core/state";
 import { commitSave, load } from "./core/save";
 import { itemType } from "./loot/instances";
-import { unlockAudio, sfx, stepOn } from "./core/audio";
+import { unlockAudio, sfx, stepOn, gunShot, factoryHum } from "./core/audio";
 import { musicTick, setMusic, sting, musicState } from "./core/music";
 import { interpSnap, interpApply, interpRestore } from "./core/interp";
 import { startRaid, stepRaid, renderRaid, buildRaidWorld, raidScene, quitRaid, lastSpawn, type RaidResult } from "./core/raid";
@@ -63,7 +63,7 @@ G.save = load(); G.bot = QS.has("bot"); G.intent = G.input.read(0);
 { const id = QS.get("botgun"), def = id ? GUNS[id] : undefined;
   if (G.bot && QS.has("fresh") && def && !def.bound) { G.save.guns = [{ inst: own(id!), atts: { ...EMPTY_GUN } }, G.save.guns[0]]; G.save.ammo[def.caliber] += 90; G.save = commitSave(G.save); } }
 if (G.bot) { const bot = createBot({ greed: Number(QS.get("greed") ?? 0.5), reactionLag: Number(QS.get("lag") ?? 0.25), seed: Number(QS.get("botseed") ?? QS.get("seed") ?? 1) }); setBot(bot); (window as unknown as { __bot: unknown }).__bot = bot; }
-if (QS.has("dev")) Object.assign(window as unknown as object, { __G: G, __RIG_TUNE: RIG_TUNE, __music: musicState, __sfx: { sfx, stepOn } }); // captures and debugging only
+if (QS.has("dev")) Object.assign(window as unknown as object, { __G: G, __RIG_TUNE: RIG_TUNE, __music: musicState, __sfx: { sfx, stepOn, gunShot, factoryHum } }); // captures and debugging only
 addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlockAudio);
 // Esc settings (ui/settings.ts): the loot screen, the map and the bunker panels own Esc while open and close first;
 // quitting a raid from it is a bonk-out (core/raid.ts quitRaid)

@@ -92,7 +92,7 @@ export function shoot() {
   // crit at aim time (headshot.ts): the cursor on a head makes this shot critical; body shots crit only via gear perks
   const head = G.intent.aimNdc ? aimHead.enemy : null, critical = !!head || G.rng() < stats.crit;
   fireGun({ team: "player", from: to }, GUN, { yaws, crit: critical, head, critMult: critMultiplier() });
-  gunShot(ARM.sound); sfx("shell");
+  gunShot(ARM.sound); if (ARM.sound.set !== "zapper") sfx("shell"); // a ray gun drops no brass
   G.stage.kick.add(tmp.set(-Math.sin(yaw), 0, -Math.cos(yaw)).multiplyScalar(FEEL.shotKick * ARM.kick));
   makeNoise(G.pp, GUN.noise, "shot"); // a suppressor shrinks this (combat/gunstats.ts)
 }

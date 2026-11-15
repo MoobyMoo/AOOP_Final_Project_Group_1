@@ -6,8 +6,8 @@
 //
 // Motion: the coin and the wheel play in slow motion and the lockbox shakes before it pops, unless the player asks for
 // reduced motion (prefers-reduced-motion), which shows the result at once with a short fade. Nothing auto-repeats.
-// Sounds are the existing set; TODO(audio, ElevenLabs): a coin toss, a wheel's ticking, a win fanfare, a sad trombone
-// and a Performance Review sting (they use stingExtract / stingBonk / stingRare / tick / whirr today).
+// Sounds (ElevenLabs, research/audio/QUEUE.md): coinFlip / coinLand, rouletteSpin (one take with the ball's slowing
+// ticks and the drop), stingWin / stingLose (the sad trombone), lockboxOpen, and stingReview for the promotion.
 import "./econ.css";
 import { G } from "../core/state";
 import { save } from "../core/save";
@@ -157,7 +157,7 @@ function rollNow() {
   Object.assign(G.save, res.save); save(G.save); host?.money();
   playRoll(d.game, d.pick, res.result.landed, res.pocket, res.result.won, () => {
     d.busy = false; rerenderDon(); stampSlip(); host?.money();
-    if (res.result.won) { sting("stingExtract"); sfx("cash"); } else sting("stingBonk"); // TODO(audio): win fanfare / sad trombone takes
+    if (res.result.won) { sting("stingWin"); sfx("cash"); } else sting("stingLose"); // the Fence pays out / the sad trombone
   });
 }
 
@@ -202,17 +202,15 @@ function playRoll(game: Game, pick: string, side: string, pocket: number | undef
   const coin = el.querySelector<HTMLElement>(".coin3"), spin = el.querySelector<SVGGElement>(".spin");
   const endCoin = 360 * 7 + (side === "tails" ? 180 : side === "edge" ? 90 : 0);
   const endWheel = 360 * 4 - wheelSlot(side, pocket) * (360 / 37);
-  sfx(game === "coin" ? "throw" : "whirr");
-  let lastTick = 0;
+  sfx(game === "coin" ? "coinFlip" : "rouletteSpin"); // the spin take carries the ball's slowing ticks and the drop
   const ease = (k: number) => 1 - Math.pow(1 - k, 4);
   const step = () => {
     const k = Math.min(1, (performance.now() - t0) / 1000 / T), e = ease(k);
     if (coin) { coin.style.transform = `translateY(${(-Math.sin(Math.min(1, k * 1.25) * Math.PI) * 70).toFixed(1)}px) rotateX(${(endCoin * e).toFixed(1)}deg)`; }
     if (spin) {
       const ang = endWheel * e; spin.style.transform = `rotate(${ang.toFixed(2)}deg)`;
-      const slot = Math.floor(ang / (360 / 37)); if (slot !== lastTick) { lastTick = slot; if (k > 0.45) sfx("tick", 0.6); }
     }
-    if (k < 1) requestAnimationFrame(step); else { sfx(game === "coin" ? "thunk" : "pop"); finish(); }
+    if (k < 1) requestAnimationFrame(step); else { if (game === "coin") sfx("coinLand"); finish(); }
   };
   requestAnimationFrame(step);
 }
@@ -228,7 +226,7 @@ function openBox(inst: string) {
   sfx("crateTick");
   const reveal = () => {
     el.querySelector<HTMLElement>(".lbx")!.hidden = true; el.querySelector<HTMLElement>(".prize")!.hidden = false;
-    sfx("crate"); if (q >= 4) { sfx("rare"); sting("stingRare"); }
+    sfx("lockboxOpen"); if (q >= 4) { sfx("rare"); sting("stingRare"); }
     const close = () => { el.remove(); removeEventListener("keydown", key, true); host?.reopen("sell"); };
     const key = (e: KeyboardEvent) => { if (["e", "escape", "enter", " "].includes(e.key.toLowerCase())) { e.stopPropagation(); e.preventDefault(); close(); } };
     el.addEventListener("click", close); addEventListener("keydown", key, true);
@@ -248,7 +246,7 @@ export function maybeReview(): boolean {
     <p class="pquote">"${esc(TITLES[t].blurb)}"</p><div class="stats"><div class="stat"><b class="num">🍌 ${fmt(lifetime(G.save))}</b><span>net worth</span></div><div class="stat"><b>${t + 1} of ${TITLES.length}</b><span>on the rich list</span></div>${TITLES[t + 1] ? `<div class="stat"><b class="num">🍌 ${fmt(TITLES[t + 1].at)}</b><span>for ${esc(TITLES[t + 1].name)}</span></div>` : ""}</div>
     ${unlocks.length ? `<h4>New on the blueprint desk</h4><ul class="punl">${unlocks.map((u) => `<li>${esc(u)}</li>`).join("")}</ul>` : ""}</div>
     <div class="actions"><button data-econ="review:close">Back to work</button></div>`, "review");
-  sting("stingRare"); sfx("cash"); G.stage.trauma = 0.15;
+  sting("stingReview"); sfx("cash"); G.stage.trauma = 0.15;
   const chip = document.querySelector(".home-title"); if (chip) chip.outerHTML = titleChipHtml();
   return true;
 }

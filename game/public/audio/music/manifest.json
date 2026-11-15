@@ -15,5 +15,8 @@
  "stingBossDown": "stingBossDown.ogg",
  "stingBossIntro": "stingBossIntro.ogg",
  "stingExtract": "stingExtract.ogg",
- "stingRare": "stingRare.ogg"
+ "stingLose": "stingLose.ogg",
+ "stingRare": "stingRare.ogg",
+ "stingReview": "stingReview.ogg",
+ "stingWin": "stingWin.ogg"
 }

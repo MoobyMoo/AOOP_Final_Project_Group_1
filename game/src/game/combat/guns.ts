@@ -22,6 +22,7 @@
 //    with the cycle shown as a bolt throw. Duckov's TriggerMode 0/1/2 is auto/semi/bolt-or-pump.
 import type { AttSlot, Rarity } from "../contracts";
 
+import type { GunSound } from "../core/audio";
 export type GunClass = "pistol" | "smg" | "rifle" | "shotgun" | "sniper" | "lmg";
 export type Caliber = "ammo45" | "ammo_rifle" | "ammo_shell" | "ammo_sniper";
 export type FireMode = "semi" | "auto" | "burst" | "bolt";
@@ -43,9 +44,9 @@ export type GunDef = {
   slots: readonly AttSlot[]; h: Handling;
   /** sale value (bananas), kg */ value: number; weight: number;
   /** integrally suppressed: plays and carries like a gun with the Hush Can on, and has no muzzle slot */ suppressed?: boolean;
-  /** shot sound: the shared three-layer shot played at this pitch and gain, with the tail held this long (s).
-   *  TODO(audio): per-class ElevenLabs takes (research/audio/QUEUE.md "guns by class") replace these. */
-  sound: { pitch: number; gain: number; tail: number };
+  /** shot and handling sound (core/audio.ts GUN_KITS): the class's sampled layer set, a gain on top of the set's mix,
+   *  how long the tail may ring (s), and per-gun overrides of the set's layers (a pump rack, a break-action clunk) */
+  sound: GunSound;
   trait: string; blurb: string; bound?: boolean;
 };
 
@@ -83,21 +84,22 @@ const SLOTS: Record<string, readonly AttSlot[]> = {
   shotgun: ["sight", "muzzle", "stock", "laser"], single: ["muzzle", "stock"], semiShot: ["sight", "muzzle", "grip", "stock", "laser", "mag"],
   sniper: ["sight", "muzzle", "stock", "mag"], lmg: ["sight", "muzzle", "grip", "stock", "laser", "mag"],
 };
-/** shot sound per class (pitch < 1 = deeper; tail = how long the tail rings) */
-const SOUND: Record<GunClass, GunDef["sound"]> = {
-  pistol: { pitch: 1, gain: 1, tail: 1.4 }, smg: { pitch: 1.12, gain: 0.8, tail: 0.9 }, rifle: { pitch: 0.92, gain: 1.05, tail: 1.6 },
-  shotgun: { pitch: 0.72, gain: 1.25, tail: 1.8 }, sniper: { pitch: 0.82, gain: 1.2, tail: 3.2 }, lmg: { pitch: 0.86, gain: 1.1, tail: 1.8 },
+/** shot sound per class: each class has its own ElevenLabs layer set (research/audio/QUEUE.md "Guns by class"); the
+ *  class loudness lives in the set's mix (core/audio.ts MIX), so gain stays 1; tail = how long the tail may ring (s) */
+const SOUND: Record<GunClass, GunSound> = {
+  pistol: { set: "pistol", gain: 1, tail: 1.4 }, smg: { set: "smg", gain: 1, tail: 0.6 }, rifle: { set: "rifle", gain: 1, tail: 1.3 },
+  shotgun: { set: "shotgun", gain: 1, tail: 1.7 }, sniper: { set: "sniper", gain: 1, tail: 3 }, lmg: { set: "lmg", gain: 1, tail: 1.1 },
 };
 const KICK: Record<GunClass, number> = { pistol: 1, smg: 0.55, rifle: 0.8, shotgun: 2.2, sniper: 2.6, lmg: 0.9 };
 const MAGNET: Record<GunClass, [number, number]> = { pistol: [7, 10], smg: [6, 9], rifle: [5, 9], shotgun: [9, 11], sniper: [3, 8], lmg: [5, 8] };
 
 type Row = Omit<GunDef, "h" | "slots" | "magnet" | "magnetAds" | "kick" | "sound" | "pellets" | "perRound" | "autoReload" | "pen" | "reloadMode"> &
-  Partial<Pick<GunDef, "pellets" | "perRound" | "autoReload" | "pen" | "reloadMode" | "kick">> & { h?: Partial<Handling>; slots: string };
+  Partial<Pick<GunDef, "pellets" | "perRound" | "autoReload" | "pen" | "reloadMode" | "kick">> & { h?: Partial<Handling>; slots: string; snd?: Partial<GunSound> };
 function gun(r: Row): GunDef {
   const [mg, ma] = MAGNET[r.cls];
   return {
     pellets: 1, perRound: 0.4, autoReload: false, pen: 0, reloadMode: "mag", kick: KICK[r.cls],
-    ...r, h: hand(r.cls, r.h), slots: SLOTS[r.slots], magnet: mg * DEG, magnetAds: ma * DEG, sound: { ...SOUND[r.cls] },
+    ...r, h: hand(r.cls, r.h), slots: SLOTS[r.slots], magnet: mg * DEG, magnetAds: ma * DEG, sound: { ...SOUND[r.cls], ...r.snd },
   };
 }
 const sp = (duckov: number) => Math.round(duckov * BULLET_SCALE);
@@ -167,17 +169,20 @@ export const GUNS: Record<string, GunDef> = {
     // never jams, reloads after every shot; a fat 55 budget (11 a pellet) and the widest pattern (p90)
     damage: 55, pellets: 5, interval: 0.4, mag: 1, reload: 0.4, reloadMode: "round", perRound: 0.4, autoReload: true, range: 14.2, bulletSpeed: sp(100), critMult: 1.1, noise: 24.4, move: 1, value: 40, weight: 2.1, slots: "single",
     h: { rest: 32, max: 68, grow: 30, restAds: 24, maxAds: 60, growAds: 30, scaleV: 102, scaleH: 80, adsTime: 0.31 },
+    snd: { open: "breakClunk" }, // the break action drops open for every shell
     trait: "Single shot: one big barrel, reload after every blast", blurb: "A length of pipe, a nail and a lot of hope. One shell at a time, and it always goes bang." }),
   coconut_cracker: gun({ id: "coconut_cracker", name: "Coconut Cracker", cls: "shotgun", tier: "uncommon", caliber: "ammo_shell", fire: "bolt",
     // median budget 47 -> 45 (9 a pellet), 8-shell tube loaded one at a time (0.4 s, the single-round median), median cone;
     // trait: pump action, so it cycles at 2 /s (deviation: the class median 4.8 /s is a semi rate; a pump reads as a pump)
     damage: 45, pellets: 5, interval: 0.5, mag: 8, reload: 0.4, reloadMode: "round", perRound: 0.4, range: 16.5, bulletSpeed: sp(100), critMult: 1.1, noise: 24.4, move: 1, value: 130, weight: 2.5, slots: "shotgun",
+    snd: { mech: "pumpRack", mechAt: 0.22, close: "pumpRack" }, // racks after every shot and after loading
     trait: "Pump action: loads shell by shell, keeps what it loaded", blurb: "A pump shotgun that splits coconuts at ten paces. Rack it, aim it at the door, wait." }),
   the_audit: gun({ id: "the_audit", name: "The Audit", cls: "shotgun", tier: "epic", caliber: "ammo_shell", fire: "semi",
     // strong end: budget 60 (12 a pellet), 5-shell box (Duckov's semi box shotguns, stat#110900) with a full 1.5 s reload,
     // 3.6 /s (stat#110954), range 17.5, tighter p10 hip cone; trait: semi-auto follow-ups
     damage: 60, pellets: 5, interval: 1 / 3.6, mag: 5, reload: 1.5, range: 17.5, bulletSpeed: sp(110), critMult: 1.2, noise: 24.4, move: 1, value: 330, weight: 3.4, slots: "semiShot",
     h: { rest: 15.6, max: 35, grow: 9.4, restAds: 11, maxAds: 30, growAds: 8, scaleV: 102, scaleH: 80, adsTime: 0.55 },
+    snd: { mech: "rifleMech", mechAt: 0.03 }, // a gas-driven semi action, and the box swaps like a rifle mag
     trait: "Semi-auto box mag: fast follow-ups, whole-mag reload", blurb: "Five shells in a box magazine and a trigger that keeps up with you. Nobody passes this audit." }),
 
   // ---------------------------------------------------------------- snipers (sniper rounds). Band: dmg 19.7/22/28.2, shots/s 0.5/0.8/2.24,

@@ -16,6 +16,6 @@ the vault kit: origin at the footprint centre, front +z, floor at y 0, inside w 
 | 7 | Sealed lockboxes (4 icons + ground items) | item | none | Standard / Premium / Executive / Boardroom, tinted by tier colour (loot/tiers.ts), brass seal, a printed odds tag; icons into `public/icons/lockbox_<tier>.png` |
 | 8 | New item icons | item | none | Office Paper, Ink Cartridge, Premium Bunch, Machined Parts (emoji fallbacks today) |
 
-Audio TODO for ElevenLabs (tagged `TODO(audio)` in `home/econ-ui.ts`): coin toss and landing, the wheel's slowing
-ticks, a win fanfare, a sad trombone for a loss, and a Performance Review sting. Today they borrow `throw`, `tick`,
-`stingExtract`, `stingBonk` and `stingRare`.
+Audio (ElevenLabs, research/audio/QUEUE.md): coinFlip / coinLand, rouletteSpin, lockboxOpen, stingWin / stingLose /
+stingReview (home/econ-ui.ts), and a hum loop per line (facRipen, facBottler, facScrappress, facCoupon) that the
+vault plays near a running line (home/bunker.ts humFactories).

@@ -58,8 +58,9 @@ export const KINGPIN = Object.assign(GUNS.kingpin45, {
  *  ADSAimDistanceFactor), adsFov = FOV scale at full aim. Every other gun's handling is its class median in guns.ts. */
 export const KINGPIN_HANDLING = GUNS.kingpin45.h;
 export type { ReloadMode } from "./guns";
+import type { GunSound } from "../core/audio";
 /** a gun as the reload loop sees it */
-export type GunDef = { mag: number; reload: number; reloadMode: ReloadMode; perRound: number; autoReload: boolean };
+export type GunDef = { mag: number; reload: number; reloadMode: ReloadMode; perRound: number; autoReload: boolean; /** the class's reload and dry sounds */ sound: GunSound };
 /** the head target: a sphere this big (world units at rig scale 1) around the middle of the head (Duckov: 0.42) */
 export const HEAD = { radius: 0.42 };
 /** gear crit-damage bonus on top of the gun's multiplier (gearStats starts critDmg at 1.5) */

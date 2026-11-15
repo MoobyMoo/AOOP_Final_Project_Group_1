@@ -1,9 +1,15 @@
 {
+ "boltCycle": [
+  "boltCycle_1.mp3"
+ ],
  "bonk": [
   "bonk_1.mp3",
   "bonk_2.mp3",
   "bonk_3.mp3",
   "bonk_4.mp3"
+ ],
+ "breakClunk": [
+  "breakClunk_1.mp3"
  ],
  "buy": [
   "buy_1.mp3"
@@ -13,6 +19,14 @@
   "cash_2.mp3",
   "cash_3.mp3",
   "cash_4.mp3"
+ ],
+ "coinFlip": [
+  "coinFlip_1.mp3",
+  "coinFlip_2.mp3"
+ ],
+ "coinLand": [
+  "coinLand_1.mp3",
+  "coinLand_2.mp3"
  ],
  "crate": [
   "crate_1.mp3"
@@ -35,8 +49,26 @@
   "dry_3.mp3",
   "dry_4.mp3"
  ],
+ "dryHeavy": [
+  "dryHeavy_1.mp3"
+ ],
+ "dryLight": [
+  "dryLight_1.mp3"
+ ],
  "extract": [
   "extract_1.mp3"
+ ],
+ "facBottler": [
+  "facBottler_1.ogg"
+ ],
+ "facCoupon": [
+  "facCoupon_1.ogg"
+ ],
+ "facRipen": [
+  "facRipen_1.ogg"
+ ],
+ "facScrappress": [
+  "facScrappress_1.ogg"
  ],
  "grunt": [
   "grunt_1.mp3",
@@ -48,8 +80,7 @@
  "hit": [
   "hit_1.mp3",
   "hit_2.mp3",
-  "hit_3.mp3",
-  "hit_4.mp3"
+  "hit_3.mp3"
  ],
  "hitCrit": [
   "hitCrit_1.mp3",
@@ -97,6 +128,27 @@
  "ko": [
   "ko_1.mp3"
  ],
+ "lmgBelt": [
+  "lmgBelt_1.mp3"
+ ],
+ "lmgBoxIn": [
+  "lmgBoxIn_1.mp3"
+ ],
+ "lmgBoxOut": [
+  "lmgBoxOut_1.mp3"
+ ],
+ "lmgCore": [
+  "lmgCore_1.mp3",
+  "lmgCore_2.mp3",
+  "lmgCore_3.mp3",
+  "lmgCore_4.mp3"
+ ],
+ "lmgTail": [
+  "lmgTail_1.mp3"
+ ],
+ "lockboxOpen": [
+  "lockboxOpen_1.mp3"
+ ],
  "nope": [
   "nope_1.mp3"
  ],
@@ -114,6 +166,9 @@
   "pop_2.mp3",
   "pop_3.mp3"
  ],
+ "pumpRack": [
+  "pumpRack_1.mp3"
+ ],
  "rare": [
   "rare_1.mp3"
  ],
@@ -126,11 +181,32 @@
  "reloadRound": [
   "reloadRound_1.mp3"
  ],
+ "rifleCore": [
+  "rifleCore_1.mp3",
+  "rifleCore_2.mp3",
+  "rifleCore_3.mp3",
+  "rifleCore_4.mp3"
+ ],
+ "rifleMagIn": [
+  "rifleMagIn_1.mp3"
+ ],
+ "rifleMagOut": [
+  "rifleMagOut_1.mp3"
+ ],
+ "rifleMech": [
+  "rifleMech_1.mp3"
+ ],
+ "rifleTail": [
+  "rifleTail_1.mp3"
+ ],
  "roar": [
   "roar_1.mp3",
   "roar_2.mp3",
   "roar_3.mp3",
   "roar_4.mp3"
+ ],
+ "rouletteSpin": [
+  "rouletteSpin_1.mp3"
  ],
  "scuttle": [
   "scuttle_1.mp3"
@@ -140,6 +216,9 @@
   "shell_2.mp3",
   "shell_3.mp3",
   "shell_4.mp3"
+ ],
+ "shellInsert": [
+  "shellInsert_1.mp3"
  ],
  "shotCore": [
   "shotCore_1.mp3",
@@ -158,14 +237,48 @@
   "shotTail_3.mp3",
   "shotTail_4.mp3"
  ],
+ "shotgunCore": [
+  "shotgunCore_1.mp3",
+  "shotgunCore_2.mp3",
+  "shotgunCore_3.mp3"
+ ],
+ "shotgunTail": [
+  "shotgunTail_1.mp3"
+ ],
  "slam": [
   "slam_1.mp3"
  ],
  "slide": [
   "slide_1.mp3"
  ],
+ "smgCore": [
+  "smgCore_1.mp3",
+  "smgCore_2.mp3",
+  "smgCore_3.mp3",
+  "smgCore_4.mp3"
+ ],
+ "smgMagIn": [
+  "smgMagIn_1.mp3"
+ ],
+ "smgMagOut": [
+  "smgMagOut_1.mp3"
+ ],
+ "smgMech": [
+  "smgMech_1.mp3"
+ ],
+ "smgTail": [
+  "smgTail_1.mp3"
+ ],
  "snatch": [
   "snatch_1.mp3"
+ ],
+ "sniperCore": [
+  "sniperCore_1.mp3",
+  "sniperCore_2.mp3",
+  "sniperCore_3.mp3"
+ ],
+ "sniperTail": [
+  "sniperTail_1.mp3"
  ],
  "splash": [
   "splash_1.mp3"
@@ -260,5 +373,10 @@
  ],
  "windup": [
   "windup_1.mp3"
+ ],
+ "zapperCore": [
+  "zapperCore_1.mp3",
+  "zapperCore_2.mp3",
+  "zapperCore_3.mp3"
  ]
 }
