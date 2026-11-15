@@ -100,11 +100,15 @@ const SOFT: Record<string, [number, number]> = {
 export const SOIL: RGB = [0.34, 0.44, 0.38], SOOT: RGB = [0.05, 0.07, 0.08], STAIN: RGB = [0.16, 0.2, 0.19];
 /** how far a contact shade reaches past a footprint of half size r: it is darkest on the contact line itself, where
  *  the PCF shadow leaves a lit collar, and fades out over about half a metre */
-const reach = (r: number) => Math.min(0.95, 0.42 + r * 0.22);
+// contact shade reach past the footprint: ~1.15-1.35x (G1 council r2: the 2x halos read as dark rings even on the sunlit side)
+const reach = (r: number) => Math.min(0.45, 0.12 + r * 0.12);
+// lean each shade toward where the sun's shadow falls (stage.ts sun azimuth 160 deg: light from -z, shadows toward +z)
+const SH_X = -Math.sin((160 * Math.PI) / 180), SH_Z = -Math.cos((160 * Math.PI) / 180);
 /** a contact shade for a footprint of half size hx by hz (exported for per-raid props: the loot crates) */
 export function contactShade(x: number, z: number, hx: number, hz: number, yaw: number, pow: number, k: number) { shade(x, z, hx, hz, yaw, pow, k); }
 function shade(x: number, z: number, hx: number, hz: number, yaw: number, pow: number, k: number) {
   const m = reach(Math.max(hx, hz)), rx = hx + m, rz = hz + m;
+  x += SH_X * m * 0.45; z += SH_Z * m * 0.45;
   blob(x, z, { rx, rz, yaw, pow, k, core: Math.min(0.9, (Math.min(hx / rx, hz / rz)) * 1.04) });
 }
 function contact(p: Placed) {
