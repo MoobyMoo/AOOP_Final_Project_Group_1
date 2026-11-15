@@ -1,0 +1,13 @@
+// Simplified inheritance view for the build-plan slides (full diagram: proposal-architecture.dot)
+digraph slide {
+  graph [rankdir=BT, bgcolor="white", pad="0.15", nodesep="0.18", ranksep="0.4", newrank=true];
+  node [shape=box, style="rounded,filled", fillcolor="#EEF4EF", color="#1E3B2C", fontname="Noto Sans CJK TC", fontsize=15, margin="0.12,0.06"];
+  edge [arrowhead=empty, color="#1E3B2C", arrowsize=0.9];
+  Entity [label="«abstract»\nEntity", fillcolor="#F2C230"];
+  Actor [label="«abstract»\nActor"]; Enemy [label="«abstract»\nEnemy"];
+  Item [label="«abstract»\nItem", fillcolor="#F2C230"]; Weapon [label="«abstract»\nWeapon"];
+  GameScene [label="«interface»\nGameScene", fillcolor="#F2C230"];
+  Actor -> Entity; Player -> Actor; Enemy -> Actor; Bandit -> Enemy; Gorilla -> Enemy; Boss -> Enemy;
+  Weapon -> Item; Consumable -> Item; Wearable -> Item; MeleeWeapon -> Weapon; Gun -> Weapon;
+  HomeScene -> GameScene [style=dashed]; RaidScene -> GameScene [style=dashed];
+}
