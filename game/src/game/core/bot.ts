@@ -1,10 +1,12 @@
 import type { BotInput, BotView, SaveV1 } from "../contracts";
 import { BRIEFCASE, ENEMY, KINGPIN, PLAYER } from "../combat/weapons";
 import { PRICES, itemDef, mulberry32 } from "../loot/tables";
+import { BOSS } from '../ai/boss';
 
 type Point = { x: number; z: number };
 type Weapon = "pistol" | "melee" | "unknown";
-export type BotObservation = Omit<BotView, "exits"> & {
+export type BotObservation = Omit<BotView, "exits" | 'enemies'> & {
+  enemies: (BotView['enemies'][number] & { boss?: boolean; escort?: boolean })[];
   exits: { id: "hatch" | "raft" | "tunnel"; x: number; z: number; open?: boolean }[];
   portals?: (Point & { id: string; to: Point })[];
   gates?: (Point & { id: string; open: boolean; breakable: boolean; usable: boolean; nx: number; nz: number })[];
@@ -25,7 +27,7 @@ let combatSerial = 0;
 export function recordBotCombat(type: "shot" | "kill", weapon: "pistol" | "melee" | "environment", raidT: number, enemyId?: number) {
   botTelemetry.combatEvents.push({ serial: ++combatSerial, type, weapon, raidT, enemyId });
 }
-type Goal = Point & { kind: "crate" | "pickup" | "exit" | "arm" | "station" | "break" | "door"; id: string | number };
+type Goal = Point & { kind: "crate" | "pickup" | "exit" | "arm" | "station" | "break" | "door" | 'boss'; id: string | number };
 type Snapshot = {
   scene: BotView["scene"]; player: BotObservation["player"]; raidT: number;
   enemies: BotView["enemies"]; crates: BotView["crates"]; pickups: BotView["pickups"]; exits: BotObservation["exits"];
@@ -46,6 +48,7 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
   const blocked = new Map<string, number>();
   const failures = new Map<string, number>();
   const combatSeen = new Set<number>();
+  const engagedBosses = new Set<number>();
   let now = 0, previous: Snapshot | undefined, goal: Goal | undefined;
   let waypoints: Point[] = [], waypoint = 0, pathAt = -Infinity;
   let anchor: Point | undefined, progressAt = 0;
@@ -67,7 +70,7 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
   }
 
   function safe(v: BotObservation, point: Point): boolean {
-    return greed >= 0.75 || v.enemies.every(enemy => enemy.kind !== "sleeper" || enemy.awake || dead(enemy) || distance(point, enemy) > ENEMY.sleeper.wake + PLAYER.radius + 0.5);
+    return greed >= 0.75 || v.enemies.every(enemy => dead(enemy) || (enemy.boss ? distance(point, enemy) > BOSS.sight + 2 : enemy.kind !== "sleeper" || enemy.awake || distance(point, enemy) > ENEMY.sleeper.wake + PLAYER.radius + 0.5));
   }
 
   function segment(v: BotObservation, from: Point, to: Point): boolean {
@@ -210,7 +213,7 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
 
   function observe(v: BotObservation) {
     if (v.scene === "raid" && previous?.scene !== "raid") {
-      threats.clear(); weapons.clear(); failures.clear(); blocked.clear(); combatSeen.clear();
+      threats.clear(); weapons.clear(); failures.clear(); blocked.clear(); combatSeen.clear(); engagedBosses.clear();
       extracting = false; ended = false; smoothies = 0;
       nextShot = nextMelee = nextRoll = nextHeal = 0;
       setGoal(undefined, v.player);
@@ -319,7 +322,8 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
   }
 
   function combat(v: BotObservation, input: BotInput): boolean {
-    const nearby = v.enemies.filter(enemy => !dead(enemy) && distance(v.player, enemy) <= Math.max(9, enemy.kind === "sleeper" && enemy.awake ? ENEMY.sleeper.charge : 0))
+    const nearby = v.enemies.filter(enemy => !dead(enemy) && distance(v.player, enemy) <= Math.max(9, enemy.boss ? KINGPIN.range : enemy.kind === "sleeper" && enemy.awake ? ENEMY.sleeper.charge : 0))
+      .filter(enemy => !enemy.boss || greed >= 0.75)
       .filter(enemy => enemy.kind !== "sleeper" || enemy.awake || greed >= 0.75);
     for (const enemy of nearby) {
       let threat = threats.get(enemy.id);
@@ -331,15 +335,16 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
     const ready = nearby.filter(enemy => now - threats.get(enemy.id)!.seen >= lag).sort((left, right) => distance(v.player, left) - distance(v.player, right) || left.id - right.id);
     for (const enemy of ready) {
       const threat = threats.get(enemy.id)!;
-      const range = { wild: ENEMY.wild.rangMax, bandit: ENEMY.bandit.reach, brute: ENEMY.brute.slam, sleeper: ENEMY.sleeper.charge }[enemy.kind];
+      const range = enemy.boss ? BOSS.swatRange : { wild: ENEMY.wild.rangMax, bandit: ENEMY.bandit.reach, brute: ENEMY.brute.slam, sleeper: ENEMY.sleeper.charge }[enemy.kind];
       if (enemy.windup && threat.windup !== null && now - threat.windup >= lag && distance(v.player, enemy) <= range + PLAYER.radius && dodge(v, input, enemy)) return true;
     }
     const enemy = ready.find(candidate => v.los(v.player.x, v.player.z, candidate.x, candidate.z));
     if (!enemy || v.player.rolling) return false;
+    if (enemy.boss && !engagedBosses.has(enemy.id)) { engagedBosses.add(enemy.id); log(v, 'boss-engaged', { enemyId: enemy.id }); }
     input.aim = [enemy.x, enemy.z];
     const range = distance(v.player, enemy);
     if (enemy.kind === "sleeper" && enemy.state !== "stunned") return false;
-    const melee = (range <= 2.6 || enemy.kind === "bandit" || v.player.ammo + v.player.mag === 0) && (v.player.stamina ?? PLAYER.stamina.max) >= 4;
+    const melee = (range <= BRIEFCASE.reach + 0.3 || v.player.ammo + v.player.mag === 0) && (v.player.stamina ?? PLAYER.stamina.max) >= 4;
     if (melee) {
       if (range <= BRIEFCASE.reach + 0.3 && now >= nextMelee) {
         input.melee = true;
@@ -382,6 +387,11 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
       }
     }
     if (combat(v, input)) return;
+    if (goal?.kind === 'boss') {
+      const boss = v.enemies.find(enemy => enemy.id === goal!.id);
+      if (!boss || dead(boss)) setGoal(undefined, v.player);
+      else { goal.x = boss.x; goal.z = boss.z; }
+    }
     if (goal?.kind === "crate" && !v.crates.some(crate => crate.id === goal!.id && !crate.opened)) setGoal(undefined, v.player);
     if (goal?.kind === "pickup" && !v.pickups.some(pickup => pickup.id === goal!.id)) setGoal(undefined, v.player);
     if (goal?.kind === "pickup") {
@@ -391,12 +401,13 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
     if (goal?.kind === "arm" && v.exitArmed?.[goal.id]) setGoal(undefined, v.player);
     const opened = v.crates.filter(crate => crate.opened).length;
     const doors: Goal[] = (v.gates ?? []).filter(gate => !gate.open && gate.usable && !gate.breakable && distance(v.player, gate) < 12).flatMap(gate => [-1, 1].map(side => ({ ...gate, x: gate.x + gate.nx * side * 1.3, z: gate.z + gate.nz * side * 1.3, kind: "door" as const })));
-    if (opened >= 3 + Math.round(greed * 9) || v.raidT >= 420 || (v.player.hearts <= 1 && smoothies === 0 && !input.heal)) extracting = true;
+    if (opened >= 3 + Math.round(greed * 9) || v.raidT >= 270 || (v.player.hearts <= 1 && smoothies === 0 && !input.heal)) extracting = true;
     if (!extracting) {
       if (!goal || goal.kind === "exit") {
         const pickups: Goal[] = v.pickups.filter(pickup => distance(v.player, pickup) <= 6 && (v.player.packFree > 0 || ["ammo", "key", "attachment"].includes(itemDef(pickup.item).kind) || itemDef(pickup.item).value > (v.packMinValue ?? Infinity)))
           .map(pickup => ({ ...pickup, kind: "pickup" }));
-        const selected = choose(v, pickups) ?? choose(v, v.crates.filter(crate => !crate.opened).map(crate => ({ ...crate, kind: "crate" }))) ?? choose(v, doors);
+        const boss = greed >= 0.75 ? v.enemies.find(enemy => enemy.boss && !dead(enemy) && distance(v.player, enemy) < 40) : undefined;
+        const selected = boss ? { ...boss, kind: 'boss' as const } : choose(v, pickups) ?? choose(v, v.crates.filter(crate => !crate.opened).map(crate => ({ ...crate, kind: "crate" }))) ?? choose(v, doors);
         setGoal(selected, v.player);
         if (!selected) extracting = true;
       }

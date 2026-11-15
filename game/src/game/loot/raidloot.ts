@@ -3,7 +3,13 @@
 // A full pack never deletes loot: the find stays on the ground and E swaps it for your cheapest loose item (rule 20).
 import * as THREE from "three";
 import { G, V, flat, type Crate, type Pickup, type Enemy } from "../core/state";
-import { ITEMS, itemDef, rollCrate, rollEnemyDrop, type LootContext } from "./tables";
+import { itemDef, rollCrate, type LootContext } from "./tables";
+import { bodySearch } from './bodies';
+import { demoContainerType, type ContainerType } from './containers';
+export { bodyContents, bodySearch } from './bodies';
+export { advanceSearch, take, takeAll } from './search';
+const crateTypes = new WeakMap<Crate, ContainerType>();
+export const containerType = (crate: Crate) => crateTypes.get(crate);
 import { equipDef, gearStats, isEquip } from "./equipment";
 import { collectEquipment, equipFromPack } from "./equipment-actions";
 import { PLACED } from "../world/layout";
@@ -37,7 +43,9 @@ export function setupCrates() {
     const host = s.in ? PLACED.find((p) => p.id === s.in) : undefined;
     obj.position.set(s.x, groundHeight(s.x, s.z) + (s.y ?? 0), s.z); obj.rotation.y = host ? (host.yaw ?? 0) + (Math.floor(G.rng() * 2) * Math.PI) : G.rng() * 6.28;
     G.stage.scene.add(obj); block(s.x, s.z, 0.6, true);
-    G.crates.push({ id: nid++, x: s.x, z: s.z, tier: s.tier, fixed: s.fixed, obj, opened: false, search: 0, items: null });
+    const crate: Crate = { id: nid++, x: s.x, z: s.z, tier: s.tier, fixed: s.fixed, obj, opened: false, search: 0, items: null };
+    if (!s.fixed) crateTypes.set(crate, demoContainerType(s));
+    G.crates.push(crate);
   }
   // your satchel from the last bonk-out: recoverable once (Duckov corpse rule, CODE_FINDINGS 4.2)
   const sat = G.save.satchel;
@@ -77,7 +85,8 @@ export function updateLoot(dt: number) {
 function openCrate(c: Crate) {
   c.opened = true; G.log.crates++; if (G.log.firstCrate < 0) G.log.firstCrate = G.raidT; 
   const ctx = G.lootCtx as LootContext; ctx.fixed = c.fixed as LootContext["fixed"]; ctx.ownsExtendedMag = G.save.upgrades.mag > 0 || G.save.fixtures.includes("extended_mag");
-  let items = c.fixed === "satchel" ? [...(c.items ?? [])] : rollCrate(c.tier, ctx, G.rng); ctx.fixed = undefined;
+  ctx.containerType = containerType(c);
+  let items = c.fixed === "satchel" ? [...(c.items ?? [])] : rollCrate(c.tier, ctx, G.rng); ctx.fixed = undefined; ctx.containerType = undefined;
   if (c.fixed === "satchel") { G.save.satchel = null; hud.toast("You got your satchel back!"); }
   c.items = items;
   sfx("crate"); squashOpen(c);
@@ -138,10 +147,6 @@ function collect(p: Pickup): boolean {
   return true;
 }
 export function dropLoot(e: Enemy) {
-  const rolled = rollEnemyDrop(e.kind, { ...(G.lootCtx as LootContext), carried: [], enemySeed: e.gearSeed }, G.rng);
-  const equipment = e.gear ? Object.values(e.gear).filter((inst): inst is string => inst !== null) : rolled.filter(isEquip);
-  const items = [...e.stolen, ...e.carry.map((i) => (ITEMS[i] ? i : "boomerang")), ...rolled.filter(id => !isEquip(id)), ...equipment]; e.stolen = []; e.carry = [];
-  items.forEach((id, k) => spawnPickup(id, e.p.clone().setY(1.2), k, items.length));
-  if (e.kind === "sleeper") { beam(e.p, RAR_COLOR.epic); sfx("rare"); }
+  bodySearch(e);
 }
 void burst;

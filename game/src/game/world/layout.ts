@@ -6,6 +6,7 @@ import { ZONES } from "./map/grove";
 export type { Ground, Wall, Portal, CrateSocket, SpawnKind, Spawn, Zone, Road } from "./map/types";
 export { PLACED, ZONES, ROADS, SHAPES, WALLS, DOOR, PORTALS, ZIPLINES, POI, LANDMARKS, CRATES, SPAWNS, GROUP_RINGS, SUPPLY_DROPS, BOUNDS, SEA_Z, RIVER_Z, UNDER_X, START } from "./map/grove";
 import type { Ground } from "./map/types";
+export { BOSS_ENCOUNTER } from './map/grove';
 
 export type Clearing = { id: string; name: string; x: number; z: number; rx: number; rz: number; ground: Ground; under?: boolean };
 export const CLEARINGS: Clearing[] = ZONES.map((z) => {

@@ -11,6 +11,7 @@ import { homeApi, stations } from "../home/bunker";
 import { packValue, currentSearch, worth } from "../loot/raidloot";
 import { SLOTS, equipDef } from "../loot/equipment";
 import { betterEquipment, equipFromLocker, equipFromPack, repair, sellEquip } from "../loot/equipment-actions";
+import { isBoss } from '../ai/boss';
 
 type Bot = { tick(v: BotObservation, dt: number): BotInput; events: object[] };
 let bot: Bot | null = null;
@@ -24,7 +25,7 @@ export function view(): BotObservation {
     packMinValue: Math.min(...G.pack.map(worth)),
     exitArmed: Object.fromEntries(exits.map(exit => [exit.id, exit.armed])),
     player: { x: G.pp.x, z: G.pp.z, hearts: Math.ceil(G.hp / 34), maxHearts: Math.ceil(G.maxHp / 34), hp: G.hp, maxHp: G.maxHp, stamina: G.stamina, usingItem: !!G.useItem, ammo: G.ammo, mag: G.mag, reloading: G.reloadT >= 0, rolling: G.rollT >= 0, packFree: G.packSlots - G.pack.length, packValue: packValue(), smoothies: G.pack.filter((i) => i === "smoothie" || i === "bandage" || i === "firstaid").length },
-    enemies: G.enemies.filter((e) => !e.down).map((e) => ({ id: e.id, kind: e.kind, x: e.p.x, z: e.p.z, state: e.state, hp: e.hp, windup: e.state === "windup" || e.state === "aim" || e.state === "charge", awake: e.state !== "sleep" && e.state !== "patrol" })),
+    enemies: G.enemies.filter((e) => !e.down).map((e) => ({ id: e.id, kind: e.kind, x: e.p.x, z: e.p.z, state: e.state, hp: e.hp, boss: isBoss(e), escort: e.group === 'plantation-boss' && !isBoss(e), windup: e.state === "windup" || e.state === "aim" || e.state === "charge", awake: e.state !== "sleep" && e.state !== "patrol" })),
     crates: G.crates.map((c) => ({ id: c.id, x: c.x, z: c.z, tier: c.tier, opened: c.opened })),
     pickups: G.pickups.map((p) => ({ id: p.id, x: p.p.x, z: p.p.z, item: p.item })),
     exits: exits.map(e => ({ id: e.id, x: e.x, z: e.z, open: e.open })),

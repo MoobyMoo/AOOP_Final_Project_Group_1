@@ -3,6 +3,8 @@ import { KINGPIN } from "../combat/weapons";
 import { load, migrate, reset, save, retainKeys } from "./save";
 import "../loot/equipment.test";
 import "../loot/equipment-actions.test";
+import "../loot/search.test";
+import "../ai/boss.test";
 
 let checks = 0;
 function assert(ok: boolean, message: string): asserts ok {
