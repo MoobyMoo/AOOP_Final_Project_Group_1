@@ -32,7 +32,9 @@ export async function runBossMatrix() {
         tp(start.x, start.z);
         G.hp = G.maxHp = mode === 'prepared' ? 125 : 100;
         G.ammo = mode === 'prepared' ? 88 : 16;
-        G.mag = G.magSize = mode === 'prepared' ? 12 : 8;
+        if (mode === 'prepared') window.__gunStats.fit('att_mag_ext');
+        else window.__gunStats.unfit('mag');
+        G.mag = G.magSize;
         G.gear = mode === 'prepared' ? { head: 'warden_helmet', face: 'shades', body: 'warden_vest', back: 'satchel', ears: null } : { head: 'bowler', face: 'shades', body: 'suit', back: 'satchel', ears: null };
         G.pack = mode === 'prepared' ? ['smoothie', 'smoothie', 'smoothie'] : [];
         G.stamina = 100;
@@ -64,7 +66,7 @@ export async function runBossMatrix() {
   const gates = {
     avoidance: { pass: avoided.length === 3, count: avoided.length, total: 3 },
     greedyBonks: { pass: high.length === 10 && high.filter(row => row.bonked).length / high.length >= 0.4, bonks: high.filter(row => row.bonked).length, engaged: high.length },
-    preparedWin: { pass: prepared.length > 0, wins: prepared.length, total: 10 },
+    preparedWin: { pass: prepared.length >= 7, wins: prepared.length, total: 10, minimum: 7 },
   };
   assert.deepEqual(await captureBuild(directory, base), build, 'build and runtime sources unchanged during boss suite');
   const result = { gates, rows, build, scope: 'Live isolated arena fixtures, actual AI/combat/player bot; other encounters removed. Existing combat hook integration is reported separately. Not full-raid population rates.' };

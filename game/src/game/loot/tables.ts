@@ -76,7 +76,7 @@ export function mulberry32(seed: number): () => number {
   };
 }
 
-export function isUseful(id: string, ctx: RaidLootCtx): boolean {
+export function isUseful(id: string, ctx: Pick<RaidLootCtx, 'orderNeeds'>): boolean {
   const item = itemDef(id);
   return Boolean(item && (item.kind !== "sell" || item.value >= 39 || ctx.orderNeeds.includes(id)));
 }

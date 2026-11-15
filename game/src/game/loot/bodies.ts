@@ -1,5 +1,6 @@
 import type { EnemyStyle, Gear } from '../contracts';
 import { createSearch, type SearchSession } from './search';
+import { isUseful } from './tables';
 
 export type LootEnemy = { kind: EnemyStyle['kind']; down: boolean; gear?: Gear; carry: string[]; stolen: string[] };
 const bodies = new WeakMap<LootEnemy, SearchSession>();
@@ -16,6 +17,7 @@ export function seedEnemyInventory(enemy: LootEnemy, rng: () => number, options:
     enemy.carry.push(pool[Math.min(pool.length - 1, Math.floor(rng() * pool.length))]);
   }
   if (enemy.kind === 'sleeper') enemy.carry.push('banana_idol');
+  if (!options.pockets && ![...Object.values(enemy.gear ?? {}), ...enemy.carry, ...enemy.stolen].some(item => item && isUseful(item, { orderNeeds: [] }))) enemy.carry.push('bandage');
 }
 export function bodySearch(enemy: LootEnemy): SearchSession | null {
   if (!enemy.down) return null;

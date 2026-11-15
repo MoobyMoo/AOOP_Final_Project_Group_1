@@ -2,7 +2,7 @@ import { bossPockets } from '../ai/boss';
 import { bodyContents, seedEnemyInventory } from './bodies';
 import { rollContainer, type ContainerType } from './containers';
 import { enemyGear } from './equipment';
-import { itemDef, mulberry32, PRICES } from './tables';
+import { itemDef, mulberry32, PRICES, type LootContext } from './tables';
 
 export const DEMO_ROUTES: Record<'hatch' | 'cove' | 'boss', readonly ContainerType[]> = {
   hatch: ['food', 'medical', 'ammo', 'parts', 'food', 'parts'],
@@ -11,7 +11,8 @@ export const DEMO_ROUTES: Record<'hatch' | 'cove' | 'boss', readonly ContainerTy
 };
 export function demoRaidLoot(seed: number, route: keyof typeof DEMO_ROUTES) {
   const rng = mulberry32(seed);
-  const items = DEMO_ROUTES[route].flatMap(type => rollContainer(type, rng));
+  const context: LootContext = { raid: 0, cratesOpened: 0, usefulFound: 0, ammoFound: 0, emptyStreak: 0, orderNeeds: [] };
+  const items = DEMO_ROUTES[route].flatMap(type => rollContainer(type, rng, context));
   for (const [index, kind] of (['wild', 'bandit'] as const).entries()) {
     const enemy = { kind, down: false, gear: enemyGear(seed ^ Math.imul(index + 1, 7), kind), carry: [] as string[], stolen: [] as string[] };
     seedEnemyInventory(enemy, rng); enemy.down = true;

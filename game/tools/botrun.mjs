@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { chromium } from "playwright-core";
 import { buildEntry, captureBuild } from './botbuild.mjs';
 
-const outputDir = process.env.BOT_OUT ?? "playlogs/bot";
+const outputDir = process.env.BOT_OUT ?? "/tmp/bv-systems-bot";
 const buildDir = process.env.BOT_DIST ?? "/tmp/bv-systems-dist";
 
 async function selfTest() {
@@ -30,9 +30,218 @@ async function selfTest() {
     upgrades: { mag: 0, pack: 0, heart: 0 }, combatEvents: [],
   });
   const tests = [
+    ['repair a pinched corridor requiring an eighth-cell lateral step', () => {
+      const bot = createBot({ greed: 0.5, reactionLag: 0, seed: 1 });
+      const view = observation(); view.player.x = 0.3; view.player.z = 0.275;
+      view.walkable = (x, z) => x >= 3 || x >= 0 && x <= 1.3 && Math.abs(z - 0.275) < 0.01 || x >= 1 && Math.abs(z - 0.15) < 0.01;
+      view.path = (fromX, fromZ, toX, toZ) => fromX >= 3 ? [{ x: toX, z: toZ }] : [];
+      view.crates = [{ id: 1, x: 10, z: 0.5, tier: 'wood', opened: false }];
+      assert.ok(bot.tick(view, 0.3).move[0] > 0);
+    }],
+    ['preserve the exact origin through a sub-grid clearance corridor', () => {
+      const bot = createBot({ greed: 0.5, reactionLag: 0, seed: 1 });
+      const view = observation(); view.player.x = 0.3; view.player.z = 0.275;
+      view.walkable = (x, z) => x >= 3 || x >= 0 && Math.abs(z - 0.275) < 0.01;
+      view.path = (fromX, fromZ, toX, toZ) => fromX >= 3 ? [{ x: toX, z: toZ }] : [];
+      view.crates = [{ id: 1, x: 10, z: 0.5, tier: 'wood', opened: false }];
+      assert.ok(bot.tick(view, 0.3).move[0] > 0);
+    }],
+    ['bridge a physically open corridor out of a closed coarse navigation cell', () => {
+      const bot = createBot({ greed: 0.5, reactionLag: 0, seed: 1 });
+      const view = observation(); view.player.x = 0.25; view.player.z = 0.25;
+      view.walkable = (x, z) => x >= 3 || x >= 0 && Math.abs(z - 0.25) < 0.12;
+      view.path = (fromX, fromZ, toX, toZ) => fromX >= 3 ? [{ x: toX, z: toZ }] : [];
+      view.crates = [{ id: 1, x: 10, z: 0.5, tier: 'wood', opened: false }];
+      assert.ok(bot.tick(view, 0.3).move[0] > 0);
+    }],
+    ['avoid a boss hearing a loud Kingpin outside its sight radius', () => {
+      const bot = createBot({ greed: 0.3, reactionLag: 0, seed: 1 });
+      const view = observation(); view.walkable = () => true;
+      view.path = (fromX, fromZ, toX, toZ) => [{ x: toX, z: toZ }];
+      view.enemies = [{ id: 99, x: 32, z: 0, hp: 450, kind: 'brute', state: 'patrol', boss: true }];
+      view.crates = [{ id: 1, x: 4, z: 0, tier: 'wood', opened: false }, { id: 2, x: -10, z: 0, tier: 'wood', opened: false }];
+      assert.ok(bot.tick(view, 0.3).move[0] < 0);
+      view.player.shotNoise = 5;
+      assert.ok(createBot({ greed: 0.3, reactionLag: 0, seed: 1 }).tick(view, 0.3).move[0] > 0, 'a suppressor uses the sight-limited buffer rather than the unsuppressed noise radius');
+    }],
+    ['repair a route through a radius-safe quarter-cell corridor', () => {
+      const bot = createBot({ greed: 0.5, reactionLag: 0, seed: 1 });
+      const view = observation(); view.player.x = 0.25;
+      view.walkable = x => Math.abs(x - 0.25) < 0.1;
+      view.path = () => [{ x: 0.5, z: 5 }, { x: 0.5, z: 10 }];
+      view.crates = [{ id: 1, x: 0.25, z: 10, tier: 'wood', opened: false }];
+      assert.ok(bot.tick(view, 0.3).move[1] > 0);
+    }],
+    ['retain loot-screen timing when an outcome arrives before the scene transition', () => {
+      const bot = createBot({ greed: 0.5, reactionLag: 0, seed: 1 });
+      const view = observation();
+      view.lootTiming = { searchSeconds: 12, itemsTaken: 5, opens: 3 };
+      bot.tick(view, 0.3);
+      view.outcome = { type: 'bonk-out', raidT: 20 };
+      bot.tick(view, 0.3);
+      const timing = bot.events.find(event => event.type === 'loot-timing');
+      assert.equal(timing.searchSeconds, 12); assert.equal(timing.itemsTaken, 5); assert.equal(timing.opens, 3);
+    }],
+    ['keep fighting at melee range after an unprepared forced engagement', () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+      const view = observation(); view.demo = true; view.walkable = () => true;
+      view.path = (fromX, fromZ, toX, toZ) => [{ x: toX, z: toZ }];
+      view.enemies = [{ id: 99, x: 5, z: 0, hp: 450, kind: 'brute', state: 'chase', boss: true }];
+      bot.tick(view, 0.3);
+      view.player.ammo = 0; view.player.mag = 0;
+      assert.ok(bot.tick(view, 0.3).move[0] > 0);
+    }],
+    ['retreat from an engaged boss even without supplies or the demo tour', () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+      const view = observation(); view.demo = true; view.walkable = () => true;
+      view.path = (fromX, fromZ, toX, toZ) => [{ x: toX, z: toZ }];
+      view.enemies = [{ id: 99, x: 2.5, z: 0, hp: 450, kind: 'brute', state: 'chase', boss: true }];
+      bot.tick(view, 0.3);
+      view.enemies[0].windup = true; view.enemies[0].state = 'windup';
+      const input = bot.tick(view, 0.3);
+      assert.equal(input.roll, true);
+      assert.ok(input.move[0] < 0);
+    }],
+    ['start the return before the demo expedition exceeds its travel budget', () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+      const view = observation(); view.demo = true; view.raidT = 215; view.walkable = () => true;
+      view.path = (fromX, fromZ, toX, toZ) => [{ x: toX, z: toZ }];
+      view.crates[0].x = 10;
+      assert.ok(bot.tick(view, 0.3).move[0] < 0);
+    }],
+    ['permit the toured boss detour only at every preparation threshold', () => {
+      for (const deficit of ['none', 'ammo', 'heals', 'health', 'tour']) {
+        const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+        const view = observation(); view.demo = true;
+        view.player.ammo = deficit === 'ammo' ? 55 : 56;
+        view.player.healing = deficit === 'heals' ? 59 : 60;
+        view.player.hp = deficit === 'health' ? 79 : 80;
+        view.walkable = () => true;
+        view.path = (fromX, fromZ, toX, toZ) => [{ x: toX, z: toZ }];
+        view.enemies = [{ id: 99, x: 30, z: 0, hp: 450, kind: 'brute', state: 'patrol', boss: true }];
+        view.crates = Array.from({ length: 10 }, (_, index) => ({ id: index, x: -10, z: 0, tier: 'wood', opened: true, area: deficit === 'tour' ? 'beach' : ['beach', 'camp', 'checkpoint'][index % 3] }));
+        view.crates.push({ id: 11, x: -10, z: 0, tier: 'wood', opened: false, area: 'camp', type: 'medical' });
+        const input = bot.tick(view, 0.3);
+        assert.equal(bot.events.some(event => event.type === 'boss-detour'), deficit === 'none', deficit);
+        assert.equal(input.move[0] > 0, deficit === 'none', deficit);
+      }
+    }],
+    ['tour new slice areas before a nearby prepared boss', () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+      const view = observation(); view.demo = true; view.player.ammo = 80; view.player.healing = 80;
+      view.walkable = () => true; view.path = (fromX, fromZ, toX, toZ) => [{ x: toX, z: toZ }];
+      view.enemies = [{ id: 9, x: 30, z: 0, hp: 450, kind: 'brute', state: 'patrol', boss: true }];
+      view.crates = [{ id: 2, x: -10, z: 0, tier: 'wood', opened: false, area: 'camp', type: 'parts' }];
+      assert.ok(bot.tick(view, 0.3).move[0] < 0);
+    }],
+    ['never approach an unprepared boss merely because ammunition was collected', () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+      const view = observation(); view.walkable = () => true; view.player.healing = 0;
+      view.path = (fromX, fromZ, toX, toZ) => [{ x: toX, z: toZ }];
+      bot.tick(view, 0.3); view.player.ammo = 80;
+      view.enemies = [{ id: 9, x: 30, z: 0, hp: 450, kind: 'brute', state: 'patrol', boss: true }];
+      view.crates = [{ id: 2, x: -10, z: 0, tier: 'wood', opened: false, type: 'medical' }];
+      assert.ok(bot.tick(view, 0.3).move[0] < 0);
+    }],
+    ['keep exploring the compact slice after the former six-container quota', () => {
+      const bot = createBot({ greed: 0.3, reactionLag: 0, seed: 1 });
+      const view = observation(); view.demo = true; view.walkable = () => true;
+      view.path = (fromX, fromZ, toX, toZ) => [{ x: toX, z: toZ }];
+      view.crates = Array.from({ length: 7 }, (_, index) => ({ id: index, x: 10, z: 0, tier: 'wood', opened: index < 6 }));
+      assert.ok(bot.tick(view, 0.3).move[0] > 0);
+    }],
+    ['reload manually while moving to loot, then resume fire after completion', () => {
+      const bot = createBot({ greed: 0.5, reactionLag: 0, seed: 1 });
+      const view = observation(); view.player.mag = 0; view.walkable = () => true;
+      view.path = (fromX, fromZ, toX, toZ) => [{ x: toX, z: toZ }];
+      view.crates[0].x = 8;
+      assert.equal(bot.tick(view, 0.3).reload, true);
+      view.player.reloading = true;
+      assert.notEqual(bot.tick(view, 0.3).reload, true);
+      view.player.reloading = false; view.player.mag = 8; view.player.ammo = 0;
+      view.enemies = [{ id: 1, x: 8, z: 0, hp: 24, kind: 'wild', state: 'recover', awake: true, windup: false }];
+      assert.equal(bot.tick(view, 0.3).fire, true);
+    }],
+    ['top up a partial magazine between encounters under manual reload rules', () => {
+      const bot = createBot({ greed: 0.5, reactionLag: 0, seed: 1 });
+      const view = observation(); view.player.mag = 2;
+      assert.equal(bot.tick(view, 0.3).reload, true);
+      view.player.ammo = 0;
+      assert.notEqual(bot.tick(view, 0.3).reload, true);
+    }],
+    ['reload an empty magazine even during a threat reaction window', () => {
+      const bot = createBot({ greed: 0.5, reactionLag: 0.25, seed: 1 });
+      const view = observation(); view.player.mag = 0;
+      view.enemies = [{ id: 1, x: 6, z: 0, hp: 24, kind: 'wild', state: 'recover', awake: true, windup: false }];
+      const input = bot.tick(view, 1 / 60);
+      assert.equal(input.reload, true);
+      assert.notEqual(input.fire, true);
+      view.player.reloading = true;
+      assert.notEqual(bot.tick(view, 0.3).reload, true);
+      assert.notEqual(bot.tick(view, 0.3).fire, true);
+    }],
+    ['close a clear short gap to bonk an ordinary bandit and conserve rounds', () => {
+      const bot = createBot({ greed: 0.5, reactionLag: 0, seed: 1 });
+      const view = observation(); view.walkable = () => true;
+      view.path = (fromX, fromZ, toX, toZ) => [{ x: toX, z: toZ }];
+      view.enemies = [{ id: 1, x: 3, z: 0, hp: 48, kind: 'bandit', state: 'chase', awake: true, windup: false }];
+      const input = bot.tick(view, 0.3);
+      assert.ok(input.move[0] > 0);
+      assert.notEqual(input.fire, true);
+    }],
+    ['punish an ordinary rooted thrower with melee without changing escort tactics', () => {
+      const bot = createBot({ greed: 0.5, reactionLag: 0, seed: 1 });
+      const view = observation(); view.walkable = () => true;
+      view.path = (fromX, fromZ, toX, toZ) => [{ x: toX, z: toZ }];
+      view.enemies = [{ id: 1, x: 7, z: 0, hp: 24, kind: 'wild', state: 'rooted', awake: true, windup: false }];
+      assert.ok(bot.tick(view, 0.3).move[0] > 0);
+      view.enemies[0].escort = true;
+      assert.equal(bot.tick(view, 0.3).fire, true);
+    }],
+    ['search a fresh nearby body before continuing a distant container route', () => {
+      const bot = createBot({ greed: 0.5, reactionLag: 0, seed: 1 });
+      const view = observation(); view.walkable = () => true;
+      view.path = (fromX, fromZ, toX, toZ) => [{ x: toX, z: toZ }];
+      view.crates[0].x = 12;
+      assert.ok(bot.tick(view, 0.3).move[0] > 0);
+      view.bodies = [{ id: 2, x: -1, z: 0 }];
+      assert.equal(bot.tick(view, 0.3).interact, true);
+    }],
+    ['collect opened ammo before voluntarily chasing the boss', () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+      const view = observation(); view.walkable = () => true;
+      view.path = (fromX, fromZ, toX, toZ) => [{ x: toX, z: toZ }];
+      view.crates = []; view.pickups = [{ id: 2, item: 'ammo45', x: 1.2, z: 0 }];
+      view.enemies = [{ id: 1, x: 0, z: 30, hp: 450, kind: 'brute', boss: true, state: 'patrol', awake: true, windup: false }];
+      const input = bot.tick(view, 0.3);
+      assert.ok(input.move[0] > 0);
+      assert.equal(input.move[1], 0);
+    }],
+    ['visit a safe ammo stop before the greedy boss detour', () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+      const view = observation(); view.walkable = () => true;
+      view.path = (fromX, fromZ, toX, toZ) => [{ x: toX, z: toZ }];
+      view.crates = [{ id: 1, x: 0, z: 20, type: 'ammo', tier: 'wood', opened: false }, { id: 2, x: -20, z: 0, type: 'ammo', tier: 'wood', opened: false }];
+      view.enemies = [{ id: 1, x: 0, z: 30, hp: 450, kind: 'brute', boss: true, state: 'patrol', awake: true, windup: false }];
+      assert.ok(bot.tick(view, 0.3).move[0] < 0);
+      view.player.ammo = 80; view.player.healing = 80; view.crates = [];
+      assert.ok(bot.tick(view, 0.3).move[1] > 0);
+    }],
+    ['never mistake a manual reload for new ammunition', () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+      const view = observation(); view.walkable = () => true;
+      view.path = (fromX, fromZ, toX, toZ) => [{ x: toX, z: toZ }];
+      view.player.mag = 0; view.player.ammo = 24;
+      view.crates = [{ id: 2, x: -20, z: 0, type: 'ammo', tier: 'wood', opened: false }];
+      view.enemies = [{ id: 1, x: 0, z: 30, hp: 450, kind: 'brute', boss: true, state: 'patrol', awake: true, windup: false }];
+      bot.tick(view, 0.3);
+      view.player.mag = 8; view.player.ammo = 16;
+      assert.ok(bot.tick(view, 0.3).move[0] < 0);
+      assert.ok(!bot.events.some(event => event.type === 'ammo-collected'));
+    }],
     ['shoot a bandit outside melee reach rather than path-locking at a fence', () => {
       const bot = createBot({ greed: 0.5, reactionLag: 0.25, seed: 1 });
-      const view = observation(); view.walkable = () => true;
+      const view = observation(); view.walkable = x => x < 1 || x > 2;
       view.enemies = [{ id: 1, x: 2.5, z: 0, hp: 48, kind: 'bandit', state: 'chase', awake: true, windup: false }];
       bot.tick(view, 0.3);
       assert.equal(bot.tick(view, 0.3).fire, true);
@@ -97,6 +306,20 @@ async function selfTest() {
     ["interact from the reachable crate cell centre", () => {
       const bot = createBot({ greed: 0.5, reactionLag: 0.25, seed: 1 });
       assert.equal(bot.tick(observation(), 1 / 60).interact, true);
+    }],
+    ['bridge from an off-grid pocket to a reachable path origin', () => {
+      const bot = createBot({ greed: 0.5, reactionLag: 0, seed: 1 });
+      const view = observation(); view.crates = []; view.walkable = () => true;
+      view.exits = [{ id: 'hatch', x: 20, z: 0, open: true }];
+      view.path = (fromX, fromZ, toX, toZ) => fromX >= 1 ? [{ x: toX, z: toZ }] : [];
+      assert.ok(bot.tick(view, 0.3).move[0] > 0);
+    }],
+    ['never bridge a rejected path origin across an unwalkable segment', () => {
+      const bot = createBot({ greed: 0.5, reactionLag: 0, seed: 1 });
+      const view = observation(); view.crates = []; view.walkable = x => x < 0.8;
+      view.exits = [{ id: 'hatch', x: 20, z: 0, open: true }];
+      view.path = (fromX, fromZ, toX, toZ) => fromX >= 1 ? [{ x: toX, z: toZ }] : [];
+      assert.deepEqual(bot.tick(view, 0.3).move, [0, 0]);
     }],
     ["never infer kills from a scene reset", () => {
       const bot = createBot({ greed: 0.5, reactionLag: 0.25, seed: 1 });
@@ -190,7 +413,7 @@ async function runCampaign(browser, { raids, ts, greed, seed, lag = 0.25 }) {
       const { x, z } = game.pp, extracting = game.extract.t > 0;
       if (!anchor || Math.hypot(x - anchor.x, z - anchor.z) > 0.5 || extracting) { anchor = { x, z }; progressAt = game.raidT; }
       if (game.raidT - progressAt >= 20 || game.raidT > 900) {
-        if (!stalled) monitor.softlocks.push({ raid, raidT: game.raidT, stillFor: game.raidT - progressAt, x, z, hp: game.hp, ammo: game.ammo + game.mag, extract: { ...game.extract }, enemies: game.enemies.filter(enemy => !enemy.down && enemy.p.distanceTo(game.pp) < 15).map(enemy => ({ id: enemy.id, kind: enemy.kind, state: enemy.state, hp: enemy.hp, x: enemy.p.x, z: enemy.p.z })) });
+        if (!stalled) monitor.softlocks.push({ raid, raidT: game.raidT, stillFor: game.raidT - progressAt, x, z, hp: game.hp, ammo: game.ammo + game.mag, intent: game.intent, usingItem: game.usingItem, equipping: game.equipping, extract: { ...game.extract }, enemies: game.enemies.filter(enemy => !enemy.down && enemy.p.distanceTo(game.pp) < 15).map(enemy => ({ id: enemy.id, kind: enemy.kind, state: enemy.state, hp: enemy.hp, x: enemy.p.x, z: enemy.p.z })) });
         stalled = true;
       }
       if (game.raidT - sampledAt >= 1) {
@@ -213,7 +436,8 @@ async function runCampaign(browser, { raids, ts, greed, seed, lag = 0.25 }) {
       await page.waitForTimeout(2000);
       const state = await page.evaluate(() => ({
         raids: window.__raids ?? [], events: window.__bot?.events ?? [], monitor: window.__botMonitor,
-        current: window.__g ? { scene: window.__g.G.scene, t: window.__g.G.raidT, raid: window.__g.G.save.raids, x: window.__g.G.pp.x, z: window.__g.G.pp.z, hp: window.__g.G.hp, ammo: window.__g.G.ammo + window.__g.G.mag, crates: window.__g.G.log.crates } : null,
+        current: window.__g ? { scene: window.__g.G.scene, t: window.__g.G.raidT, raid: window.__g.G.save.raids, x: window.__g.G.pp.x, z: window.__g.G.pp.z, hp: window.__g.G.hp, ammo: window.__g.G.ammo + window.__g.G.mag, crates: window.__g.G.log.crates,
+          pack: [...window.__g.G.pack], searches: window.__g.G.crates.filter(crate => crate.started && !crate.opened).map(crate => ({ id: crate.id, x: crate.x, z: crate.z, elapsed: crate.session?.elapsed, duration: crate.session?.duration, slots: crate.session?.slots })) } : null,
       }));
       Object.assign(report, state, { elapsedSeconds: (Date.now() - started) / 1000 });
       if (state.raids.length !== logged || Date.now() - lastProgress > 15000) {
@@ -244,9 +468,21 @@ async function runCampaign(browser, { raids, ts, greed, seed, lag = 0.25 }) {
 }
 
 async function writeReport() {
+  const { rolldown } = await import('rolldown');
+  const timingBundle = await rolldown({ input: 'src/game/loot/search.ts' });
+  const timingOutput = await timingBundle.generate({ format: 'esm' });
+  await timingBundle.close();
+  const { estimateHumanRaid } = await import(`data:text/javascript;base64,${Buffer.from(timingOutput.output[0].code).toString('base64')}`);
+  const policyBundle = await rolldown({ input: 'src/game/core/bot.ts' });
+  const policyOutput = await policyBundle.generate({ format: 'esm' });
+  await policyBundle.close();
+  const { BOT_POLICY: { boss: bossPolicy } } = await import(`data:text/javascript;base64,${Buffer.from(policyOutput.output[0].code).toString('base64')}`);
   const files = ["g0.3-s1.json", "g0.5-s2.json", "g0.8-s3.json"];
   const campaigns = await Promise.all(files.map(async file => JSON.parse(await readFile(`${outputDir}/${file}`, "utf8"))));
+  assert.deepEqual(campaigns.map(campaign => [campaign.config.greed, campaign.config.seed, campaign.raids.length]), [[0.3, 1, 4], [0.5, 2, 4], [0.8, 3, 10]], 'the matrix contains the prescribed 4/4/10 campaigns');
   for (const campaign of campaigns) {
+    assert.equal(campaign.config.ts, 4);
+    assert.equal(campaign.config.lag, 0.25);
     assert.equal(campaign.complete, true, "all campaigns must finish before reporting");
     assert.equal(campaign.failure, undefined);
     assert.equal(campaign.monitor.softlocks.length, 0);
@@ -257,6 +493,10 @@ async function writeReport() {
       assert.equal(events.filter(event => event.type === "kill" && event.weapon === "pistol").length, raid.log.killsBy.pistol);
       assert.equal(events.filter(event => event.type === "kill" && event.weapon === "melee").length, raid.log.killsBy.briefcase);
       const outcomes = events.filter(event => event.type === "extract" || event.type === "bonk-out");
+      assert.equal(events.filter(event => event.type === 'loot-timing').length, 1, 'every raid records its loot-screen timing');
+      const timing = events.find(event => event.type === 'loot-timing');
+      assert.ok(Number.isFinite(timing.searchSeconds) && timing.searchSeconds >= 0 && timing.searchSeconds <= raid.t + 1e-6);
+      assert.ok(Number.isInteger(timing.itemsTaken) && timing.itemsTaken >= 0 && Number.isInteger(timing.opens) && timing.opens >= 0);
       assert.equal(outcomes.length, 1);
       assert.equal(outcomes[0].inferred, false);
       assert.equal(outcomes[0].raidT, raid.t);
@@ -268,12 +508,14 @@ async function writeReport() {
     const events = campaign.events.filter(event => event.raid === raid.raid);
     const kills = Object.values(raid.log.kills).reduce((sum, count) => sum + count, 0);
     return { greed: campaign.config.greed, botSeed: campaign.config.seed, lag: campaign.config.lag, ...raid, bossEngaged: events.some(event => event.type === 'boss-engaged'),
-      humanSeconds: raid.t * 1.33, kills,
+      bossDetours: events.filter(event => event.type === 'boss-detour'),
+      lootTiming: events.find(event => event.type === 'loot-timing'),
+      humanSeconds: estimateHumanRaid(raid.t, events.find(event => event.type === 'loot-timing') ?? { searchSeconds: 0, itemsTaken: 0, opens: 0 }), kills,
       hpLost: events.filter(event => event.type === "hurt").reduce((sum, event) => sum + (event.hp ?? 0), 0),
       upgradesBought: events.filter(event => event.type === "upgrade-bought").map(event => `${event.upgrade} ${event.level} (${event.cost})`),
     };
   }));
-  assert.ok(rows.length >= 10);
+  assert.equal(rows.length, 18, 'the gate report requires the complete 18-raid matrix');
   assert.ok(new Set(rows.map(row => row.botSeed)).size >= 3);
   const totalKills = rows.reduce((sum, row) => sum + row.kills, 0);
   const meleeKills = rows.reduce((sum, row) => sum + row.log.killsBy.briefcase, 0);
@@ -283,6 +525,8 @@ async function writeReport() {
   const high = rows.filter(row => row.greed === 0.8 && row.lag === 0.25), bonks = high.filter(row => row.how === "bonked").length;
   const bossHigh = high.filter(row => row.bossEngaged), bossBonks = bossHigh.filter(row => row.how === 'bonked').length;
   const low = rows.filter(row => row.greed === 0.3), lowEngaged = low.filter(row => row.bossEngaged).length;
+  const detours = rows.flatMap(row => row.bossDetours);
+  const preparedDetours = detours.filter(event => event.ammo >= bossPolicy.ammo && event.healing >= bossPolicy.healing && event.hp >= event.maxHp * bossPolicy.healthFraction && event.opened >= bossPolicy.containers && new Set(event.areas).size >= bossPolicy.areas);
   const percentage = (numerator, denominator) => (100 * numerator / denominator).toFixed(1) + "%";
   const range = values => `${Math.min(...values).toFixed(2)}–${Math.max(...values).toFixed(2)}`;
   const gates = [
@@ -291,7 +535,7 @@ async function writeReport() {
     { name: "<20% of raids end with zero ammo", pass: zeroAmmo / rows.length < 0.2, measured: `${zeroAmmo}/${rows.length} = ${percentage(zeroAmmo, rows.length)}; loaded + reserve` },
     { name: "Every raid yields a useful find", pass: useful === rows.length, measured: `${useful}/${rows.length} raids rolled ≥1 useful item; minimum ${Math.min(...rows.map(row => row.usefulFound))}` },
     { name: 'Low-greed avoids the boss', pass: low.length > 0 && lowEngaged === 0, measured: `${lowEngaged}/${low.length} engaged` },
-    { name: 'Boss-engaging high-greed bonk rate at least 40%', pass: bossHigh.length > 0 && bossBonks / bossHigh.length >= 0.4, measured: `${bossBonks}/${bossHigh.length} engaged raids; all high-greed bonks ${bonks}/${high.length}` },
+    { name: 'Voluntary boss detours require supplies and area tour', pass: preparedDetours.length === detours.length, measured: `${preparedDetours.length}/${detours.length} detours met ammo ≥${bossPolicy.ammo}, heals ≥${bossPolicy.healing} HP, health ≥${bossPolicy.healthFraction * 100}%, ≥${bossPolicy.containers} containers and ≥${bossPolicy.areas} areas` },
     { name: "Zero softlocks", pass: true, measured: `0/${rows.length}; longest raid ${Math.max(...rows.map(row => row.t)).toFixed(2)} s <900 s` },
   ];
   const build = campaigns[0].build;
@@ -315,7 +559,9 @@ Local run date: 2026-11-15 (Asia/Taipei). ${rows.length} completed raids, three 
 | --- | --- | --- |
 ${gates.map(gate => `| ${gate.name} | ${gate.pass ? "PASS" : "FAIL"} | ${gate.measured} |`).join("\n")}
 
-The length gate applies to every completed raid, including bonk-outs. Human estimates are raid simulation time ×1.33, not wall-clock duration. The useful-find gate follows the shipped \`isUseful\` / \`LootContext.usefulFound\` definition: a useful item was generated, not necessarily collected or brought home. This is not evidence of a delivery guarantee. These small samples do not establish population rates. Post-processing was off as requested; FPS, asset quality, council scores and human feel were not evaluated.
+The length gate applies to every completed raid, including bonk-outs. Human seconds = (raid seconds − observed search seconds) ×1.33 + observed search seconds + items taken ×0.75 + loot sessions opened ×1.5. Shared search sessions already implement Duckov's quality schedule (1, 1, 1, 1, 1.5, 2, 1 seconds); their elapsed time is not counted twice. Take time (0.75 seconds/item) and open/close time (1.5 seconds/session) are explicit assumptions, not measured human behavior. The useful-find gate follows the shipped \`isUseful\` / \`LootContext.usefulFound\` definition: a useful item was generated, not necessarily collected or brought home. This is not evidence of a delivery guarantee. These small samples do not establish population rates. Post-processing was off as requested; FPS, asset quality, council scores and human feel were not evaluated.
+
+Campaign boss-engaging high-greed bonks: ${bossBonks}/${bossHigh.length}; all high-greed bonks: ${bonks}/${high.length}. The former campaign ≥40% bonk gate is not applied to bots now required to prepare before approaching. The unchanged ≥40% unprepared bonk requirement is tested separately by the forced-arena boss matrix, alongside prepared clears and low-greed avoidance. Zero voluntary detours demonstrates no unsafe approach, not boss-route coverage.
 
 ## Per-raid measurements
 
@@ -331,11 +577,11 @@ ${perGreed.join("\n")}
 
 ## Systems tuning and interpretation
 
-This run includes the Plantation boss and typed pools on the existing map-v3 sockets. The wave-2 demo boundaries, new container props, search screen and cove exit are not part of this worker. Bot crate quotas remain 6/8/10. Bots avoid the boss below greed 0.75 and deliberately approach it above that threshold. The bot shoots rather than trying to path into melee through a camp fence. No minimum duration or idle wait was added.
+This run includes the merged wave-2 demo slice, typed containers, shared container/body search screen and cove boat exit. Non-body container quotas are 10/12/14 for greed 0.3/0.5/0.8, with a 210-second expedition budget before returning. Bots tour new areas, seek typed ammo/medical supplies, then consider a voluntary boss detour only after ten containers across three areas, at least 64 rounds, 60 HP of carried heals and 80% current health. Ordinary enemies have melee incentives only across verified walkable paths. Preparation gates do not prevent defensive retreat after boss engagement. No minimum duration or idle wait was added. The boss yard remains at (1, 48.5).
 
-The updated demo target is 3–6 human-estimated minutes, using the unchanged ×1.33 estimator. Bonk-outs count too. The old world can still send bots north, so this matrix is a regression check, not proof of the final slice's timing. The isolated boss matrix separately tests unprepared and prepared encounter outcomes.
+The demo target is 3–6 human-estimated minutes with the loot-aware estimator above. Bonk-outs count too. The isolated boss matrix separately tests unprepared and prepared encounter outcomes; it does not establish campaign survival rates.
 
-Tunnel extraction coverage: ${rows.filter(row => row.how === "tunnel").length}/${rows.length}. Shared contracts.ts remains unchanged. The lead should widen BotView.exits to hatch | raft | tunnel, expose open state, and adopt the optional portal/gate/safePath observations from BotObservation.
+Boat extraction coverage: ${rows.filter(row => row.how === "boat").length}/${rows.length}. Shared contracts.ts remains unchanged; bot-only observations extend the shared view without editing its contract.
 
 See research/economy/G1_5_SYSTEMS.md for API details, the economy comparison and integration boundaries. Completing a campaign does not imply the numeric gates pass.
 
@@ -349,6 +595,7 @@ Raw evidence: ${files.map(file => `\`${file}\``).join(", ")}; aggregate G1_PACIN
 `;
   await writeFile(`${outputDir}/G1_PACING.md`, document);
   console.log(gates.map(gate => `${gate.pass ? "PASS" : "FAIL"} ${gate.name}: ${gate.measured}`).join("\n"));
+  assert.ok(gates.every(gate => gate.pass), 'campaign gates; measurements were saved before this assertion');
 }
 
 if (process.argv.includes("--report")) await writeReport();

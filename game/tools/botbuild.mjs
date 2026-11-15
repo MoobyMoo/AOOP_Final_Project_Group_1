@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 
-const sourcePaths = ['src/game/ai/enemies.ts', 'src/game/ai/boss.ts', 'src/game/combat/combat.ts', 'src/game/combat/weapons.ts', 'src/game/contracts.ts', 'src/game/core/bot.ts', 'src/game/core/botdrive.ts', 'src/game/core/raid.ts', 'src/game/core/save.ts', 'src/game/loot/raidloot.ts', 'src/game/loot/bodies.ts', 'src/game/loot/containers.ts', 'src/game/loot/search.ts', 'src/game/loot/sockets.ts', 'src/game/loot/tables.ts', 'src/game/main.ts', 'src/game/world/buildings.ts', 'src/game/world/grid.ts', 'src/game/world/map/grove.ts'];
+const sourcePaths = (await readdir('src/game', { recursive: true })).filter(path => path.endsWith('.ts') && !path.endsWith('.test.ts')).map(path => `src/game/${path}`).sort();
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 
 export function buildEntry(html) {

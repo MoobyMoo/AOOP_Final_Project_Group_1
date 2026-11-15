@@ -134,6 +134,11 @@ function lootTargetOf(c: Crate, s: SearchSession): LootTarget {
 export function beginSearch(c: Crate) {
   const s = sessionOf(c);
   if (!c.started) {
+    if (c.kind === 'body') for (const slot of s?.slots ?? []) {
+      if (isUseful(slot.item, G.lootCtx)) G.lootCtx.usefulFound++;
+      const definition = itemDef(slot.item);
+      if (definition.kind === 'ammo') G.lootCtx.ammoFound += definition.stack ?? 1;
+    }
     c.started = true; G.log.crates++; if (G.log.firstCrate < 0) G.log.firstCrate = G.raidT;
     if (c.kind !== "body") { sfx("crate"); squashOpen(c); makeNoise(V(c.x, c.z), { wood: 3, green: 6, gold: 10 }[c.tier], "loot"); }
     if (c.fixed === "satchel") { G.save.satchel = null; hud.toast("You got your satchel back!"); }
