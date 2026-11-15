@@ -9,7 +9,12 @@ const CSS = `.lil-gui.bv-tune,.lil-gui.bv-tune .lil-gui{--background-color:#2625
 --title-background-color:#19181c;--title-text-color:#e2bf82;--number-color:#e2bf82;--string-color:#9fd18a;--font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
 --font-size:13px;--input-font-size:13px;--name-width:52%}
 .lil-gui.bv-tune{--width:330px;z-index:40;cursor:default;border:1px solid #4a4650;border-top:3px solid #c29a5b;max-height:calc(100vh - 24px);overflow-y:auto}
-.lil-gui.bv-tune .title{letter-spacing:.02em}.lil-gui.bv-tune .lil-gui .title{color:#f3ead6}`;
+.lil-gui.bv-tune .title{letter-spacing:.02em}.lil-gui.bv-tune .lil-gui .title{color:#f3ead6}
+.lil-gui.bv-tune .has-duckov-band{display:grid;grid-template-columns:var(--name-width) minmax(0,1fr)}
+.lil-gui.bv-tune .has-duckov-band>.name{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.lil-gui.bv-tune .bv-tune-band{grid-column:1/-1;box-sizing:border-box;padding:1px 4px 4px;color:#c6b793;font:11px/1.25 system-ui,sans-serif;font-variant-numeric:tabular-nums;white-space:normal}`;
+
+const bandNumber = (value: number) => Number(value.toPrecision(4)).toString();
 
 export function openTunePanel() {
   const style = document.createElement("style"); style.textContent = CSS; document.head.appendChild(style);
@@ -41,6 +46,16 @@ export function openTunePanel() {
       c.name(k.range.label ? `${key} · ${k.range.label}` : key);
       c.onChange((v: number) => setTune(g.name, key, v));
       c.domElement.title = `${g.name}.${key} default ${k.def}`;
+      c.domElement.dataset.tuneKey = `${g.name}.${key}`;
+      if (k.band) {
+        const band = k.band;
+        const hint = document.createElement('small');
+        hint.className = 'bv-tune-band';
+        hint.textContent = `Duckov band · med ${bandNumber(band.median)} · p10–p90 ${bandNumber(band.p10)}–${bandNumber(band.p90)}`;
+        hint.title = `${band.source}; n=${band.count}; ${band.unit}; observed ${bandNumber(band.observedMin)}–${bandNumber(band.observedMax)}. Slider adds a 10% margin; defaults stay unchanged.`;
+        c.domElement.classList.add('has-duckov-band');
+        c.domElement.appendChild(hint);
+      }
     }
     f.add({ reset: () => { resetGroup(g.name); refresh(); } }, "reset").name(`Reset ${g.name}`);
     f.close();

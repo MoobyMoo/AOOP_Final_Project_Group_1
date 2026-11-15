@@ -5,8 +5,10 @@
 //   const CAM = tune("camera", "lead", 0.22, { min: 0, max: 0.6, step: 0.01 });  // CAM.lead, live
 //   tuneObject("player", PLAYER, { speed: { min: 2, max: 8 }, "stamina.max": { min: 20, max: 200 } });
 // Overrides (only values that differ from the default) persist in localStorage "bv_tune"; export/import is that JSON.
+import { DUCKOV_BANDS, type DuckovBand } from './duckov_bands';
+
 export type Range = { min: number; max: number; step?: number; label?: string };
-type Key = { path: string[]; def: number; range: Range };
+type Key = { path: string[]; def: number; range: Range; band?: DuckovBand };
 export type TuneGroup = { name: string; obj: Record<string, unknown>; keys: Map<string, Key>; persist: boolean; onChange?: (key: string, v: number) => void; note?: string };
 
 const LS = "bv_tune";
@@ -27,7 +29,9 @@ function group(name: string, obj?: Record<string, unknown>, opts: { persist?: bo
 function adopt(g: TuneGroup, key: string, range: Range) {
   const path = key.split("."), def = getPath(g.obj, path);
   if (typeof def !== "number") throw new Error(`tune ${g.name}.${key} is not a number`);
-  g.keys.set(key, { path, def, range });
+  const band = DUCKOV_BANDS[`${g.name}.${key}`];
+  const bounds = band ? { ...range, min: band.min, max: band.max, step: band.step } : range;
+  g.keys.set(key, { path, def, range: bounds, band });
   const o = g.persist ? saved[g.name]?.[key] : undefined;
   if (typeof o === "number" && Number.isFinite(o)) setPath(g.obj, path, o);
 }
