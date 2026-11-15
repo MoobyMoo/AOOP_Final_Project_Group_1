@@ -27,7 +27,7 @@ const NATURE_V: Record<string, VShape[][]> = {
   boulders: [[[-0.01, -0.01, 0.82], [-0.11, -1.29, 0.48], [0.08, 1.2, 0.45]], [[-0.05, 0.03, 0.74], [-0.52, 1.07, 0.48], [1.0, -0.62, 0.47], [-0.95, -0.68, 0.42]], [[0.03, 0, 0.75], [0.47, 1.13, 0.45], [-0.87, -0.64, 0.33]]],
   caverock: [[[0.04, 0, 0.56], [0.73, -0.05, 0.24]], [[0.05, 0.02, 0.5]], [[0.06, -0.01, 0.22], [0.05, -0.49, 0.22], [-0.41, 0.18, 0.21]], [[0.04, 0.09, 0.61]]],
   stalagmite: [[[0, 0, 0.3], [0.27, -0.03, 0.22], [-0.6, 0.32, 0.21]], [[0, -0.01, 0.27], [0.53, 0.18, 0.18]], [[0, 0, 0.29], [0.67, 0.09, 0.21]]],
-  palmlean: [[[0.06, -0.04, 0.95, -0.67, 0.5]], [[0.04, 0.05, 0.62, 0.68, 0.5]], [[0.06, -0.05, 1.0, -0.82, 0.52]]],
+  palmlean: [[[0.06, -0.04, 1.27, -0.9, 0.5]], [[0.04, 0.05, 0.81, 0.9, 0.5]], [[0.06, -0.05, 1.35, -1.11, 0.52]]], // to where the trunk is at 1.6 u
 };
 /** how many variants each per-variant type has (the nature GLBs) */
 export const NATURE_VARIANTS = Object.fromEntries(Object.entries(NATURE_V).map(([k, v]) => [k, v.length])) as Record<string, number>;
@@ -95,7 +95,9 @@ export function collidersFor(k: string, o: Record<string, unknown> = {}): Collid
     const shot = NATURE[k][2];
     return vs[vi % vs.length].map((q, i) => q.length === 3 ? C(q[2], true, i === 0 && shot, q[0], q[1]) : S(q[0], q[1], q[2], q[3], q[4], i === 0 && shot));
   }
-  if (k === "log") return [B(2.6, 0.75)]; // a log lies along its local x (all four variants are 2.5-2.9 u long, 0.7-0.85 u thick)
+  if (k === "log") return [B(2.6, 0.75)];
+  // an open gate's leaf swings to local +z from its -x post (x -1.34..-1.0, z 0..2.28): you walked through it (G1.5-12)
+  if (k === "gate" && o.open) return [...BUILD.gate, S(-1.17, 0.12, -1.17, 2.2, 0.34, false)]; // a log lies along its local x (all four variants are 2.5-2.9 u long, 0.7-0.85 u thick)
   const n = NATURE[k];
   if (n) return [{ t: "circle", x: 0, z: 0, r: n[0], move: n[1], shot: n[2], low: n[1] && !n[2] }];
   if (OPEN_NATURE.has(k)) return o.solid ? [C(Number(o.solid === true ? 0.75 : o.solid), true, false)] : [];

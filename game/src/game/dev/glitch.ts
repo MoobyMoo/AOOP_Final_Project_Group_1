@@ -655,3 +655,8 @@ export function clearSpot(x: number, z: number, need: number) {
   for (let it = 0; it < 40; it++) { const d = idx.dist(px, pz); if (d >= need) break; const e = 0.05, gx = idx.dist(px + e, pz) - idx.dist(px - e, pz), gz = idx.dist(px, pz + e) - idx.dist(px, pz - e), l = Math.hypot(gx, gz) || 1; px += (gx / l) * 0.05; pz += (gz / l) * 0.05; }
   return { from: [x, z, r2(idx.dist(x, z))], to: [r2(px), r2(pz), r2(idx.dist(px, pz))], walk: walkable(px, pz) };
 }
+/** debug: bounds of a build asset's named part in asset space (open gate leaf etc.) */
+export function partBox(name: string, part: string, open = false) {
+  const b = name === "gate" ? K.gate(open) : K.asset(name); b.parts.root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(b.parts[part]); return [box.min, box.max].map((v) => [r2(v.x), r2(v.y), r2(v.z)]);
+}
