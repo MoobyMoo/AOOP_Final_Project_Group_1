@@ -1,16 +1,19 @@
 // Ground decals (G1 council fix round 1, F2 items 1 and 2): contact darkening under props and along wall bases,
 // scorch, worn soil, stains and ruts. Every decal is a few flat triangles whose vertex colour is a MULTIPLIER on
 // whatever is under it (1 = no change), drawn with dst * src blending after the opaque pass. All of them merge into
-// one mesh per 32 u tile, so a whole place costs one or two draw calls however many props stand in it.
+// one mesh per 48 u tile, so a whole place costs one or two draw calls however many props stand in it.
 // Why multiply and not a dark transparent card: it keeps the hue of sand, dirt, grass and floorboards, it darkens the
 // same way in sun and in shade, and there is no alpha to sort.
 import * as THREE from "three";
 
-const TILE = 32, LIFT = 0.035;
+const TILE = 48, LIFT = 0.035;
 type Acc = { pos: number[]; col: number[] };
 const tiles = new Map<string, Acc>();
 /** multiplier at full strength for plain contact shade (cool, like the sky-lit shadows) */
-export const SHADE: RGB = [0.5, 0.47, 0.52];
+// Measured on the camp frame: a sun shadow multiplies lit dirt by about (0.13, 0.22, 0.21) in linear light. The red
+// channel of sunlit ground sits above 1 before tone mapping, so a neutral multiplier only turns it orange; red has to
+// drop furthest for a shade that reads as shade.
+export const SHADE: RGB = [0.16, 0.25, 0.28];
 export type RGB = [number, number, number];
 let heightAt: (x: number, z: number) => number = () => 0;
 /** the surface decals lie on: the terrain, or a building floor where one covers it */
@@ -19,7 +22,7 @@ export function setDecalSurface(h: (x: number, z: number) => number) { heightAt 
 const acc = (x: number, z: number) => { const k = `${Math.floor(x / TILE)},${Math.floor(z / TILE)}`; return tiles.get(k) ?? tiles.set(k, { pos: [], col: [] }).get(k)!; };
 type V = { x: number; z: number; m: number };
 function tri(a: Acc, p: V, q: V, r: V, t: RGB, y?: number) {
-  for (const v of [p, q, r]) { a.pos.push(v.x, (y ?? heightAt(v.x, v.z)) + LIFT, v.z); a.col.push(1 - (1 - t[0]) * v.m, 1 - (1 - t[1]) * v.m, 1 - (1 - t[2]) * v.m); }
+  for (const v of [p, q, r]) { a.pos.push(v.x, y ?? NaN, v.z); a.col.push(1 - (1 - t[0]) * v.m, 1 - (1 - t[1]) * v.m, 1 - (1 - t[2]) * v.m); }
 }
 const hash = (a: number, b: number) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
 
@@ -35,7 +38,7 @@ export type BlobOpts = {
 export function blob(x: number, z: number, o: BlobOpts) {
   const rx = o.rx, rz = o.rz ?? rx, k = o.k ?? 0.6, t = o.tint ?? SHADE, pw = o.pow ?? 2, core = o.core ?? 0.45, wob = o.wob ?? 0, sd = o.seed ?? x * 3.1 + z * 7.7;
   const n = Math.max(10, Math.min(28, Math.round(Math.max(rx, rz) * 7))), c = Math.cos(o.yaw ?? 0), s = Math.sin(o.yaw ?? 0), a = acc(x, z);
-  const rings = Math.max(1, Math.ceil(Math.max(rx, rz) * (1 - core) / 0.9));
+  const rings = Math.max(2, Math.ceil(Math.max(rx, rz) * (1 - core) / 0.9));
   const at = (i: number, f: number, m: number): V => {
     const th = (i / n) * Math.PI * 2, ct = Math.cos(th), st = Math.sin(th);
     const r = Math.pow(Math.pow(Math.abs(ct), pw) + Math.pow(Math.abs(st), pw), -1 / pw) * (1 + wob * (hash(i % n + sd, 3.3) - 0.5) * 1.4 * f);
@@ -53,7 +56,7 @@ export function blob(x: number, z: number, o: BlobOpts) {
   }
 }
 /** rim falloff: quick at first, a long soft tail (reads as a shadow, not a disc) */
-const fall = (u: number) => (1 - u) * (1 - u);
+const fall = (u: number) => Math.pow(1 - u, 1.25);
 
 export type StripOpts = { /** half width of the whole strip */ hw: number; /** half width that stays at full strength */ core?: number; k?: number; tint?: RGB; y?: number; /** 0..1: break the line up along its length (ruts, footpaths) */ gaps?: number; seed?: number; /** round the two ends off */ caps?: boolean };
 /** a soft band along a polyline: full strength down the middle, fading out to both sides (wall bases, ruts, paths) */
@@ -85,8 +88,9 @@ function material() {
   }));
 }
 function mesh(a: Acc) {
-  const g = new THREE.BufferGeometry();
-  g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(a.pos), 3));
+  const g = new THREE.BufferGeometry(), pos = new Float32Array(a.pos);
+  for (let i = 0; i < pos.length; i += 3) pos[i + 1] = (Number.isNaN(pos[i + 1]) ? heightAt(pos[i], pos[i + 2]) : pos[i + 1]) + LIFT; // heights resolve at flush: the surface (floors) is known by then
+  g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
   const c8 = new Uint8Array(a.col.length); for (let i = 0; i < c8.length; i++) c8[i] = Math.round(Math.max(0, Math.min(1, a.col[i])) * 255);
   g.setAttribute("color", new THREE.BufferAttribute(c8, 3, true));
   g.computeBoundingSphere(); g.computeBoundingBox();
