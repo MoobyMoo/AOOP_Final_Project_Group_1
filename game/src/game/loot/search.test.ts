@@ -4,6 +4,7 @@ import { bodyContents, bodySearch, seedEnemyInventory } from "./bodies";
 import { mulberry32, ITEMS, isUseful, type LootContext } from "./tables";
 import { demoRaidLoot } from './demo-economy';
 import { instanceBody, itemType, instanceId } from "./instances";
+import { healingValue, lootPriority } from './bot-priority';
 
 let checks = 0;
 const human = estimateHumanRaid(100, { searchSeconds: 20, itemsTaken: 8, opens: 2 });
@@ -12,6 +13,9 @@ function check(value: unknown, message: string): asserts value {
   checks++;
   if (!value) throw new Error(message);
 }
+check(healingValue('firstaid~2@remaining') === 25 && healingValue('firstaid@full') === 25, 'prepared supplies count healing the current Q action can deliver, which consumes a whole instance');
+check(lootPriority('bandage@heal', ['bandage@heal', 'bandage@two', 'bandage@three', 'bandage@four'], 60) > lootPriority('boomerang@junk', [], 60), 'needed medicine outranks sale loot without changing its price');
+check(lootPriority('bandage@heal', ['bandage@heal'], 0) === ITEMS.bandage.value, 'ordinary collection still uses actual sale value');
 for (const type of Object.keys(CONTAINERS) as (keyof typeof CONTAINERS)[]) {
   const definition = CONTAINERS[type];
   for (let seed = 0; seed < 200; seed++) {

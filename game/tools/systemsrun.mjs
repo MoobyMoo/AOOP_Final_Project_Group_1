@@ -4,11 +4,12 @@ import { chromium } from 'playwright-core';
 import { captureBuild } from './botbuild.mjs';
 import { execFileSync } from 'node:child_process';
 import { rolldown } from 'rolldown';
+import { installFixtureLedger } from './botfixture.mjs';
 
-const base = process.env.BASE ?? 'http://127.0.0.1:5347';
+const base = process.env.BASE ?? 'http://127.0.0.1:5352';
 const directory = process.env.BOT_DIST ?? '/tmp/bv-systems-wave2-dist';
 const output = process.env.BOT_OUT ?? '/tmp/bv-systems-wave2-fixtures';
-assert.equal(new URL(base).port, '5347');
+assert.ok(Number(new URL(base).port) >= 5352 && Number(new URL(base).port) <= 5359, 'live fixtures use a systems-only port from 5352 to 5359');
 await mkdir(output, { recursive: true });
 const build = await captureBuild(directory, base);
 const browser = await chromium.launch({ executablePath: '/usr/bin/chromium', args: ['--use-angle=gl', '--enable-gpu', '--ignore-gpu-blocklist'] });
@@ -24,6 +25,7 @@ try {
     page.on('pageerror', error => errors.push(String(error)));
     await page.goto(`${base}/game.html?fresh=1&raid=1&bot=1&ts=4&post=0&dpr=1&fixdpr=1&seed=1`);
     await page.waitForFunction(() => window.__g?.G.scene === 'raid');
+    await installFixtureLedger(page);
     await page.evaluate(magazine => {
       const { G } = window.__g;
       G.bot = false;
@@ -32,6 +34,7 @@ try {
       else window.__gunStats.unfit('mag');
       G.mag = 0; G.ammo = 24; G.reloadT = -1;
       G.rollT = -1; G.useItem = null; G.equipping = null;
+      window.FixtureLedger.begin(G);
       window.__reloadFixture = { start: G.raidT };
     }, magazine);
     await page.waitForFunction(() => window.__g.G.raidT - window.__reloadFixture.start >= 2);
@@ -53,6 +56,7 @@ try {
   page.on('pageerror', error => errors.push(String(error)));
   await page.goto(`${base}/game.html?fresh=1&raid=1&bot=1&ts=4&post=0&dpr=1&fixdpr=1&seed=1`);
   await page.waitForFunction(() => window.__g?.G.scene === 'raid');
+  await installFixtureLedger(page);
   await page.evaluate(() => {
     const { G, walkable, los } = window.__g;
     const body = G.enemies[0];
@@ -65,10 +69,12 @@ try {
     body.carry = ['ammo45', 'bandage']; body.stolen = [];
     G.enemies = [body]; G.crates = [{ id: 99999, x: point.x, z: point.z, tier: 'wood', fixed: 'body', obj: body.rig.root, opened: false, search: 0, items: null, kind: 'body', enemy: body }]; G.pickups = [];
     G.ammo = 0; G.mag = 0; G.reloadT = -1; G.pack = []; G.equipping = null;
+    G.lootCtx.usefulFound = 0;
+    window.FixtureLedger.begin(G);
     window.__bodyFixture = body;
   });
-  await page.waitForFunction(() => window.__g.G.ammo + window.__g.G.mag === 8 && window.__g.G.pack.includes('bandage'));
-  const body = await page.evaluate(() => ({ rounds: window.__g.G.ammo + window.__g.G.mag, bandages: window.__g.G.pack.filter(item => item === 'bandage').length, remainingCarry: window.__bodyFixture.carry.length, useful: window.__g.G.lootCtx.usefulFound }));
+  await page.waitForFunction(() => window.__g.G.ammo + window.__g.G.mag === 8 && window.__g.G.pack.some(item => window.FixtureLedger.itemType(item) === 'bandage'));
+  const body = await page.evaluate(() => ({ rounds: window.__g.G.ammo + window.__g.G.mag, bandages: window.__g.G.pack.filter(item => window.FixtureLedger.itemType(item) === 'bandage').length, remainingCarry: window.__bodyFixture.carry.length, useful: window.__g.G.lootCtx.usefulFound }));
   assert.deepEqual(body, { rounds: 8, bandages: 1, remainingCarry: 0, useful: 2 }, 'the bot searches and collects a real body once, including its explicit reserve');
   rows.push({ bodySearch: true, ...body });
   await context.close();
@@ -78,9 +84,11 @@ try {
     navigationPage.on('pageerror', error => errors.push(String(error)));
     await navigationPage.goto(`${base}/game.html?fresh=1&raid=1&bot=1&ts=4&post=0&dpr=1&fixdpr=1&seed=3&greed=0.8`);
     await navigationPage.waitForFunction(() => window.__g?.G.scene === 'raid');
+    await installFixtureLedger(navigationPage);
     await navigationPage.evaluate(position => {
       const { G, tp } = window.__g;
       G.enemies = [];
+      window.FixtureLedger.begin(G);
       tp(position.x, position.z);
       window.__navigationFixture = { x: G.pp.x, z: G.pp.z, start: G.raidT };
     }, position);
@@ -99,10 +107,12 @@ try {
   returningPage.on('pageerror', error => errors.push(String(error)));
   await returningPage.goto(`${base}/game.html?fresh=1&raid=1&bot=1&ts=4&post=0&dpr=1&fixdpr=1&seed=2&greed=0.5`);
   await returningPage.waitForFunction(() => window.__g?.G.scene === 'raid');
+  await installFixtureLedger(returningPage);
   await returningPage.addScriptTag({ content: baseline.output[0].code });
   await returningPage.evaluate(() => {
     const { G, tp } = window.__g;
     G.enemies = [];
+    window.FixtureLedger.begin(G);
     tp(11.15687438315738, 76.76451531887488);
     const tick = window.__bot.tick;
     window.__bot.tick = (view, dt) => {

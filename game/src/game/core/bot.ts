@@ -12,6 +12,7 @@ export type BotObservation = Omit<BotView, "exits" | 'enemies' | 'crates'> & {
   crates: (BotView['crates'][number] & { type?: ContainerType; area?: string })[];
   bodies?: (Point & { id: number })[];
   demo?: boolean;
+  bossRoute?: 'prepared' | 'unprepared';
   lootTiming?: LootTiming;
   exits: { id: "hatch" | "raft" | "tunnel" | "boat"; x: number; z: number; open?: boolean }[];
   portals?: (Point & { id: string; to: Point })[];
@@ -45,7 +46,7 @@ const dead = (enemy: BotView["enemies"][number]) => enemy.hp <= 0 || ["defeat", 
 export const BOT_POLICY = {
   demo: { baseContainers: 8, containersPerGreed: 8, returnSeconds: 165 },
   full: { baseContainers: 3, containersPerGreed: 9, returnSeconds: 270 },
-  boss: { minGreed: 0.75, ammo: 64, healing: 60, healthFraction: 0.8, containers: 10, areas: 3, approachRange: 40, safetyMargin: 2 },
+  boss: { minGreed: 0.75, ammo: 64, healing: 60, healthFraction: 0.8, combatHealingFraction: 0.4, containers: 8, areas: 3, unpreparedContainers: 6, unpreparedMelee: true, preparedEscortFirst: true, preparedRangedDodge: true, approachRange: 40, safetyMargin: 2, routeReturnSeconds: 240 },
   melee: { approachRange: 9, mobileWildRange: 6, stamina: 20 },
   navigation: { repairStep: 0.125, repairNodes: 6000, bridgeCells: 3 },
 } as const;
@@ -81,6 +82,7 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
     pathAt = -Infinity;
     anchor = { x: player.x, z: player.z };
     progressAt = now;
+    events.push({ type: 'route-goal', t: now, goal: value && goalKey(value), x: player.x, z: player.z, target: value && { x: value.x, z: value.z } });
   }
 
   function bossPrepared(v: BotObservation): boolean {
@@ -89,14 +91,18 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
 
   function tourComplete(v: BotObservation): boolean {
     const opened = v.crates.filter(crate => crate.opened);
-    return !v.demo || opened.length >= BOT_POLICY.boss.containers && new Set(opened.map(crate => crate.area).filter(Boolean)).size >= BOT_POLICY.boss.areas;
+    return !v.demo || opened.length >= (v.bossRoute === 'unprepared' ? BOT_POLICY.boss.unpreparedContainers : BOT_POLICY.boss.containers) && new Set(opened.map(crate => crate.area).filter(Boolean)).size >= BOT_POLICY.boss.areas;
+  }
+
+  function bossAllowed(v: BotObservation): boolean {
+    return greed >= BOT_POLICY.boss.minGreed && tourComplete(v) && (v.bossRoute === 'unprepared' ? !bossPrepared(v) : bossPrepared(v));
   }
 
   function safe(v: BotObservation, point: Point): boolean {
     return v.enemies.every(enemy => {
       if (dead(enemy)) return true;
       if (!enemy.boss) return greed >= BOT_POLICY.boss.minGreed || enemy.kind !== 'sleeper' || enemy.awake || distance(point, enemy) > ENEMY.sleeper.wake + PLAYER.radius + 0.5;
-      if (greed >= BOT_POLICY.boss.minGreed && bossPrepared(v) && tourComplete(v) || engagedBosses.has(enemy.id)) return true;
+      if (bossAllowed(v) || engagedBosses.has(enemy.id)) return true;
       const radius = Math.max(BOSS.sight, (v.player.shotNoise ?? KINGPIN.noise) * BOSS.hearing) + BOT_POLICY.boss.safetyMargin;
       const currentDistance = distance(v.player, enemy), nextDistance = distance(point, enemy);
       return nextDistance > radius || currentDistance <= radius && nextDistance >= currentDistance;
@@ -218,7 +224,10 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
 
   function choose(v: BotObservation, candidates: Goal[]): Goal | undefined {
     let best: Goal | undefined, bestLength = Infinity;
-    for (const candidate of [...candidates].sort((left, right) => String(left.id).localeCompare(String(right.id)))) {
+    const lowerBound = (target: Point) => Math.max(0, Math.min(distance(v.player, target), ...(v.portals ?? []).map(portal => distance(v.player, portal) + distance(portal.to, target))) - 1.8);
+    const ordered = candidates.map(candidate => ({ candidate, bound: lowerBound(candidate) })).sort((left, right) => left.bound - right.bound || String(left.candidate.id).localeCompare(String(right.candidate.id)));
+    for (const { candidate, bound } of ordered) {
+      if (bound > bestLength) break;
       if ((blocked.get(goalKey(candidate)) ?? 0) > now) continue;
       const points = route(v, candidate, candidate.kind === "pickup" ? 0.8 : 1.8);
       if (points === null) { blocked.set(goalKey(candidate), now + 10); continue; }
@@ -250,6 +259,7 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
     const portal = v.portals?.find(portal => distance(v.player, portal) < 1.3 && waypoints.slice(waypoint).some(point => distance(point, portal.to) < 0.1));
     if (portal) { input.interact = true; pathAt = -Infinity; return; }
     while (waypoint < waypoints.length && distance(v.player, waypoints[waypoint]) < 0.3 && (!waypoints[waypoint + 1] || segment(v, v.player, waypoints[waypoint + 1]))) waypoint++;
+    while (waypoint + 1 < waypoints.length && segment(v, v.player, waypoints[waypoint + 1])) waypoint++;
     const point = waypoints[waypoint];
     if (!point) return;
     const length = distance(v.player, point);
@@ -366,12 +376,13 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
     if (ladder) { setGoal({ ...ladder, kind: "station" }, v.player); walk(v, input); }
   }
 
-  function dodge(v: BotObservation, input: BotInput, enemy: BotView["enemies"][number]): boolean {
+  function dodge(v: BotObservation, input: BotInput, enemy: BotObservation['enemies'][number]): boolean {
     if (v.player.rolling || (v.player.stamina ?? PLAYER.stamina.max) < PLAYER.stamina.roll || now < nextRoll || now < nextMelee - BRIEFCASE.cycle + BRIEFCASE.wind) return false;
     const length = distance(v.player, enemy) || 1;
     const away: [number, number] = [(v.player.x - enemy.x) / length, (v.player.z - enemy.z) / length];
     const side: [number, number] = [-away[1] * turn, away[0] * turn];
-    const options = enemy.kind === "wild" || enemy.kind === "sleeper" ? [side, away, [-side[0], -side[1]]] : [away, side, [-side[0], -side[1]]];
+    const rangedBoss = enemy.boss && v.bossRoute === 'prepared' && BOT_POLICY.boss.preparedRangedDodge && length > BOSS.swatRange;
+    const options = rangedBoss || enemy.kind === "wild" || enemy.kind === "sleeper" ? [side, away, [-side[0], -side[1]]] : [away, side, [-side[0], -side[1]]];
     for (const vector of options) {
       const target = { x: v.player.x + vector[0] * PLAYER.roll.dist, z: v.player.z + vector[1] * PLAYER.roll.dist };
       if (!segment(v, v.player, target)) continue;
@@ -385,7 +396,8 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
   }
 
   function combat(v: BotObservation, input: BotInput): boolean {
-    const nearby = v.enemies.filter(enemy => !dead(enemy) && distance(v.player, enemy) <= Math.max(9, enemy.boss ? KINGPIN.range : enemy.kind === "sleeper" && enemy.awake ? ENEMY.sleeper.charge : 0))
+    const tactical = v.bossRoute === 'prepared';
+    const nearby = v.enemies.filter(enemy => !dead(enemy) && distance(v.player, enemy) <= Math.max(9, enemy.boss || tactical ? KINGPIN.range : enemy.kind === "sleeper" && enemy.awake ? ENEMY.sleeper.charge : 0))
       .filter(enemy => !enemy.boss || greed >= BOT_POLICY.boss.minGreed)
       .filter(enemy => enemy.kind !== "sleeper" || enemy.awake || greed >= BOT_POLICY.boss.minGreed);
     for (const enemy of nearby) {
@@ -395,21 +407,23 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
       if (!enemy.windup) threat.windup = null;
     }
     for (const id of threats.keys()) if (!nearby.some(enemy => enemy.id === id)) threats.delete(id);
-    const ready = nearby.filter(enemy => now - threats.get(enemy.id)!.seen >= lag).sort((left, right) => distance(v.player, left) - distance(v.player, right) || left.id - right.id);
+    const ready = nearby.filter(enemy => now - threats.get(enemy.id)!.seen >= lag).sort((left, right) => (tactical && BOT_POLICY.boss.preparedEscortFirst ? Number(!!right.escort) - Number(!!left.escort) : 0) || distance(v.player, left) - distance(v.player, right) || left.id - right.id);
     for (const enemy of ready) {
       const threat = threats.get(enemy.id)!;
-      const range = enemy.boss ? BOSS.swatRange : { wild: ENEMY.wild.rangMax, bandit: ENEMY.bandit.reach, brute: ENEMY.brute.slam, sleeper: ENEMY.sleeper.charge }[enemy.kind];
+      const range = enemy.boss ? tactical && BOT_POLICY.boss.preparedRangedDodge ? BOSS.throwRange : BOSS.swatRange : { wild: ENEMY.wild.rangMax, bandit: ENEMY.bandit.reach, brute: ENEMY.brute.slam, sleeper: ENEMY.sleeper.charge }[enemy.kind];
       if (enemy.windup && threat.windup !== null && now - threat.windup >= lag && distance(v.player, enemy) <= range + PLAYER.radius && dodge(v, input, enemy)) return true;
     }
     const enemy = ready.find(candidate => v.los(v.player.x, v.player.z, candidate.x, candidate.z));
     if (!enemy || v.player.rolling) return false;
-    if (enemy.boss && !engagedBosses.has(enemy.id)) { engagedBosses.add(enemy.id); log(v, 'boss-engaged', { enemyId: enemy.id }); }
+    const encounterBoss = enemy.boss ? enemy : enemy.escort && goal?.kind === 'boss' ? v.enemies.find(candidate => candidate.id === goal!.id && candidate.boss && !dead(candidate)) : undefined;
+    if (encounterBoss && !engagedBosses.has(encounterBoss.id)) { engagedBosses.add(encounterBoss.id); log(v, 'boss-engaged', { enemyId: encounterBoss.id, via: enemy.escort ? 'escort' : 'boss' }); }
     input.aim = [enemy.x, enemy.z];
     const range = distance(v.player, enemy);
     if (enemy.kind === "sleeper" && enemy.state !== "stunned") return false;
     const ordinary = !enemy.boss && !enemy.escort;
     const meleeWindow = ordinary && range <= BOT_POLICY.melee.approachRange && (enemy.kind === 'bandit' || enemy.kind === 'wild' && (range <= BOT_POLICY.melee.mobileWildRange || ['rooted', 'throwing'].includes(enemy.state))) && (v.player.stamina ?? PLAYER.stamina.max) >= BOT_POLICY.melee.stamina && segment(v, v.player, enemy);
-    const melee = (range <= BRIEFCASE.reach + 0.3 || meleeWindow || v.player.ammo + v.player.mag === 0) && (v.player.stamina ?? PLAYER.stamina.max) >= 4;
+    const recklessBoss = enemy.boss && v.bossRoute === 'unprepared' && BOT_POLICY.boss.unpreparedMelee && !bossPrepared(v);
+    const melee = (range <= BRIEFCASE.reach + 0.3 || meleeWindow || recklessBoss || v.player.ammo + v.player.mag === 0) && (v.player.stamina ?? PLAYER.stamina.max) >= 4;
     if (melee) {
       if (range <= BRIEFCASE.reach + 0.3 && now >= nextMelee) {
         input.melee = true;
@@ -417,7 +431,7 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
         weapons.set(enemy.id, "melee");
       } else if (range > BRIEFCASE.reach + 0.3) {
         const points = route(v, enemy, 1.5);
-        const point = points?.find(candidate => distance(v.player, candidate) > 0.3);
+        const point = points?.filter(candidate => distance(v.player, candidate) > 0.3 && segment(v, v.player, candidate)).at(-1);
         if (point) { const length = distance(v.player, point); input.move = [(point.x - v.player.x) / length, (point.z - v.player.z) / length]; }
         else return false;
       }
@@ -437,13 +451,24 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
 
   function raid(v: BotObservation, input: BotInput) {
     if (ended) return;
+    const tactical = v.bossRoute === 'prepared';
+    const healingThreat = tactical ? v.enemies.filter(enemy => !dead(enemy) && distance(v.player, enemy) <= KINGPIN.range && v.los(v.player.x, v.player.z, enemy.x, enemy.z)).sort((left, right) => distance(v.player, left) - distance(v.player, right))[0] : undefined;
+    const healingFraction = tactical ? healingThreat ? BOT_POLICY.boss.combatHealingFraction : BOT_POLICY.boss.healthFraction : 0.5;
     if (!v.player.reloading && v.player.ammo > 0 && !v.player.usingItem && !v.player.rolling && (v.player.mag === 0 || v.player.mag <= 2 && !v.enemies.some(enemy => !dead(enemy) && distance(v.player, enemy) <= KINGPIN.range))) input.reload = true;
-    if ((v.player.hp !== undefined ? v.player.hp <= v.player.maxHp! * 0.5 : v.player.hearts <= 1) && !v.player.usingItem && smoothies > 0 && now >= nextHeal) {
+    if ((v.player.hp !== undefined ? v.player.hp <= v.player.maxHp! * healingFraction : v.player.hearts <= 1) && !v.player.usingItem && smoothies > 0 && now >= nextHeal) {
       input.heal = true;
       smoothies--;
       nextHeal = now + 2.5;
     }
-    if (v.player.usingItem) return;
+    if (v.player.usingItem) {
+      if (healingThreat) {
+        const length = distance(v.player, healingThreat) || 1;
+        const away: [number, number] = [(v.player.x - healingThreat.x) / length, (v.player.z - healingThreat.z) / length];
+        const side: [number, number] = [-away[1] * turn, away[0] * turn];
+        for (const vector of [side, away, [-side[0], -side[1]]]) if (segment(v, v.player, { x: v.player.x + vector[0] * PLAYER.roll.dist, z: v.player.z + vector[1] * PLAYER.roll.dist })) { input.move = [vector[0], vector[1]]; break; }
+      }
+      return;
+    }
     if (goal?.kind === "door" || goal?.kind === "break") {
       const gate = v.gates?.find(gate => gate.id === goal!.id);
       if (!gate || gate.open) setGoal(undefined, v.player);
@@ -454,13 +479,14 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
     }
     if (combat(v, input)) return;
     if (v.searching) return;
-    if (!extracting && (!goal || goal.kind === 'crate' || goal.kind === 'boss')) {
+    const incidentalBodies = !v.bossRoute || v.bossRoute === 'prepared' && !bossPrepared(v) && engagedBosses.size === 0;
+    if (incidentalBodies && !extracting && (!goal || goal.kind === 'crate' || goal.kind === 'boss')) {
       const body = choose(v, (v.bodies ?? []).filter(body => distance(v.player, body) <= 6).map(body => ({ ...body, kind: 'body' })));
       if (body) setGoal(body, v.player);
     }
     if (goal?.kind === 'boss') {
       const boss = v.enemies.find(enemy => enemy.id === goal!.id);
-      if (!boss || dead(boss) || !bossPrepared(v)) setGoal(undefined, v.player);
+      if (!boss || dead(boss) || !bossAllowed(v) && !engagedBosses.has(boss.id)) setGoal(undefined, v.player);
       else { goal.x = boss.x; goal.z = boss.z; }
     }
     if (goal?.kind === "crate" && !v.crates.some(crate => crate.id === goal!.id && !crate.opened)) setGoal(undefined, v.player);
@@ -474,19 +500,20 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
     const opened = v.crates.filter(crate => crate.opened).length;
     const doors: Goal[] = (v.gates ?? []).filter(gate => !gate.open && gate.usable && !gate.breakable && distance(v.player, gate) < 12).flatMap(gate => [-1, 1].map(side => ({ ...gate, x: gate.x + gate.nx * side * 1.3, z: gate.z + gate.nz * side * 1.3, kind: "door" as const })));
     const pacing = v.demo ? BOT_POLICY.demo : BOT_POLICY.full;
-    if (opened >= pacing.baseContainers + Math.round(greed * pacing.containersPerGreed) || v.raidT >= pacing.returnSeconds || (v.player.hearts <= 1 && smoothies === 0 && !input.heal)) extracting = true;
+    const bossObjective = !!v.bossRoute && greed >= BOT_POLICY.boss.minGreed && v.enemies.some(enemy => enemy.boss && !dead(enemy));
+    if ((!bossObjective && opened >= pacing.baseContainers + Math.round(greed * pacing.containersPerGreed)) || v.raidT >= (bossObjective ? BOT_POLICY.boss.routeReturnSeconds : pacing.returnSeconds) || (v.player.hearts <= 1 && smoothies === 0 && !input.heal && v.bossRoute !== 'unprepared')) extracting = true;
     if (!extracting) {
       if (!goal || goal.kind === "exit") {
         const pickups: Goal[] = v.pickups.filter(pickup => distance(v.player, pickup) <= 6 && (v.player.packFree > 0 || ["ammo", "key", "attachment"].includes(itemDef(pickup.item).kind) || itemDef(pickup.item).value > (v.packMinValue ?? Infinity)))
           .map(pickup => ({ ...pickup, kind: "pickup" }));
-        const boss = greed >= BOT_POLICY.boss.minGreed && bossPrepared(v) && tourComplete(v) ? v.enemies.find(enemy => enemy.boss && !dead(enemy) && distance(v.player, enemy) < BOT_POLICY.boss.approachRange) : undefined;
+        const boss = bossAllowed(v) ? v.enemies.find(enemy => enemy.boss && !dead(enemy) && (v.bossRoute || distance(v.player, enemy) < BOT_POLICY.boss.approachRange)) : undefined;
         const supply = v.player.ammo + v.player.mag < (greed >= BOT_POLICY.boss.minGreed ? BOT_POLICY.boss.ammo : KINGPIN.startAmmo) || !resupplied ? choose(v, v.crates.filter(crate => !crate.opened && crate.type === 'ammo' && (resupplied || safe(v, crate))).map(crate => ({ ...crate, kind: 'crate' }))) : undefined;
-        const medical = greed >= BOT_POLICY.boss.minGreed && (v.player.healing ?? 0) < BOT_POLICY.boss.healing ? choose(v, v.crates.filter(crate => !crate.opened && crate.type === 'medical').map(crate => ({ ...crate, kind: 'crate' as const }))) : undefined;
+        const medical = greed >= BOT_POLICY.boss.minGreed && v.bossRoute !== 'unprepared' && (v.player.healing ?? 0) < BOT_POLICY.boss.healing ? choose(v, v.crates.filter(crate => !crate.opened && (crate.type === 'medical' || crate.type === 'medcabinet')).map(crate => ({ ...crate, kind: 'crate' as const }))) : undefined;
         const visited = new Set(v.crates.filter(crate => crate.opened).map(crate => crate.area));
-        const tour = v.demo ? choose(v, v.crates.filter(crate => !crate.opened && crate.area && !visited.has(crate.area)).map(crate => ({ ...crate, kind: 'crate' as const }))) : undefined;
-        const bodies: Goal[] = (v.bodies ?? []).filter(body => distance(v.player, body) <= 6).map(body => ({ ...body, kind: 'body' }));
+        const tour = v.demo && (!v.bossRoute || visited.size < BOT_POLICY.boss.areas) ? choose(v, v.crates.filter(crate => !crate.opened && crate.area && !visited.has(crate.area)).map(crate => ({ ...crate, kind: 'crate' as const }))) : undefined;
+        const bodies: Goal[] = incidentalBodies ? (v.bodies ?? []).filter(body => distance(v.player, body) <= 6).map(body => ({ ...body, kind: 'body' })) : [];
         const selected = choose(v, pickups) ?? choose(v, bodies) ?? (boss ? { ...boss, kind: 'boss' as const } : supply ?? medical ?? tour ?? choose(v, v.crates.filter(crate => !crate.opened).map(crate => ({ ...crate, kind: "crate" }))) ?? choose(v, doors));
-        if (selected?.kind === 'boss') log(v, 'boss-detour', { enemyId: selected.id, ammo: v.player.ammo + v.player.mag, healing: v.player.healing, hp: v.player.hp, maxHp: v.player.maxHp, opened, areas: [...visited].filter(Boolean) });
+        if (selected?.kind === 'boss') log(v, 'boss-detour', { enemyId: selected.id, profile: v.bossRoute ?? 'opportunistic', prepared: bossPrepared(v), ammo: v.player.ammo + v.player.mag, healing: v.player.healing, hp: v.player.hp, maxHp: v.player.maxHp, opened, areas: [...visited].filter(Boolean) });
         setGoal(selected, v.player);
         if (!selected) extracting = true;
       }

@@ -15,6 +15,7 @@ import { itemDef, rollCrate, isUseful, type LootContext } from "./tables";
 import { bodySearch } from './bodies';
 import { CONTAINERS, rollContainer, demoContainerType, type ContainerType } from './containers';
 import { createSearch, advanceSearch, take, type SearchSession } from './search';
+import { lootPriority } from './bot-priority';
 export { bodyContents, bodySearch } from './bodies';
 export { advanceSearch, take, takeAll } from './search';
 import { equipDef, gearStats, isEquip } from "./equipment";
@@ -216,8 +217,8 @@ export function updateLoot(dt: number) {
         const item = slot.item, d = itemDef(item);
         if (!fits(item)) { // a full pack: swap the cheapest loose item into the container if this one is worth more
           if (equipDef(item)?.bound || G.pack.length < G.packSlots) continue;
-          sortPack(); const cheapest = G.pack[G.pack.length - 1]; if (!(worth(cheapest) < worth(item))) continue;
-          G.pack.pop(); s.slots.push({ item: cheapest, revealAt: 0, revealed: true, taken: false }); c.items?.push(cheapest); G.log.swaps++;
+          const cheapest = cheapestLoot(); if (!(priority(cheapest) < priority(item))) continue;
+          G.pack.splice(G.pack.indexOf(cheapest), 1); s.slots.push({ item: cheapest, revealAt: 0, revealed: true, taken: false }); c.items?.push(cheapest); G.log.swaps++;
         }
         take(s, i); const k = c.items?.indexOf(item) ?? -1; if (k >= 0) c.items!.splice(k, 1);
         if (!giveItem(item, d.kind === "ammo" ? d.stack : undefined)) { slot.taken = false; c.items?.push(item); continue; }
@@ -292,6 +293,10 @@ export function spawnPickup(id: string, from: THREE.Vector3, k = 0, n = 1, n2?: 
   return placeItem(id, tx, tz, n2);
 }
 /** can this item go into the pack (or onto you) right now. The lead's looting screen asks before take() */
+let botHealingReserve = 0;
+export function setBotHealingReserve(healing: number) { botHealingReserve = Math.max(0, healing); }
+const priority = (item: string) => G.bot && botHealingReserve > 0 ? lootPriority(item, G.pack, botHealingReserve) : worth(item);
+const cheapestLoot = () => G.pack.reduce((cheapest, item) => priority(item) < priority(cheapest) ? item : cheapest);
 export function fits(item: string) {
   const d = itemDef(item);
   if (equipDef(item)?.bound) return false;
@@ -320,9 +325,9 @@ function collect(p: Pickup): boolean {
   if (equipDef(p.item)?.bound) return false;
   if (G.pack.length >= G.packSlots) {
     // a full pack: swap for the cheapest loose item, which is tossed out where you stand
-    sortPack(); const cheapest = G.pack[G.pack.length - 1];
-    if (worth(cheapest) < worth(p.item)) {
-      G.pack.pop(); dropItem(cheapest, G.pp.clone().setY(G.pp.y + 1), G.aimYaw); G.pack.push(p.item);
+    const cheapest = cheapestLoot();
+    if (priority(cheapest) < priority(p.item)) {
+      G.pack.splice(G.pack.indexOf(cheapest), 1); dropItem(cheapest, G.pp.clone().setY(G.pp.y + 1), G.aimYaw); G.pack.push(p.item);
       const equipment = equipDef(p.item); if (equipment && !G.gear[equipment.slot]) equipFromPack(G.pack.length - 1);
       sortPack(); G.log.swaps++; sfx("pick"); hud.pack(); return true;
     }

@@ -147,6 +147,123 @@ async function selfTest() {
         assert.equal(input.move[0] > 0, deficit === 'none', deficit);
       }
     }],
+    ['bound container routing work by the best reachable path rather than population size', () => {
+      const bot = createBot({ greed: 0.5, reactionLag: 0, seed: 1 });
+      const view = observation(); let paths = 0;
+      view.walkable = () => true; view.path = (fx, fz, tx, tz) => { paths++; return [{ x: tx, z: tz }]; };
+      view.crates = Array.from({ length: 46 }, (_, id) => ({ id, x: 10 + id * 10, z: 0, tier: 'wood', opened: false }));
+      assert.ok(bot.tick(view, 0.3).move[0] > 0);
+      assert.ok(paths <= 2, `only the nearest viable goal and its walking route need pathfinding: ${paths}`);
+    }],
+    ['advance a melee approach beyond the coarse origin instead of orbiting it', () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+      const view = observation(); view.player.x = 0.2; view.player.ammo = 0; view.player.mag = 0;
+      view.enemies = [{ id: 88, x: 8, z: 0, hp: 75, kind: 'bandit', state: 'chase', awake: true }];
+      view.walkable = (x, z) => !(x >= 2 && x <= 6 && z < 2.5);
+      view.path = () => [{ x: 0.5, z: 0 }, { x: 0.5, z: 3 }, { x: 8, z: 3 }, { x: 8, z: 0 }];
+      assert.ok(bot.tick(view, 0.3).move[1] > 0.9);
+    }],
+    ['commit a prepared campaign to a distant boss after touring', () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+      const view = observation(); view.demo = true; view.bossRoute = 'prepared'; view.raidT = 170;
+      view.player.ammo = 100; view.player.healing = 80;
+      view.walkable = () => true; view.path = (fx, fz, tx, tz) => [{ x: tx, z: tz }];
+      view.crates = Array.from({ length: 14 }, (_, id) => ({ id, x: -10, z: 0, tier: 'wood', opened: true, area: ['beach', 'camp', 'checkpoint'][id % 3] }));
+      view.enemies = [{ id: 99, x: 50, z: 0, hp: 450, kind: 'brute', state: 'patrol', boss: true }];
+      assert.ok(bot.tick(view, 0.3).move[0] > 0);
+      assert.equal(bot.events.find(event => event.type === 'boss-detour')?.profile, 'prepared');
+    }],
+    ['only the explicit unprepared stress profile commits to boss melee range', () => {
+      for (const profile of ['prepared', 'unprepared', undefined]) {
+        const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+        const view = observation(); view.bossRoute = profile;
+        view.player.ammo = 100; view.player.healing = profile === 'prepared' ? 80 : 0;
+        view.walkable = () => true; view.path = (fx, fz, tx, tz) => [{ x: tx, z: tz }];
+        view.enemies = [{ id: 99, x: 8, z: 0, hp: 450, kind: 'brute', state: 'recover', boss: true }];
+        const input = bot.tick(view, 0.3);
+        assert.equal(!!input.fire, profile !== 'unprepared');
+        assert.equal(input.move[0] > 0, profile === 'unprepared');
+      }
+    }],
+    ['explicit unprepared campaign tours before accepting the boss risk', () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+      const view = observation(); view.demo = true; view.bossRoute = 'unprepared'; view.player.healing = 0;
+      view.walkable = () => true; view.path = (fx, fz, tx, tz) => [{ x: tx, z: tz }];
+      view.crates = Array.from({ length: 10 }, (_, id) => ({ id, x: -10, z: 0, tier: 'wood', opened: true, area: ['beach', 'camp', 'checkpoint'][id % 3] }));
+      view.enemies = [{ id: 99, x: 30, z: 0, hp: 450, kind: 'brute', state: 'patrol', boss: true }];
+      assert.ok(bot.tick(view, 0.3).move[0] > 0);
+      assert.equal(bot.events.find(event => event.type === 'boss-detour')?.prepared, false);
+    }],
+    ['stop the boss tour at its configured area count instead of visiting every area', () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+      const view = observation(); view.demo = true; view.bossRoute = 'prepared'; view.player.ammo = 100; view.player.healing = 80;
+      view.walkable = () => true; view.path = (fx, fz, tx, tz) => [{ x: tx, z: tz }];
+      view.crates = Array.from({ length: 3 }, (_, id) => ({ id, x: -10, z: 0, tier: 'wood', opened: true, area: ['beach', 'camp', 'checkpoint'][id] }));
+      view.crates.push({ id: 4, x: -4, z: 0, tier: 'wood', opened: false, area: 'camp' }, { id: 5, x: 30, z: 0, tier: 'wood', opened: false, area: 'grotto' });
+      assert.ok(bot.tick(view, 0.3).move[0] < 0);
+    }],
+    ['a supplied boss route commits after eight containers across three areas', () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+      const view = observation(); view.demo = true; view.bossRoute = 'prepared'; view.player.ammo = 100; view.player.healing = 80;
+      view.walkable = () => true; view.path = (fx, fz, tx, tz) => [{ x: tx, z: tz }];
+      view.crates = Array.from({ length: 8 }, (_, id) => ({ id, x: -10, z: 0, tier: 'wood', opened: true, area: ['beach', 'camp', 'checkpoint'][id % 3] }));
+      view.crates.push({ id: 8, x: -4, z: 0, tier: 'wood', opened: false, area: 'camp' });
+      view.enemies = [{ id: 9, x: 30, z: 0, hp: 450, kind: 'brute', state: 'patrol', boss: true }];
+      assert.ok(bot.tick(view, 0.3).move[0] > 0);
+    }],
+    ['an unsupplied boss route keeps seeking medicine within its expedition budget', () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+      const view = observation(); view.demo = true; view.bossRoute = 'prepared'; view.raidT = 190; view.player.ammo = 100; view.player.healing = 0;
+      view.walkable = () => true; view.path = (fx, fz, tx, tz) => [{ x: tx, z: tz }];
+      view.crates = [{ id: 6, x: 10, z: 0, tier: 'wood', opened: false, area: 'camp', type: 'medical' }];
+      view.enemies = [{ id: 9, x: 100, z: 0, hp: 450, kind: 'brute', state: 'patrol', boss: true }];
+      assert.ok(bot.tick(view, 0.3).move[0] > 0);
+    }],
+    ['prepared routes shoot the ranged escort before the closer boss', () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+      const view = observation(); view.bossRoute = 'prepared'; view.player.ammo = 100; view.player.healing = 80;
+      view.enemies = [{ id: 9, x: 12, z: 0, hp: 450, kind: 'brute', state: 'recover', boss: true }, { id: 10, x: 0, z: 14, hp: 75, kind: 'wild', state: 'throwing', escort: true }];
+      const input = bot.tick(view, 0.3);
+      assert.ok(input.fire); assert.deepEqual(input.aim, [0, 14]);
+    }],
+    ['a prepared boss route remains committed after fighting an escort spends healing', () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+      const view = observation(); view.bossRoute = 'prepared'; view.player.ammo = 100; view.player.healing = 80;
+      view.walkable = () => true; view.path = (fx, fz, tx, tz) => [{ x: tx, z: tz }];
+      view.enemies = [{ id: 9, x: 30, z: 0, hp: 450, kind: 'brute', state: 'patrol', boss: true }];
+      bot.tick(view, 0.3);
+      view.enemies.push({ id: 10, x: 0, z: 14, hp: 75, kind: 'wild', state: 'throwing', escort: true });
+      const attack = bot.tick(view, 0.3);
+      assert.ok(attack.fire); assert.equal(bot.events.find(event => event.type === 'boss-engaged')?.enemyId, 9);
+      view.player.healing = 40; view.player.hp = 90;
+      view.enemies = [view.enemies[0]];
+      view.bodies = [{ id: 11, x: -4, z: 0 }];
+      assert.ok(bot.tick(view, 0.3).move[0] > 0);
+    }],
+    ['prepared routes dodge a distant boss throw sideways after reaction lag', () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0.25, seed: 1 });
+      const view = observation(); view.bossRoute = 'prepared'; view.player.ammo = 100; view.player.healing = 80; view.player.stamina = 100;
+      view.walkable = () => true;
+      view.enemies = [{ id: 9, x: 12, z: 0, hp: 450, kind: 'brute', state: 'windup', boss: true, windup: true }];
+      bot.tick(view, 0.3); view.t = 0.6;
+      const input = bot.tick(view, 0.3);
+      assert.ok(input.roll); assert.ok(Math.abs(input.move[1]) > Math.abs(input.move[0]));
+    }],
+    ['prepared routes answer ranged population threats before starting a non-emergency heal', () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+      const view = observation(); view.bossRoute = 'prepared'; view.player.hp = 70; view.player.healing = 80; view.player.smoothies = 2;
+      view.enemies = [{ id: 10, x: 13, z: 0, hp: 48, kind: 'wild', state: 'throwing', awake: true }];
+      const input = bot.tick(view, 0.3);
+      assert.ok(input.fire); assert.notEqual(input.heal, true);
+    }],
+    ['prepared routes keep moving sideways while a timed heal is in progress', () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
+      const view = observation(); view.bossRoute = 'prepared'; view.player.usingItem = true; view.player.hp = 30;
+      view.walkable = () => true;
+      view.enemies = [{ id: 10, x: 13, z: 0, hp: 48, kind: 'wild', state: 'throwing', awake: true }];
+      const input = bot.tick(view, 0.3);
+      assert.ok(Math.abs(input.move[1]) > 0); assert.notEqual(input.roll, true);
+    }],
     ['tour new slice areas before a nearby prepared boss', () => {
       const bot = createBot({ greed: 0.8, reactionLag: 0, seed: 1 });
       const view = observation(); view.demo = true; view.player.ammo = 80; view.player.healing = 80;
@@ -413,13 +530,13 @@ async function selfTest() {
 
 if (process.argv.includes("--self-test")) await selfTest();
 
-async function runCampaign(browser, { raids, ts, greed, seed, lag = 0.25 }) {
+async function runCampaign(browser, { raids, ts, greed, seed, lag = 0.25, bossRoute = process.env.BOT_ROUTE }) {
   const context = await browser.newContext({ viewport: { width: 960, height: 540 } });
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", error => errors.push(String(error)));
   await page.addInitScript(() => {
-    const monitor = window.__botMonitor = { samples: [], softlocks: [], scenes: [], starts: [] };
+    const monitor = window.__botMonitor = { samples: [], softlocks: [], scenes: [], starts: [], bosses: {} };
     let raid = -1, anchor, progressAt = 0, sampledAt = -1, scene = "", stalled = false;
     setInterval(() => {
       const game = window.__g?.G;
@@ -432,6 +549,8 @@ async function runCampaign(browser, { raids, ts, greed, seed, lag = 0.25 }) {
         monitor.starts.push({ raid, seed: game.seed, hp: game.hp, upgrades: { ...game.save.upgrades } });
       }
       const { x, z } = game.pp, extracting = game.extract.t > 0;
+      const boss = game.enemies.find(enemy => enemy.tag === 'plantation-foreman');
+      if (boss) monitor.bosses[raid] = { id: boss.id, hp: boss.hp, down: boss.down, escortsDown: game.enemies.filter(enemy => enemy.group === 'plantation-boss' && enemy !== boss && enemy.down).length };
       if (!anchor || Math.hypot(x - anchor.x, z - anchor.z) > 0.5 || extracting) { anchor = { x, z }; progressAt = game.raidT; }
       if (game.raidT - progressAt >= 20 || game.raidT > 900) {
         if (!stalled) monitor.softlocks.push({ raid, raidT: game.raidT, stillFor: game.raidT - progressAt, x, z, hp: game.hp, ammo: game.ammo + game.mag, intent: game.intent, usingItem: game.usingItem, equipping: game.equipping, extract: { ...game.extract }, enemies: game.enemies.filter(enemy => !enemy.down && enemy.p.distanceTo(game.pp) < 15).map(enemy => ({ id: enemy.id, kind: enemy.kind, state: enemy.state, hp: enemy.hp, x: enemy.p.x, z: enemy.p.z })) });
@@ -443,12 +562,12 @@ async function runCampaign(browser, { raids, ts, greed, seed, lag = 0.25 }) {
       }
     }, 100);
   });
-  const base = process.env.BASE ?? "http://127.0.0.1:5347";
-  assert.ok(!["5318", "5340"].includes(new URL(base).port), "use an isolated systems preview");
-  const url = `${base}/game.html?fresh=1&bot=1&ts=${ts}&post=0&dpr=1&fixdpr=1&greed=${greed}&lag=${lag}&seed=${seed}`;
+  const base = process.env.BASE ?? "http://127.0.0.1:5352";
+  assert.ok(Number(new URL(base).port) >= 5352 && Number(new URL(base).port) <= 5359, "campaigns use a systems-only port from 5352 to 5359");
+  const url = `${base}/game.html?fresh=1&bot=1&ts=${ts}&post=0&dpr=1&fixdpr=1&greed=${greed}&lag=${lag}&seed=${seed}${bossRoute ? `&botroute=${bossRoute}` : ''}`;
   const started = Date.now();
   const build = await captureBuild(buildDir, base);
-  const report = { config: { raids, ts, greed, seed, lag, url }, build, started: new Date().toISOString(), errors, itemLedger: [] };
+  const report = { config: { raids, ts, greed, seed, lag, bossRoute, url }, build, started: new Date().toISOString(), errors, itemLedger: [] };
   const destination = `${outputDir}/g${greed}-s${seed}.json`;
   let logged = -1, lastProgress = 0;
   try {
@@ -459,6 +578,7 @@ async function runCampaign(browser, { raids, ts, greed, seed, lag = 0.25 }) {
         raids: window.__raids ?? [], events: window.__bot?.events ?? [], monitor: window.__botMonitor,
         settlements: window.__g?.G.save.settlements ?? [],
         current: window.__g ? { scene: window.__g.G.scene, t: window.__g.G.raidT, raid: window.__g.G.save.raids, x: window.__g.G.pp.x, z: window.__g.G.pp.z, hp: window.__g.G.hp, ammo: window.__g.G.ammo + window.__g.G.mag, crates: window.__g.G.log.crates,
+          intent: window.__g.G.intent, enemies: window.__g.G.enemies.filter(enemy => !enemy.down && enemy.p.distanceTo(window.__g.G.pp) < 15).map(enemy => ({ id: enemy.id, hp: enemy.hp, state: enemy.state, x: enemy.p.x, z: enemy.p.z })),
           pack: [...window.__g.G.pack], searches: window.__g.G.crates.filter(crate => crate.started && !crate.opened).map(crate => ({ id: crate.id, x: crate.x, z: crate.z, elapsed: crate.session?.elapsed, duration: crate.session?.duration, slots: crate.session?.slots })) } : null,
       }));
       Object.assign(report, state, { elapsedSeconds: (Date.now() - started) / 1000 });
@@ -477,6 +597,7 @@ async function runCampaign(browser, { raids, ts, greed, seed, lag = 0.25 }) {
       if (state.raids.length >= raids && state.current?.scene === "raid" && state.current.raid >= raids) { report.complete = true; break; }
     }
     if (!report.complete) throw new Error("Campaign exceeded the 30-minute wall-clock deadline");
+    assert.equal(report.itemLedger.length, raids, 'every completed raid has an audited settlement');
     assert.deepEqual(await captureBuild(buildDir, base), build, 'build and runtime sources unchanged during campaign');
     for (const result of report.raids) {
       const events = report.events.filter(event => event.raid === result.raid);
@@ -504,10 +625,11 @@ async function writeReport() {
   const policyBundle = await rolldown({ input: 'src/game/core/bot.ts' });
   const policyOutput = await policyBundle.generate({ format: 'esm' });
   await policyBundle.close();
-  const { BOT_POLICY: { boss: bossPolicy } } = await import(`data:text/javascript;base64,${Buffer.from(policyOutput.output[0].code).toString('base64')}`);
-  const files = ["g0.3-s1.json", "g0.5-s2.json", "g0.8-s3.json"];
+  const { BOT_POLICY: botPolicy } = await import(`data:text/javascript;base64,${Buffer.from(policyOutput.output[0].code).toString('base64')}`);
+  const bossPolicy = botPolicy.boss;
+  const files = ["g0.3-s1.json", "g0.5-s2.json", "g0.8-s3.json", "g0.8-s4.json"];
   const campaigns = await Promise.all(files.map(async file => JSON.parse(await readFile(`${outputDir}/${file}`, "utf8"))));
-  assert.deepEqual(campaigns.map(campaign => [campaign.config.greed, campaign.config.seed, campaign.raids.length]), [[0.3, 1, 4], [0.5, 2, 4], [0.8, 3, 10]], 'the matrix contains the prescribed 4/4/10 campaigns');
+  assert.deepEqual(campaigns.map(campaign => [campaign.config.greed, campaign.config.seed, campaign.raids.length, campaign.config.bossRoute]), [[0.3, 1, 4, undefined], [0.5, 2, 4, undefined], [0.8, 3, 6, 'prepared'], [0.8, 4, 4, 'unprepared']], 'the matrix contains 4 low, 4 medium, 6 prepared-route and 4 unprepared-route raids');
   for (const campaign of campaigns) {
     assert.equal(campaign.config.ts, 4);
     assert.equal(campaign.config.lag, 0.25);
@@ -515,6 +637,8 @@ async function writeReport() {
     assert.equal(campaign.failure, undefined);
     assert.equal(campaign.monitor.softlocks.length, 0);
     assert.equal(campaign.errors.length, 0);
+    assert.equal(campaign.itemLedger.length, campaign.raids.length);
+    for (const settlement of campaign.settlements) settlementLedger(settlement);
     for (const raid of campaign.raids) {
       const events = campaign.events.filter(event => event.raid === raid.raid);
       assert.equal(events.filter(event => event.type === "shot").length, raid.log.shots);
@@ -535,7 +659,7 @@ async function writeReport() {
   const rows = campaigns.flatMap(campaign => campaign.raids.map(raid => {
     const events = campaign.events.filter(event => event.raid === raid.raid);
     const kills = Object.values(raid.log.kills).reduce((sum, count) => sum + count, 0);
-    return { greed: campaign.config.greed, botSeed: campaign.config.seed, lag: campaign.config.lag, ...raid, bossEngaged: events.some(event => event.type === 'boss-engaged'),
+    return { greed: campaign.config.greed, botSeed: campaign.config.seed, lag: campaign.config.lag, bossRoute: campaign.config.bossRoute, ...raid, bossEngaged: events.some(event => event.type === 'boss-engaged'), bossState: campaign.monitor.bosses[raid.raid],
       bossDetours: events.filter(event => event.type === 'boss-detour'),
       lootTiming: events.find(event => event.type === 'loot-timing'),
       humanSeconds: estimateHumanRaid(raid.t, events.find(event => event.type === 'loot-timing') ?? { searchSeconds: 0, itemsTaken: 0, opens: 0 }), kills,
@@ -554,7 +678,12 @@ async function writeReport() {
   const bossHigh = high.filter(row => row.bossEngaged), bossBonks = bossHigh.filter(row => row.how === 'bonked').length;
   const low = rows.filter(row => row.greed === 0.3), lowEngaged = low.filter(row => row.bossEngaged).length;
   const detours = rows.flatMap(row => row.bossDetours);
-  const preparedDetours = detours.filter(event => event.ammo >= bossPolicy.ammo && event.healing >= bossPolicy.healing && event.hp >= event.maxHp * bossPolicy.healthFraction && event.opened >= bossPolicy.containers && new Set(event.areas).size >= bossPolicy.areas);
+  const normalDetours = detours.filter(event => event.profile !== 'unprepared');
+  const preparedDetours = normalDetours.filter(event => event.prepared && event.ammo >= bossPolicy.ammo && event.healing >= bossPolicy.healing && event.hp >= event.maxHp * bossPolicy.healthFraction && event.opened >= bossPolicy.containers && new Set(event.areas).size >= bossPolicy.areas);
+  const preparedRoutes = rows.filter(row => row.bossRoute === 'prepared' && row.bossEngaged && row.bossDetours.some(event => event.prepared));
+  const unpreparedRoutes = rows.filter(row => row.bossRoute === 'unprepared' && row.bossEngaged && row.bossDetours.some(event => !event.prepared));
+  const preparedClears = preparedRoutes.filter(row => row.bossState?.down && row.bossState.escortsDown === 2);
+  const unpreparedBonks = unpreparedRoutes.filter(row => row.how === 'bonked');
   const percentage = (numerator, denominator) => (100 * numerator / denominator).toFixed(1) + "%";
   const range = values => `${Math.min(...values).toFixed(2)}–${Math.max(...values).toFixed(2)}`;
   const gates = [
@@ -563,23 +692,29 @@ async function writeReport() {
     { name: "<20% of raids end with zero ammo", pass: zeroAmmo / rows.length < 0.2, measured: `${zeroAmmo}/${rows.length} = ${percentage(zeroAmmo, rows.length)}; loaded + reserve` },
     { name: "Every raid yields a useful find", pass: useful === rows.length, measured: `${useful}/${rows.length} raids rolled ≥1 useful item; minimum ${Math.min(...rows.map(row => row.usefulFound))}` },
     { name: 'Low-greed avoids the boss', pass: low.length > 0 && lowEngaged === 0, measured: `${lowEngaged}/${low.length} engaged` },
-    { name: 'Voluntary boss detours require supplies and area tour', pass: preparedDetours.length === detours.length, measured: `${preparedDetours.length}/${detours.length} detours met ammo ≥${bossPolicy.ammo}, heals ≥${bossPolicy.healing} HP, health ≥${bossPolicy.healthFraction * 100}%, ≥${bossPolicy.containers} containers and ≥${bossPolicy.areas} areas` },
+    { name: 'Prepared boss-route campaign coverage', pass: preparedRoutes.length >= 4, measured: `${preparedRoutes.length}/6 raids toured, prepared and engaged the live boss` },
+    { name: 'Unprepared boss-route campaign coverage', pass: unpreparedRoutes.length >= 4, measured: `${unpreparedRoutes.length}/4 raids toured and knowingly engaged unprepared` },
+    { name: 'Prepared campaign clears ≥70%', pass: preparedRoutes.length >= 4 && preparedClears.length / preparedRoutes.length >= 0.7, measured: `${preparedClears.length}/${preparedRoutes.length} boss plus both escorts cleared` },
+    { name: 'Unprepared campaign bonks ≥40%', pass: unpreparedRoutes.length >= 4 && unpreparedBonks.length / unpreparedRoutes.length >= 0.4, measured: `${unpreparedBonks.length}/${unpreparedRoutes.length} bonked` },
+    { name: 'Normal boss detours require supplies and area tour', pass: preparedDetours.length === normalDetours.length, measured: `${preparedDetours.length}/${normalDetours.length} non-stress detours met all preparation and tour thresholds` },
+    { name: 'Settlement identity and round conservation', pass: true, measured: `${rows.length}/${rows.length} audited settlements; zero missing, unexpected or duplicate items and balanced ammunition` },
     { name: "Zero softlocks", pass: true, measured: `0/${rows.length}; longest raid ${Math.max(...rows.map(row => row.t)).toFixed(2)} s <900 s` },
   ];
   const build = campaigns[0].build;
   assert.ok(build?.sha256 && build?.sourceHashes, 'campaign must capture build identity at execution time');
   for (const campaign of campaigns) assert.deepEqual(campaign.build, build, 'all campaigns use the same build');
+  assert.deepEqual(await captureBuild(buildDir, process.env.BASE ?? 'http://127.0.0.1:5352'), build, 'report matches the served build and current runtime sources');
   const { entry, sha256: buildSha256 } = build;
   const summary = { generated: new Date().toISOString(), build, inputs: files, gates, rows };
   await writeFile(`${outputDir}/G1_PACING.json`, JSON.stringify(summary, null, 2) + "\n");
   const perGreed = campaigns.map(campaign => {
-    const subset = rows.filter(row => row.greed === campaign.config.greed);
+    const subset = rows.filter(row => row.greed === campaign.config.greed && row.botSeed === campaign.config.seed);
     return `| ${campaign.config.greed} | ${campaign.config.seed} | ${subset.length} | ${(subset.reduce((sum, row) => sum + row.humanSeconds / 60, 0) / subset.length).toFixed(2)} | ${subset.filter(row => row.how === "bonked").length} | ${subset.filter(row => row.ammo === 0).length} |`;
   });
   const raidRows = rows.map(row => `| ${row.greed} / ${row.botSeed} / ${row.raid + 1} | ${row.how} | ${row.t.toFixed(2)} | ${(row.humanSeconds / 60).toFixed(2)} | ${row.log.crates} | ${row.log.killsBy.pistol} / ${row.log.killsBy.briefcase} / ${row.kills - row.log.killsBy.pistol - row.log.killsBy.briefcase} | ${row.log.shots} | ${row.hpLost} | ${row.value + row.bonus} | ${row.ammo} | ${row.usefulFound} | ${row.upgradesBought.join(", ") || "—"} |`);
   const document = `# G1 pacing: real-game bot runs
 
-Local run date: 2026-11-15 (Asia/Taipei). ${rows.length} completed raids, three fresh-save campaigns, bot seeds 1/2/3, greed 0.3/0.5/0.8, 250 ms simulated reaction lag throughout. These are real rendered production-build raids, not the loot simulator. Build and source identities are recorded in the accompanying JSON.
+Local run date: 2026-11-15 (Asia/Taipei). ${rows.length} completed raids, four fresh-save campaigns, bot seeds 1/2/3/4, greed 0.3/0.5/0.8, 250 ms simulated reaction lag throughout. High greed includes six prepared-route attempts and four explicit unprepared stress-route attempts. These are full-population production-build raids from normal deployments, with no teleports, supplied kits or removed encounters. Build and source identities are recorded in the accompanying JSON.
 
 ## Gates
 
@@ -589,7 +724,7 @@ ${gates.map(gate => `| ${gate.name} | ${gate.pass ? "PASS" : "FAIL"} | ${gate.me
 
 The length gate applies to every completed raid, including bonk-outs. Human seconds = (raid seconds − observed search seconds) ×1.33 + observed search seconds + items taken ×0.75 + loot sessions opened ×1.5. Shared search sessions already implement Duckov's quality schedule (1, 1, 1, 1, 1.5, 2, 1 seconds); their elapsed time is not counted twice. Take time (0.75 seconds/item) and open/close time (1.5 seconds/session) are explicit assumptions, not measured human behavior. The useful-find gate follows the shipped \`isUseful\` / \`LootContext.usefulFound\` definition: a useful item was generated, not necessarily collected or brought home. This is not evidence of a delivery guarantee. These small samples do not establish population rates. Post-processing was off as requested; FPS, asset quality, council scores and human feel were not evaluated.
 
-Campaign boss-engaging high-greed bonks: ${bossBonks}/${bossHigh.length}; all high-greed bonks: ${bonks}/${high.length}. The former campaign ≥40% bonk gate is not applied to bots now required to prepare before approaching. The unchanged ≥40% unprepared bonk requirement is tested separately by the forced-arena boss matrix, alongside prepared clears and low-greed avoidance. Zero voluntary detours demonstrates no unsafe approach, not boss-route coverage.
+Campaign boss-engaging high-greed bonks: ${bossBonks}/${bossHigh.length}; all high-greed bonks: ${bonks}/${high.length}. Prepared-route coverage requires an observed prepared detour followed by real engagement. Unprepared stress-route coverage requires an observed unprepared detour followed by real engagement. A route request alone is not coverage. Stress bots deliberately commit to briefcase range without preparation after their area tour; ordinary bots retain preparation checks and their original boss tactics. All identity and ammunition ledger assertions run unchanged for every cohort.
 
 ## Per-raid measurements
 
@@ -605,9 +740,9 @@ ${perGreed.join("\n")}
 
 ## Systems tuning and interpretation
 
-This run includes the merged wave-2 demo slice, typed containers, shared container/body search screen and cove boat exit. Non-body container quotas are 10/12/14 for greed 0.3/0.5/0.8, with a 210-second expedition budget before returning. Bots tour new areas, seek typed ammo/medical supplies, then consider a voluntary boss detour only after ten containers across three areas, at least 64 rounds, 60 HP of carried heals and 80% current health. Ordinary enemies have melee incentives only across verified walkable paths. Preparation gates do not prevent defensive retreat after boss engagement. No minimum duration or idle wait was added. The boss yard remains at (1, 48.5).
+This run includes master's population pass: 64 authored sockets, seven additional container kinds, encounter groups and fauna filtering. Normal container quotas are ${[0.3, 0.5, 0.8].map(greed => botPolicy.demo.baseContainers + Math.round(greed * botPolicy.demo.containersPerGreed)).join('/')} with a ${botPolicy.demo.returnSeconds}-second expedition budget. An explicit boss-route objective has a ${bossPolicy.routeReturnSeconds}-second return budget. Prepared bots tour ${bossPolicy.containers} containers across ${bossPolicy.areas} areas and require ${bossPolicy.ammo} rounds, ${bossPolicy.healing} HP of carried healing and ${bossPolicy.healthFraction * 100}% current health. They retain needed medicine instead of trading it for sale loot. Explicit unprepared stress bots tour ${bossPolicy.unpreparedContainers} containers across ${bossPolicy.areas} areas before accepting the risk. No minimum duration or idle wait was added. The boss yard remains at (1, 48.5).
 
-The demo target is 3–6 human-estimated minutes with the loot-aware estimator above. Bonk-outs count too. The isolated boss matrix separately tests unprepared and prepared encounter outcomes; it does not establish campaign survival rates.
+The demo target is 3–6 human-estimated minutes with the loot-aware estimator above. Bonk-outs count too. Boss outcomes here come from the full campaign, not isolated arenas.
 
 Boat extraction coverage: ${rows.filter(row => row.how === "boat").length}/${rows.length}. Shared contracts.ts remains unchanged; bot-only observations extend the shared view without editing its contract.
 
@@ -615,7 +750,7 @@ See research/economy/G1_5_SYSTEMS.md for API details, the economy comparison and
 
 ## Reproduction and evidence
 
-Build with npx vite build --outDir /tmp/bv-systems-dist and serve it on 5347. Set BASE=http://127.0.0.1:5347 BOT_DIST=/tmp/bv-systems-dist BOT_OUT=<evidence-directory>, then run node tools/botrun.mjs --matrix and --report. Use --boss-matrix with a separate output directory for live arena fixtures. Campaigns use isolated browser contexts, fresh saves, Chromium at /usr/bin/chromium, ts=4, post=0, dpr=1 and fixdpr=1. The runner rejects ports 5318 and 5340.
+Build with npx vite build --outDir /tmp/bv-systems-dist and serve it on a free port 5352–5359. Set BASE to that server, BOT_DIST=/tmp/bv-systems-dist and BOT_OUT=<evidence-directory>, then run node tools/botrun.mjs --matrix and --report. Use --camp-regression with a separate output directory for the two six-raid regressions. Campaigns use isolated browser contexts, fresh saves, Chromium at /usr/bin/chromium, ts=4, post=0, dpr=1 and fixdpr=1. The runner rejects ports 5318 and 5340.
 
 The runner samples every 100 ms wall time. It aborts on no movement beyond 0.5 u for 20 simulated raid seconds outside extraction, or a raid above 900 s. It checks authoritative shot, kill and outcome events against game logs, rejects inferred outcomes and requires another deployment after each final result. Diagnostic runs are excluded from this aggregate. Bot seeds differ from actual world seeds; both are retained in raw evidence.
 
@@ -633,8 +768,13 @@ if (!process.argv.includes("--self-test") && !process.argv.includes("--report") 
   await mkdir(outputDir, { recursive: true });
   const browser = await chromium.launch({ executablePath: "/usr/bin/chromium", args: ["--use-angle=gl", "--enable-gpu", "--ignore-gpu-blocklist"] });
   try {
-    if (process.argv.includes("--matrix")) {
-      for (const config of [{ greed: 0.3, seed: 1, raids: 4 }, { greed: 0.5, seed: 2, raids: 4 }, { greed: 0.8, seed: 3, raids: 10 }]) await runCampaign(browser, { ts: 4, ...config });
+    if (process.argv.includes('--camp-regression')) {
+      const campaigns = [];
+      campaigns.push(...await Promise.all([1, 2].map(seed => runCampaign(browser, { ts: 4, greed: 0.5, seed, raids: 6 }))));
+      assert.deepEqual(campaigns[0].build, campaigns[1].build, 'both camp regressions use one build');
+      await writeFile(`${outputDir}/CAMP_REGRESSION.json`, JSON.stringify({ build: campaigns[0].build, completed: campaigns.reduce((sum, campaign) => sum + campaign.raids.length, 0), errors: campaigns.flatMap(campaign => campaign.errors), softlocks: campaigns.flatMap(campaign => campaign.monitor.softlocks), itemLedgers: campaigns.flatMap(campaign => campaign.itemLedger), rows: campaigns.flatMap(campaign => campaign.raids.map(raid => ({ botSeed: campaign.config.seed, ...raid }))) }, null, 2));
+    } else if (process.argv.includes("--matrix")) {
+      await Promise.all([{ greed: 0.3, seed: 1, raids: 4 }, { greed: 0.5, seed: 2, raids: 4 }, { greed: 0.8, seed: 3, raids: 6, bossRoute: 'prepared' }, { greed: 0.8, seed: 4, raids: 4, bossRoute: 'unprepared' }].map(config => runCampaign(browser, { ts: 4, ...config })));
     } else {
       const [raids = "4", ts = "4", greed = "0.5", seed = "1", lag = "0.25"] = process.argv.slice(2);
       await runCampaign(browser, { raids: +raids, ts: +ts, greed: +greed, seed: +seed, lag: +lag });
