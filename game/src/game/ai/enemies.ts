@@ -116,6 +116,13 @@ function wake(e: Enemy) {
   floatText("ROOAAR!", e.p.clone().setY(4.2), "#c0392b", 38);
   hud.toast("The Sleeper is awake! Dodge his charge so he rams a tree, then hit him while he's dizzy");
 }
+/** a straight line you can walk on the exact colliders (straightWalk also wants open 1 u nav cells, which a pocket by
+ *  sandbags or crates does not have) */
+function openWalk(ax: number, az: number, bx: number, bz: number) {
+  const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / 0.2));
+  for (let k = 1; k <= n; k++) if (!walkable(ax + ((bx - ax) * k) / n, az + ((bz - az) * k) / n)) return false;
+  return true;
+}
 function goTo(e: Enemy, tx: number, tz: number, speed: number, dt: number) {
   if (e.state !== "patrol" && e.state !== "return") for (const door of gates) {
     if (door.kind === "door" && !door.locked && !door.open && Math.hypot(door.x - e.p.x, door.z - e.p.z) < 2.4 && openDoorForEnemy(door.id)) { e.path = []; e.repath = 0; }
@@ -123,6 +130,20 @@ function goTo(e: Enemy, tx: number, tz: number, speed: number, dt: number) {
   e.repath -= dt;
   if (e.repath <= 0 || !e.path.length) {
     e.repath = 0.45 + G.rng() * 0.2; e.path = straightWalk(e.p.x, e.p.z, tx, tz) ? [{ x: tx, z: tz }] : findPath(e.p.x, e.p.z, tx, tz, 6000);
+    // the target can stand where you can walk but its 1 u nav cell is blocked (against sandbags or a crate): A* then ends at
+    // the nearest open cell, often on the far side of the cover, and the chaser waits there forever (G1.5-12 bot softlock).
+    // Aim at an open spot beside the target that has a clear straight walk to it instead.
+    const end = e.path[e.path.length - 1];
+    if (e.state !== "patrol" && e.state !== "return" && Math.hypot(e.p.x - tx, e.p.z - tz) > 1.0 && (!end || Math.hypot(end.x - tx, end.z - tz) > 0.9)) {
+      let best = Infinity;
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2, x = tx + Math.cos(a) * 1.2, z = tz + Math.sin(a) * 1.2;
+        if (!walkable(x, z) || !openWalk(x, z, tx, tz)) continue;
+        const via = openWalk(e.p.x, e.p.z, x, z) ? [{ x, z }] : findPath(e.p.x, e.p.z, x, z, 3000), last = via[via.length - 1];
+        if (!last || (Math.hypot(last.x - x, last.z - z) > 0.6 && !openWalk(last.x, last.z, x, z))) continue; // (a pocket narrower than a nav cell: walk the last bit straight)
+        const cost = pathLength(via, e.p.x, e.p.z) + Math.hypot(last.x - x, last.z - z); if (cost < best) { best = cost; e.path = [...via, { x, z }, { x: tx, z: tz }]; }
+      }
+    }
     if (!e.path.length && e.state !== "patrol" && e.state !== "return") {
       let best = Infinity;
       for (const door of gates) if (door.kind === "door" && !door.locked && !door.open && flat(e.p, door) < 16) for (const side of [-1, 1]) {
@@ -138,7 +159,24 @@ function goTo(e: Enemy, tx: number, tz: number, speed: number, dt: number) {
   const want = V((w.x - e.p.x) / d, (w.z - e.p.z) / d).multiplyScalar(speed);
   e.vel.lerp(want, Math.min(1, dt * 8)); e.face = Math.atan2(e.vel.x, e.vel.z);
 }
-const engaged = () => G.enemies.filter((e) => !e.down && ["windup", "swipe", "slam", "throwing", "charge"].includes(e.state)).length;
+// only enemies that are thinking count: one left frozen mid-swing out past 32 u held a slot for good (G1.5-12 bot run)
+const engaged = () => G.enemies.filter((e) => !e.down && e.active && ["windup", "swipe", "slam", "throwing", "charge"].includes(e.state)).length;
+/** bodies don't pass through each other or the hero: overlapping pairs are pushed apart along the line between them */
+function separate() {
+  const live = G.enemies.filter((e) => e.active && !e.down);
+  for (let i = 0; i < live.length; i++) {
+    const a = live[i], ra = a.rig.bounds.radius * 0.8;
+    for (let j = i + 1; j < live.length; j++) {
+      const b = live[j], rb = b.rig.bounds.radius * 0.8, dx = b.p.x - a.p.x, dz = b.p.z - a.p.z, d = Math.hypot(dx, dz), m = ra + rb;
+      if (d >= m) continue;
+      const nx = d > 1e-4 ? dx / d : 1, nz = d > 1e-4 ? dz / d : 0, push = (m - d) / 2;
+      a.p.x -= nx * push; a.p.z -= nz * push; b.p.x += nx * push; b.p.z += nz * push;
+    }
+    const dx = a.p.x - G.pp.x, dz = a.p.z - G.pp.z, d = Math.hypot(dx, dz), m = ra + 0.4;
+    if (d < m && !(a.kind === "sleeper" && a.state === "charge")) { const nx = d > 1e-4 ? dx / d : 1, nz = d > 1e-4 ? dz / d : 0; a.p.x += nx * (m - d); a.p.z += nz * (m - d); }
+  }
+  for (const e of live) { collide(e.p, e.rig.bounds.radius * 0.8); e.p.y = groundHeight(e.p.x, e.p.z); e.rig.root.position.copy(e.p); }
+}
 
 export function updateEnemies(dt: number) {
   for (const [ally, alert] of sharedAlerts) {
@@ -164,6 +202,7 @@ export function updateEnemies(dt: number) {
     e.p.y = groundHeight(e.p.x, e.p.z);
     poseRig(e, dt);
   }
+  separate();
   updateRangs(dt);
 }
 function poseRig(e: Enemy, dt: number) {
