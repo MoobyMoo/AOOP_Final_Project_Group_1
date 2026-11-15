@@ -27,9 +27,10 @@ if (!at || flag("check")) {
   writeFileSync(`${out}/glitch.json`, JSON.stringify(r, null, 1));
   console.log("owners", r.owners, "ms", JSON.stringify(r.ms));
   console.log("by severity", JSON.stringify(r.bySev), "by category", JSON.stringify(r.byCat));
-  const order = { bug: 0, visible: 1, minor: 2 };
+  const order = { bug: 0, visible: 1, minor: 2, accepted: 3 };
   const fs = r.findings.sort((x, y) => order[x.sev] - order[y.sev] || x.cat.localeCompare(y.cat) || y.v - x.v);
-  for (const f of fs) if (order[f.sev] <= order[minSev]) console.log(`${f.sev.padEnd(7)} ${f.cat.padEnd(8)} ${String(f.x).padStart(7)},${String(f.z).padStart(7)}  ${f.what}`);
+  for (const f of fs) if (order[f.sev] <= order[minSev]) console.log(`${f.sev.padEnd(7)} ${f.cat.padEnd(8)} ${String(f.x).padStart(7)},${String(f.z).padStart(7)}  ${f.what}${f.why ? "  [accepted: " + f.why + "]" : ""}`);
+  for (const f of fs) if (f.sev === "accepted") console.log(`accepted ${f.cat.padEnd(8)} ${String(f.x).padStart(7)},${String(f.z).padStart(7)}  ${f.what}  -- ${f.why}`);
   // crop list: bug + visible, one per 3 u, skipping the asset-level rows (no world position)
   const kept = [];
   for (const f of fs) { if (order[f.sev] > 1 || f.src === "asset") continue; if (kept.some((k) => Math.hypot(k.x - f.x, k.z - f.z) < 3)) continue; kept.push(f); }

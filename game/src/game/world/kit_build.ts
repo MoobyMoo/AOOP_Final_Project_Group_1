@@ -201,7 +201,18 @@ export const campfire = () => asset("campfire");
 export const lantern = (onPost = false) => asset(onPost ? "lantern_post" : "lantern");
 /** stick fence section, 2.5 u along local x */
 export const fence = (variant = 0) => asset(nth(["fence_a", "fence_b"], variant));
-export const gate = (open = false) => { const b = asset("gate"); if (open) b.parts.leaf.rotation.y = -1.5; return b; };
+export const gate = (open = false) => { const b = asset("gate"); liftGateBoard(b); if (open) b.parts.leaf.rotation.y = -1.5; return b; };
+/** the banana-skull board hung 1.14-1.86 u up in the middle of the gateway (tools/blender/build/g_camp.py gate()): a 2 u
+ *  monkey walked through it. Raise it 1 u so it is nailed to the front of the crossbar (2.14-2.86) over everyone's head.
+ *  Only vertices in the board's box move (|x| < 0.7, y 1.08-1.92, z 0.03-0.22 in front of the posts; the leaf is a part,
+ *  not a static), so a rebuilt GLB with the board already up is left alone */
+function liftGateBoard(b: Built) {
+  for (const p of b.pieces) {
+    const a = p.geo.attributes.position; let n = 0;
+    for (let i = 0; i < a.count; i++) { const x = a.getX(i), y = a.getY(i), z = a.getZ(i); if (Math.abs(x) < 0.7 && y > 1.08 && y < 1.92 && z > 0.03 && z < 0.22) { a.setY(i, y + 1.0); n++; } }
+    if (n) { a.needsUpdate = true; p.geo.computeBoundingBox(); p.geo.computeBoundingSphere(); }
+  }
+}
 export const watchtower = () => asset("watchtower");
 export const well = () => asset("well");
 export const logBench = (variant = 0) => asset(nth(["log_bench", "log_bench_b"], variant));
