@@ -9,6 +9,28 @@
 import { tuneObject } from "./tune";
 let ctx: AudioContext | null = null, master: GainNode | null = null, noiseBuf: AudioBuffer | null = null;
 let sfxBus: GainNode | null = null, uiBus: GainNode | null = null;
+/** the gunshot's crack and tail go through this lowpass + gain before the sfx bus, so a suppressor can make the shot
+ *  quieter and duller without a second sample set (G1.5 row 36). The slide mechanism layer skips it: a suppressor
+ *  does not quiet the action. */
+let shotLp: BiquadFilterNode | null = null, shotGain: GainNode | null = null;
+/** shot tone (?tune "suppressor"): open = no suppressor; suppressed = the cutoff (Hz) and the level it plays at */
+export const SHOT_TONE = { suppressed: 0, cutoff: 1300, level: 0.42, q: 0.5 };
+tuneObject("suppressor", SHOT_TONE, { cutoff: { min: 300, max: 8000, step: 50, label: "suppressed shot lowpass (Hz)" }, level: { min: 0.05, max: 1, step: 0.01, label: "suppressed shot level" }, q: { min: 0.1, max: 4, step: 0.05, label: "lowpass Q" } },
+  { onChange: () => applyShotTone(), note: "suppressor sound (core/audio.ts; on while a suppressor is fitted)" });
+/** a suppressor is fitted (combat/gunstats.ts calls this when the attachments change) */
+export function setShotSuppressed(on: boolean) { SHOT_TONE.suppressed = on ? 1 : 0; applyShotTone(); }
+function applyShotTone() {
+  if (!ctx || !shotLp || !shotGain) return; const t = ctx.currentTime, on = SHOT_TONE.suppressed > 0;
+  shotLp.frequency.setTargetAtTime(on ? SHOT_TONE.cutoff : 20000, t, 0.01); shotLp.Q.setTargetAtTime(on ? SHOT_TONE.q : 0.0001, t, 0.01);
+  shotGain.gain.setTargetAtTime(on ? SHOT_TONE.level : 1, t, 0.01);
+}
+/** the gain the shot's crack plays at right now (capture tools measure the suppressor with this) */
+export const shotLevel = () => (SHOT_TONE.suppressed > 0 ? SHOT_TONE.level : 1);
+/** capture handle (tools/gunfeel.mjs): an analyser tapped off the sfx bus (it only listens) */
+(globalThis as unknown as { __audio: object }).__audio = {
+  tap(shotOnly = false) { const src = shotOnly ? shotGain : sfxBus; if (!ctx || !src) return null; const a = ctx.createAnalyser(); a.fftSize = 2048; src.connect(a); return a; },
+  ctx: () => ctx, tone: SHOT_TONE,
+};
 export let musicBus: GainNode | null = null;
 export function audioCtx() { return ctx; }
 /** player volume settings, 0..1 per bus (persisted; the settings menu calls this) */
@@ -32,6 +54,7 @@ export function unlockAudio() {
     sfxBus = ctx.createGain(); uiBus = ctx.createGain(); musicBus = ctx.createGain();
     sfxBus.gain.value = 1; uiBus.gain.value = 0.8; musicBus.gain.value = 0.5;
     sfxBus.connect(master); uiBus.connect(master); musicBus.connect(master); applyVolume();
+    shotLp = ctx.createBiquadFilter(); shotLp.type = "lowpass"; shotGain = ctx.createGain(); shotLp.connect(shotGain).connect(sfxBus); applyShotTone();
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     void loadSamples();
   }
@@ -99,7 +122,7 @@ export function sfx(kind: Sfx, vol = 1) {
   const c = (combo[kind] ??= { n: 0, t: 0 }); c.n = now - c.t < 0.25 ? c.n + 1 : 0; c.t = now;
   if (playSample(kind, vol, c.n)) return;
   const pitch = def.climb ? 1 + Math.min(c.n * 0.045, 0.8) : 1 + (Math.random() - 0.5) * 2 * (def.jitter ?? 0);
-  const bus = (UI_KINDS.has(kind) ? uiBus : sfxBus)!;
+  const bus = (UI_KINDS.has(kind) ? uiBus : kind === "shot" ? shotLp : sfxBus)!;
   for (const o of def.osc ?? []) {
     const t0 = now + (o.at ?? 0), osc = ctx.createOscillator(), g = ctx.createGain();
     osc.type = o.wave ?? "sine"; osc.frequency.setValueAtTime(o.f * pitch, t0);
@@ -170,7 +193,7 @@ function pickBuf(kind: string): AudioBuffer | null {
   if (list.length > 1 && i === last[kind]) i = (i + 1 + Math.floor(Math.random() * (list.length - 1))) % list.length;
   last[kind] = i; return list[i];
 }
-function voice(kind: string, buf: AudioBuffer, vol: number, rate: number, at: number, bus: GainNode) {
+function voice(kind: string, buf: AudioBuffer, vol: number, rate: number, at: number, bus: AudioNode) {
   const m = MIX[kind as keyof typeof MIX] ?? { g: 0.5 }, cap = m.cap ?? 3, vs = (voices[kind] ??= []);
   while (vs.length >= cap) { const old = vs.shift()!; old.g.gain.setTargetAtTime(0, ctx!.currentTime, 0.012); old.src.stop(ctx!.currentTime + 0.06); }
   const src = ctx!.createBufferSource(), g = ctx!.createGain(); src.buffer = buf; src.playbackRate.value = rate;
@@ -185,9 +208,9 @@ function playSample(kind: Sfx, vol: number, combo: number): boolean {
   const rate = (k: string) => { const m = MIX[k as keyof typeof MIX]; return m?.climb ? 1 + Math.min(combo * 0.045, 0.8) : 1 + (Math.random() - 0.5) * 2 * (m?.jit ?? 0); };
   if (kind === "shot") {
     const core = pickBuf("shotCore"); if (!core) return false;
-    voice("shotCore", core, vol, rate("shotCore"), 0, bus);
+    voice("shotCore", core, vol, rate("shotCore"), 0, shotLp ?? bus);
     const mech = pickBuf("shotMech"); if (mech) voice("shotMech", mech, vol, rate("shotMech"), 0.035, bus);
-    const tail = pickBuf("shotTail"); if (tail) voice("shotTail", tail, vol * (0.6 + 0.4 * vol), rate("shotTail"), 0.01, bus);
+    const tail = pickBuf("shotTail"); if (tail) voice("shotTail", tail, vol * (0.6 + 0.4 * vol), rate("shotTail"), 0.01, shotLp ?? bus);
     return true;
   }
   const buf = pickBuf(kind) ?? (kind === "step" ? pickBuf("stepDirt") : null); if (!buf) return false;

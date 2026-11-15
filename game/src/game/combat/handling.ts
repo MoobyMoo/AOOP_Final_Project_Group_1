@@ -12,6 +12,7 @@ import { G } from "../core/state";
 import type { Intent } from "../core/input";
 import { KINGPIN, KINGPIN_HANDLING as H, PLAYER } from "./weapons";
 import { tuneObject } from "../core/tune";
+import { GUN, refreshGun } from "./gunstats";
 
 tuneObject("gun", H, {
   rest: { min: 0, max: 30, step: 0.1, label: "hip scatter at rest (deg)" }, max: { min: 0, max: 60, step: 0.5, label: "hip scatter max" },
@@ -26,7 +27,7 @@ tuneObject("gun", H, {
   recoilTime: { min: 0.01, max: 0.3, step: 0.005, label: "kick time (s)" }, recoverDelay: { min: 0, max: 0.5, step: 0.01, label: "hold before settle (s)" },
   recoverSpeed: { min: 20, max: 3000, step: 10, label: "settle speed (px/s @1440)" }, recoilMul: { min: 0, max: 4, step: 0.05, label: "recoil multiplier" },
   adsTime: { min: 0.05, max: 1.5, step: 0.01, label: "ADS time (s)" }, adsWalk: { min: 0.1, max: 1, step: 0.01, label: "ADS walk multiplier" },
-  adsDist: { min: 1, max: 4, step: 0.01, label: "ADS camera lead factor" }, adsFov: { min: 0.6, max: 1, step: 0.005, label: "ADS FOV scale" },
+  adsDist: { min: 1, max: 4, step: 0.01, label: "ADS camera lead factor (bare gun)" }, adsFov: { min: 0.6, max: 1, step: 0.005, label: "ADS FOV scale" },
 }, { note: "Kingpin scatter / recoil / ADS (combat/handling.ts)" });
 tuneObject("kingpin", KINGPIN, {
   interval: { min: 0.05, max: 1, step: 0.01, label: "seconds between shots" }, damage: { min: 1, max: 80, step: 1 }, range: { min: 4, max: 40, step: 0.5 },
@@ -34,12 +35,15 @@ tuneObject("kingpin", KINGPIN, {
   critMult: { min: 1, max: 4, step: 0.05 }, noise: { min: 0, max: 30, step: 0.5 },
 });
 
+refreshGun(); // the registry just applied any saved overrides to H and KINGPIN
+// Attachments (combat/gunstats.ts): the modded numbers come from GUN (scatter rest/max/grow, recoil scale, ADS time);
+// the rest of the handling numbers are read straight from H.
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const toward = (v: number, to: number, step: number) => (Math.abs(to - v) <= step ? to : v + Math.sign(to - v) * step);
 /** live handling state (read by the HUD, the camera and the capture tools) */
 export const HS = {
   /** Duckov scatterBeforeControl: degrees, before the movement multiplier */
-  scatter: H.rest,
+  scatter: 6,
   /** aim amount 0..1 */
   ads: 0,
   /** movement multiplier on the cone */
@@ -50,14 +54,14 @@ export const HS = {
 };
 let kickX = 0, kickY = 0, kickT = 1e9, kickDur = 0.06, mouseX = NaN, mouseY = NaN;
 export const shotsPerSecond = () => 1 / Math.max(0.01, KINGPIN.interval);
-export const restScatter = () => lerp(H.rest, H.restAds, HS.ads);
-export const maxScatter = () => lerp(H.max, H.maxAds, HS.ads);
-export const growScatter = () => lerp(H.grow, H.growAds, HS.ads);
+export const restScatter = () => lerp(GUN.rest, GUN.restAds, HS.ads);
+export const maxScatter = () => lerp(GUN.max, GUN.maxAds, HS.ads);
+export const growScatter = () => lerp(GUN.grow, GUN.growAds, HS.ads);
 /** degrees per second back toward rest (Duckov: lerp(rec, recADS, ads) x ScatterGrow x ShootSpeed) */
-export const recoverScatter = () => lerp(H.recover, H.recoverAds, HS.ads) * growScatter() * shotsPerSecond();
+export const recoverScatter = () => lerp(H.recover, GUN.recoverAds, HS.ads) * growScatter() * shotsPerSecond();
 /** the cone a round leaves in right now, degrees (Duckov CurrentScatter = scatterBeforeControl x character multiplier) */
 export const currentScatter = () => HS.scatter * HS.move;
-export function resetHandling() { HS.scatter = H.rest; HS.ads = 0; HS.move = 1; HS.rx = HS.ry = 0; HS.shots = 0; kickT = 1e9; mouseX = mouseY = NaN; }
+export function resetHandling() { refreshGun(); HS.scatter = GUN.rest; HS.ads = 0; HS.move = 1; HS.rx = HS.ry = 0; HS.shots = 0; kickT = 1e9; mouseX = mouseY = NaN; }
 /** Duckov IsInAdsInput: the button, and no sprint or other action running */
 export const adsInput = (i: Intent) => i.ads && !G.sprinting && G.rollT < 0 && G.meleeT < 0 && G.reloadT < 0 && !G.useItem && !G.equipping;
 const pxScale = () => innerHeight / 1440;
@@ -66,7 +70,7 @@ const pxScale = () => innerHeight / 1440;
 export function updateHandling(dt: number, i: Intent) {
   const want = adsInput(i);
   G.ads = want;
-  const rate = 1 / Math.max(0.01, H.adsTime);
+  const rate = 1 / Math.max(0.01, GUN.adsTime);
   HS.ads = toward(HS.ads, want ? 1 : 0, dt * (want ? rate : Math.max(rate, 4)));
   // scatter: clamp to max, then recover toward rest (6x when below it, after ADS lowered the floor's opposite)
   const rest = restScatter(), max = maxScatter();
@@ -105,11 +109,11 @@ export function onShot(hero: { x: number; y: number } | null): number {
   if (hero && G.intent.aimNdc) {
     const cx = G.intent.aimNdc.x * innerWidth * 0.5 + HS.rx - hero.x, cy = G.intent.aimNdc.y * innerHeight * 0.5 + HS.ry - hero.y;
     const l = Math.hypot(cx, cy) || 1, nx = cx / l, ny = cy / l;
-    const v = lerp(H.vMin, H.vMax, G.rng()) * H.scaleV * H.recoilMul, h = lerp(H.hMin, H.hMax, G.rng()) * H.scaleH * H.recoilMul;
+    const v = lerp(H.vMin, H.vMax, G.rng()) * GUN.scaleV * H.recoilMul, h = lerp(H.hMin, H.hMax, G.rng()) * GUN.scaleH * H.recoilMul;
     kickX = nx * v + h * ny; kickY = ny * v - h * nx;
     kickDur = Math.max(0.005, Math.min(H.recoilTime, 1 / shotsPerSecond())); kickT = 0;
   }
   return dev;
 }
 // capture and test handle
-(globalThis as unknown as { __gun: object }).__gun = { HS, H, currentScatter, restScatter, maxScatter, recoverScatter };
+(globalThis as unknown as { __gun: object }).__gun = { HS, H, GUN, currentScatter, restScatter, maxScatter, recoverScatter };

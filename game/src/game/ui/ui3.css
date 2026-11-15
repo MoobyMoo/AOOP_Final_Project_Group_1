@@ -200,6 +200,9 @@ html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .e3.busy::before{content:"";position:absolute;left:0;bottom:0;height:4px;width:calc(var(--k,0) * 100%);background:var(--a-tie)}
 .e3.drop-ok{border-color:var(--a-brass-hi);box-shadow:0 0 0 2px var(--a-brass-hi);background:#2e2a26}
 .e3.drop-no{opacity:.4}
+/* gun attachment slots (G1.5 row 36): a shorter row of the same cells, and pips on the gun cell for what is fitted */
+.lv-att .a3{height:62px}.lv-att .a3 img{width:40px;height:40px;margin-top:-14px}.lv-att .a3 .emo{font-size:24px;margin-top:-14px}.lv-att .a3 .lab{font-size:12px;bottom:3px}
+.e3 .pips{position:absolute;left:5px;top:6px;display:flex;flex-direction:column;gap:3px;pointer-events:none}.e3 .pips i{width:5px;height:5px;background:#3a3631;transform:rotate(45deg)}.e3 .pips i.on{background:var(--a-brass-hi)}
 .lv-weight{margin:12px 16px 14px}
 .lv-weight .row{display:flex;justify-content:space-between;font:600 17px/1 var(--a-font)}
 .lv-weight .row span:last-child{font-variant-numeric:tabular-nums}
@@ -234,6 +237,7 @@ html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .tag3 .does{list-style:none;margin:12px 0 0;padding:0}
 .tag3 .does li{position:relative;padding:3px 0 3px 18px;font:600 19px/1.35 var(--a-font)}
 .tag3 .does li::before{content:"";position:absolute;left:3px;top:12px;width:7px;height:7px;background:var(--a-brass);transform:rotate(45deg)}
+.tag3 .does.stats li.up::before{background:var(--a-stam)}.tag3 .does.stats li.down::before{background:var(--a-hp)}.tag3 .does.stats li.down{color:#e9b0a0}
 .tag3 ul.facts{list-style:none;margin:14px 0 0;padding:0;border-top:1px solid rgba(154,118,81,.5)}
 .tag3 .facts li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 2px;border-bottom:1px solid rgba(154,118,81,.35);font:600 19px/1 var(--a-font)}
 .tag3 .facts li>span:first-child{color:#d8c7a8}.tag3 .facts li>span:last-child{font-variant-numeric:tabular-nums;text-align:right}

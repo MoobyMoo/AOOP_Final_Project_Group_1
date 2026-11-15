@@ -22,7 +22,7 @@ import { sfx } from "../core/audio";
 import { sting } from "../core/music";
 import { burst, floatText, popIn } from "../../fx";
 import { hud } from "../ui/hud";
-import { KINGPIN } from "../combat/weapons";
+import { isAttachment } from "./attachments";
 import { makeNoise } from "../combat/combat";
 
 export const RAR_COLOR: Record<string, string> = { common: "#f3ead6", uncommon: "#6ad16a", rare: "#4aa8ff", epic: "#c77dff" };
@@ -85,7 +85,7 @@ export function updateLoot(dt: number) {
 }
 function openCrate(c: Crate) {
   c.opened = true; G.log.crates++; if (G.log.firstCrate < 0) G.log.firstCrate = G.raidT; 
-  const ctx = G.lootCtx as LootContext; ctx.fixed = c.fixed as LootContext["fixed"]; ctx.ownsExtendedMag = G.save.upgrades.mag > 0 || G.save.fixtures.includes("extended_mag");
+  const ctx = G.lootCtx as LootContext; ctx.fixed = c.fixed as LootContext["fixed"]; ctx.ownsExtendedMag = G.save.gun.mag === "att_mag_ext" || G.save.locker.includes("att_mag_ext") || G.pack.includes("att_mag_ext");
   ctx.containerType = containerType(c);
   let items = c.fixed === "satchel" ? [...(c.items ?? [])] : rollCrate(c.tier, ctx, G.rng); ctx.fixed = undefined; ctx.containerType = undefined;
   if (c.fixed === "satchel") { G.save.satchel = null; hud.toast("You got your satchel back!"); }
@@ -137,13 +137,13 @@ function collect(p: Pickup): boolean {
     const result = collectEquipment(p.item);
     if (result !== "full") { sortPack(); sfx("pick"); hud.pack(); return true; }
   }
-  if (d.kind === "attachment") { if (!G.save.fixtures.includes("extended_mag")) G.save.fixtures.push("extended_mag"); G.magSize = KINGPIN.extMag; G.gun.setVariant({ extMag: true }); sfx("rare"); hud.banner("Kingpin Extended Mag: 12 rounds a mag!"); hud.ammo(); return true; }
   if (G.pack.length >= G.packSlots) {
     if (G.intent.interact) { sortPack(); const cheapest = G.pack[G.pack.length - 1]; if (worth(cheapest) < worth(p.item)) { G.pack.pop(); spawnPickup(cheapest, G.pp.clone().setY(1), 0, 1); G.pack.push(p.item); const equipment = equipDef(p.item); if (equipment && !G.gear[equipment.slot]) equipFromPack(G.pack.length - 1); sortPack(); G.log.swaps++; sfx("pick"); hud.pack(); return true; } }
     hud.prompt(`E · Pack full: swap for your ${itemDef(G.pack[G.pack.length - 1]).name}`); return false;
   }
   G.pack.push(p.item); sortPack(); sfx("pick"); hud.pack();
   floatText(`${d.icon} ${d.name}`, G.pp.clone().setY(2.4), RAR_COLOR[d.rarity] === "#f3ead6" ? "#fff8ec" : RAR_COLOR[d.rarity], 20);
+  if (isAttachment(p.item)) hud.toast(`${d.name}: press Tab and drag it onto your Kingpin to fit it`);
   if (p.item === "vine_key") hud.toast("The Vine Key! Get it home: the key opens the vault door from your next raid");
   return true;
 }

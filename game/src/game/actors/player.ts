@@ -16,6 +16,7 @@ import { itemDef } from "../loot/raidloot";
 import { floatText, burst } from "../../fx";
 import { updateAimHead, aimHead } from "../combat/headshot";
 import { startReload, cancelReload, updateReload, emptyTrigger } from "../combat/reload";
+import { GUN, GUN_DEF } from "../combat/gunstats";
 import { startDash, dustColor } from "./dash";
 import type { KingpinFx } from "../combat/kingpin";
 
@@ -113,7 +114,7 @@ export function updatePlayer(dt: number) {
   if (G.sprinting) useStamina(S.sprintDrain * dt);
   const ws = weightState(), W = PLAYER.weight;
   const wMul = ws === "light" ? 1 + W.lightBonus : ws === "heavy" ? 1 - W.heavySlow : ws === "over" ? 1 - W.overSlow : 1;
-  let speed = (G.sprinting ? PLAYER.sprint : PLAYER.speed) * wMul * gearStats(G.gear).speed;
+  let speed = (G.sprinting ? PLAYER.sprint : PLAYER.speed) * wMul * gearStats(G.gear).speed * GUN.moveSpeed; // attachments: Duckov MoveSpeedMultiplier
   if (G.equipping) speed *= EQUIP_MOVE;
   if (G.skidT > 0) speed *= PLAYER.roll.skidSpeed; G.skidT -= dt;
   if (G.painT > 0) speed *= 1 - PLAYER.pain.slow;
@@ -149,7 +150,7 @@ export function updatePlayer(dt: number) {
   // ---- reload (combat/reload.ts): R, or the trigger on an empty gun; walk and run freely meanwhile
   const loaded = G.mag;
   if (!G.useItem) updateReload(dt);
-  if (i.reload && !G.useItem) startReload(KINGPIN);
+  if (i.reload && !G.useItem) startReload(GUN_DEF);
   if (G.mag !== loaded) hud.ammo();
 
   // ---- melee (V): the briefcase; costs stamina
@@ -175,10 +176,10 @@ export function updatePlayer(dt: number) {
     G.sprinting = false;
     if (G.mag > 0) {
       G.mag--; G.fireCd = KINGPIN.interval; G.fireT = 0; shoot(); hud.ammo(); if (G.log.firstShot < 0) G.log.firstShot = G.raidT;
-      if (G.mag === 0 && KINGPIN.autoReload) startReload(KINGPIN);
+      if (G.mag === 0 && KINGPIN.autoReload) startReload(GUN_DEF);
     } else {
       const click = i.firePressed || !dryLatch; dryLatch = true;
-      if (!emptyTrigger(KINGPIN, click, i.firePressed) && G.ammo <= 0 && i.firePressed) hud.toast("Out of rounds: bonk them with the briefcase (V)");
+      if (!emptyTrigger(GUN_DEF, click, i.firePressed) && G.ammo <= 0 && i.firePressed) hud.toast("Out of rounds: bonk them with the briefcase (V)");
     }
   }
 }

@@ -38,8 +38,8 @@ function verifyLoot() {
   rollCrate("wood", ammo, () => 0);
   assert(ammo.ammoFound >= 8, "eighth crate ammo floor");
   const vault = { ...fresh(), fixed: "vault" as const };
-  assert(rollCrate("wood", vault, () => 0).includes("extended_mag"), "first vault mag");
-  assert(!rollCrate("gold", vault, () => 0).includes("extended_mag"), "owned vault mag is not duplicated");
+  assert(rollCrate("wood", vault, () => 0).includes("att_mag_ext"), "first vault mag");
+  assert(!rollCrate("gold", vault, () => 0).includes("att_mag_ext"), "owned vault mag is not duplicated");
   assert(rollCrate("wood", { ...fresh(), fixed: "key" }, () => 0).includes("vine_key"), "fixed key");
   assert(rollCrate("gold", { ...fresh(), fixed: "vault" }, () => 0).some(id => id === "warden_vest" || id === "warden_helmet"), "vault equipment");
   assert(rollCrate("wood", { ...fresh(), fixed: "radio" }, () => 0).includes("radio_headset"), "radio shack equipment");

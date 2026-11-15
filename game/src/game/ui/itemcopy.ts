@@ -4,6 +4,7 @@ import { HEALS } from "../combat/weapons";
 import { equipDef } from "../loot/equipment";
 import { itemDef } from "../loot/raidloot";
 import { equipLines, SLOT_NAME } from "./equipui";
+import { attachmentDef, SLOT_LABEL, statLines, type StatLine } from "../loot/attachments";
 
 const RARITY: Record<string, string> = { common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic" };
 /** one short line about the thing itself, written as the Businessman would label it */
@@ -25,18 +26,18 @@ const BLURB: Record<string, string> = {
   vine_key: "Opens the vault door. Get it home and it stays on your keyring.",
   radio_key: "Opens the radio shack.",
   plantation_seal: "The workshop seal from the Old Plantation.",
-  extended_mag: "A longer magazine for the Kingpin: 12 rounds a mag.",
   spring: "A coiled spring. Useful for repairs.",
   plank: "A sturdy plank. Heavy for what it is worth.",
   kingpin: "Your pistol. It never leaves your hand.",
   briefcase: "Your briefcase. Swing it with V when the gun runs dry.",
 };
 
-export type ItemCopy = { name: string; rarity: string; rarityLine: string; blurb: string; does: string[]; use: string };
+/** lines = the stat changes of a gun attachment, each marked better or worse for you (the tag colours them) */
+export type ItemCopy = { name: string; rarity: string; rarityLine: string; blurb: string; does: string[]; use: string; lines?: StatLine[] };
 export function itemCopy(inst: string): ItemCopy {
   const d = itemDef(inst), e = equipDef(inst), id = inst.split("#")[0];
   const rarity = d.rarity, r = RARITY[rarity] ?? "Common";
-  let does: string[] = [], use = "";
+  let does: string[] = [], use = "", lines: StatLine[] | undefined, blurb = BLURB[id] ?? "";
   let rarityLine = `${r}, sells at the Fence`;
   if (e) {
     does = equipLines(inst);
@@ -56,14 +57,15 @@ export function itemCopy(inst: string): ItemCopy {
     use = "Carry it home";
     rarityLine = `${r} key`;
   } else if (d.kind === "attachment") {
-    does = ["The Kingpin holds 12 rounds instead of 8", "Fitted the moment you take it"];
-    use = "Take it to fit it";
-    rarityLine = `${r} gun part`;
+    const a = attachmentDef(id);
+    lines = statLines(id); does = lines.map((l) => l.text); blurb = a?.blurb ?? blurb;
+    use = "Drag it onto the Kingpin, or double-click it in your pack, to fit it";
+    rarityLine = `${r} ${a ? SLOT_LABEL[a.slot].toLowerCase() : "gun part"} attachment`;
   } else if (d.kind === "part") {
     use = "Bring it home and sell it, or keep it for Sal's orders";
     rarityLine = `${r} part, sells at the Fence`;
   } else {
     use = "Bring it home and sell it at the Fence";
   }
-  return { name: d.name, rarity: r, rarityLine, blurb: BLURB[id] ?? "", does, use };
+  return { name: d.name, rarity: r, rarityLine, blurb, does, use, lines };
 }
