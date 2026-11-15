@@ -14,6 +14,8 @@ import {
 } from "./facilities";
 import { buildShell, sconce, vaultModel, SCONCES_N, SCONCES_E } from "./vaultkit";
 import { radioDeskModel } from "../story/props";
+import { lineModel, fenceProps } from "./factory-models";
+import { isLine } from "./factory";
 
 // ---------------------------------------------------------------- models
 /** facility id -> vault kit asset (the "blueprints" starter is fac_blueprint; the rest are fac_<id>) */
@@ -29,6 +31,7 @@ type Spinner = { o: THREE.Object3D; axis: "x" | "z"; speed: number; power: boole
  *  slot0..8 (trophy wall) are the shelf points; press_wheel and gen_wheel turn (animateFacilities). */
 export function facilityModel(id: string): THREE.Group {
   if (id === "radio") return radioDeskModel(); // the Radio Operator's desk is procedural (story/props.ts), not in the vault kit
+  if (isLine(id)) return lineModel(id); // factory lines: blockouts until the Fable assets land (home/factory-models.ts)
   const g = new THREE.Group(); g.name = `fac_${id}`;
   try {
     const m = vaultModel(MODEL[id] ?? `fac_${id}`); g.add(m);
@@ -37,6 +40,7 @@ export function facilityModel(id: string): THREE.Group {
     for (const [n, axis, speed, power] of SPIN) { const o = m.getObjectByName(n); if (o) spin.push({ o, axis, speed, power }); }
     if (spin.length) g.userData.spin = spin;
     const lamp = m.getObjectByName("gen_lamp"); if (lamp) g.userData.lamp = lamp;
+    if (id === "fence") g.add(fenceProps()); // the Fence's roulette wheel and coin (Double or Nothing), blockouts
   } catch (e) { console.warn(`facility model ${id}: vault kit missing, blockout`, e); }
   if (!g.children.length) {
     const d = defOf(id) ?? STARTERS.find((s) => s.id === id) ?? { w: 1, d: 1 };
@@ -51,6 +55,8 @@ export function animateFacilities(objects: Iterable<THREE.Object3D>, dt: number,
     if (spin) for (const s of spin) if (!s.power || powered) s.o.rotation[s.axis] += s.speed * dt;
     const lamp = o.userData.lamp as THREE.Object3D | undefined;
     if (lamp) lamp.scale.setScalar(1 + 0.07 * Math.sin(time * 9));
+    const bob = o.userData.bob as { o: THREE.Object3D; amp: number; speed: number; y: number }[] | undefined;
+    if (bob) for (const b of bob) b.o.position.y = b.y - b.amp * (0.5 + 0.5 * Math.sin(time * b.speed));
   }
 }
 

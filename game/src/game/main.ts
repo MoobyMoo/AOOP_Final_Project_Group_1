@@ -50,6 +50,7 @@ import "./story/story.css";
 import { setRaidDestination, storyRaidEnd, storyPanelOpen } from "./story/raid";
 import { playIntro, introRunning } from "./story/intro";
 import { qs } from "./core/quests";
+import { slipExtrasHtml } from "./home/econ-ui";
 
 const QS = new URLSearchParams(location.search);
 G.stage = new Stage(document.getElementById("game") as HTMLCanvasElement);
@@ -106,7 +107,7 @@ function onRaidEnd(r: RaidResult) {
   const kept = record.kept, value = record.value, bonus = record.bonus;
   // the payout slip (ui/payout.ts): B's appraisal receipt in A's palette
   const kills = Object.values(r.log.kills).reduce((x, y) => x + y, 0);
-  const html = payoutSlip({ raid: sv.raids, how: r.how, raidT: r.raidT, kills, crates: r.log.crates, kept, lost: r.lost.length, value, bonus, vineKey: r.kept.some(inst => itemType(inst) === "vine_key"), delivery: sv.delivery?.length });
+  const html = payoutSlip({ raid: sv.raids, how: r.how, raidT: r.raidT, kills, crates: r.log.crates, kept, lost: r.lost.length, value, bonus, vineKey: r.kept.some(inst => itemType(inst) === "vine_key"), delivery: sv.delivery?.length, extra: slipExtrasHtml(record.id) });
   (window as unknown as { __raids: object[] }).__raids ??= []; (window as unknown as { __raids: object[] }).__raids.push({ raid: sv.raids - 1, seed: G.seed, how: r.how, t: r.raidT, value, bonus, kept: r.kept.length, lost: r.lost.length, log: structuredClone(r.log), ammo: G.ammo + G.mag, hp: G.hp, maxHp: G.maxHp, usefulFound: G.lootCtx.usefulFound, upgrades: { ...sv.upgrades } });
   const jobLines = jobs.map((n) => `<p class="q3-sum">◆ <b>${n.title}</b> · ${n.text}${n.ready ? ": ready to hand in" : ""}</p>`).join("");
   G.alive = true; goHome(jobLines ? html.replace('<p class="note">Sell your stash', `${jobLines}<p class="note">Sell your stash`) : html);

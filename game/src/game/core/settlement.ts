@@ -8,6 +8,10 @@ import { CALIBER_IDS, gunOf, isCaliber, noRounds, type Rounds } from "../combat/
 import { EXIT_DEFS, exitCondition, exitCosts, type ExitId } from "../world/extraction";
 import { stashCapacity, stashUsed } from "../home/facilities";
 import { homeItems, qs, questOf, questStatus, type QuestPayout } from "./quests";
+import { credit } from "./wallet";
+import { judgeWager, rideWager } from "./gamble";
+import { runLines, trayItems } from "../home/factory";
+import { refreshMarket } from "../loot/market";
 
 /** ammo = every round held per caliber (loose reserve + loaded in both guns); rounds / spentRounds = the per-caliber
  *  ledger (Duckov caliber matching: a .45 found never becomes a rifle round) */
@@ -16,6 +20,8 @@ export type RaidCheckpoint = {
   x: number; z: number; ammo: Rounds; elapsed: number;
   origin: string[]; introduced: string[];
   rounds?: Rounds; spentRounds?: Rounds;
+  /** what happened this raid that a wager can ask about ("ko:boss"), noted by core/raid-journal.ts noteFeat */
+  feats?: string[];
 };
 export type Settlement = {
   id: string; reason: string; kept: string[]; lost: string[]; consumed: string[]; abandoned: string[];
@@ -28,7 +34,7 @@ export function slotItems(save: SaveV1, guns: GunSlots | undefined): string[] {
   return (guns ?? [null, null]).flatMap(gs => gs ? [...(bound.has(gs.inst) ? [] : [gs.inst]), ...Object.values(gs.atts).filter((a): a is string => !!a)] : []);
 }
 export function ownedItems(save: SaveV1): string[] {
-  return [...Object.values(save.boundWeapons ?? {}), ...save.locker, ...save.reserved, ...(save.delivery ?? []), ...(save.satchel?.items ?? []),
+  return [...Object.values(save.boundWeapons ?? {}), ...save.locker, ...save.reserved, ...(save.delivery ?? []), ...(save.satchel?.items ?? []), ...trayItems(save),
     ...slotItems(save, save.activeRaid?.guns ?? save.guns),
     ...(save.activeRaid ? [...save.activeRaid.pack, ...Object.values(save.activeRaid.gear).filter((inst): inst is string => !!inst), ...save.activeRaid.world] : Object.values(save.gear).filter((inst): inst is string => !!inst))];
 }
@@ -40,6 +46,7 @@ export function identifySave(save: SaveV1): SaveV1 {
   next.locker = next.locker.map(own); next.reserved = next.reserved.map(own);
   if (next.delivery) next.delivery = next.delivery.map(own);
   if (next.satchel) next.satchel.items = next.satchel.items.map(own);
+  for (const line of Object.values(next.econ?.lines ?? {})) line.tray = line.tray.map(own);
   return next;
 }
 /** what goes to the locker (gear, attachments and guns) rather than the reserved shelf */
@@ -84,6 +91,7 @@ export function beginRaid(save: SaveV1, id: string, pack: string[], gear: Gear):
   next.activeRaid = { id, pack: [...pack], gear: { ...gear }, guns: structuredClone(next.guns), world: [], consumed: [], x: 0, z: 0, ammo: { ...save.ammo }, elapsed: 0, origin: [], introduced: [] };
   next.activeRaid.origin = ownedItems(next);
   next.activeRaid.rounds = addRounds(save.ammo, itemRounds(ownedItems(next))); next.activeRaid.spentRounds = noRounds();
+  rideWager(next, id); // Sal's wager: the stake leaves the wallet as the pod launches (core/gamble.ts)
   validateOwnership(next); return next;
 }
 const validRounds = (r: unknown): r is Rounds => !!r && typeof r === "object" && CALIBER_IDS.every(c => Number.isSafeInteger((r as Rounds)[c]) && (r as Rounds)[c] >= 0);
@@ -157,7 +165,8 @@ export function settleRaid(save: SaveV1, reason: string, pouchSlots: number, bon
     if (tierAtLeast(def.rarity, "epic") && !next.trophies.includes(type)) next.trophies.push(type);
   }
   const value = kept.reduce((total, inst) => total + itemDef(inst).value, 0), bonus = bonked ? 0 : Math.round(value * bonusRate);
-  next.ammo = asRounds(active.ammo); next.money += bonus; next.raids++;
+  next.ammo = asRounds(active.ammo); next.raids++;
+  if (bonus) credit(next, "bonus", bonus, { raid: active.id });
   if (bonked) next.stats.bonkOuts++; else next.stats.extracts++;
   next.stats.best = Math.max(next.stats.best, value + bonus);
   delete next.activeRaid;
@@ -170,6 +179,12 @@ export function settleRaid(save: SaveV1, reason: string, pouchSlots: number, bon
   const destination = [...record.after, ...record.consumed, ...record.abandoned].map(instanceId).sort().join();
   if (source !== destination) throw new Error("Settlement item ledger does not balance");
   next.settlements = [...(next.settlements ?? []), record];
+  validateOwnership(next);
+  // the economy between raids (Progression v0.2): Sal judges a wager riding on this raid, every built factory line runs
+  // once for it (its own ledger entries), and the black market moves for the next one
+  judgeWager(next, record, active.feats ?? []);
+  runLines(next, record.id);
+  refreshMarket(next);
   validateOwnership(next); return next;
 }
 
@@ -200,7 +215,7 @@ export function payQuest(save: SaveV1, id: string, raid?: { pack: readonly strin
   for (const t of def.tasks) if (t.t === "fetch") for (let k = 0; k < t.n; k++) { const inst = takeOne(t.item); if (!inst) return null; consumed.push(inst); }
   let money = 0;
   for (const r of def.rewards) {
-    if (r.t === "money") { next.money += r.n; money += r.n; }
+    if (r.t === "money") { credit(next, "quest", r.n, { note: id, ...(next.activeRaid ? { raid: next.activeRaid.id } : {}) }); money += r.n; }
     else if (r.t === "unlock") { if (!q.unlocks.includes(r.key)) q.unlocks.push(r.key); unlocks.push(r.key); if (r.key === "flag:salMovedIn") next.salMovedIn = true; }
     else for (let k = 0; k < r.n; k++) {
       const inst = own(r.item); granted.push(inst);

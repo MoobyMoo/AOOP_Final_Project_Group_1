@@ -11,6 +11,11 @@ export function consumeInstance(inst: string) {
   const active = G.save.activeRaid;
   if (active && instanceId(inst) && !active.consumed.some(item => instanceId(item) === instanceId(inst))) active.consumed.push(inst);
 }
+/** something a wager can ask about happened this raid ("ko:boss"); saved with the raid checkpoint, so a reload keeps it */
+export function noteFeat(feat: string) {
+  const active = G.save.activeRaid;
+  if (active && !(active.feats ??= []).includes(feat)) active.feats.push(feat);
+}
 export function checkpointInventory(force = false) {
   if (!G.save.activeRaid) return;
   const world = G.pickups.map(pickup => pickup.item);

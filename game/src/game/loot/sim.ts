@@ -8,6 +8,7 @@ import { CATALOG } from '../home/facilities';
 import { rollContainer } from './containers';
 import { DESTINATIONS } from '../core/deployment';
 import { selectContainers } from './sockets';
+import { econSim } from './econ-sim';
 
 function assert(ok: boolean, message: string): asserts ok {
   if (!ok) throw new Error(message);
@@ -107,7 +108,8 @@ assert(pass, "economy pacing gate");
 // Prices are bananas; the plantation road's fare must stay a small slice of a raid.
 {
   const essential = CATALOG.filter(def => def.station === 'sell' || def.station === 'bench');
-  const catalog = CATALOG.reduce((sum, def) => sum + def.cost * def.maxCount, 0);
+  // the factory lines are paced by net worth (their own gate in loot/econ-sim.ts), not by this first-hour catalog
+  const catalog = CATALOG.filter(def => !def.netWorth).reduce((sum, def) => sum + def.cost * def.maxCount, 0);
   const upgrades = Object.values(PRICES.upgrades).reduce((sum, list) => sum + list.reduce((a, b) => a + b, 0), 0);
   let balance = 0, raids = 0; while (balance < catalog + upgrades && raids < 100) { balance += raids === 0 ? median8 : median10; raids++; }
   const fare = Math.max(...DESTINATIONS.map(dest => dest.cost));
@@ -117,3 +119,6 @@ assert(pass, "economy pacing gate");
   console.log(`Base gate: ${ok ? 'PASS' : 'FAIL'} | essentials free; whole catalog ${catalog} + upgrades ${upgrades} = ${catalog + upgrades} in ${raids} median raids; plantation fare ${fare} = ${(100 * fare / median8).toFixed(0)}% of a first raid; cheapest useful facility ${cheapUseful} affordable by raid 2.`);
   assert(ok, 'base economy gate');
 }
+
+// Progression v0.2 (LORE.md "bananas are power"): net worth, the factory, the market, gambling and lockboxes
+econSim(demoResults);

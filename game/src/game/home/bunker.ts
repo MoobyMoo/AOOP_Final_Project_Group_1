@@ -32,6 +32,11 @@ import { unlocked, wantedItems, type NpcId } from "../core/quests";
 import { initVault, syncNpcs, poseNpcs, stepNpcs, npcBlockers, openNpc, openQuestLog, questAct, setExtras, clearBarks } from "../story/vault";
 import { dialogueHtml } from "../story/dialogue";
 import { trackerHtml } from "../story/dialogue";
+import { credit, debit } from "../core/wallet";
+import { marketPrice } from "../loot/market";
+import { initEconUi, titleChipHtml, marketBoardHtml, linePanelHtml, wagerRowsHtml, lockboxRowsHtml, fenceCell, sellable, maybeReview } from "./econ-ui";
+import { isLine, lineOf, lineState, trayBatches } from "./factory";
+import { showTray } from "./factory-models";
 
 export const bunkerScene = new THREE.Scene();
 bunkerScene.background = new THREE.Color("#1d1a17");
@@ -89,6 +94,8 @@ function refreshFixtures() {
     const fwd = new THREE.Vector3(Math.sin(wall.rotation.y), 0, Math.cos(wall.rotation.y)).multiplyScalar(0.12); // a hair in front of the shelf back
     s.trophies.forEach((t, i) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: iconTex(itemDef(t).icon) })); sp.scale.setScalar(0.55); const at = slots[i % Math.max(1, slots.length)] ?? wall.position.clone().setY(1.2); sp.position.copy(at).add(fwd).setY(at.y + 0.3); trophies.add(sp); });
   }
+  // factory lines: the output tray fills with what's waiting (home/factory-models.ts tray_slot0..5)
+  for (const it of s.base.items) if (isLine(it.def)) { const o = objects.get(it.uid), def = lineOf(it.def)!; if (o) showTray(o, trayBatches(def, lineState(s, it.def))); }
   // the generator switches on the second bank of ceiling lamps
   const on = powered(s);
   for (const l of LAMPS) { const live = l.userData.bank === 0 || on; l.visible = live; (l.userData.bulb as THREE.Mesh).visible = live; }
@@ -101,7 +108,9 @@ let panel: HTMLDivElement | null = null, onDeploy: (req: DeployRequest) => void 
 const pp = new THREE.Vector3(), vel = new THREE.Vector3(); let face = 0, launching = false, lift = 0, squish = 1;
 export function enterBunker(deploy: (req: DeployRequest) => void, mirror: () => void, summary?: string) {
   onDeploy = deploy; onMirror = mirror; launching = false; lift = 0; squish = 1; buildRoom();
-  initVault({ show: showPanel, close: closePanel, refresh: () => sync(), money }); setExtras({ sal: salShopHtml }); trackT = 0;
+  initVault({ show: showPanel, close: closePanel, refresh: () => sync(), money }); setExtras({ sal: () => wagerRowsHtml() + salShopHtml() }); trackT = 0;
+  initEconUi({ reopen: (id, uid) => { const st = stations.find((q) => q.id === id && (uid === undefined || q.uid === uid)); if (st) open(st); else closePanel(); }, money, refresh: () => sync(), closePanel,
+    showPanel, float: (text, fac, color) => floatText(text, atFac(fac), color ?? "#fff3c4", 24) });
   G.scene = "bunker"; G.stage.setScene(bunkerScene, false); bunkerScene.fog = null; initFx(bunkerScene, G.stage.camera);
   G.stage.hemi.intensity = 1.2; G.stage.sun.intensity = 2.2; G.stage.bounce.intensity = 0.5;
   if (!G.rig) { G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(bunkerScene); G.rig.sockets.handR.add(G.gun.root); }
@@ -116,11 +125,12 @@ export function leaveBunker() { closeBuild(); closePanel(); clearBarks(); squish
   G.stage.hemi.intensity = Number(new URLSearchParams(location.search).get("fill") ?? 0.9); G.stage.sun.intensity = Number(new URLSearchParams(location.search).get("sun") ?? 6); G.stage.bounce.intensity = Number(new URLSearchParams(location.search).get("bounce") ?? 1.6); }
 function drawHud() {
   const empty = !G.save.base.items.length;
-  const ui = document.getElementById("ui")!; ui.innerHTML = `<div class="home-top"><div class="place"><b>The Vault</b><span>Under Exile Beach</span></div><span class="home-chips"><span class="home-stash num" title="Stash slots used">Stash <b>${stashUsed(G.save)}</b>/${stashCapacity(G.save)}</span><span class="home-money">🍌 <b>${G.save.money}</b></span></span></div><div class="hud-prompt" id="hp"></div>
+  const ui = document.getElementById("ui")!; ui.innerHTML = `<div class="home-top"><div class="place"><b>The Vault</b><span>Under Exile Beach</span></div><span class="home-chips">${titleChipHtml()}<span class="home-stash num" title="Stash slots used">Stash <b>${stashUsed(G.save)}</b>/${stashCapacity(G.save)}</span><span class="home-money">🍌 <b>${G.save.money}</b></span></span></div><div class="hud-prompt" id="hp"></div>
     ${empty ? `<div class="home-tip">Your vault is empty. Press <kbd>B</kbd> or use the blueprint desk to build. The Fence's window and the workbench are free.</div>` : ""}
+    ${marketBoardHtml()}
     <div class="home-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk &nbsp;<kbd>E</kbd> use &nbsp;<kbd>B</kbd> build</div>`;
 }
-function money() { const el = document.querySelector(".home-money b"); if (el) el.textContent = String(G.save.money); const st = document.querySelector(".home-stash"); if (st) st.innerHTML = `Stash <b>${stashUsed(G.save)}</b>/${stashCapacity(G.save)}`; }
+function money() { const el = document.querySelector(".home-money b"); if (el) el.textContent = String(G.save.money); const tc = document.querySelector(".home-title"); if (tc) tc.outerHTML = titleChipHtml(); const st = document.querySelector(".home-stash"); if (st) st.innerHTML = `Stash <b>${stashUsed(G.save)}</b>/${stashCapacity(G.save)}`; }
 const BRK = `<i class="brk tl"></i><i class="brk tr"></i><i class="brk bl"></i><i class="brk br"></i>`;
 // UI v3: every station is the same pinstripe plate as the raid screens (brass brackets, tie stripe under the title)
 function showPanel(html: string, cls = "") { closePanel(); panel = document.createElement("div"); panel.className = "panel " + cls; panel.innerHTML = (cls === "result" ? html : BRK + html.replace("</header>", `</header><div class="tie"></div>`)) + `<div class="foot"><kbd>E</kbd> or <kbd>Esc</kbd> to close</div>`; document.getElementById("ui")!.appendChild(panel); panel.style.pointerEvents = "auto"; panel.querySelectorAll<HTMLButtonElement>("button[data-a]").forEach((b) => b.onclick = () => act(b.dataset.a!)); }
@@ -170,7 +180,9 @@ export function stepBunker(dt: number) {
   if (launching) return;
   if (buildOpen()) { stepBuild(dt); return; }
   if (lootOpen() || lootSwallowsInteract()) return; // the locker (ui/lootview.ts) owns Esc and E while open
+  if (document.querySelector("#ui > .ov3")) return; // a roll or a lockbox reveal owns the keys (home/econ-ui.ts)
   if (panel) { stepNpcs(dt, pp, true); if (i.esc || i.interact) { closePanel(); sfx("ui"); } return; }
+  if (maybeReview()) return; // a promotion's Performance Review (home/econ-ui.ts) plays once, when no panel is open
   stepNpcs(dt, pp, false); trackerTick(dt);
   const mv = new THREE.Vector3(i.move.x, 0, i.move.z).applyAxisAngle(new THREE.Vector3(0, 1, 0), G.stage.cam.yaw);
   vel.lerp(mv.multiplyScalar(PLAYER.speed), Math.min(1, dt * 12)); pp.addScaledVector(vel, dt); collide();
@@ -199,9 +211,10 @@ function open(s: Station) {
     <div class="stats" style="margin-top:12px"><div class="stat"><b>${sv.stats.extracts}</b><span>made it home</span></div><div class="stat"><b>${sv.stats.bonkOuts}</b><span>bonked</span></div><div class="stat"><b>🍌 ${sv.stats.best}</b><span>best haul</span></div></div>`);
   if (s.id === "talk" && s.npc) return openNpc(s.npc); // a free-standing NPC (story/vault.ts)
   if (s.id === "radio") return openNpc("radio");
-  if (s.id === "sell") { const items = sv.reserved.filter((i) => itemDef(i).kind !== "key"); const v = items.reduce((a, i) => a + itemDef(i).value, 0);
-    return showPanel(`${fenceHead(`${items.length} items in your stash`)}${items.length ? `<div class="grid">${items.map(cell).join("")}</div><div class="total"><span>Stash value</span><b>🍌 ${v}</b></div><div class="actions"><button data-a="sellAll">Sell everything for 🍌 ${v}</button></div>` : `<p class="dim">Your stash is empty. Go get some loot.</p>`}${gearSaleHtml()}`); }
+  if (s.id === "sell") { const items = sellable(sv); const v = items.reduce((a, i) => a + marketPrice(sv, i), 0);
+    return showPanel(`${fenceHead(`${items.length} items in your stash`)}${items.length ? `<div class="grid">${items.map(fenceCell).join("")}</div><div class="total"><span>Stash value at today's prices</span><b>🍌 ${v}</b></div><div class="actions"><button data-a="sellAll">Sell everything for 🍌 ${v}</button></div>` : `<p class="dim">Your stash is empty. Go get some loot.</p>`}${lockboxRowsHtml()}${gearSaleHtml()}`); }
   if (s.id === "bench") return showPanel(benchHtml());
+  if (s.id === "line") { const def = sv.base.items.find((it) => it.uid === s.uid)?.def; if (def && isLine(def)) return showPanel(linePanelHtml(def), "line"); return; }
   if (s.id === "sal") return openNpc("sal"); // Sal's jobs, then his shop (salShopHtml, below the jobs)
   if (s.id === "med" || s.id === "press") return showPanel(craftHtml(s.id));
   if (s.id === "stash") return showPanel(`${head("Safe-deposit wall", `${stashUsed(sv)} of ${stashCapacity(sv)} slots used`)}<p class="quote">"Every box has a key. Most of them are yours."</p>
@@ -308,15 +321,15 @@ function act(a: string) {
   if (a.startsWith("sellGear:")) { const got = sellEquip(+a.slice(9)); if (got > 0) { sfx("cash"); money(); floatText(`+🍌 ${got}`, atFac("fence"), "#ffd84a", 26); } else sfx("nope"); const st = stations.find((q) => q.id === "sell"); if (st) open(st); return; }
   if (a === "repairAll") { const paid = repairAll(); if (paid > 0) { sfx("buy"); money(); floatText(`Gear repaired: 🍌 ${paid}`, atFac("bench"), "#fff3c4", 24); } else sfx("nope"); const st = stations.find((q) => q.id === "bench"); if (st) open(st); return; }
   if (a === "sellAll") {
-    const items = sv.reserved.filter((i) => itemDef(i).kind !== "key"); const v = items.reduce((x, i) => x + itemDef(i).value, 0);
-    sv.reserved = sv.reserved.filter((i) => itemDef(i).kind === "key");
-    let shown = 0; const start = sv.money; sv.money += v; save(sv);
+    const items = sellable(sv); const v = items.reduce((x, i) => x + marketPrice(sv, i), 0);
+    const gone = new Set(items); sv.reserved = sv.reserved.filter((i) => !gone.has(i));
+    let shown = 0; const start = sv.money; credit(sv, "sale", v, { in: items }); save(sv);
     const tick = () => { shown = Math.min(v, shown + Math.max(1, Math.ceil(v / 30))); const el = document.querySelector(".home-money b"); if (el) el.textContent = String(start + shown); sfx("cash"); if (shown < v) setTimeout(tick, 33); else money(); };
     tick(); closePanel(); burst(atFac("fence", 1.4), 20, "#ffd84a", 1); floatText(`+🍌 ${v}`, atFac("fence"), "#ffd84a", 30); return;
   }
   if (a.startsWith("up:")) {
-    const k = a.slice(3) as "mag" | "pack" | "heart", c = PRICES[k][sv.upgrades[k]]; if (c === undefined || sv.money < c) { sfx("nope"); return; }
-    sv.money -= c; sv.upgrades[k]++;
+    const k = a.slice(3) as "mag" | "pack" | "heart", c = PRICES[k][sv.upgrades[k]]; if (c === undefined || !debit(sv, "upgrade", c, { note: k })) { sfx("nope"); return; }
+    sv.upgrades[k]++;
     if (k === "mag") { const kp = sv.guns.find(g => g && g.inst === sv.boundWeapons?.kingpin); if (kp && !kp.atts.mag) kp.atts.mag = own("att_mag_ext"); else sv.locker.push(own("att_mag_ext")); refreshGun(); } // the bench builds the magazine attachment: fitted on the Kingpin, or into the locker if a mag is on
     save(sv); sfx("buy"); money(); refreshFixtures(); closePanel();
     const f = facObj("bench")?.getObjectByName(`fx_${k}`);
@@ -328,7 +341,7 @@ function act(a: string) {
   const buy = (cost: number, grow: number, f: () => void) => {
     if (sv.money < cost) { sfx("nope"); return; }
     if (grow && stashUsed(sv) + grow > stashCapacity(sv)) { sfx("nope"); floatText("Stash full", atFac("sal"), "#ffb648", 24); return; }
-    sv.money -= cost; f(); save(sv); sfx("buy"); money(); const st = stations.find((s) => s.id === "sal"); if (st) open(st);
+    if (!debit(sv, "shop", cost)) { sfx("nope"); return; } f(); save(sv); sfx("buy"); money(); const st = stations.find((s) => s.id === "sal"); if (st) open(st);
   };
   if (a === "buyAmmo") buy(PRICES.ammo8, 0, () => { sv.ammo.ammo45 += 8; });
   if (a === "buyBandage") buy(PRICES.bandage, 1, () => { sv.reserved.push("bandage"); });
