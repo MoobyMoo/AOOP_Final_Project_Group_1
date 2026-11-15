@@ -50,7 +50,9 @@ export type LootTarget = {
   actions?: { label: string; run: () => void }[];
 };
 /** set by hud.ts: refresh the HUD after a transfer */
-export const lootHooks = { changed: () => {} };
+/** changed: after any move. side: the right panel's content when the screen has no target (the raid's job log,
+ *  story/raid.ts). note: a lore note's paper for the tag; read: a note was clicked (read) */
+export const lootHooks = { changed: () => {}, side: null as null | (() => string), note: null as null | ((type: string) => string), read: (_inst: string) => {} };
 
 type Src = { z: "pack"; i: number } | { z: "slot"; s: WearSlot } | { z: "fixed"; s: "gun" | "case" } | { z: "them"; i: number } | { z: "att"; s: AttSlot };
 type Entry = { item: string; revealed: boolean; idx: number; slot?: SearchSlot };
@@ -352,6 +354,11 @@ function tagHtml() {
         : `<li><span>Swing</span><span>V</span></li><li><span>Best when</span><span>you're out of rounds</span></li>`}</ul></div>`;
   }
   const d = itemDef(inst), cp = itemCopy(inst), e = equipDef(inst), c = e ? condition(inst) : null;
+  if (d.kind === "note" && lootHooks.note) { // a lore note: the paper itself; clicking it reads it (counts for jobs)
+    if (src === sel && (src.z !== "them" || entries()[src.i]?.revealed)) lootHooks.read(inst);
+    const acts = src.z === "pack" ? `<div class="acts"><button class="b3" data-act="drop">Drop</button></div>` : src.z === "them" && !home() ? `<div class="acts"><button class="b3 pri" data-act="primary">Take</button></div>` : "";
+    return `<div class="tag3 note3" style="--rar:var(--rar-${d.rarity})"><span class="hole"></span>${lootHooks.note(itemType(inst))}${acts}</div>`;
+  }
   const worn = e && src.z !== "slot" ? gear()[e.slot] : null;
   const facts: string[] = [];
   const att = attachmentDef(inst);
@@ -407,8 +414,9 @@ function render() {
   const s = sigs(), focus = (document.activeElement as HTMLElement | null)?.dataset?.src;
   if (s.left !== sigLeft) { sigLeft = s.left; (root.querySelector(".lv-me") as HTMLElement).innerHTML = leftHtml(); }
   const them = root.querySelector(".lv-them") as HTMLElement;
-  if (s.them !== sigThem) { sigThem = s.them; them.innerHTML = themHtml(); popped.clear(); }
-  const disp = target ? "" : "none"; if (them.style.display !== disp) them.style.display = disp;
+  if (target && s.them !== sigThem) { sigThem = s.them; them.innerHTML = themHtml(); popped.clear(); }
+  if (!target && lootHooks.side) { const side = lootHooks.side(); if (side !== sigThem) { sigThem = side; them.innerHTML = side; } } // the job log beside your pack (Tab)
+  const disp = target || (lootHooks.side && G.scene === "raid") ? "" : "none"; if (them.style.display !== disp) them.style.display = disp;
   renderTag();
   if (focus) (root.querySelector(`[data-src="${focus}"]`) as HTMLElement | null)?.focus({ preventScroll: true });
 }
@@ -416,7 +424,7 @@ let tagKey = "";
 function renderTag() {
   if (!root) return;
   const src = sel ?? hover, inst = itemAt(src), en = src?.z === "them" ? entries()[src.i] : undefined;
-  const k = (src ? key(src) : "") + "|" + (inst ?? "") + "|" + (target?.name ?? "") + "|" + G.mag + "/" + G.ammo + "|" + (en ? stackOf(en) : "") + "|" + (src?.z === "slot" || src?.z === "pack" ? (gear() ? Object.values(gear()).join() : "") : "") + "|" + Object.values(G.save.gun).join();
+  const k = (src ? key(src) : "") + (src && src === sel ? "!" : "") + "|" + (inst ?? "") + "|" + (target?.name ?? "") + "|" + G.mag + "/" + G.ammo + "|" + (en ? stackOf(en) : "") + "|" + (src?.z === "slot" || src?.z === "pack" ? (gear() ? Object.values(gear()).join() : "") : "") + "|" + Object.values(G.save.gun).join();
   if (k === tagKey) return; tagKey = k;
   (root.querySelector(".lv-tagwrap") as HTMLElement).innerHTML = tagHtml();
 }

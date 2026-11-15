@@ -132,7 +132,7 @@ export type BuildingDef = {
 
 // ---------------------------------------------------------------- loot/ (Codex Sol)
 export type Rarity = "common" | "uncommon" | "rare" | "epic";
-export type ItemKind = "sell" | "heal" | "key" | "ammo" | "attachment" | "part" | "wear";
+export type ItemKind = "sell" | "heal" | "key" | "ammo" | "attachment" | "part" | "wear" | "note"; // note = a readable lore note (loot/storyitems.ts)
 export type ItemDef = { id: string; name: string; icon: string; rarity: Rarity; value: number; kind: ItemKind; stack?: number; weight?: number }; // weight in kg-ish units (Duckov-style weight states)
 export type CrateTier = "wood" | "green" | "gold";
 export type RaidLootCtx = { raid: number; cratesOpened: number; usefulFound: number; emptyStreak: number; ammoFound: number; orderNeeds: string[] };
@@ -162,6 +162,7 @@ export type SaveV1 = {
   gun: GunAtts;                                              // what is fitted on the Kingpin (kept through a bonk-out: the gun is yours for good)
   stats: { bonkOuts: number; extracts: number; best: number };
   base: BaseLayout; // the vault's built facilities (home/facilities.ts; G1.5 row 17). Old saves migrate to the old room's stations
+  quests?: import("./core/quests").QuestSave; // jobs, notes read, unlocks and the quest payout ledger (core/quests.ts; G1.5 row 40). core/save.ts always fills it
 };
 /** the vault's saved layout (Duckov BuildingManager save: building id, grid cell, rotation, tokens). x, z = the
  *  footprint's min-corner cell, r = quarter turns; tokens = facilities packed up into storage (placing one is free) */

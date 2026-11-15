@@ -13,6 +13,7 @@ import {
   type FacilityDef, type Item,
 } from "./facilities";
 import { buildShell, sconce, vaultModel, SCONCES_N, SCONCES_E } from "./vaultkit";
+import { radioDeskModel } from "../story/props";
 
 // ---------------------------------------------------------------- models
 /** facility id -> vault kit asset (the "blueprints" starter is fac_blueprint; the rest are fac_<id>) */
@@ -27,6 +28,7 @@ type Spinner = { o: THREE.Object3D; axis: "x" | "z"; speed: number; power: boole
  *  Named nodes: fx_mag, fx_pack, fx_heart (bench) and neon (Sal) are the visible upgrades home/bunker.ts toggles;
  *  slot0..8 (trophy wall) are the shelf points; press_wheel and gen_wheel turn (animateFacilities). */
 export function facilityModel(id: string): THREE.Group {
+  if (id === "radio") return radioDeskModel(); // the Radio Operator's desk is procedural (story/props.ts), not in the vault kit
   const g = new THREE.Group(); g.name = `fac_${id}`;
   try {
     const m = vaultModel(MODEL[id] ?? `fac_${id}`); g.add(m);

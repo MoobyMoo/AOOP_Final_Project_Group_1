@@ -750,3 +750,25 @@ export const SUPPLY_DROPS_ALL = [{ x: 12, z: 16, area: "plantation" }, { x: -54,
 export const SUPPLY_DROPS = SUPPLY_DROPS_ALL.filter((d) => inDemo(d.x, d.z));
 /** where the player starts a raid (just outside the hatch ring) */
 export const START = { x: -5.5, z: 97.4 };
+
+// ---------------------------------------------------------------- STORY (G1.5 row 40; the quests worker's data entry)
+/** Story sockets: the Grove Keeper trader's camp (land side of the mangrove jetty), the Keepers' root cellar (the secret
+ *  their job reveals, under the great mangrove at the swamp's east edge), and where the lore notes and job items turn
+ *  up. container = a CONTAINER_SOCKETS id: the item is added to that container's search (and, while a job still wants
+ *  it, the container is forced present that raid); otherwise it lies loose at x, z. story/raid.ts reads these. */
+export const STORY_SOCKETS = {
+  keeperCamp: { x: 42.9, z: 58.7, yaw: 3.1 },
+  rootCellar: { x: 84, z: 52.5, yaw: 0.4 },
+  items: [
+    { item: "road_map", container: "hut-jacket" },
+    { item: "note_guard_log", container: "bunk-lunch" },
+    { item: "note_foreman_ledger", container: "office-safe" },
+    { item: "note_merc_invoice", container: "office-jacket" },
+    { item: "note_pirate_iou", container: "cove-picnic" },
+    { item: "note_alien_report", container: "tower-sack" },
+    { item: "note_ferry_manifest", container: "ferry-jacket" },
+    { item: "note_gang_dues", container: "boss-safe" },
+    { item: "note_robot_memo", container: "barn-parts" },
+    { item: "note_grove_board", x: 42.6, z: 63.4 },
+  ] as { item: string; container?: string; x?: number; z?: number }[],
+};

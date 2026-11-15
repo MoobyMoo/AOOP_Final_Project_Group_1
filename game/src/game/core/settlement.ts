@@ -5,6 +5,7 @@ import { itemDef } from "../loot/tables";
 import { ATT_SLOTS, EMPTY_GUN, attachmentDef, isAttachment } from "../loot/attachments";
 import { EXIT_DEFS, exitCondition, exitCosts, type ExitId } from "../world/extraction";
 import { stashCapacity, stashUsed } from "../home/facilities";
+import { homeItems, qs, questOf, questStatus, type QuestPayout } from "./quests";
 
 export type RaidCheckpoint = {
   id: string; pack: string[]; gear: Gear; gun?: GunAtts; world: string[]; consumed: string[];
@@ -135,4 +136,54 @@ export function settleRaid(save: SaveV1, reason: string, pouchSlots: number, bon
   if (source !== destination) throw new Error("Settlement item ledger does not balance");
   next.settlements = [...(next.settlements ?? []), record];
   validateOwnership(next); return next;
+}
+
+// ---------------------------------------------------------------- job payouts (G1.5 row 40; SYSTEMS_PORT E03)
+/** Pay a finished job exactly once, through the same item ledger as a raid (Duckov Reward.Claim: claimable and not yet
+ *  claimed; ours pays every reward in one atomic step). Works on a copy and returns it with the ledger record, or null
+ *  if the job isn't ready or was already paid; nothing changes unless all of it can.
+ *   - at home: fetched items leave the stash (reserved / locker / delivery) by instance; reward items get an owned
+ *     identity and arrive through delivery (claimDelivery: into the stash while there's room);
+ *   - in a raid (a raid NPC, raid.pack = the live pack): fetched items leave the pack into activeRaid.consumed, reward
+ *     items join the pack (or the ground beside you when it's full: raid.drop), and the next checkpoint records them as
+ *     introduced. The returned pack is the new live pack.
+ *  The ledger balances: before - consumed + granted = after, by instance id. */
+export function payQuest(save: SaveV1, id: string, raid?: { pack: readonly string[]; slots: number }): { save: SaveV1; record: QuestPayout; pack?: string[]; drop: string[] } | null {
+  const def = questOf(id);
+  if (!def || def.turnIn !== (raid ? "raid" : "home") || !!raid !== !!save.activeRaid) return null;
+  const items = raid ? raid.pack : homeItems(save);
+  if (questStatus(save, id, items) !== "ready" || save.quests?.ledger.some(r => r.quest === id)) return null;
+  const next = structuredClone(save), q = qs(next);
+  const before = raid ? [...raid.pack] : ownedItems(next);
+  const pack = raid ? [...raid.pack] : undefined;
+  const consumed: string[] = [], granted: string[] = [], drop: string[] = [], unlocks: string[] = [];
+  const takeOne = (type: string) => {
+    if (pack) { const i = pack.findIndex(inst => itemType(inst) === type); return i >= 0 ? pack.splice(i, 1)[0] : null; }
+    for (const list of [next.reserved, next.locker, next.delivery ?? []]) { const i = list.findIndex(inst => itemType(inst) === type && !equipDef(inst)?.bound); if (i >= 0) return list.splice(i, 1)[0]; }
+    return null;
+  };
+  for (const t of def.tasks) if (t.t === "fetch") for (let k = 0; k < t.n; k++) { const inst = takeOne(t.item); if (!inst) return null; consumed.push(inst); }
+  let money = 0;
+  for (const r of def.rewards) {
+    if (r.t === "money") { next.money += r.n; money += r.n; }
+    else if (r.t === "unlock") { if (!q.unlocks.includes(r.key)) q.unlocks.push(r.key); unlocks.push(r.key); if (r.key === "flag:salMovedIn") next.salMovedIn = true; }
+    else for (let k = 0; k < r.n; k++) {
+      const inst = own(r.item); granted.push(inst);
+      if (pack) { if (pack.length < raid!.slots) pack.push(inst); else drop.push(inst); }
+      else (next.delivery ??= []).push(inst);
+    }
+  }
+  q.active = q.active.filter(a => a !== id); q.done.push(id);
+  if (q.tracked === id) q.tracked = q.active[0] ?? null;
+  for (let i = 0; i < def.tasks.length; i++) delete q.progress[`${id}/${i}`];
+  const record: QuestPayout = { quest: id, at: raid ? "raid" : "home", ...(next.activeRaid ? { raid: next.activeRaid.id } : {}), consumed, granted, money, unlocks };
+  q.ledger.push(record);
+  if (pack && next.activeRaid) {
+    next.activeRaid.pack = [...pack]; next.activeRaid.consumed = [...next.activeRaid.consumed, ...consumed]; next.activeRaid.world = [...next.activeRaid.world, ...drop];
+  } else claimDelivery(next);
+  const after = pack ? [...pack, ...drop] : ownedItems(next);
+  const balance = (list: string[]) => list.map(instanceId).sort().join();
+  if (balance([...before.filter(inst => !consumed.includes(inst)), ...granted]) !== balance(after)) throw new Error("Job payout ledger does not balance");
+  validateOwnership(next);
+  return { save: next, record, pack, drop };
 }

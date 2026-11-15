@@ -3,6 +3,7 @@ import type { CrateSocket } from "../world/layout";
 import { EQUIP, enemyGear, parseInst, saleValue } from "./equipment";
 import { rollContainer, type ContainerType } from './containers';
 import { ATTACHMENT_ITEMS } from "./attachments";
+import { STORY_ITEMS } from "./storyitems";
 
 export type LootContext = RaidLootCtx & {
   fixed?: CrateSocket["fixed"] | "radio" | "radio_shack";
@@ -37,6 +38,7 @@ export const ITEMS: Record<string, ItemDef> = {
   scrap_tin: { id: "scrap_tin", name: "Scrap Tin", icon: "🥫", rarity: "common", value: 4, kind: "part", weight: 0.3 },
   banana_notes: { id: "banana_notes", name: "Banana Notes", icon: "💵", rarity: "uncommon", value: 25, kind: "sell", weight: 0.1 },
   plank: { id: "plank", name: "Plank", icon: "🪵", rarity: "common", value: 8, kind: "part", weight: 2.0 },
+  ...STORY_ITEMS, // lore notes, quest items, the Keeper carving (loot/storyitems.ts)
   ...ATTACHMENT_ITEMS, // gun attachments (loot/attachments.ts; att_mag_ext is the old extended_mag)
   oar: { id: "oar", name: "Cove boat oar", icon: "🪵", rarity: "common", value: 8, kind: "part", weight: 1.5 },
   ...Object.fromEntries(Object.values(EQUIP).map(def => [def.id, { id: def.id, name: def.name, icon: { head: "🎩", face: "🕶️", body: "🦺", back: "🎒", ears: "🎧" }[def.slot], rarity: def.rarity, value: def.value, weight: def.weight, kind: "wear" as const }])),
