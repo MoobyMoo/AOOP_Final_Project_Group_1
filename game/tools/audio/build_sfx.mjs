@@ -13,7 +13,7 @@ const MAX = Number(arg("--max", 4)), STEPS = Number(arg("--steps", 8)), SKIP = n
 /** longest a processed take may be before it is dropped as overlong (seconds); stings and roars may ring */
 /** quietest peak (dBFS) a take may have before it is dropped as too weak to normalise; a distant echo tail is quiet by nature */
 const WEAK = { shotTail: -32, smgTail: -32, rifleTail: -32, shotgunTail: -32, sniperTail: -32, lmgTail: -32 };
-const LONG = { sniperTail: 3.2, shotgunTail: 1.9, rifleTail: 1.6, lmgTail: 1.3, smgTail: 0.9, boltCycle: 1.1, lmgBoxIn: 1.1, stepSand: 0.6, stepMud: 0.6, stepGrass: 0.6, stepDirt: 0.6, stepPlank: 0.6, stepStone: 0.6, stepCave: 0.7, roar: 2.6, extract: 2.6, rare: 2, heal: 1.6, door: 1.6, shotTail: 1.6, slam: 1.6, ko: 1.4 };
+const LONG = { rouletteSpin: 3.6, lockboxOpen: 2, sniperTail: 3.2, shotgunTail: 1.9, rifleTail: 1.6, lmgTail: 1.3, smgTail: 0.9, boltCycle: 1.1, lmgBoxIn: 1.1, stepSand: 0.6, stepMud: 0.6, stepGrass: 0.6, stepDirt: 0.6, stepPlank: 0.6, stepStone: 0.6, stepCave: 0.7, roar: 2.6, extract: 2.6, rare: 2, heal: 1.6, door: 1.6, shotTail: 1.6, slam: 1.6, ko: 1.4 };
 const ff = (args) => spawnSync("ffmpeg", ["-hide_banner", ...args], { encoding: "utf8" });
 const dur = (f) => Number(spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f], { encoding: "utf8" }).stdout);
 const camel = (s) => s.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
@@ -52,7 +52,7 @@ function onsets(f) {
   return out;
 }
 mkdirSync(OUT, { recursive: true });
-for (const f of readdirSync(OUT)) if (f.endsWith(".mp3") || f === "manifest.json") rmSync(join(OUT, f));
+for (const f of readdirSync(OUT)) if (f.endsWith(".mp3") || f.endsWith(".ogg") || f === "manifest.json") rmSync(join(OUT, f));
 const groups = {};
 for (const f of readdirSync(RAW).filter((f) => f.endsWith(".mp3")).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))) {
   const m = /^(.*)_(\d+)\.mp3$/.exec(f); if (!m || SKIP.has(`${m[1]}_${m[2]}`)) continue;
@@ -111,8 +111,18 @@ function levelMatch(kind, staged) {
   for (const t of staged) rmSync(t.stage, { force: true });
   return names;
 }
+/** seamless loops (ElevenLabs loop=true renders): no trim, no fades (either would break the seam), peak-normalised,
+ *  Ogg Vorbis (mp3 encoder padding would put a gap at the seam); one file, no level matching */
+const LOOPS = new Set(["facRipen", "facBottler", "facScrappress", "facCoupon"]);
+function loopTake(kind, src) {
+  const lv = levels(src), len = dur(src), file = `${kind}_1.ogg`;
+  report.push(`loop ${kind.padEnd(24)} ${len.toFixed(2)} s  peak ${lv.max} dB  rms ${lv.mean} dB`);
+  ff(["-y", "-loglevel", "error", "-i", src, "-ac", "1", "-ar", "44100", "-af", `volume=${(-1 - lv.max).toFixed(2)}dB`, "-c:a", "libvorbis", "-q:a", "4", join(OUT, file)]);
+  return [file];
+}
 for (const [name, files] of Object.entries(groups)) {
   const kind = camel(name), out = [], isStep = name.startsWith("step_");
+  if (LOOPS.has(kind)) { manifest[kind] = loopTake(kind, join(RAW, files[0])); continue; }
   if (isStep) {
     // a walk of several steps per take: keep each step that is a clean single hit (60-450 ms), alternating takes for variety
     // a footstep take is a walk of several steps (or one step): normalise it, find each step by its onset on the energy

@@ -50,7 +50,7 @@ function areaPair(a: string): [string, string] {
 }
 /** switch scene music; safe to call before audio is unlocked (applies on the next tick after it is) */
 export function setMusic(s: "bunker" | "raid" | "none") { want = s; }
-type Sting = "stingExtract" | "stingBonk" | "stingRare" | "stingBossIntro" | "stingBossDown";
+type Sting = "stingExtract" | "stingBonk" | "stingRare" | "stingBossIntro" | "stingBossDown" | "stingWin" | "stingLose" | "stingReview";
 /** a one-shot over the music; the rest ducks to `under` for the sting's length */
 export function sting(name: Sting, under = name === "stingRare" ? 0.55 : 0.25) {
   const l = layer(name); if (!l) return;

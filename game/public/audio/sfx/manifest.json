@@ -20,6 +20,14 @@
   "cash_3.mp3",
   "cash_4.mp3"
  ],
+ "coinFlip": [
+  "coinFlip_1.mp3",
+  "coinFlip_2.mp3"
+ ],
+ "coinLand": [
+  "coinLand_1.mp3",
+  "coinLand_2.mp3"
+ ],
  "crate": [
   "crate_1.mp3"
  ],
@@ -49,6 +57,18 @@
  ],
  "extract": [
   "extract_1.mp3"
+ ],
+ "facBottler": [
+  "facBottler_1.ogg"
+ ],
+ "facCoupon": [
+  "facCoupon_1.ogg"
+ ],
+ "facRipen": [
+  "facRipen_1.ogg"
+ ],
+ "facScrappress": [
+  "facScrappress_1.ogg"
  ],
  "grunt": [
   "grunt_1.mp3",
@@ -126,6 +146,9 @@
  "lmgTail": [
   "lmgTail_1.mp3"
  ],
+ "lockboxOpen": [
+  "lockboxOpen_1.mp3"
+ ],
  "nope": [
   "nope_1.mp3"
  ],
@@ -181,6 +204,9 @@
   "roar_2.mp3",
   "roar_3.mp3",
   "roar_4.mp3"
+ ],
+ "rouletteSpin": [
+  "rouletteSpin_1.mp3"
  ],
  "scuttle": [
   "scuttle_1.mp3"

@@ -66,7 +66,8 @@ export type Sfx = "shot" | "shell" | "dry" | "reloadOut" | "reloadIn" | "slide" 
   | "kill" | "killCrit" | "impactDirt" | "impactWood" | "impactMetal" | "impactFoliage" | "impactStone" | "dash" | "ko" | "hurt" | "heal"
   | "step" | "crateTick" | "crate" | "pop" | "rare" | "pick" | "throw" | "whirr" | "windup" | "slam" | "roar" | "thunk" | "notice"
   | "snatch" | "tick" | "extract" | "cash" | "buy" | "nope" | "ui" | "door"
-  | "squawk" | "grunt" | "squeal" | "splash" | "scuttle"; // wildlife (ai/fauna.ts): parrot flush, boar telegraph + charge, croc lunge, crab
+  | "squawk" | "grunt" | "squeal" | "splash" | "scuttle"
+  | "coinFlip" | "coinLand" | "rouletteSpin" | "lockboxOpen"; // the Fence's games and lockboxes (home/econ-ui.ts) // wildlife (ai/fauna.ts): parrot flush, boar telegraph + charge, croc lunge, crab
 const combo: Record<string, { n: number; t: number }> = {}, warned = new Set<string>();
 /** play a sound; vol scales it (e.g. by distance) */
 export function sfx(kind: Sfx, vol = 1) {
@@ -130,7 +131,7 @@ export function gunDry(sound: GunSound) {
  *  relative to shotCore, which stays at 0.42 (about -7.5 dB): hit-confirms -1..-3, boss cues +1, gun handling -8..-10,
  *  impacts -9, UI -6..-12, footsteps -16/-17, wildlife -1..-3 (crab -18), guns by class: smg -2, rifle/lmg +1, shotgun +2, sniper +3, zapper -1 (their actions, tails and reloads -4..-10). Re-derive them when takes change (research/audio/QUEUE.md, "Mix"). */
 type Mix = { g: number; jit?: number; cap?: number; max?: number; climb?: boolean };
-const MIX: Partial<Record<Sfx | GunLayer | StepKind, Mix>> = {
+const MIX: Partial<Record<Sfx | GunLayer | StepKind | HumKind, Mix>> = {
   shotCore: { g: 0.42, jit: 0.05, cap: 6, max: 0.9 }, shotMech: { g: 0.29, jit: 0.06, cap: 4, max: 0.35 }, shotTail: { g: 0.24, jit: 0.04, cap: 3, max: 1.4 },
   shell: { g: 0.18, jit: 0.1, cap: 3, max: 0.6 }, dry: { g: 0.39, cap: 1 }, reloadOut: { g: 0.35, cap: 1 }, reloadIn: { g: 0.5, cap: 1 },
   slide: { g: 0.24, cap: 1 }, reloadRound: { g: 0.2, jit: 0.06, cap: 2 },
@@ -155,6 +156,9 @@ const MIX: Partial<Record<Sfx | GunLayer | StepKind, Mix>> = {
   smgMagOut: { g: 0.24, jit: 0.04, cap: 1 }, smgMagIn: { g: 0.43, jit: 0.04, cap: 1 }, rifleMagOut: { g: 0.27, jit: 0.04, cap: 1 }, rifleMagIn: { g: 0.28, jit: 0.04, cap: 1 },
   shellInsert: { g: 0.39, jit: 0.06, cap: 2 }, lmgBoxOut: { g: 0.22, jit: 0.04, cap: 1 }, lmgBoxIn: { g: 0.17, jit: 0.04, cap: 1, max: 1.1 },
   dryHeavy: { g: 0.27, cap: 1 }, dryLight: { g: 0.23, cap: 1 },
+  // the economy (home/econ-ui.ts): coin -6/-5, roulette -6, lockbox -4; factory hums -20 at their closest (factoryHum)
+  coinFlip: { g: 0.21, jit: 0.05, cap: 1, max: 1.0 }, coinLand: { g: 0.35, jit: 0.05, cap: 1, max: 1.2 }, rouletteSpin: { g: 0.74, cap: 1, max: 3.6 }, lockboxOpen: { g: 0.43, cap: 1, max: 2 },
+  facRipen: { g: 0.02 }, facBottler: { g: 0.06 }, facScrappress: { g: 0.03 }, facCoupon: { g: 0.04 },
   // wildlife (ai/fauna.ts): squawk -1 (it gives you away, so it carries), grunt -2 (the charge warning), squeal -3, splash -2, scuttle -18
   squawk: { g: 0.38, jit: 0.06, cap: 2, max: 0.8 }, grunt: { g: 0.36, jit: 0.06, cap: 2, max: 0.8 }, squeal: { g: 0.18, jit: 0.05, cap: 2, max: 0.7 },
   splash: { g: 0.15, jit: 0.05, cap: 1, max: 1.2 }, scuttle: { g: 0.1, jit: 0.15, cap: 2, max: 0.5 },
@@ -163,6 +167,24 @@ const MIX: Partial<Record<Sfx | GunLayer | StepKind, Mix>> = {
   stepPlank: { g: 0.1, jit: 0.1, cap: 2, max: 0.35 }, stepStone: { g: 0.08, jit: 0.1, cap: 2, max: 0.35 }, stepMud: { g: 0.11, jit: 0.1, cap: 2, max: 0.4 },
   stepCave: { g: 0.1, jit: 0.1, cap: 2, max: 0.45 },
 };
+// ---- factory hums (home/bunker.ts): one looping voice per line, faded toward the level the bunker sets each frame ----
+export type HumKind = "facRipen" | "facBottler" | "facScrappress" | "facCoupon";
+const hums: Partial<Record<HumKind, { src: AudioBufferSourceNode; g: GainNode }>> = {};
+/** a factory line's hum at `level` 0..1 (distance falloff and whether it runs; 0 fades it out and stops it) */
+export function factoryHum(kind: HumKind, level: number) {
+  if (!ctx || !sfxBus) return;
+  let h = hums[kind];
+  if (!h && level > 0.005) {
+    const buf = pickBuf(kind); if (!buf) return;
+    const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = buf; src.loop = true; g.gain.value = 0;
+    src.connect(g).connect(sfxBus); src.start(0, Math.random() * buf.duration); h = hums[kind] = { src, g };
+  }
+  if (!h) return;
+  h.g.gain.setTargetAtTime(level * (MIX[kind]?.g ?? 0.1), ctx.currentTime, 0.25);
+  if (level <= 0.005 && h.g.gain.value < 0.002) { h.src.stop(); delete hums[kind]; }
+}
+/** silence every factory hum at once (leaving the bunker) */
+export function stopFactoryHums() { for (const k of Object.keys(hums) as HumKind[]) { hums[k]!.src.stop(); delete hums[k]; } }
 type StepKind = "stepDirt" | "stepSand" | "stepGrass" | "stepPlank" | "stepStone" | "stepMud" | "stepCave";
 /** a footstep on the given ground (world/map/types Ground); falls back to the generic step while that surface has no takes */
 export function stepOn(ground: string | undefined, vol = 1) {

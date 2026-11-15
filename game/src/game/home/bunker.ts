@@ -10,7 +10,7 @@ import { itemType } from "../loot/instances";
 import * as THREE from "three";
 import { G, V } from "../core/state";
 import { own } from "../loot/instances";
-import { sfx } from "../core/audio";
+import { sfx, factoryHum, stopFactoryHums, type HumKind } from "../core/audio";
 import { itemDef } from "../loot/raidloot";
 import { createRig } from "../actors/rig";
 import { createKingpin, createGunFx } from "../combat/kingpin";
@@ -121,7 +121,7 @@ export function enterBunker(deploy: (req: DeployRequest) => void, mirror: () => 
   sync(); drawHud();
   if (summary) showPanel(summary, "result");
 }
-export function leaveBunker() { closeBuild(); closePanel(); clearBarks(); squish = 1; lift = 0; G.rig?.root.scale.setScalar(1); // the raid shares the rig: undo the pod's stretch
+export function leaveBunker() { stopFactoryHums(); closeBuild(); closePanel(); clearBarks(); squish = 1; lift = 0; G.rig?.root.scale.setScalar(1); // the raid shares the rig: undo the pod's stretch
   G.stage.hemi.intensity = Number(new URLSearchParams(location.search).get("fill") ?? 0.9); G.stage.sun.intensity = Number(new URLSearchParams(location.search).get("sun") ?? 6); G.stage.bounce.intensity = Number(new URLSearchParams(location.search).get("bounce") ?? 1.6); }
 function drawHud() {
   const empty = !G.save.base.items.length;
@@ -191,12 +191,25 @@ export function stepBunker(dt: number) {
   const hp = document.getElementById("hp"); if (hp) { hp.innerHTML = near ? `<kbd>E</kbd> ${near.id === "sal" ? (G.save.salMovedIn ? "Smuggler Sal: jobs and his shop" : "Smuggler Sal: jobs") : near.label}` : ""; hp.classList.toggle("on", !!near); }
   if (near && i.interact) { sfx("ui"); open(near); }
 }
+/** each placed factory line hums while it runs (not paused, and powered when it needs the generator), loudest within
+ *  1.5 u of it and silent past 7.5 u; the four loops are core/audio.ts factoryHum */
+const HUM: Record<string, HumKind> = { ripen: "facRipen", bottler: "facBottler", scrappress: "facScrappress", coupon: "facCoupon" };
+function humFactories() {
+  const s = G.save, level: Partial<Record<HumKind, number>> = {};
+  for (const it of s.base.items) {
+    const kind = HUM[it.def], o = objects.get(it.uid); if (!kind || !o || !isLine(it.def)) continue;
+    const runs = !lineState(s, it.def).paused && (!defOf(it.def)?.requires.includes("generator") || powered(s));
+    const d = Math.hypot(o.position.x - pp.x, o.position.z - pp.z);
+    level[kind] = Math.max(level[kind] ?? 0, runs ? Math.min(1, Math.max(0, 1 - (d - 1.5) / 6)) : 0);
+  }
+  for (const kind of Object.values(HUM)) factoryHum(kind, level[kind] ?? 0);
+}
 export function renderBunker(dt: number) {
   G.rig.root.position.copy(pp); G.rig.root.position.y += lift; G.rig.root.rotation.y = face;
   G.rig.root.scale.set(1 / Math.sqrt(squish), squish, 1 / Math.sqrt(squish));
   G.rig.pose({ time: G.time, speed: launching ? 0 : vel.length(), moveYaw: face, faceYaw: face, action: !launching && vel.lengthSq() > 0.1 ? "run" : "idle", actionT: 0, armed: "none", flash: 0 });
   poseNpcs(G.time, pp);
-  updateFx(dt); animateFacilities(objects.values(), dt, G.time, powered(G.save));
+  updateFx(dt); animateFacilities(objects.values(), dt, G.time, powered(G.save)); humFactories();
   if (buildOpen()) { placeBuildCamera(dt); return; }
   const f = (launching ? new THREE.Vector3(0, 0, -9.5) : pp.clone()).setY(0.5).add(V(0, -1.2)); const d = G.stage.cam.dist; G.stage.cam.dist = 32; G.stage.setFov(); G.stage.place(f, dt, G.time); G.stage.cam.dist = d;
 }

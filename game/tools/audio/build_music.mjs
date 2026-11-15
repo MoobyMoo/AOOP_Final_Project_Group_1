@@ -18,6 +18,8 @@ const SPEC = {
   combat: [-18, 2], bossTheme: [-16, 2],
   // one-shots
   stingExtract: [-15, 0], stingBonk: [-16, 0], stingRare: [-17, 0, 2.2], stingBossIntro: [-15, 0], stingBossDown: [-15, 0],
+  // the Fence and HR (home/econ-ui.ts): Double or Nothing win / loss, the Performance Review promotion
+  stingWin: [-15, 0], stingLose: [-16, 0], stingReview: [-15, 0],
 };
 const dur = (f) => Number(spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f], { encoding: "utf8" }).stdout);
 if (!existsSync(RAW) || !readdirSync(RAW).some((f) => /\.(mp3|wav)$/.test(f))) { console.error(`no raw renders in ${RAW}; leaving ${OUT} as it is`); process.exit(1); }
