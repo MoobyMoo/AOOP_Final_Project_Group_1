@@ -1,12 +1,25 @@
-// Synth placeholder SFX for every G1 action (no files; ElevenLabs only after asking Moo).
-// Each sound = layers of an oscillator sweep and/or a filtered noise burst. Repeats inside 0.25 s climb in pitch
-// for pickups/cash (research/idle-arcade rule 5); combat sounds get a small random detune instead so they don't machine-gun.
+// Game SFX. Recorded samples (ElevenLabs, G1.5 row 02) are the voice of every action; the synth recipes below stay as
+// the fallback for any kind with no sample yet and for the frames before the samples finish decoding.
+// Mix rules (research/duckov-re/POLISH_FINDINGS.md, the gunshot layering and hit-confirm roles):
+//  - one sample per kind is picked at random and never the same take twice in a row, with a small pitch jitter, so
+//    repeats don't machine-gun; pickups/cash climb in pitch for repeats inside 0.25 s (research/idle-arcade rule 5)
+//  - the shot is three layers mixed at runtime: core crack, slide mechanism a beat later, and the tail
+//  - each kind has a voice cap; the oldest voice is cut with a short fade when the cap is hit
+//  - three buses (sfx, ui, music) into one compressor so music can duck under combat later
 let ctx: AudioContext | null = null, master: GainNode | null = null, noiseBuf: AudioBuffer | null = null;
+let sfxBus: GainNode | null = null, uiBus: GainNode | null = null;
+export let musicBus: GainNode | null = null;
+export function audioCtx() { return ctx; }
 export function unlockAudio() {
   if (!ctx) {
-    ctx = new AudioContext(); master = ctx.createGain(); master.gain.value = 0.55;
-    const comp = ctx.createDynamicsCompressor(); master.connect(comp).connect(ctx.destination);
+    ctx = new AudioContext(); master = ctx.createGain(); master.gain.value = 0.7;
+    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.knee.value = 8; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.15;
+    master.connect(comp).connect(ctx.destination);
+    sfxBus = ctx.createGain(); uiBus = ctx.createGain(); musicBus = ctx.createGain();
+    sfxBus.gain.value = 1; uiBus.gain.value = 0.8; musicBus.gain.value = 0.5;
+    sfxBus.connect(master); uiBus.connect(master); musicBus.connect(master);
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    void loadSamples();
   }
   if (ctx.state === "suspended") void ctx.resume();
 }
@@ -70,13 +83,15 @@ export function sfx(kind: Sfx, vol = 1) {
   if (!ctx || !master || vol <= 0.01) return;
   const now = ctx.currentTime, def = DEFS[kind] as Def;
   const c = (combo[kind] ??= { n: 0, t: 0 }); c.n = now - c.t < 0.25 ? c.n + 1 : 0; c.t = now;
+  if (playSample(kind, vol, c.n)) return;
   const pitch = def.climb ? 1 + Math.min(c.n * 0.045, 0.8) : 1 + (Math.random() - 0.5) * 2 * (def.jitter ?? 0);
+  const bus = (UI_KINDS.has(kind) ? uiBus : sfxBus)!;
   for (const o of def.osc ?? []) {
     const t0 = now + (o.at ?? 0), osc = ctx.createOscillator(), g = ctx.createGain();
     osc.type = o.wave ?? "sine"; osc.frequency.setValueAtTime(o.f * pitch, t0);
     if (o.f2) osc.frequency.exponentialRampToValueAtTime(o.f2 * pitch, t0 + o.d);
     g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(o.g * vol, t0 + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t0 + o.d);
-    osc.connect(g).connect(master); osc.start(t0); osc.stop(t0 + o.d + 0.03);
+    osc.connect(g).connect(bus); osc.start(t0); osc.stop(t0 + o.d + 0.03);
   }
   for (const n of def.nz ?? []) {
     const t0 = now + (n.at ?? 0), src = ctx.createBufferSource(), lp = ctx.createBiquadFilter(), g = ctx.createGain();
@@ -85,6 +100,71 @@ export function sfx(kind: Sfx, vol = 1) {
     let node: AudioNode = src.connect(lp);
     if (n.hp) { const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = n.hp; node = node.connect(hp); }
     g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(n.g * vol, t0 + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t0 + n.d);
-    node.connect(g).connect(master); src.start(t0, Math.random() * 0.5); src.stop(t0 + n.d + 0.03);
+    node.connect(g).connect(bus); src.start(t0, Math.random() * 0.5); src.stop(t0 + n.d + 0.03);
   }
+}
+
+// ---- samples ----
+/** per-kind mix: gain (after the offline loudness normalise), pitch jitter, voice cap, optional hard length cap */
+type Mix = { g: number; jit?: number; cap?: number; max?: number; climb?: boolean };
+const MIX: Partial<Record<Sfx | "shotCore" | "shotMech" | "shotTail", Mix>> = {
+  shotCore: { g: 1.0, jit: 0.05, cap: 6 }, shotMech: { g: 0.45, jit: 0.06, cap: 4, max: 0.35 }, shotTail: { g: 0.5, jit: 0.04, cap: 3, max: 1.4 },
+  shell: { g: 0.25, jit: 0.1, cap: 3, max: 0.6 }, dry: { g: 0.5, cap: 1 }, reloadOut: { g: 0.6, cap: 1 }, reloadIn: { g: 0.65, cap: 1 },
+  slide: { g: 0.65, cap: 1 }, reloadRound: { g: 0.5, jit: 0.06, cap: 2 },
+  hit: { g: 0.55, jit: 0.08, cap: 4, max: 0.4 }, hitCrit: { g: 0.7, jit: 0.04, cap: 3, max: 0.5 }, kill: { g: 0.7, cap: 2, max: 0.8 }, killCrit: { g: 0.8, cap: 2, max: 1.0 },
+  ko: { g: 0.6, jit: 0.05, cap: 2, max: 1.2 }, bonk: { g: 0.85, jit: 0.06, cap: 2, max: 0.7 }, swing: { g: 0.5, jit: 0.08, cap: 2, max: 0.5 },
+  impactDirt: { g: 0.35, jit: 0.12, cap: 4, max: 0.4 }, impactWood: { g: 0.4, jit: 0.1, cap: 4, max: 0.45 }, impactMetal: { g: 0.35, jit: 0.08, cap: 3, max: 0.6 },
+  impactFoliage: { g: 0.3, jit: 0.15, cap: 3, max: 0.45 }, impactStone: { g: 0.4, jit: 0.1, cap: 4, max: 0.45 },
+  dash: { g: 0.55, jit: 0.05, cap: 1, max: 0.6 }, hurt: { g: 0.7, jit: 0.06, cap: 1, max: 0.7 }, heal: { g: 0.5, cap: 1, max: 1.5 }, step: { g: 0.18, jit: 0.15, cap: 2, max: 0.35 },
+  windup: { g: 0.6, cap: 2, max: 1.0 }, throw: { g: 0.5, jit: 0.06, cap: 2, max: 0.8 }, roar: { g: 0.85, cap: 1, max: 2.5 }, slam: { g: 1.0, cap: 1, max: 1.5 },
+  notice: { g: 0.45, cap: 2, max: 0.7 }, snatch: { g: 0.5, cap: 1, max: 0.7 }, thunk: { g: 0.8, cap: 2, max: 1.0 },
+  crate: { g: 0.55, cap: 1, max: 1.2 }, crateTick: { g: 0.3, cap: 2, max: 0.35, climb: true }, door: { g: 0.55, cap: 2, max: 1.5 },
+  extract: { g: 0.7, cap: 1, max: 3 }, tick: { g: 0.35, cap: 1, max: 0.3 }, whirr: { g: 0.35, cap: 1, max: 1.0 },
+  pick: { g: 0.45, cap: 3, max: 0.4, climb: true }, rare: { g: 0.6, cap: 1, max: 2 }, cash: { g: 0.45, cap: 3, max: 0.8, climb: true }, buy: { g: 0.55, cap: 1, max: 1.2 },
+  ui: { g: 0.35, cap: 2, max: 0.25 }, pop: { g: 0.4, cap: 3, max: 0.4, climb: true }, nope: { g: 0.4, cap: 1, max: 0.5 },
+};
+const UI_KINDS = new Set<string>(["ui", "pick", "rare", "cash", "buy", "pop", "nope", "tick"]);
+const BUFS: Record<string, AudioBuffer[]> = {};
+const last: Record<string, number> = {};
+const voices: Record<string, { src: AudioBufferSourceNode; g: GainNode }[]> = {};
+/** public/audio/sfx/manifest.json is written by tools/audio/build_sfx.mjs: { kind: ["kind_1.mp3", ...] } */
+async function loadSamples() {
+  try {
+    const base = `${import.meta.env.BASE_URL}audio/sfx/`;
+    const man = (await (await fetch(base + "manifest.json")).json()) as Record<string, string[]>;
+    await Promise.all(Object.entries(man).flatMap(([kind, files]) => files.map(async (f, i) => {
+      const buf = await ctx!.decodeAudioData(await (await fetch(base + f)).arrayBuffer());
+      (BUFS[kind] ??= [])[i] = buf;
+    })));
+    for (const k in BUFS) BUFS[k] = BUFS[k].filter(Boolean);
+  } catch (e) { console.warn("sfx samples unavailable, synth fallback", e); }
+}
+function pickBuf(kind: string): AudioBuffer | null {
+  const list = BUFS[kind]; if (!list?.length) return null;
+  let i = Math.floor(Math.random() * list.length);
+  if (list.length > 1 && i === last[kind]) i = (i + 1 + Math.floor(Math.random() * (list.length - 1))) % list.length;
+  last[kind] = i; return list[i];
+}
+function voice(kind: string, buf: AudioBuffer, vol: number, rate: number, at: number, bus: GainNode) {
+  const m = MIX[kind as keyof typeof MIX] ?? { g: 0.5 }, cap = m.cap ?? 3, vs = (voices[kind] ??= []);
+  while (vs.length >= cap) { const old = vs.shift()!; old.g.gain.setTargetAtTime(0, ctx!.currentTime, 0.012); old.src.stop(ctx!.currentTime + 0.06); }
+  const src = ctx!.createBufferSource(), g = ctx!.createGain(); src.buffer = buf; src.playbackRate.value = rate;
+  g.gain.value = m.g * vol; src.connect(g).connect(bus);
+  const t0 = ctx!.currentTime + at, len = Math.min(buf.duration / rate, m.max ?? 99);
+  if (len < buf.duration / rate) { g.gain.setValueAtTime(m.g * vol, t0 + len - 0.06); g.gain.linearRampToValueAtTime(0, t0 + len); }
+  src.start(t0); src.stop(t0 + len + 0.01);
+  const rec = { src, g }; vs.push(rec); src.onended = () => { const j = vs.indexOf(rec); if (j >= 0) vs.splice(j, 1); };
+}
+function playSample(kind: Sfx, vol: number, combo: number): boolean {
+  const bus = (UI_KINDS.has(kind) ? uiBus : sfxBus)!;
+  const rate = (k: string) => { const m = MIX[k as keyof typeof MIX]; return m?.climb ? 1 + Math.min(combo * 0.045, 0.8) : 1 + (Math.random() - 0.5) * 2 * (m?.jit ?? 0); };
+  if (kind === "shot") {
+    const core = pickBuf("shotCore"); if (!core) return false;
+    voice("shotCore", core, vol, rate("shotCore"), 0, bus);
+    const mech = pickBuf("shotMech"); if (mech) voice("shotMech", mech, vol, rate("shotMech"), 0.035, bus);
+    const tail = pickBuf("shotTail"); if (tail) voice("shotTail", tail, vol * (0.6 + 0.4 * vol), rate("shotTail"), 0.01, bus);
+    return true;
+  }
+  const buf = pickBuf(kind); if (!buf) return false;
+  voice(kind, buf, vol, rate(kind), 0, bus); return true;
 }

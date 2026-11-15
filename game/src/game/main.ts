@@ -10,6 +10,7 @@ import { Input } from "./core/input";
 import { G } from "./core/state";
 import { load, save, retainKeys } from "./core/save";
 import { unlockAudio } from "./core/audio";
+import { musicTick, setMusic, sting } from "./core/music";
 import { startRaid, stepRaid, renderRaid, buildRaidWorld, raidScene, type RaidResult } from "./core/raid";
 import { path, walkable, los, lintReport, gates, setGate, pathLength, collide } from "./world/grid";
 import { worldStats, countVisible, scattered } from "./world/world";
@@ -49,11 +50,11 @@ buildRaidWorld(); G.stage.setScene(raidScene); buildMapShots(raidScene);
 if (QS.has("glitch")) (window as unknown as { __glitch: unknown }).__glitch = await import("./dev/glitch"); // the glitch hunt (tools/glitchcheck.mjs)
 G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); G.rig.setGear?.(G.save.gear);
 
-function goHome(summary?: string) { enterBunker(goRaid, goMirror, summary); }
+function goHome(summary?: string) { setMusic("bunker"); enterBunker(goRaid, goMirror, summary); }
 function goMirror() { leaveBunker(); openCreator(() => goHome(), bunkerScene); }
-function goRaid() { fadeTo(() => { leaveBunker(); startRaid(onRaidEnd); }); }
+function goRaid() { fadeTo(() => { leaveBunker(); startRaid(onRaidEnd); setMusic("raid"); }); }
 function onRaidEnd(r: RaidResult) {
-  const sv = G.save; sv.raids++;
+  const sv = G.save; sv.raids++; sting(r.how === "bonked" ? "stingBonk" : "stingExtract");
   if (r.how === "bonked") sv.stats.bonkOuts++; else sv.stats.extracts++;
   retainKeys(sv, r.kept);
   const kept = r.kept.filter((i) => itemDef(i).kind !== "key");
@@ -100,7 +101,7 @@ function frame() {
   const p1 = performance.now();
   if (G.scene === "raid") renderRaid(real); else if (G.scene === "bunker") renderBunker(real); else if (G.scene === "creator") renderCreator(real);
   const p2 = performance.now();
-  G.stage.render(real);
+  G.stage.render(real); musicTick(real);
   if (PROF) { const p3 = performance.now(); if (p3 - p0 > 20 || real > 0.033) prof.push({ t: Math.round(G.raidT * 10) / 10, sim: +(p1 - p0).toFixed(1), prep: +(p2 - p1).toFixed(1), draw: +(p3 - p2).toFixed(1), steps: n }); }
   requestAnimationFrame(frame);
 }
@@ -110,7 +111,7 @@ function neutral() { const i = G.intent; i.move = { x: 0, z: 0 }; i.fire = i.fir
   lint: lintReport, world: () => worldStats, density: () => countVisible(G.stage.camera, [...G.crates, ...G.enemies.filter((e) => !e.down).map((e) => ({ x: e.p.x, z: e.p.z }))]),
   tp: (x: number, z: number) => { G.pp.set(x, groundHeight(x, z), z); G.vel.set(0, 0, 0); }, gates, setGate, pathLength, houses, svg: () => blockoutSvg(scattered) };
 
-if (QS.has("raid")) { G.save.lookDone = true; startRaid(onRaidEnd); }
+if (QS.has("raid")) { G.save.lookDone = true; startRaid(onRaidEnd); setMusic("raid"); }
 else if (!G.save.lookDone) openCreator(() => goHome(), bunkerScene);
 else goHome();
 requestAnimationFrame(frame);

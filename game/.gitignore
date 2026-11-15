@@ -11,3 +11,6 @@ __pycache__/
 tools/blender/build/*.blend
 tools/blender/build/blend/
 *.blend1
+
+# raw ElevenLabs takes (processed copies in public/audio are committed)
+research/audio/raw/
