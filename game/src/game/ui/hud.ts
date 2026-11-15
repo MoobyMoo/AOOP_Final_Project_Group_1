@@ -17,7 +17,7 @@ const el = (cls: string, html = "", parent: HTMLElement = root()) => { const d =
 let E: Record<string, HTMLElement> = {};
 const proj = new THREE.Vector3();
 function toScreen(p: THREE.Vector3) { proj.copy(p).project(G.stage.camera); return { x: (proj.x * 0.5 + 0.5) * innerWidth, y: (-proj.y * 0.5 + 0.5) * innerHeight, on: Math.abs(proj.x) < 1 && Math.abs(proj.y) < 1 && proj.z < 1 }; }
-let hoverInst: string | null = null, lastHeard = "", lastEquipT = -1;
+let hoverInst: string | null = null, lastHeard = "", lastEhp = "", lastEquipT = -1;
 let toastT = 0, bannerT = 0, promptT = 0, helpT = 0, lastArrows = "", lastClock = "", lastHp = -1, lastPrompt = "", lastVitals = "", invOpen = false;
 const noiseRings: { m: THREE.Mesh; t: number }[] = [];
 const keyed = (t: string) => { const m = /^([A-Z0-9/]+) · (.*)$/.exec(t); return m ? `<kbd>${m[1]}</kbd> ${m[2]}` : t; };
@@ -32,8 +32,8 @@ export const hud = {
     E.vitals = el("hud-vitals", `<div class="hud-hp"><span class="heart">♥</span><div class="bar"><i class="lag"></i><i class="fill"></i></div><b></b></div><div class="gauge" data-i="⚡"></div><div class="hud-warn" style="display:none"></div>`);
     E.bar = el("hud-bar"); E.stam = el("hud-stam", "<i></i>"); E.use = el("hud-use");
     E.prompt = el("hud-prompt"); E.toast = el("hud-toast"); E.banner = el("hud-banner");
-    E.search = el("hud-search", `<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" class="bg"/><circle cx="20" cy="20" r="16" class="fg"/></svg>`);
-    E.heard = el("hud-heard"); E.cross = el("hud-cross", `<i></i><i></i><i></i><i></i><b></b>`); E.extract = el("hud-extract"); E.hurt = el("hud-hurt"); E.arrows = el("hud-arrows"); E.time = el("hud-time");
+    E.search = el("hud-search", `<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" class="bg"/><circle cx="20" cy="20" r="16" class="fg"/></svg><span class="glass"><svg viewBox="0 0 24 24" fill="none" stroke="#fff6e0" stroke-width="2.6" stroke-linecap="round"><circle cx="10" cy="10" r="6"/><path d="M15 15l5 5"/></svg></span>`);
+    E.heard = el("hud-heard"); E.ehp = el("hud-ehp"); E.cross = el("hud-cross", `<i></i><i></i><i></i><i></i><b></b>`); E.extract = el("hud-extract"); E.hurt = el("hud-hurt"); E.arrows = el("hud-arrows"); E.time = el("hud-time");
     E.help = el("hud-help", `<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move &nbsp;<kbd>Shift</kbd> sprint &nbsp;<kbd>Space</kbd> dodge<br>Click to shoot, right click to aim &nbsp;<kbd>V</kbd> briefcase &nbsp;<kbd>R</kbd> reload<br><kbd>E</kbd> search &nbsp;<kbd>Q</kbd> heal &nbsp;<kbd>Tab</kbd> pack &nbsp;<kbd>M</kbd> map &nbsp;<kbd>N</kbd> minimap`);
     helpT = G.save.raids === 0 ? 30 : 8;
     hud.health(); hud.ammo(); hud.pack();
@@ -130,6 +130,16 @@ export const hud = {
     { // headphones: footsteps you can hear show as small paw prints where the enemy is (Duckov SoundVisable)
       let f = ""; for (const e of heardEnemies()) { const s = toScreen(new THREE.Vector3(e.x, 0.2, e.z)); if (s.on) f += `<i style="left:${Math.round(s.x)}px;top:${Math.round(s.y)}px"></i>`; }
       if (f !== lastHeard) { E.heard.innerHTML = f; lastHeard = f; }
+    }
+    { // enemy health over anyone fighting you or hit in the last 4 s (Duckov shows enemy bars; G1 council fix 5)
+      let b = "";
+      for (const e of G.enemies) {
+        const recent = e.hitAt !== undefined && G.raidT - e.hitAt < 4, engaged = !["patrol", "sleep", "return"].includes(e.state) && flat(e.p, G.pp) < 24;
+        if (e.down || !e.active || !(recent || engaged)) continue;
+        const s = toScreen(e.p.clone().setY(e.rig.bounds.height + 0.35)); if (!s.on) continue;
+        b += `<i style="left:${Math.round(s.x)}px;top:${Math.round(s.y)}px"><b style="width:${Math.max(0, Math.round((e.hp / e.max) * 100))}%"></b></i>`;
+      }
+      if (b !== lastEhp) { E.ehp.innerHTML = b; lastEhp = b; }
     }
     let h = "";
     for (const e of G.enemies) {

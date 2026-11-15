@@ -8,7 +8,7 @@ import type { SaveV1 } from "../contracts";
 export type Enemy = {
   id: number; kind: "wild" | "bandit" | "brute" | "sleeper"; rig: Rig; p: THREE.Vector3; vel: THREE.Vector3; face: number;
   hp: number; max: number; state: string; t: number; actionT: number; home: THREE.Vector3; group?: string; tag?: string;
-  path: { x: number; z: number }[]; repath: number; flash: number; stolen: string[]; carry: string[];
+  path: { x: number; z: number }[]; repath: number; flash: number; hitAt?: number; stolen: string[]; carry: string[];
   zs: number; quiet: number; lastSeen: THREE.Vector3 | null; lostT: number; rang?: Rang | null; ring?: THREE.Mesh; stripe?: THREE.Group;
   alertMark?: THREE.Sprite; active: boolean; down: boolean; downT: number; hatOff?: boolean;
   gear?: Gear; gearSeed?: number;

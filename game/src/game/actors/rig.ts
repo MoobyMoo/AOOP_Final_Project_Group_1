@@ -307,7 +307,7 @@ abstract class CharRig implements Rig {
     this.prevAct = s.action; this.prevAT = s.actionT; this.prevFlash = s.flash;
   }
   protected flash(v: number) {
-    const e = v > 0 ? Math.min(1, v) * 0.85 : 0;
+    const e = v > 0 ? Math.min(1, v) * 0.45 : 0; // 0.85 blew out into a flat cream blob through bloom (G1 council bug 4); keep form shading
     this.mat.emissiveIntensity = e;
     for (const k in this.gm) { this.gm[k].matte.emissiveIntensity = e; this.gm[k].gloss.emissiveIntensity = e; }
   }

@@ -34,7 +34,7 @@ export function updateInteractions(dt: number) {
   if (!G.alive || fading) return;
   // ---- area discovery
   const a = areaAt(G.pp.x, G.pp.z);
-  if (a !== G.area) { G.area = a; if (a && !G.discovered.has(a)) { G.discovered.add(a); const c = CLEARINGS.find((q) => q.id === a)!; hud.banner(c.name, c.under ? "underground" : ""); sfx("ui"); } }
+  if (a !== G.area) { G.area = a; if (a && !G.discovered.has(a)) { G.discovered.add(a); const c = CLEARINGS.find((q) => q.id === a)!; if (!G.enemies.some((e) => !e.down && e.active && !["patrol", "sleep", "return"].includes(e.state))) hud.banner(c.name, c.under ? "underground" : ""); sfx("ui"); } } // no sign over a fight (G1 council)
   // ---- extraction
   const moved = flat(G.pp, lastPp) > 0.02 * Math.max(1, dt * 60); lastPp.copy(G.pp);
   const hit = G.hp < lastHp; lastHp = G.hp;

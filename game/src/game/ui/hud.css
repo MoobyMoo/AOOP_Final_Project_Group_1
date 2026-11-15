@@ -213,3 +213,13 @@ button.cell{border:0;padding:0;color:inherit;font:inherit;cursor:pointer}button.
 .panel button.cell.pouch{box-shadow:inset 0 0 0 2px var(--banana)}
 .panel button.cell:hover,.panel button.eq-slot:hover{box-shadow:inset 0 0 0 2px var(--lagoon);background:var(--rbg,var(--r-common))}
 .creator .gc .sw{gap:5px}.creator .gc .sw i{width:22px;height:22px}.creator .gc .sw input{width:24px;height:24px}.creator p.dim{color:var(--dim)}
+/* G1 council fixes: legibility over bright ground, the search ring, map title/footer, creator scroll edge */
+.hud-clock b,.hud-clock span,.hud-clock em,.hud-help{text-shadow:0 1px 2px rgba(0,0,0,.75),0 0 8px rgba(0,0,0,.35)}
+.hud-clock em{color:var(--text);opacity:.85}
+.hud-help{color:var(--text)}
+.hud-search .bg{fill:rgba(20,16,14,.45)}
+.hud-search .glass{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}.hud-search .glass svg{width:20px;height:20px;transform:none}
+.mp h3{position:relative;z-index:2;display:inline-block;background:var(--panel-solid);padding:6px 12px;border-radius:8px}
+.mfoot{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);z-index:2;background:var(--panel-solid);padding:7px 14px;border-radius:8px;margin:0}
+.c-body{mask-image:linear-gradient(to bottom,transparent 0,#000 14px,#000 calc(100% - 14px),transparent 100%)}
+.hud-ehp i{position:absolute;width:44px;height:6px;margin-left:-22px;border-radius:3px;background:rgba(20,14,12,.7);box-shadow:0 0 0 1px rgba(0,0,0,.35);overflow:hidden}.hud-ehp b{display:block;height:100%;background:var(--coral);transition:width .12s}
