@@ -597,7 +597,8 @@ export const CRATES: CrateSocket[] = [
  *  2 weapon (DEMO_CONTAINER_BUDGET); loot/sockets.ts spawns a type-balanced share of them each raid. Each is its own
  *  model (kit_build container(type)), so it reads before you open it. Interior ones square up with their building. */
 export type ContainerSocket = { id: string; type: "weapon" | "food" | "ammo" | "parts" | "medical" | "lunchbox" | "toolbox" | "medcabinet" | "safe" | "trash" | "sack" | "jacket"; x: number; z: number; y?: number; in?: string; yaw?: number; note: string; /** spawns every raid (the grotto's den: worth the trip) */ always?: boolean;
-  /** hung on a wall (Fable's cont_medcabinet: the origin on the wall plane at its foot, the box 0.82 up, 0.46 proud): no floor blocker */ wall?: boolean };
+  /** hung on a wall (Fable's cont_medcabinet and cont_jacket: the origin on the wall plane at its foot, the box 0.8 up):
+   *  no floor blocker; yaw turns its front (+z) into the room */ wall?: boolean };
 const cs = (id: string, type: ContainerSocket["type"], p: { x: number; z: number }, note: string, o: Partial<ContainerSocket> = {}): ContainerSocket => ({ id, type, x: p.x, z: p.z, note, ...o });
 export const CONTAINER_SOCKETS: ContainerSocket[] = [
   // food: picnics, galleys, harvests, kitchens
@@ -636,14 +637,12 @@ export const CONTAINER_SOCKETS: ContainerSocket[] = [
   // sense: junk and sacks round the camps and the beach, toolboxes by benches, lunchboxes where people eat, pockets in
   // jackets left on bunks and lines, safes in the office, the gang boss's corner and the smugglers' hall
   cs("beach-junk", "trash", { x: -37.6, z: 101.4 }, "the flotsam pile"), cs("beach-sack", "sack", { x: 36.6, z: 102.6 }, "a washed-up supply sack"),
-  cs("bottle-jacket", "jacket", { x: -30.6, z: 106 }, "a coat on the driftwood"),
-  cs("cove-sack", "sack", { x: -85.6, z: 95.6 }, "the smugglers' supplies"), cs("cove-jacket", "jacket", { x: -79.4, z: 96.6 }, "a coat by the fire"),
-  cs("bunk-jacket", "jacket", { x: -8, z: 74.6 }, "the guard's coat on his bunk"), cs("bunk-lunch", "lunchbox", { x: -5.9, z: 72 }, "the guard's lunch"),
+  cs("cove-sack", "sack", { x: -85.6, z: 95.6 }, "the smugglers' supplies"), cs("bunk-lunch", "lunchbox", { x: -5.9, z: 72 }, "the guard's lunch"),
   cs("cart-sack", "sack", { x: -16.2, z: 68.4 }, "the looted cart's load"), cs("cart-tools", "toolbox", { x: -20.8, z: 63.6 }, "the cart's toolbox"),
   cs("lookout-lunch", "lunchbox", { x: -39.2, z: 61.4 }, "the lookout's lunch"),
   cs("yard-tools", "toolbox", { x: 12.3, z: 55 }, "the foreman's bench"),
   cs("camp-junk", "trash", { x: -48.5, z: 17 }, "the camp midden"), cs("camp-tools", "toolbox", { x: -69.5, z: 33 }, "the lean-to bench"),
-  cs("line-jacket", "jacket", { x: -58.6, z: 35.2 }, "the washing line"), cs("tower-sack", "sack", { x: -72.4, z: 22.6 }, "under the watchtower"),
+  cs("tower-sack", "sack", { x: -72.4, z: 22.6 }, "under the watchtower"),
   cs("boss-safe", "safe", { x: -73.9, z: 28.9 }, "the gang boss's corner"), cs("fire-lunch", "lunchbox", { x: -63.6, z: 22 }, "by the cookfire"),
   cs("office-safe", "safe", at("farmhouse", -0.6, 1.4), "the plantation office", { in: "farmhouse" }), cs("farm-lunch", "lunchbox", at("farmhouse", -0.4, -1.0), "the farmhouse table", { in: "farmhouse" }),
   cs("yard-junk", "trash", { x: 8.6, z: 18.6 }, "the yard's scrap heap"), cs("field-sack", "sack", { x: -14.2, z: 30.4 }, "a harvest sack by the rows"),
@@ -652,10 +651,20 @@ export const CONTAINER_SOCKETS: ContainerSocket[] = [
   cs("hub-tools", "toolbox", { x: 46.2, z: 51.6 }, "the boardwalk hub"), cs("bw-junk", "trash", { x: 66.6, z: 45.6 }, "rubbish on the boardwalk"),
   cs("hall-safe", "safe", { x: 174.6, z: 30.2 }, "the smugglers' strongroom"), cs("hall-junk", "trash", { x: 160.4, z: 22.6 }, "the smugglers' midden"),
   cs("mouth-sack", "sack", { x: 157, z: 60 }, "a sack by the grotto mouth"), cs("roots-tools", "toolbox", { x: 157.8, z: -21.2 }, "a toolbox in the root chamber"),
-  cs("hall-lunch", "lunchbox", { x: 162.6, z: 28.2 }, "the smugglers' supper"), cs("hall-jacket", "jacket", { x: 161.4, z: 21.4 }, "a coat under the tarp"),
-  cs("roots-cabinet", "medical", { x: 151.2, z: -19.6 }, "a medicine chest in the root chamber"),
-  // the medicine cabinet hangs on the farmhouse's north wall, inside, facing the room (the wall's inner face is 2.85 in)
-  cs("farm-cabinet", "medcabinet", at("farmhouse", -3.4, -2.83), "the farmhouse medicine cabinet", { in: "farmhouse", yaw: 0, wall: true }),
+  cs("hall-lunch", "lunchbox", { x: 162.6, z: 28.2 }, "the smugglers' supper"), cs("roots-cabinet", "medical", { x: 151.2, z: -19.6 }, "a medicine chest in the root chamber"),
+  // the medicine cabinet hangs on the farmhouse partition's west face, between its door and the table (the north wall's
+  // free stretch is a window)
+  // Fable's coat rack (cont_jacket): wall-mounted like the cabinet (the origin on the wall's inner face at its foot, the
+  // rack 0.8 up, 0.30 proud, 1.22 wide), facing into the room. Each sits on a bare stretch of wall, read from the
+  // building's own colliders: clear of its windows (the low wall segments), doors, shelves, beds, the desk and the stove.
+  // The farmhouse: the main room's west wall between the corner shelf and the side door; the plantation office: the
+  // partition's east face beside the beds. The camp has no huts with walls: its rack hangs on the palisade's inner face
+  cs("hut-jacket", "jacket", { x: 5.8, z: 76.69 }, "the guard's coat on the hut wall", { in: "hut-south", yaw: 0, wall: true }),
+  cs("farm-jacket", "jacket", at("farmhouse", -5.84, -1.6), "a coat by the farmhouse side door", { in: "farmhouse", yaw: Math.PI / 2, wall: true }),
+  cs("office-jacket", "jacket", at("farmhouse", 2.16, -1.9), "the overseer's coat in the plantation office", { in: "farmhouse", yaw: Math.PI / 2, wall: true }),
+  cs("ferry-jacket", "jacket", at("ferry", 0.2, -2.74), "the ferry guard's coat on the hull", { in: "ferry", yaw: 0, wall: true }),
+  cs("camp-jacket", "jacket", { x: -77.7, z: 31.5 }, "a coat on the camp palisade", { yaw: Math.PI / 2, wall: true }),
+  cs("farm-cabinet", "medcabinet", at("farmhouse", 1.84, 1.35), "the farmhouse medicine cabinet", { in: "farmhouse", yaw: -Math.PI / 2, wall: true }),
   // the grotto (open in the demo): a smugglers' den, so ammo, parts and a weapon crate, every raid
   cs("hall-ammo", "ammo", { x: 166, z: 33.2 }, "the smugglers' hall", { always: true }),
   cs("hall-parts", "parts", { x: 178, z: 24.6 }, "the smugglers' stores", { always: true }),

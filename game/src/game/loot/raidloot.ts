@@ -32,7 +32,7 @@ import { floatText, popIn } from "../../fx";
 import { hud } from "../ui/hud";
 import { KINGPIN } from "../combat/weapons";
 import { makeNoise } from "../combat/combat";
-import { takeModel, releaseModel, throwVelocity, stepThrow, poseModel, PICK_REACH, hullResolution, plainModel } from "./ground";
+import { takeModel, releaseModel, throwVelocity, stepThrow, poseModel, PICK_REACH, hullResolution } from "./ground";
 import { openLoot, closeLoot, lootOpen, type LootTarget } from "../ui/hud";
 import { lootTarget } from "../ui/lootview";
 import { own, itemType, withCount } from "./instances";
@@ -76,9 +76,7 @@ export function setupCrates() {
   }
   // typed containers (G1.5-27): their own models, lids and readability marks
   for (const s of selectContainers(G.rng)) {
-    // a hanging jacket has no container model (the brief): a worn jacket or bag from the wearables, laid where it was left
-    const b = s.type === "jacket" ? null : containerKit(s.type), obj = b ? mergePieces(b.pieces) : plainModel(G.rng() < 0.5 ? "peel_jacket" : "satchel");
-    if (b) { obj.add(b.parts.root); obj.userData.lid = b.parts.lid; }
+    const b = containerKit(s.type), obj = mergePieces(b.pieces); obj.add(b.parts.root); obj.userData.lid = b.parts.lid;
     const host = s.in ? PLACED.find((p) => p.id === s.in) : undefined;
     obj.position.set(s.x, groundHeight(s.x, s.z) + (s.y ?? 0), s.z); obj.rotation.y = s.yaw ?? (host ? (host.yaw ?? 0) + (Math.floor(G.rng() * 2) * Math.PI) : G.rng() * 6.28);
     G.stage.scene.add(obj);
@@ -86,8 +84,8 @@ export function setupCrates() {
     if (!s.wall) block(s.x, s.z, r, true); // a wall cabinet hangs above the floor: nothing to walk into
     const c: Crate = { id: nid++, x: s.x, z: s.z, tier: s.type === "weapon" ? "green" : "wood", obj, opened: false, search: 0, items: null, kind: "container", type: s.type, label: CONTAINERS[s.type].label, socket: s.id, note: s.note[0].toUpperCase() + s.note.slice(1), r };
     G.crates.push(c);
-    obj.updateMatrixWorld(true); const at = b ? (b.parts.mark ?? b.parts.root).getWorldPosition(new THREE.Vector3()) : obj.position.clone().setY(obj.position.y + 0.6); at.y += 0.25;
-    if (b && !b.parts.mark) at.y = box.max.y + 0.35; // a stand-in without a mark point: over its top
+    obj.updateMatrixWorld(true); const at = (b.parts.mark ?? b.parts.root).getWorldPosition(new THREE.Vector3()); at.y += 0.25;
+    if (!b.parts.mark) at.y = box.max.y + 0.35; // a stand-in without a mark point: over its top
     addMark(c, at, TYPE_COLOR[s.type]);
   }
   looseItems();

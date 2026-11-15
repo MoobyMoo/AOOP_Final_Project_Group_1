@@ -175,8 +175,8 @@ export const satchel = () => asset("satchel");
  *  chevrons, food = round straw basket under a husk dome with bananas on top, ammo = olive tin on a pallet, parts =
  *  teal steel bin with a rusty cog leaning on it, medical = flat cream case with a coral lid and a leaf cross.
  *  parts.lid hinges like crate()'s (rotation.x 0 → CRATE_LID_OPEN); parts.mark is a point above the lid. */
-export type ContainerType = "weapon" | "food" | "ammo" | "parts" | "medical" | "lunchbox" | "toolbox" | "medcabinet" | "safe" | "trash" | "sack";
-export const CONTAINER_TYPES: readonly ContainerType[] = ["weapon", "food", "ammo", "parts", "medical", "lunchbox", "toolbox", "medcabinet", "safe", "trash", "sack"];
+export type ContainerType = "weapon" | "food" | "ammo" | "parts" | "medical" | "lunchbox" | "toolbox" | "medcabinet" | "safe" | "trash" | "sack" | "jacket";
+export const CONTAINER_TYPES: readonly ContainerType[] = ["weapon", "food", "ammo", "parts", "medical", "lunchbox", "toolbox", "medcabinet", "safe", "trash", "sack", "jacket"];
 /** stand-ins for the population pass's small containers until Fable's cont_<id> nodes are in containers.glb: the nearest
  *  existing model at a smaller scale (a lunchbox is a small food basket, a toolbox a small parts bin, a safe the gold
  *  strongbox, a junk heap a rusty drum, a supply sack the sack). container() uses the real node the moment it exists */
