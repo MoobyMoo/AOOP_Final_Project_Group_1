@@ -123,7 +123,7 @@ export function damage(e: Enemy, n: number, by: "pistol" | "briefcase" | "slam" 
   if (e.kind === "sleeper" && e.state !== "stunned") { // awake hits plink for zero (advisor 18)
     floatText("plink", e.p.clone().setY(3.4), "#8a8fa0", 18); sfx("hit", 0.4); if (e.state === "sleep") hearNoise(e, 3); return;
   }
-  e.hp -= n; e.flash = FEEL.flash; e.hitAt = G.raidT; floatText(String(n), e.p.clone().setY(e.rig.bounds.height + 0.2 + G.rng() * 0.4), by === "briefcase" ? "#ffd84a" : "#fff8ec", 18); sfx(by === "pistol" ? "hit" : "bonk"); hud.hitMarker(e.hp <= 0);
+  e.hp -= n; e.flash = FEEL.flash; e.hitAt = G.raidT; floatText(String(n), e.p.clone().setY(e.rig.bounds.height + 0.2 + G.rng() * 0.4), by === "briefcase" ? "#ffd84a" : "#fff8ec", 18, (Math.abs(Math.round(e.hp)) % 3 - 1) * 14, -24); sfx(by === "pistol" ? "hit" : "bonk"); hud.hitMarker(e.hp <= 0);
   if (e.kind !== "brute" && e.kind !== "sleeper") e.vel.addScaledVector(dir, by === "briefcase" ? BRIEFCASE.knock : 2.5);
   burst(e.p.clone().setY(1.2), by === "briefcase" ? 10 : 5, "#fff3b0", 0.7);
   if (by === "briefcase") floatText("BONK!", e.p.clone().setY(e.rig.bounds.height + 0.8), "#e8493a", 24);

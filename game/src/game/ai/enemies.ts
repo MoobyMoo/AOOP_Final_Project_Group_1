@@ -21,7 +21,37 @@ import { openDoorForEnemy } from "../world/buildings";
 
 let nextId = 1;
 const sharedAlerts = new Map<Enemy, { delay: number; at: THREE.Vector3 }>();
-const markTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d")!; x.fillStyle = "#ffd84a"; x.strokeStyle = "#2a1a12"; x.lineWidth = 6; x.beginPath(); x.arc(32, 32, 26, 0, 7); x.fill(); x.stroke(); x.fillStyle = "#2a1a12"; x.font = "bold 44px Trebuchet MS"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("!", 32, 35); return new THREE.CanvasTexture(c); })();
+// Cue badges sit up and to the right of the head, like a speech bubble, so they never share pixels with the health bar
+// (centred over the head) or the damage numbers (rising from the head): G1 council fix 5, "separate anchors".
+// "!" on a yellow bubble = noticed you. A red spiky burst with claw marks = the hit is coming (wind-up).
+const CUE_CENTER = new THREE.Vector2(-0.42, 0.18), CUE_Y = 0.35;
+const cueCanvas = (draw: (x: CanvasRenderingContext2D) => void) => { const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d")!; x.lineJoin = "round"; x.lineCap = "round"; draw(x); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; };
+const markTex = cueCanvas((x) => {
+  x.fillStyle = "#ffd84a"; x.strokeStyle = "#2a1a12"; x.lineWidth = 9;
+  x.beginPath(); x.moveTo(12, 118); x.lineTo(34, 78); x.lineTo(58, 98); x.closePath(); x.stroke(); x.fill();   // the tail points at the head
+  x.beginPath(); x.arc(70, 56, 44, 0, 7); x.stroke(); x.fill();
+  x.beginPath(); x.moveTo(34, 78); x.lineTo(58, 98); x.lineTo(60, 80); x.closePath(); x.fill();                  // hide the outline where the tail joins
+  x.fillStyle = "#2a1a12"; x.font = "bold 72px Trebuchet MS"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("!", 70, 60);
+});
+const windTex = cueCanvas((x) => {
+  x.translate(64, 64); x.fillStyle = "#e8402e"; x.strokeStyle = "#2a1a12"; x.lineWidth = 9;
+  x.beginPath(); for (let i = 0; i < 20; i++) { const a = (i / 20) * Math.PI * 2 - Math.PI / 2, r = i % 2 ? 36 : 56; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); } x.closePath(); x.stroke(); x.fill();
+  x.strokeStyle = "#fff6e0"; x.lineWidth = 9;                                                                   // three claw slashes
+  for (const o of [-17, 0, 17]) { x.beginPath(); x.moveTo(o + 10, -22); x.quadraticCurveTo(o + 2, 0, o - 12, 22); x.stroke(); }
+});
+const windMat = new THREE.SpriteMaterial({ map: windTex, depthTest: false });
+const windMarks = new WeakMap<Enemy, THREE.Sprite>();
+/** the attack-ready cue: pops in when a wind-up starts, swells and beats faster until the hit lands */
+function windCue(e: Enemy) {
+  let m = windMarks.get(e);
+  const total = e.kind === "sleeper" ? ENEMY.sleeper.aim * 0.5 : ENEMY[e.kind].wind;
+  const on = !e.down && e.active && (e.state === "windup" || (e.kind === "sleeper" && e.state === "aim" && e.t < total));
+  if (!on) { if (m) m.visible = false; return; }
+  if (!m) { m = new THREE.Sprite(windMat); m.renderOrder = 22; m.center.copy(CUE_CENTER); e.rig.root.add(m); windMarks.set(e, m); }
+  if (e.alertMark) e.alertMark.visible = false;
+  const k = Math.min(1, Math.max(0, 1 - e.t / total)), pop = Math.min(1, k / 0.12), c = pop - 1, over = 1 + 2.7 * c * c * c + 1.7 * c * c;
+  m.position.set(0, e.rig.bounds.height + CUE_Y, 0); m.scale.setScalar(Math.max(0.01, over * (0.8 + 0.3 * k) + Math.sin(k * k * 34) * 0.07 * pop)); m.visible = true;
+}
 const zTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d")!; x.fillStyle = "#e8f2ff"; x.strokeStyle = "#3a4a6a"; x.lineWidth = 5; x.font = "bold 50px Trebuchet MS"; x.textAlign = "center"; x.textBaseline = "middle"; x.strokeText("Z", 32, 34); x.fillText("Z", 32, 34); return new THREE.CanvasTexture(c); })();
 
 export function spawnEnemies(set: number) {
@@ -50,9 +80,9 @@ function sees(e: Enemy, range: number) {
   return (tp.dot(f) > -0.25 || d < 3.5) && los(e.p.x, e.p.z, G.pp.x, G.pp.z);
 }
 function mark(e: Enemy) {
-  if (!e.alertMark) { e.alertMark = new THREE.Sprite(new THREE.SpriteMaterial({ map: markTex, depthTest: false })); e.alertMark.renderOrder = 21; e.rig.root.add(e.alertMark); }
-  e.alertMark.position.set(0, e.rig.bounds.height + 0.6, 0); e.alertMark.scale.setScalar(0.01); e.alertMark.visible = true;
-  const m = e.alertMark; let k = 0; const grow = () => { k += 0.08; m.scale.setScalar(Math.min(0.75, k * 1.6)); if (k < 1) requestAnimationFrame(grow); else setTimeout(() => (m.visible = false), 700); }; grow();
+  if (!e.alertMark) { e.alertMark = new THREE.Sprite(new THREE.SpriteMaterial({ map: markTex, depthTest: false })); e.alertMark.renderOrder = 21; e.alertMark.center.copy(CUE_CENTER); e.rig.root.add(e.alertMark); }
+  e.alertMark.position.set(0, e.rig.bounds.height + CUE_Y, 0); e.alertMark.scale.setScalar(0.01); e.alertMark.visible = true;
+  const m = e.alertMark; let k = 0; const grow = () => { k += 0.08; m.scale.setScalar(Math.min(0.85, k * 1.8)); if (k < 1) requestAnimationFrame(grow); else setTimeout(() => (m.visible = false), 700); }; grow();
 }
 /** the notice cue (rule 9) + local group alert (rule 11) */
 export function alertEnemy(e: Enemy, direct = false) {
@@ -119,6 +149,7 @@ export function updateEnemies(dt: number) {
     const d = flat(e.p, G.pp);
     e.active = d < 32;
     e.flash = Math.max(0, e.flash - dt);
+    windCue(e);
     if (e.down) { e.downT += dt; poseRig(e, dt); continue; }
     if (!e.active) { e.rig.root.visible = d < 48; continue; }
     e.rig.root.visible = true;
@@ -246,7 +277,7 @@ function brute(e: Enemy, dt: number, d: number) {
       const k = 1 - e.t / s.wind; const fill = e.ring!.getObjectByName("fill") as THREE.Mesh; fill.scale.setScalar(Math.max(0.05, k)); (e.ring!.material as THREE.MeshBasicMaterial).opacity = 0.5 + Math.abs(Math.sin(G.time * 18)) * 0.4;
       e.flash = Math.sin(G.time * 22) > 0.6 ? 0.03 : 0;
       if (e.t <= 0) {
-        e.state = "slam"; e.t = 0.25; e.ring!.visible = false; sfx("slam"); G.stage.trauma = Math.min(1, G.stage.trauma + 0.45); burst(e.p.clone().setY(0.3), 22, "#c9a46a", 1.4);
+        e.state = "slam"; e.t = 0.25; e.ring!.visible = false; sfx("slam"); G.stage.trauma = Math.min(1, G.stage.trauma + 0.45); burst(e.p.clone().setY(0.3), 22, "#c9a46a", 1.4, 2.2);
         if (flat(e.p, G.pp) < s.slam + 0.3 && los(e.p.x, e.p.z, G.pp.x, G.pp.z)) hurtPlayer(e.p, "slam", s.dmg);
         for (const g of gates) if (g.hp !== undefined && !g.open && Math.hypot(g.x - e.p.x, g.z - e.p.z) < s.slam + 1.5 + g.w * 0.25) hitWall(g.id, 3, V(g.x, g.z, 1)); // the slam smashes breakable walls and boarded doors
         for (const o of G.enemies) if (o !== e && !o.down && flat(o.p, e.p) < s.slam) damage(o, 20, "slam", o.p.clone().sub(e.p).setY(0).normalize());
