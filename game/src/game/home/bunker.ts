@@ -98,7 +98,7 @@ export function enterBunker(deploy: () => void, mirror: () => void, summary?: st
   const ui = document.getElementById("ui")!; ui.innerHTML = `<div class="home-top"><div class="place"><b>The Bunker</b><span>Under Exile Beach</span></div><span class="home-money">🍌 <b>${G.save.money}</b></span></div><div class="hud-prompt" id="hp"></div><div class="home-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk &nbsp;<kbd>E</kbd> use a station</div>`;
   if (summary) showPanel(summary, "result");
 }
-export function leaveBunker() { closePanel(); G.stage.hemi.intensity = Number(new URLSearchParams(location.search).get("fill") ?? 0.9); G.stage.sun.intensity = 7; G.stage.bounce.intensity = Number(new URLSearchParams(location.search).get("bounce") ?? 1.6); }
+export function leaveBunker() { closePanel(); G.stage.hemi.intensity = Number(new URLSearchParams(location.search).get("fill") ?? 0.9); G.stage.sun.intensity = Number(new URLSearchParams(location.search).get("sun") ?? 6); G.stage.bounce.intensity = Number(new URLSearchParams(location.search).get("bounce") ?? 1.6); }
 function money() { const el = document.querySelector(".home-money b"); if (el) el.textContent = String(G.save.money); }
 function showPanel(html: string, cls = "") { closePanel(); panel = document.createElement("div"); panel.className = "panel " + cls; panel.innerHTML = html + `<div class="foot"><kbd>E</kbd> or <kbd>Esc</kbd> to close</div>`; document.getElementById("ui")!.appendChild(panel); panel.style.pointerEvents = "auto"; panel.querySelectorAll<HTMLButtonElement>("button[data-a]").forEach((b) => b.onclick = () => act(b.dataset.a!)); }
 function closePanel() { panel?.remove(); panel = null; }

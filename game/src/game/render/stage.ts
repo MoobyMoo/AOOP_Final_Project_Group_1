@@ -2,7 +2,14 @@
 // Settings come from the L1 look target (research/look FINDINGS; council R3): 55 deg pitch, -30 deg yaw, FOV 24,
 // warm low sun, cool hemisphere fill, PCF soft shadows, bloom + SMAA only (bright style: no tone-map pass, no AO pass).
 import * as THREE from "three";
-import { EffectComposer, RenderPass, EffectPass, BloomEffect, SMAAEffect, VignetteEffect } from "postprocessing";
+/** highlight roll-off merged into the existing effect pass (no extra pass): G1 council found sunlit dirt clipping on
+ *  13-40% of the frame (Duckov 0.1-0.2%). Khronos PBR Neutral keeps hue and midtones and only compresses the top end.
+ *  ?tm=none restores the old look; ?tm=agx to compare. */
+function toneMap() {
+  const m = new URLSearchParams(location.search).get("tm") ?? "neutral";
+  return m === "none" ? [] : [new ToneMappingEffect({ mode: m === "agx" ? ToneMappingMode.AGX : ToneMappingMode.NEUTRAL })];
+}
+import { EffectComposer, RenderPass, EffectPass, BloomEffect, SMAAEffect, VignetteEffect, ToneMappingEffect, ToneMappingMode } from "postprocessing";
 import { U, inkU } from "./shading";
 
 const QS = new URLSearchParams(location.search);
@@ -30,7 +37,7 @@ export class Stage {
     r.toneMapping = THREE.NoToneMapping; r.toneMappingExposure = Number(QS.get("exp") ?? 1.3);
     const s = this.scene;
     s.background = new THREE.Color(haze); s.fog = new THREE.Fog(haze, 52, 110);
-    this.sun = new THREE.DirectionalLight("#ffe0b0", Number(QS.get("sun") ?? 7.0));
+    this.sun = new THREE.DirectionalLight("#" + (QS.get("suncol") ?? "ffe0b0"), Number(QS.get("sun") ?? 6.0));
     const sh = this.sun.shadow; this.sun.castShadow = true; sh.mapSize.set(4096, 4096); sh.radius = 3; sh.bias = -0.0004; sh.normalBias = 0.03;
     Object.assign(sh.camera, { left: -24, right: 24, top: 24, bottom: -24, near: 1, far: 100 });
     this.sunDir = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - Number(QS.get("sunel") ?? 50)), THREE.MathUtils.degToRad(Number(QS.get("sunaz") ?? 160)));
@@ -43,7 +50,7 @@ export class Stage {
     s.add(this.sun, this.sun.target, this.hemi, this.bounce);
     this.composer = new EffectComposer(r, { frameBufferType: THREE.HalfFloatType });
     this.renderPass = new RenderPass(s, this.camera); this.composer.addPass(this.renderPass);
-    this.composer.addPass(new EffectPass(this.camera, new BloomEffect({ mipmapBlur: true, luminanceThreshold: 0.95, intensity: 0.4 }), new VignetteEffect({ offset: 0.42, darkness: 0.28 }), new SMAAEffect()));
+    this.composer.addPass(new EffectPass(this.camera, new BloomEffect({ mipmapBlur: true, luminanceThreshold: 0.95, intensity: 0.4 }), ...toneMap(), new VignetteEffect({ offset: 0.42, darkness: 0.28 }), new SMAAEffect()));
     addEventListener("resize", () => this.resize()); this.resize();
   }
   /** switch the rendered scene; the sun and fill move with it */

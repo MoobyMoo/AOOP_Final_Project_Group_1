@@ -11,10 +11,10 @@ import { fbm } from "./noise";
 import { patch } from "../render/shading";
 
 export const GROUND_C: Record<Ground | "jungle" | "wet" | "rock", THREE.Color> = {
-  grass: new THREE.Color("#86a64e"), sand: new THREE.Color("#dcc08a"), dirt: new THREE.Color("#d9ae74"), stone: new THREE.Color("#c4ab84"),
+  grass: new THREE.Color("#86a64e"), sand: new THREE.Color("#dcc08a"), dirt: new THREE.Color("#ceb47f"), stone: new THREE.Color("#c4ab84"),
   cave: new THREE.Color("#6f6458"), plank: new THREE.Color("#b08f62"), mud: new THREE.Color("#7c7f58"), jungle: new THREE.Color("#5e7d3e"), wet: new THREE.Color("#b89c6a"), rock: new THREE.Color("#9d8f7a"),
 };
-const G2 = { grassDry: new THREE.Color("#9aa85c"), grassMoist: new THREE.Color("#6f8a48"), worn: new THREE.Color("#a99262"), dirtD: new THREE.Color("#c99a62"), caveL: new THREE.Color("#7d7062"), rockD: new THREE.Color("#7f7466"), deep: new THREE.Color("#5f8f86") };
+const G2 = { grassDry: new THREE.Color("#9aa85c"), grassMoist: new THREE.Color("#6f8a48"), worn: new THREE.Color("#a99262"), dirtD: new THREE.Color("#bba06c"), caveL: new THREE.Color("#7d7062"), rockD: new THREE.Color("#7f7466"), deep: new THREE.Color("#5f8f86") };
 const sstep = THREE.MathUtils.smoothstep;
 const FLAT = ZONES.filter((z) => z.flat).map((z) => ({ z, bb: bbox(z.pts, 4) }));
 const WET = ZONES.filter((z) => z.water !== undefined).map((z) => ({ z, bb: bbox(z.pts, 5) }));
