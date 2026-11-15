@@ -14,6 +14,7 @@
 // Models: Fable's rigged fauna_<id> nodes in public/models/fauna.glb when the file is there (cloned with their
 // skeletons, clips matched by name), else clean code-built stand-ins (a few lit shapes per animal).
 import * as THREE from "three";
+import { own } from "../loot/instances"; // settlement: every item is an owned instance
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/addons/utils/SkeletonUtils.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
@@ -181,7 +182,7 @@ function nearestPalm(x: number, z: number, not?: { x: number; z: number }, min =
 function spawnHostile(id: "boar" | "croc", x: number, z: number, idn: number) {
   const m = model(id), rig = animalRig(id, m), d = FAUNA[id];
   const e: Enemy = { id: idn, kind: "wild", fauna: id, rig, p: V(x, z), vel: new THREE.Vector3(), face: G.rng() * 6.28, hp: d.hp, max: d.hp, state: id === "boar" ? "patrol" : "patrol", t: G.rng() * 3, actionT: 0,
-    home: V(x, z), path: [], repath: 0, flash: 0, stolen: [], carry: [...d.drops], zs: 3, quiet: 0, lastSeen: null, lostT: 0, rang: null, active: false, down: false, downT: 0, wakeAt: 0 };
+    home: V(x, z), path: [], repath: 0, flash: 0, stolen: [], carry: d.drops.map(own), zs: 3, quiet: 0, lastSeen: null, lostT: 0, rang: null, active: false, down: false, downT: 0, wakeAt: 0 };
   rig.root.position.set(x, groundHeight(x, z), z); G.stage.scene.add(rig.root); G.enemies.push(e); hostiles.push(e); models.set(e, m);
   (e as Enemy & { hpSeen?: number }).hpSeen = e.hp;
 }

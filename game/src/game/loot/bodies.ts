@@ -25,7 +25,7 @@ export function bodySearch(enemy: LootEnemy): SearchSession | null {
   let session = bodies.get(enemy);
   if (!session) {
     const gear = enemy.gear ? Object.values(enemy.gear).filter((inst): inst is string => inst !== null) : [];
-    session = createSearch([...gear, ...enemy.carry, ...enemy.stolen]);
+    session = createSearch([...gear, ...enemy.carry, ...enemy.stolen].map(own)); // own() is idempotent: a spawner that forgot still settles
     bodies.set(enemy, session);
     enemy.carry.length = 0;
     enemy.stolen.length = 0;

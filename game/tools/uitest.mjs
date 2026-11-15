@@ -49,7 +49,7 @@ async function run(w, h) {
   const cell = (panel, name) => `.lv-${panel} button[aria-label="${name}"]`;
 
   // ---- 1 equip a vest
-  await G(() => { const g = window.__G; g.pack.length = 0; g.pack.push("leaf_vest", "brass_compass", "bandage", "golden_banana"); window.__ui.hud.pack(); });
+  await G(() => { const g = window.__G; window.__ui.clearPack(); g.pack.push(...["leaf_vest", "brass_compass", "bandage", "golden_banana"].map(window.__ui.own)); window.__ui.hud.pack(); });
   await task("1 equip a vest (Tab, double-click)", async () => {
     await p.keyboard.press("Tab"); await p.waitForSelector(".lv");
     await dbl(cell("me", "Banana-Leaf Vest"));
@@ -77,7 +77,7 @@ async function run(w, h) {
 
   // ---- Ctrl-drag splits an ammo stack
   await task("ctrl-drag splits a stack of rounds", async () => {
-    await G(() => { const g = window.__G; g.pack.length = 0; window.__ui.crate("ammo"); });
+    await G(() => { const g = window.__G; window.__ui.clearPack(); window.__ui.crate("ammo"); });
     await until(() => !window.__ui.lootDebug().them.includes("?"), null, 6000);
     const a0 = await G(() => window.__G.ammo);
     await drag(cell("them", ".45 Rounds"), '.lv-me [data-drop="pack:0"]', true);
@@ -86,17 +86,17 @@ async function run(w, h) {
   });
 
   // ---- 3 use a heal
-  await G(() => { const g = window.__G; g.pack.length = 0; g.pack.push("bandage", "bandage", "brass_compass"); g.hp = 50; window.__ui.hud.health(); window.__ui.hud.pack(); });
+  await G(() => { const g = window.__G; window.__ui.clearPack(); g.pack.push(...["bandage", "bandage", "brass_compass"].map(window.__ui.own)); g.hp = 50; window.__ui.hud.health(); window.__ui.hud.pack(); });
   await task("3 use a heal (Tab, double-click)", async () => {
     await p.keyboard.press("Tab"); await p.waitForSelector(".lv");
     await dbl(cell("me", "Banana-Leaf Bandage"));
-    return await until(() => window.__G.hp > 50 && window.__G.pack.filter((i) => i === "bandage").length === 1, null, 3000);
+    return await until(() => window.__G.hp > 50 && window.__G.pack.filter((i) => window.__ui.itemType(i) === "bandage").length === 1, null, 3000);
   });
   await task("3b use a heal (quick key 3)", async () => {
     await closeAll(); await G(() => { window.__G.hp = 50; });
     const hint = await p.locator(".h3-quick .h3-q").first().innerText(); if (!hint.includes("3")) return "quick slot 3 has no key label";
     await p.keyboard.press("3");
-    return await until(() => window.__G.hp > 50 && !window.__G.pack.includes("bandage"), null, 3000);
+    return await until(() => window.__G.hp > 50 && !window.__G.pack.some((i) => window.__ui.itemType(i) === "bandage"), null, 3000);
   });
 
   // ---- 4 find out what an item does
@@ -111,29 +111,29 @@ async function run(w, h) {
 
   // ---- 5 fit a sight from a weapon crate (G1.5 row 36)
   await task("5 fit a sight (weapon crate, drag)", async () => {
-    await G(() => { const g = window.__G; g.pack.length = 0; for (const k of Object.keys(g.save.gun)) window.__gunStats.unfit(k); window.__ui.hud.pack(); window.__ui.crate("weapon", ["att_sight_2x"]); });
+    await G(() => { const g = window.__G; window.__ui.clearPack(); for (const k of Object.keys(g.save.gun)) window.__gunStats.unfit(k); window.__ui.hud.pack(); window.__ui.crate("weapon", ["att_sight_2x"]); });
     if (!(await until(() => window.__ui.lootDebug().them.includes("att_sight_2x"), null, 9000))) return "the scope was never revealed";
     const z0 = await G(() => window.__gunStats.GUN.adsDist);
     await drag('.lv-them button[aria-label="Lookout 2x Scope"]', '.lv-me [data-src="att:sight"]');
-    if (!(await until(() => window.__G.save.gun.sight === "att_sight_2x", null, 1500))) return "dragging onto the sight slot did not fit it";
+    if (!(await until(() => window.__ui.itemType(window.__G.save.gun.sight ?? "") === "att_sight_2x", null, 1500))) return "dragging onto the sight slot did not fit it";
     const z1 = await G(() => window.__gunStats.GUN.adsDist);
     const lines = await p.locator(".lv-tagwrap .does.stats").innerText();
     if (!/Aim zoom \+72%/.test(lines)) return `tag lines: ${lines.replace(/\n/g, " | ")}`;
     if (!(await p.locator('.lv-me [data-src="att:sight"] img, .lv-me [data-src="att:sight"] .emo').count())) return "slot not redrawn";
     await dbl('.lv-me [data-src="att:sight"]');
-    if (!(await until(() => window.__G.save.gun.sight === null && window.__G.pack.includes("att_sight_2x"), null, 1500))) return "double-clicking the slot did not take it off";
+    if (!(await until(() => window.__G.save.gun.sight === null && window.__G.pack.some((i) => window.__ui.itemType(i) === "att_sight_2x"), null, 1500))) return "double-clicking the slot did not take it off";
     await dbl(cell("me", "Lookout 2x Scope"));
-    if (!(await until(() => window.__G.save.gun.sight === "att_sight_2x" && !window.__G.pack.includes("att_sight_2x"), null, 1500))) return "double-clicking it in the pack did not fit it";
+    if (!(await until(() => window.__ui.itemType(window.__G.save.gun.sight ?? "") === "att_sight_2x" && !window.__G.pack.some((i) => window.__ui.itemType(i) === "att_sight_2x"), null, 1500))) return "double-clicking it in the pack did not fit it";
     await drag('.lv-me [data-src="att:sight"]', '.lv-me .lv-grid');
-    if (!(await until(() => window.__G.save.gun.sight === null && window.__G.pack.includes("att_sight_2x"), null, 1500))) return "dragging it off did not remove it";
+    if (!(await until(() => window.__G.save.gun.sight === null && window.__G.pack.some((i) => window.__ui.itemType(i) === "att_sight_2x"), null, 1500))) return "dragging it off did not remove it";
     return `aim zoom x${z0.toFixed(2)} -> x${z1.toFixed(2)}; ${lines.replace(/\n/g, ", ")}`;
   });
 
   // ---- keys and layout
   await task("R sorts, E closes a target", async () => {
-    await G(() => { const g = window.__G; g.pack.length = 0; g.pack.push("banana", "golden_banana"); });
+    await G(() => { const g = window.__G; window.__ui.clearPack(); g.pack.push(...["banana", "golden_banana"].map(window.__ui.own)); });
     await p.keyboard.press("Tab"); await p.waitForSelector(".lv"); await p.keyboard.press("r");
-    if (await G(() => window.__G.pack[0]) !== "golden_banana") return "sort did nothing";
+    if (await G(() => window.__ui.itemType(window.__G.pack[0])) !== "golden_banana") return "sort did nothing";
     if (await G(() => window.__G.reloadT) >= 0) return "R also reloaded";
     await p.keyboard.press("Escape"); await G(() => window.__ui.crate("food")); await p.waitForSelector(".lv"); await p.keyboard.press("e");
     return (await p.locator(".lv").count()) === 0 || "E did not close";

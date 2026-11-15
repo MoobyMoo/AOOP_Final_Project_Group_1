@@ -560,5 +560,6 @@ function onKey(e: KeyboardEvent) {
   if (k === "control") root.classList.add("ctrl");
 }
 /** debug / test hooks: what the screen shows, by panel */
-export const lootDebug = () => ({ open: !!root, target: target?.name ?? null, them: entries().map((e) => (e.revealed ? e.item : "?")), sel: sel ? key(sel) : null, gun: { ...G.save.gun } });
+/** for tests: `them` lists item types (instances carry "@id") */
+export const lootDebug = () => ({ open: !!root, target: target?.name ?? null, them: entries().map((e) => (e.revealed ? itemType(e.item) : "?")), sel: sel ? key(sel) : null, gun: { ...G.save.gun } });
 void parseInst;
