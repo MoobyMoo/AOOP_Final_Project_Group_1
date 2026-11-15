@@ -24,7 +24,7 @@ import { openCreator, renderCreator } from "./ui/creator";
 import { buildMapShots, toggleMap, mapOpen, toggleMinimap } from "./ui/mapview";
 import { itemDef } from "./loot/raidloot";
 import { isEquip, visualGear } from "./loot/equipment";
-import { iconHtml } from "./ui/itemicon";
+import { payoutSlip } from "./ui/payout";
 import { createRig, preloadCharacters } from "./actors/rig";
 import { createKingpin, createGunFx, preloadKingpin } from "./combat/kingpin";
 import { fadeTo } from "./world/interact";
@@ -47,6 +47,7 @@ await preloadBuild().catch((e) => console.warn("build kit missing, bunker uses t
 await preloadCharacters(); // character GLBs (rig v2): createRig() is synchronous once this resolves
 await Promise.all([preloadNature(), preloadHouse()]); // nature + building kits (the structures kit is loaded above): the raid world builds from them
 buildRaidWorld(); G.stage.setScene(raidScene); buildMapShots(raidScene);
+if (QS.has("dev")) (window as unknown as { __ui: unknown }).__ui = await import("./ui/devhooks"); // UI captures and tools/uitest.mjs
 if (QS.has("glitch")) (window as unknown as { __glitch: unknown }).__glitch = await import("./dev/glitch"); // the glitch hunt (tools/glitchcheck.mjs)
 G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); G.rig.setGear?.(G.save.gear);
 
@@ -63,17 +64,9 @@ function onRaidEnd(r: RaidResult) {
   for (const i of kept) if (itemDef(i).rarity === "epic" && !sv.trophies.includes(i)) sv.trophies.push(i);
   sv.gear = { ...G.gear };
   save(sv);
-  // raid result (Duckov-style panel: title + badge, stats, a rarity-tinted item grid, total)
-  const badge = r.how === "bonked" ? ["Bonked", "bad"] : r.how === "raft" ? ["Rafted home", "raft"] : r.how === "tunnel" ? ["Tunnel", "ok"] : ["Home safe", "ok"];
-  const how = r.how === "bonked" ? "The crew carried you home." : r.how === "raft" ? "You rafted home with the haul." : r.how === "tunnel" ? "Home through the Smuggler Tunnel." : "Back through the hatch.";
-  const mmss = `${Math.floor(r.raidT / 60)}:${String(Math.floor(r.raidT % 60)).padStart(2, "0")}`, kills = Object.values(r.log.kills).reduce((x, y) => x + y, 0);
-  const cellH = (i: string) => `<div class="cell" style="--rbg:var(--r-${itemDef(i).rarity})" title="${itemDef(i).name}">${iconHtml(i, 44)}<span class="v">${itemDef(i).value}</span></div>`;
-  const html = `<header><div class="result-title"><h2>Raid ${sv.raids}</h2><i class="${badge[1]}">${badge[0]}</i></div><small>Banana Grove</small></header><p>${how}</p>
-    <div class="stats"><div class="stat"><b>${mmss}</b><span>raid time</span></div><div class="stat"><b>${kills}</b><span>bonked</span></div><div class="stat"><b>${r.log.crates}</b><span>crates opened</span></div></div>
-    <h4>Brought home</h4>${kept.length ? `<div class="grid">${kept.map(cellH).join("")}</div>` : `<p class="dim">Nothing this time.</p>`}
-    ${r.lost.length ? `<p class="lostline">${r.lost.length} item${r.lost.length > 1 ? "s" : ""} left in your satchel where you fell. Recover it next raid.</p>` : ""}
-    ${r.kept.includes("vine_key") ? `<p>🗝️ The Vine Key is on your keyring. The vault opens next raid.</p>` : ""}
-    <div class="total"><span>Haul value${bonus ? `, raft bonus 🍌 ${bonus} paid now` : ""}</span><b>🍌 ${value + bonus}</b></div><p class="dim">Sell your stash at the Fence.</p>`;
+  // the payout slip (ui/payout.ts): B's appraisal receipt in A's palette
+  const kills = Object.values(r.log.kills).reduce((x, y) => x + y, 0);
+  const html = payoutSlip({ raid: sv.raids, how: r.how, raidT: r.raidT, kills, crates: r.log.crates, kept, lost: r.lost.length, value, bonus, vineKey: r.kept.includes("vine_key") });
   (window as unknown as { __raids: object[] }).__raids ??= []; (window as unknown as { __raids: object[] }).__raids.push({ raid: sv.raids - 1, seed: G.seed, how: r.how, t: r.raidT, value, bonus, kept: r.kept.length, lost: r.lost.length, log: structuredClone(r.log), ammo: G.ammo + G.mag, hp: G.hp, maxHp: G.maxHp, usefulFound: G.lootCtx.usefulFound, upgrades: { ...sv.upgrades } });
   G.alive = true; goHome(html);
 }
@@ -90,7 +83,8 @@ function frame() {
     G.intent = G.bot ? botTick(STEP) : G.input.read(STEP);
     if (G.intent.map && G.scene === "raid") toggleMap();
     if (G.intent.inv && G.scene === "raid") hud.inventory();
-    if (hud.invOpen() && G.scene === "raid") Object.assign(G.intent, { fire: false, firePressed: false, ads: false, melee: false }); // the pack screen takes the mouse
+    if (hud.invOpen() && G.scene === "raid") Object.assign(G.intent, { fire: false, firePressed: false, ads: false, melee: false, reload: false, roll: false }); // the loot screen takes the mouse and R (sort)
+    if (hud.swallowInteract() && G.scene === "raid") Object.assign(G.intent, { interact: false, interactHeld: false }); // E closes an open container; don't reopen it
     if (G.intent.mini && G.scene === "raid") toggleMinimap();
     if (G.intent.esc && mapOpen()) toggleMap();
     if (G.scene === "raid") { if (G.hitStop > 0) G.hitStop -= STEP; else { if (mapOpen()) neutral(); stepRaid(STEP); } }

@@ -17,9 +17,9 @@ import { iconHtml } from "../ui/itemicon";
 import { PRICES as LOOT_PRICES } from "../loot/tables";
 import { visualGear, equipDef } from "../loot/equipment";
 import { bunkerRoom, buildReady, piecesToObject } from "../world/kit_build";
-import { equipFromLocker, unequip, sellEquip, repairAll } from "../loot/equipment-actions";
-import { dollHtml, itemCell, detailsHtml, gearSummary, repairBill } from "../ui/equipui";
-import type { WearSlot } from "../contracts";
+import { sellEquip, repairAll } from "../loot/equipment-actions";
+import { repairBill } from "../ui/equipui";
+import { openLoot, closeLoot, lootOpen, lootSwallowsInteract } from "../ui/lootview";
 
 export const bunkerScene = new THREE.Scene();
 bunkerScene.background = new THREE.Color("#2a2420");
@@ -100,11 +100,14 @@ export function enterBunker(deploy: () => void, mirror: () => void, summary?: st
 }
 export function leaveBunker() { closePanel(); G.stage.hemi.intensity = Number(new URLSearchParams(location.search).get("fill") ?? 0.9); G.stage.sun.intensity = Number(new URLSearchParams(location.search).get("sun") ?? 6); G.stage.bounce.intensity = Number(new URLSearchParams(location.search).get("bounce") ?? 1.6); }
 function money() { const el = document.querySelector(".home-money b"); if (el) el.textContent = String(G.save.money); }
-function showPanel(html: string, cls = "") { closePanel(); panel = document.createElement("div"); panel.className = "panel " + cls; panel.innerHTML = html + `<div class="foot"><kbd>E</kbd> or <kbd>Esc</kbd> to close</div>`; document.getElementById("ui")!.appendChild(panel); panel.style.pointerEvents = "auto"; panel.querySelectorAll<HTMLButtonElement>("button[data-a]").forEach((b) => b.onclick = () => act(b.dataset.a!)); }
-function closePanel() { panel?.remove(); panel = null; }
+const BRK = `<i class="brk tl"></i><i class="brk tr"></i><i class="brk bl"></i><i class="brk br"></i>`;
+// UI v3: every station is the same pinstripe plate as the raid screens (brass brackets, tie stripe under the title)
+function showPanel(html: string, cls = "") { closePanel(); panel = document.createElement("div"); panel.className = "panel " + cls; panel.innerHTML = (cls === "result" ? html : BRK + html.replace("</header>", `</header><div class="tie"></div>`)) + `<div class="foot"><kbd>E</kbd> or <kbd>Esc</kbd> to close</div>`; document.getElementById("ui")!.appendChild(panel); panel.style.pointerEvents = "auto"; panel.querySelectorAll<HTMLButtonElement>("button[data-a]").forEach((b) => b.onclick = () => act(b.dataset.a!)); }
+function closePanel() { panel?.remove(); panel = null; closeLoot(); }
 let near: Station | null = null;
 export function stepBunker(dt: number) {
   const i = G.intent; G.time += dt; U.uTime.value = G.time;
+  if (lootOpen() || lootSwallowsInteract()) return; // the locker (ui/lootview.ts) owns Esc and E while open
   if (panel) { if (i.esc || i.interact) { closePanel(); sfx("ui"); } return; }
   const mv = new THREE.Vector3(i.move.x, 0, i.move.z).applyAxisAngle(new THREE.Vector3(0, 1, 0), G.stage.cam.yaw);
   vel.lerp(mv.multiplyScalar(PLAYER.speed), Math.min(1, dt * 12)); pp.addScaledVector(vel, dt);
@@ -122,7 +125,7 @@ export function renderBunker(dt: number) {
   const f = pp.clone().setY(0.5).add(V(0, -1.2)); G.stage.cam.dist = 26; G.stage.place(f, dt, G.time); G.stage.cam.dist = 40;
 }
 const head = (title: string, sub = "") => `<header><h2>${title}</h2>${sub ? `<small>${sub}</small>` : ""}</header>`;
-const cell = (i: string) => `<div class="cell" style="--rbg:var(--r-${itemDef(i).rarity})" title="${itemDef(i).name}">${iconHtml(i, 44)}<span class="v">${itemDef(i).value}</span></div>`;
+const cell = (i: string) => `<div class="cell" style="--rar:var(--rar-${itemDef(i).rarity})" title="${itemDef(i).name}">${iconHtml(i, 54)}<span class="v">${itemDef(i).value}</span></div>`;
 function open(s: Station) {
   const sv = G.save;
   if (s.id === "ladder") return showPanel(islandMap());
@@ -138,17 +141,11 @@ function open(s: Station) {
     <div class="row"><b>Banana-leaf bandage</b><small>Heals 15, quick to use</small><button class="act" data-a="buyBandage">🍌 ${PRICES.bandage}</button></div>
     <div class="row"><b>Banana smoothie</b><small>Heals 40, slow to drink</small><button class="act" data-a="buySmoothie">🍌 ${PRICES.smoothie}</button></div></div>`);
 }
-/** the locker (G1-23): what you wear + the gear kept at home; click to swap. The mirror button opens the creator. */
+/** the locker (G1-23): the shared loot screen (ui/lootview.ts) with the locker as the target: what you wear on the
+ *  left, stored gear on the right, the leather tag in the middle. Double-click or drag to swap. */
 function openLocker() {
-  const sv = G.save, g = gearSummary(sv.gear);
-  let cells = ""; const n = Math.max(12, Math.ceil(sv.locker.length / 6) * 6); for (let i = 0; i < n; i++) cells += itemCell(sv.locker[i], i, { src: "locker" });
-  showPanel(`${head("Mirror and locker", `🛡 body ${g.body}, head ${g.head}`)}<div class="inv-body locker"><section><h4>Wearing</h4>${dollHtml(sv.gear)}</section><section><h4>Locker <small>${sv.locker.length} pieces</small></h4><div class="grid">${cells}</div></section></div>
-    <div class="inv-detail">${detailsHtml(null)}</div><div class="actions"><button data-a="look">Change your look</button></div><p class="dim" style="margin-top:8px">Found gear is lost to your satchel if you get bonked. Pieces marked ★ are yours for good.</p>`, "inv");
-  const p = panel!, detail = p.querySelector(".inv-detail") as HTMLElement;
-  p.querySelectorAll<HTMLElement>("[data-locker]").forEach((b) => { const i = +b.dataset.locker!, inst = sv.locker[i];
-    b.onmouseenter = () => { detail.innerHTML = detailsHtml(inst, "Click to wear it"); }; b.onclick = () => { if (equipFromLocker(i)) { sfx("ui"); G.rig.setGear?.(sv.gear); save(sv); openLocker(); } else sfx("nope"); }; });
-  p.querySelectorAll<HTMLElement>("[data-slot]").forEach((b) => { const slot = b.dataset.slot as WearSlot, inst = sv.gear[slot];
-    b.onmouseenter = () => { detail.innerHTML = detailsHtml(inst, inst ? "Click to put it in the locker" : ""); }; b.onclick = () => { if (inst && unequip(slot)) { sfx("ui"); G.rig.setGear?.(sv.gear); save(sv); openLocker(); } else sfx("nope"); }; });
+  closePanel();
+  openLoot({ name: "Locker", items: G.save.locker, search: null, kind: "locker", sub: "Found gear comes home here", actions: [{ label: "Change your look", run: () => { closeLoot(); act("look"); } }] });
 }
 function gearSaleHtml() {
   const rows = G.save.locker.map((inst, i) => ({ inst, i, d: equipDef(inst) })).filter((r) => r.d && !r.d.bound);
@@ -207,4 +204,4 @@ function act(a: string) {
   if (a === "buyBandage") buy(PRICES.bandage, () => { sv.reserved.push("bandage"); });
   if (a === "buySmoothie") buy(PRICES.smoothie, () => { sv.reserved.push("smoothie"); });
 }
-export const homeApi = { act, open: (id: string) => { const s = stations.find((q) => q.id === id); if (s) open(s); }, panelOpen: () => !!panel, pos: pp };
+export const homeApi = { act, open: (id: string) => { const s = stations.find((q) => q.id === id); if (s) open(s); }, panelOpen: () => !!panel || lootOpen(), pos: pp };
