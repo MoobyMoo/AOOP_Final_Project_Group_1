@@ -416,7 +416,8 @@ export function createBot(opts: { greed: number; reactionLag: number; seed: numb
       // the demo slice (G1.5-13) shuts the raft and the tunnel: the greedy bot rows the cove boat home, and the middle
       // bot takes it every other raid, so a campaign tests both of the slice's exits
       const raftOpen = v.exits.some(exit => exit.id === "raft" && exit.open !== false), raid = v.raidId ?? v.raids;
-      const preferred = greed >= 0.65 && v.player.hearts > 1 ? (raftOpen ? (raid % 3 === 2 ? "tunnel" : "raft") : "boat") : !raftOpen && greed >= 0.45 && raid % 2 === 1 ? "boat" : "hatch";
+      const slice = !raftOpen && v.exits.some(exit => exit.id === "boat" && exit.open !== false);
+      const preferred = greed >= 0.65 && v.player.hearts > 1 ? (slice ? "boat" : raid % 3 === 2 ? "tunnel" : "raft") : slice && greed >= 0.45 && raid % 2 === 1 ? "boat" : "hatch";
       const tunnel = v.exits.find(exit => exit.id === "tunnel");
       if (preferred === "tunnel" && tunnel?.open === false) {
         const rubble = v.gates?.find(gate => gate.id === "grotto-rubble" && !gate.open);
