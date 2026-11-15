@@ -15,9 +15,10 @@ export type ContainerDef = { label: string; count: readonly [number, number]; op
    *  weighted draw (Duckov's pool mode). */
   qualities?: { weights: readonly number[]; bonus?: number } };
 /** guns in the loot (combat/guns.ts): inside its quality, each gun weighs this much against the other entries; tier
- *  sets which quality roll it answers to. The bound Kingpin is never loot. */
-const GUN_POOL = { pocket_change: 0.8, pipe_dream: 0.8, peel_sprayer: 0.7, bootleg_rifle: 0.7, cash_flow: 0.6, coconut_cracker: 0.6,
-  golden_parachute: 0.6, contraband_carbine: 0.6, bean_counter: 0.5, insider_trader: 0.5, board_meeting: 0.5, the_audit: 0.5, long_ledger: 0.4, hostile_takeover: 1 };
+ *  sets which quality roll it answers to. The bound Kingpin is never loot. Tuned so a weapon crate gives a gun about
+ *  one time in five (loot/sim.ts prints the rate), mostly low tier; a top-tier gun is about one crate in 250. */
+const GUN_POOL = { pocket_change: 0.25, pipe_dream: 0.25, peel_sprayer: 0.25, bootleg_rifle: 0.25, cash_flow: 0.5, coconut_cracker: 0.5,
+  golden_parachute: 0.5, contraband_carbine: 0.5, bean_counter: 0.5, insider_trader: 0.5, board_meeting: 0.5, the_audit: 0.5, long_ledger: 0.5, hostile_takeover: 1 };
 export const CONTAINERS: Record<ContainerType, ContainerDef> = {
   // G1.5 row 36, Duckov's attachment sources (POLISH_FINDINGS "Attachments", loot): an attachment is about 30% of a
   // weapon crate's rolls (Duckov's better weapon crates 24-41%), 4.6% of a parts crate's (its tech box) and 2% of an

@@ -194,6 +194,17 @@ function dull(pal: Float32Array, i: number) {
 const PA = new Float32Array(64 * ST), PB = new Float32Array(64 * ST), PC = new Float32Array(64 * ST);
 const HQ = { par: new THREE.Quaternion(), root: new THREE.Quaternion(), rel: new THREE.Quaternion() };
 const Q = new THREE.Quaternion(), UP = new THREE.Vector3(0, 1, 0), XA = new THREE.Vector3(1, 0, 0), ZA = new THREE.Vector3(0, 0, 1);
+/** IK scratch (no allocation in pose) */
+const IKV = { f: new THREE.Vector3(), r: new THREE.Vector3(), s: new THREE.Vector3(), a: new THREE.Vector3(), g: new THREE.Vector3(), p: new THREE.Vector3(), t: new THREE.Vector3(),
+  A: new THREE.Vector3(), E: new THREE.Vector3(), T: new THREE.Vector3(), d: new THREE.Vector3(), n: new THREE.Vector3(), e: new THREE.Vector3(), tt: new THREE.Vector3(), u: new THREE.Vector3(), v: new THREE.Vector3(),
+  q: new THREE.Quaternion(), pq: new THREE.Quaternion(), wq: new THREE.Quaternion() };
+/** rotate a bone in world space so its direction `from` becomes `to` (weighted), then refresh its subtree's matrices */
+function turnTo(b: THREE.Object3D, from: THREE.Vector3, to: THREE.Vector3, w: number) {
+  IKV.q.setFromUnitVectors(from, to); if (w < 1) IKV.q.slerp(IKV.pq.identity(), 1 - w);
+  b.parent!.getWorldQuaternion(IKV.pq); b.getWorldQuaternion(IKV.wq);
+  b.quaternion.copy(IKV.pq.invert().multiply(IKV.wq.premultiply(IKV.q)));
+  b.updateMatrixWorld(true);
+}
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
 const smooth = (a: number, b: number, x: number) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
@@ -329,6 +340,12 @@ const M_ATTACK: Record<string, string> = { fire: "fire", melee: "melee", throw: 
 const M_FULL: Record<string, string> = { roll: "roll", defeat: "defeat", cheer: "cheer" };
 /** look tuning the game may change: headUp = how far monkeys lift their chin toward the top-down camera (rad);
  *  aimRate = how fast the gun arm turns toward faceYaw (rad/s, 360 deg/s like Duckov's right-hand sync) */
+/** LONG-GUN HOLD (armed "long"; Fable 2026-11-15: stocks reach ~0.7 u behind the grip, so the one-handed pistol pose
+ *  put the butt inside the body). Procedural on top of the "aim" layer: two-bone IK puts the right hand on the grip
+ *  with the butt in the pocket of the right shoulder (shoulder + fwd x butt, down x drop), the gun level along the aim,
+ *  and the left hand on the gun's support point (under the fore-end; clamped to the arm's reach). The chest blades
+ *  `blade` rad so the left shoulder comes forward, as a shooter stands. Mid-reload the left hand goes to the well. */
+export const LONG_HOLD = { butt: 0.02, drop: 0.06, inward: 0.05, blade: 0.42, elbowOut: 0.6, elbowDown: 1 };
 export const RIG_TUNE = { headUp: 0.24, aimRate: Math.PI * 2, headSteady: 14, kickBack: 0.1, kickPitch: 0.3, kickOut: 0.035, kickRecover: 9, kickChest: 0.05 }; // headSteady: head low-pass rate /s (0 = off)
 tuneObject("rig", RIG_TUNE, {
   headUp: { min: 0, max: 0.8, step: 0.01, label: "chin up (rad)" }, aimRate: { min: 0.5, max: 30, step: 0.1, label: "aim turn rate (rad/s)" },
@@ -352,6 +369,7 @@ class MonkeyRig extends CharRig {
   private tail: THREE.Bone[]; private curl = 0; private build = 0; private hipsI: number; private hipsY = 0; private armored = false;
   private tSway: Spring = { x: 0, v: 0 }; private tSway2: Spring = { x: 0, v: 0 }; private tLift: Spring = { x: 0, v: 0 }; private ear: Spring = { x: 0, v: 0 };
   private arms: THREE.Bone[]; private dashK = 0;   // upperarm L/R, forearm L/R; dash pose weight
+  private tips: THREE.Object3D[] = []; private longK = 0; // the hand sockets (IK end points) L, R; long-gun hold weight
   private headSm = new THREE.Quaternion(); private headSmOn = false; // the stabilised head, in the character's frame
 
   constructor(model: Model, style: MonkeyLook | EnemyStyle) {
@@ -361,6 +379,7 @@ class MonkeyRig extends CharRig {
     this.spine = this.bone("spine"); this.chest = this.bone("chest"); this.neck = this.bone("neck"); this.head = this.bone("head");
     this.earL = this.bone("ear_L"); this.earR = this.bone("ear_R"); this.tail = [1, 2, 3, 4, 5].map((i) => this.bone("tail" + i)); this.hipsI = model.bi.hips;
     this.arms = ["upperarm_L", "upperarm_R", "forearm_L", "forearm_R"].map((n) => this.bone(n));
+    this.tips = [this.bone("sk_hand_L"), this.bone("sk_hand_R")];
     this.spec = "kind" in style ? monkeyEnemy(style) : null;
     this.scale = this.spec?.scale ?? 1; this.body.scale.setScalar(this.scale);
     this.bounds = { radius: 0.45 * this.scale, height: 2.0 * this.scale };
@@ -496,7 +515,8 @@ class MonkeyRig extends CharRig {
     }
     const hipsY = PA[this.hipsI * ST + 1], vy = h > 0 ? (hipsY - this.hipsY) / h : 0; this.hipsY = hipsY;
     // ---- hand state: what is held decides the arm pose; a reload takes the layer over
-    this.hand.set(act === "reload" ? this.clip("reload") : s.armed === "pistol" ? this.clip("aim") : s.armed === "briefcase" ? this.clip("carry") : null, act === "reload" ? clamp(s.actionT, 0, 1) : 0, dt);
+    const long = s.armed === "long" && !!s.hold;
+    this.hand.set(act === "reload" && !long ? this.clip("reload") : s.armed === "pistol" || long ? this.clip("aim") : s.armed === "briefcase" ? this.clip("carry") : null, act === "reload" ? clamp(s.actionT, 0, 1) : 0, dt);
     this.hand.apply(nb, this.aimMask);
     // ---- attack layer (spine and up) and the full-body state (roll, defeat)
     this.attack.set(atkClip ? this.clip(atkClip) : null, clamp(s.actionT, 0, 1), dt);
@@ -506,7 +526,7 @@ class MonkeyRig extends CharRig {
     this.write();
     // ---- procedural: gun-arm aim, head look, chin up, tail, ears, recoil
     const free = 1 - this.full.weight;
-    this.aimK += ((s.armed === "pistol" ? 1 : 0) - this.aimK) * (snap ? 1 : 1 - Math.exp(-dt * 10));
+    this.aimK += ((s.armed === "pistol" || s.armed === "long" ? 1 : 0) - this.aimK) * (snap ? 1 : 1 - Math.exp(-dt * 10));
     const twist = clamp(wrap(this.aimYaw - this.yaw), -TW_MAX, TW_MAX) * this.aimK * free;
     if (twist !== 0) { this.spine.quaternion.premultiply(Q.setFromAxisAngle(UP, twist * 0.35)); this.chest.quaternion.premultiply(Q.setFromAxisAngle(UP, twist * 0.65)); }
     const look = (clamp(wrap(s.faceYaw - this.yaw), -0.8, 0.8) - twist) * free, up = RIG_TUNE.headUp * free;
@@ -536,6 +556,8 @@ class MonkeyRig extends CharRig {
       this.arms[2].quaternion.multiply(Q.setFromAxisAngle(XA, -0.3 * k)); this.arms[3].quaternion.multiply(Q.setFromAxisAngle(XA, -0.3 * k));
     }
     this.stabiliseHead(dt, snap);
+    this.longK = snap ? (long ? 1 : 0) : this.longK + ((long ? 1 : 0) - this.longK) * (1 - Math.exp(-dt * 14));
+    if (this.longK > 0.002 && s.hold) this.longHold(s, act === "reload" ? clamp(s.actionT, 0, 1) : -1, this.longK * free);
     // recoil: fast out, slower recover (Duckov: back 20/s, recover 8/s); moves the gun socket, a little of it reaches the chest
     const hr = this.sockets.handR, ft = act === "fire" ? s.actionT * CLIP_INFO.fire.dur : -1, T = RIG_TUNE, kick = ft < 0 ? 0 : ft < T.kickOut ? ft / T.kickOut : Math.exp(-(ft - T.kickOut) * T.kickRecover);
     hr.position.z = -T.kickBack * kick; hr.rotation.x = -T.kickPitch * kick;
@@ -554,6 +576,37 @@ class MonkeyRig extends CharRig {
     mi[2] = clamp(l.brows.tilt + (act === "hurt" || act === "defeat" ? -1.4 : act === "melee" || act === "throw" ? 0.7 : act === "fire" ? 0.3 : 0), -1.3, 1.3);
     mi[3] = this.build;
     this.flash(s.flash);
+  }
+  /** the long-gun hold (LONG_HOLD): blade the chest, then IK the right hand to the grip and the left to the support */
+  private longHold(s: RigState, reload: number, w: number) {
+    const H = s.hold!, L = LONG_HOLD;
+    this.chest.quaternion.premultiply(Q.setFromAxisAngle(UP, -L.blade * w)); // left shoulder forward
+    this.neck.quaternion.premultiply(Q.setFromAxisAngle(UP, L.blade * w));   // the head keeps looking down the aim
+    this.root.updateMatrixWorld(true);
+    const yaw = this.aimYaw, F = IKV.f.set(Math.sin(yaw), 0, Math.cos(yaw)), Rt = IKV.r.set(-Math.cos(yaw), 0, Math.sin(yaw)); // the monkey's right
+    const ws = this.body.getWorldScale(IKV.s).x, gs = H.scale * ws;
+    // the butt in the right shoulder pocket; the grip ahead of it by the stock's reach, below it by the bore height
+    const sh = this.arms[1].getWorldPosition(IKV.a);
+    const grip = IKV.g.copy(sh).addScaledVector(F, L.butt * ws + H.reach * gs).addScaledVector(UP, -(L.drop * ws + H.bore * gs)).addScaledVector(Rt, -L.inward * ws);
+    this.ik(this.arms[1], this.arms[3], this.tips[1], grip, IKV.p.copy(Rt).multiplyScalar(L.elbowOut).addScaledVector(UP, -L.elbowDown), w);
+    // the off hand: the support point on the gun (the gun is levelled along the aim at the grip by core/raid.ts);
+    // mid-reload it drops to the magazine well under the receiver and comes back
+    const sup = IKV.t.copy(H.support).multiplyScalar(gs).applyAxisAngle(UP, yaw).add(grip);
+    if (reload >= 0) { const k = Math.sin(Math.PI * clamp(reload / 0.85, 0, 1)); sup.lerp(IKV.a.copy(grip).addScaledVector(F, 0.12 * ws).addScaledVector(UP, -0.18 * ws), k); }
+    this.ik(this.arms[0], this.arms[2], this.tips[0], sup, IKV.p.copy(Rt).multiplyScalar(-L.elbowOut).addScaledVector(UP, -L.elbowDown), w);
+  }
+  /** two-bone IK in world space: turns `upper` and `fore` so that `tip` (the hand socket, rigid with the forearm here)
+   *  reaches `target` (clamped to the reach), the elbow bending toward `pole`. Weight w blends from the animated pose. */
+  private ik(upper: THREE.Bone, fore: THREE.Bone, tip: THREE.Object3D, target: THREE.Vector3, pole: THREE.Vector3, w: number) {
+    const A = upper.getWorldPosition(IKV.A), E0 = fore.getWorldPosition(IKV.E), T0 = tip.getWorldPosition(IKV.T);
+    const l1 = A.distanceTo(E0), l2 = E0.distanceTo(T0); if (l1 < 1e-5 || l2 < 1e-5) return;
+    const dir = IKV.d.subVectors(target, A), dist = clamp(dir.length(), Math.abs(l1 - l2) + 1e-4, l1 + l2 - 1e-4); dir.normalize();
+    const cosA = clamp((l1 * l1 + dist * dist - l2 * l2) / (2 * l1 * dist), -1, 1), sinA = Math.sqrt(1 - cosA * cosA);
+    const perp = IKV.n.copy(pole).addScaledVector(dir, -pole.dot(dir)); if (perp.lengthSq() < 1e-8) perp.set(0, -1, 0); perp.normalize();
+    const E = IKV.e.copy(A).addScaledVector(dir, l1 * cosA).addScaledVector(perp, l1 * sinA), T = IKV.tt.copy(A).addScaledVector(dir, dist);
+    turnTo(upper, IKV.u.subVectors(E0, A).normalize(), IKV.v.subVectors(E, A).normalize(), w);
+    const E1 = fore.getWorldPosition(IKV.E), T1 = tip.getWorldPosition(IKV.T);
+    turnTo(fore, IKV.u.subVectors(T1, E1).normalize(), IKV.v.subVectors(T, E1).normalize(), w);
   }
   /** add one directional gait to the running blend in PC (weights are normalised as they accumulate) */
   private dir(name: string, w: number, ph: number, acc: number) {

@@ -60,8 +60,11 @@ export type RigState = {
   faceYaw: number;       // upper body + head + arms aim heading (twist up to ~75 deg from moveYaw, beyond that the hips turn)
   action: RigAction;
   actionT: number;       // 0..1 progress through timed actions (fire, reload, melee, roll, hurt, throw, windup, slam, defeat)
-  armed: "none" | "pistol" | "briefcase";
+  armed: "none" | "pistol" | "long" | "briefcase"; // "long": the two-handed long-gun hold (SMG, rifle, shotgun, sniper, LMG)
   flash: number;         // 0..1 hurt/hit flash, per instance (never mutate shared materials)
+  /** the long-gun hold (armed "long"): the off hand's point on the gun (gun space), how far the stock reaches behind
+   *  the grip and the bore's height above it (gun units), and the gun's scale in the hand */
+  hold?: { support: THREE.Vector3; reach: number; bore: number; scale: number } | null;
 };
 export interface Rig {
   root: THREE.Group;     // gameplay sets root.position and root.rotation.y = moveYaw; pose() never moves root.position
@@ -90,6 +93,13 @@ export interface GunView {
   /** the fitted laser's beam origin (null with no laser, or no laser model) */
   laser?: THREE.Object3D | null;
   pose(s: { fireT: number; reloadT: number }): void; // fireT: 0..1 after a shot (slide back/forward), reloadT: 0..1 (or -1 = not reloading)
+  /** how the monkey holds it: "one" = the pistol hold; "two" = a long gun, shouldered, the off hand on `support`
+   *  (actors/rig.ts long-gun hold). Absent = "one". */
+  hold?: "one" | "two";
+  /** the off hand's target on the gun (gun space, under the fore-end / handguard), for "two" */
+  support?: THREE.Object3D | null;
+  /** how far the stock reaches behind the grip (gun units, positive = toward -z), for "two"; 0 = no stock */
+  stockReach?: number;
 }
 export interface GunFx {   // pooled; no per-shot allocation
   fire(muzzle: THREE.Object3D, eject: THREE.Object3D, to: THREE.Vector3, hit: "enemy" | "wall" | "none"): void; // flash + light + shell + tracer + impact puff

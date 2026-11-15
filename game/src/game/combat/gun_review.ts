@@ -7,6 +7,7 @@
 // a frozen frame is the bare pose unless &fx=1 (the flash is sized for the game camera and floods a close-up).
 //   ?view=lineup             every gun at rest, side by side by class (the Kingpin first, for scale)
 // &ext=1 extended magazine (the Kingpin only). &atts=id,id fits attachments (loot/attachments.ts ids).
+// &marks=1 shows the off-hand point (gun.support, a red ball) and the stock's reach (a blue ball at the butt).
 // &auto=1 loops 4 shots then a reload, forever. &hit=enemy|wall|none picks the target. &face=deg turns the shooter.
 // Keys: SPACE fire, R reload, E extended magazine, T next target, V other view. &hud=0 hides the text.
 import * as THREE from "three";
@@ -45,6 +46,11 @@ if (QS.get("atts")) {
   const fit: GunAtts = { sight: null, muzzle: null, mag: null, laser: null, grip: null, stock: null };
   for (const a of QS.get("atts")!.split(",")) if (Object.hasOwn(ATTACHMENTS, a)) fit[ATTACHMENTS[a].slot] = a;
   gun.setAttachments?.(fit);
+}
+if (QS.get("marks") === "1") {
+  const ball = (hex: string) => new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 8), new THREE.MeshBasicMaterial({ color: hex, depthTest: false }));
+  if (gun.support) { const b = ball("#ff2020"); b.renderOrder = 30; gun.support.add(b); }
+  if (gun.stockReach) { const b = ball("#2070ff"); b.renderOrder = 30; b.position.set(0, 0.3, -gun.stockReach); gun.root.add(b); }
 }
 const target = new THREE.Vector3(), focus = new THREE.Vector3(), aimDir = new THREE.Vector3();
 let live = !frozen, fireT = pFire ?? 1, reloadT = pReload ?? -1;
@@ -186,7 +192,7 @@ document.title = `Bananaville: ${view === "lineup" ? "arsenal" : DEF.name} revie
 let gunTris = 0, gunCalls = 0;
 const countGun = () => { gunTris = 0; gunCalls = 0; gun.root.traverse((o) => { const m = o as THREE.Mesh; if (!m.isMesh || !m.visible) return; gunCalls++; const g = m.geometry; gunTris += (g.index ? g.index.count : g.attributes.position.count) / 3; }); };
 const peak = { fxCalls: 0, sprites: 0, shells: 0, fxTris: 0 };
-const report = { id: GUN_ID, source: gunModelSource(GUN_ID), length: gunLen, gun: { drawCalls: 0, triangles: 0 }, fx: fx.stats(), peak, frame: { calls: 0, triangles: 0 }, view, ext };
+const report = { id: GUN_ID, source: gunModelSource(GUN_ID), length: gunLen, hold: gun.hold ?? "one", support: (gun.support ? gun.root.worldToLocal(gun.support.getWorldPosition(new THREE.Vector3())).toArray() : null)?.map((v) => +v.toFixed(3)) ?? null, stockReach: +(gun.stockReach ?? 0).toFixed(3), gun: { drawCalls: 0, triangles: 0 }, fx: fx.stats(), peak, frame: { calls: 0, triangles: 0 }, view, ext };
 (window as unknown as { __gun: typeof report }).__gun = report;
 let last = performance.now(), statT = 0;
 function frame(now: number) {

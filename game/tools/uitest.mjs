@@ -143,6 +143,9 @@ async function run(w, h) {
     if (!(await p.locator('.lv-me [data-src="gun:1"] .nm').innerText()).includes("Contraband")) throw new Error("gun 2 card not redrawn");
     const atts = await p.locator('.lv-me .lv-gunrow:nth-child(2) .a3').count();
     if (atts !== 6) throw new Error(`the carbine's row shows ${atts} attachment slots, expected 6`);
+    await click('.lv-me [data-src="gun:1"]'); await p.waitForTimeout(200);
+    const fitTag = await G(() => { const t = document.querySelector(".lv-tagwrap .tag3").getBoundingClientRect(), k = document.querySelector(".lv-keys span").getBoundingClientRect(); return { ok: t.bottom <= k.top + 1, t: t.bottom, k: k.top }; });
+    if (!fitTag.ok) throw new Error(`the gun tag runs into the key bar: ${JSON.stringify(fitTag)}`);
     await closeAll();
     await p.keyboard.press("2");
     if (!(await until(() => window.__G.slot === 1, null, 1000))) throw new Error("2 did not draw gun 2");

@@ -5,6 +5,7 @@ import { initGrid, path, walkable } from "../world/grid";
 import { CRATE_TABLES, PRICES, isUseful, itemDef, mulberry32, rollCrate, rollEnemyDrop, type LootContext } from "./tables";
 import { demoRaidLoot, DEMO_ROUTES, upgradePacing } from './demo-economy';
 import { CATALOG } from '../home/facilities';
+import { rollContainer } from './containers';
 import { DESTINATIONS } from '../core/deployment';
 
 function assert(ok: boolean, message: string): asserts ok {
@@ -58,6 +59,13 @@ function verifyLoot() {
   console.log("Loot self-test: PASS (normalization, ordering, guarantees, sockets, enemy accounting)");
 }
 
+// guns in the loot (combat/guns.ts, loot/containers.ts): how often a weapon crate or a safe hands one out, by tier
+{
+  const rng = mulberry32(99), n = 100_000, per: Record<string, number> = {}; let guns = 0;
+  for (let i = 0; i < n; i++) for (const id of rollContainer("weapon", rng)) if (itemDef(id).kind === "gun") { guns++; per[itemDef(id).rarity] = (per[itemDef(id).rarity] ?? 0) + 1; }
+  let safe = 0; for (let i = 0; i < n; i++) safe += rollContainer("safe", rng).filter((id) => itemDef(id).kind === "gun").length;
+  console.log(`Guns: ${(guns / n * 100).toFixed(1)} per 100 weapon crates (${Object.entries(per).map(([t, c]) => `${t} ${(c / n * 100).toFixed(2)}`).join(", ")}); ${(safe / n * 100).toFixed(2)} per 100 safes`);
+}
 const prefabs = manifest.groups.prefab.assets;
 initGrid(placed => JSON.parse(prefabs[placed.k.slice(9) as keyof typeof prefabs].def) as BuildingDef);
 for (const spawn of BOSS_ENCOUNTER.spawns) assert(walkable(spawn.x, spawn.z), 'boss and escorts spawn on walkable ground');

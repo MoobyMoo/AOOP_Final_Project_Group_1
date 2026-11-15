@@ -140,7 +140,7 @@ export const hud = {
     const def = gunOf(G.save.guns[G.slot]?.inst);
     const st = !def ? "empty" : G.reloadT >= 0 ? "reloading" : G.mag === 0 && G.ammo === 0 ? "empty" : "";
     const other = G.save.guns[G.slot === 0 ? 1 : 0];
-    const cap = !def ? "No gun: swing V" : st === "reloading" ? "Reloading…" : st === "empty" ? (other ? `No ${CALIBERS[def.caliber].short}: press ${G.slot === 0 ? 2 : 1}` : "No rounds: swing V") : G.mag === 0 ? "Press R to reload" : def.name.includes(CALIBERS[def.caliber].short) ? def.name : `${CALIBERS[def.caliber].short} ${def.name}`;
+    const cap = !def ? "No gun: swing V" : st === "reloading" ? "Reloading…" : st === "empty" ? (other ? `No ${CALIBERS[def.caliber].short}: press ${G.slot === 0 ? 2 : 1}` : "No rounds: swing V") : G.mag === 0 ? "Press R to reload" : def.name; // the caliber is on the card
     const k = `${G.mag}|${G.ammo}|${st}|${cap}`; if (k === lastAmmo) return; lastAmmo = k;
     E.ammo.className = `plate h3-ammo ${st}`;
     set(E.ammo.querySelector(".m") as HTMLElement, String(G.mag).padStart(2, "0")); set(E.ammo.querySelector(".r") as HTMLElement, `/ ${String(G.ammo).padStart(2, "0")}`);

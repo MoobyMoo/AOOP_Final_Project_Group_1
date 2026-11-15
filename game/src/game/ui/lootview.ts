@@ -495,25 +495,23 @@ function gunTagHtml(src: Src, inst: string) {
   const def = gunOf(inst)!, t = tierOf(def.tier), cp = itemCopy(inst), k = src.z === "gun" ? gk(src.s) : -1, gs = k >= 0 ? G.save.guns[k as 0 | 1] : null;
   const st = statsFor(def, gs?.atts ?? { sight: null, muzzle: null, mag: null, laser: null, grip: null, stock: null }), r = k >= 0 ? roundsOf(k as 0 | 1) : null;
   const rate = 1 / def.interval, per = def.pellets > 1 ? ` (${def.pellets} pellets)` : "";
+  const rateTxt = `${rate >= 2 ? `${Math.round(rate)} a second` : `one every ${def.interval.toFixed(2)} s`}${def.fire === "burst" ? `, bursts of ${def.burst}` : def.fire === "auto" ? ", full auto" : def.fire === "bolt" ? (def.cls === "shotgun" ? ", pump" : ", bolt") : ""}`;
+  const parts = gs ? def.slots.filter((q) => gs.atts[q]).map((q) => attName(gs.atts[q]!)) : [];
   const facts = [
-    r ? `<li><span>Loaded</span><span class="num">${r.loaded} of ${home() ? st.mag : G.slot === k ? G.magSize : st.mag}</span></li><li><span data-tip="Only this caliber loads it">Reserve</span><span class="num">${r.reserve} ${esc(CALIBERS[def.caliber].name.toLowerCase())}</span></li>` : `<li><span>Takes</span><span>${esc(CALIBERS[def.caliber].name)}</span></li>`,
-    `<li><span>Damage</span><span class="num">${def.damage}${per}</span></li>`,
-    `<li><span>Fire rate</span><span class="num">${rate >= 2 ? `${Math.round(rate)} a second` : `one every ${def.interval.toFixed(2)} s`}${def.fire === "burst" ? `, bursts of ${def.burst}` : def.fire === "auto" ? ", full auto" : def.fire === "bolt" ? (def.cls === "shotgun" ? ", pump" : ", bolt") : ""}</span></li>`,
+    r ? `<li><span data-tip="Loaded, then the reserve of its caliber: only this caliber loads it">Rounds</span><span class="num">${r.loaded} of ${home() ? st.mag : G.slot === k ? G.magSize : st.mag}, ${r.reserve} ${esc(CALIBERS[def.caliber].short.toLowerCase())} spare</span></li>` : `<li><span>Takes</span><span>${esc(CALIBERS[def.caliber].name)}</span></li>`,
+    `<li><span>Damage</span><span class="num">${def.damage}${per}, ${rateTxt}</span></li>`,
     `<li><span>Magazine</span><span class="num">${st.mag}${def.reloadMode === "round" ? `, ${def.perRound} s a round` : `, ${st.reload.toFixed(1)} s reload`}</span></li>`,
-    `<li><span data-tip="How far a round flies">Range</span><span class="num">${st.range.toFixed(0)} m</span></li>`,
-    `<li><span data-tip="How far the view leans toward your aim when you aim (right mouse). Sights raise it.">Aim zoom</span><span class="num">${zoomText(st.adsDist)}</span></li>`,
-    def.move < 1 ? `<li><span>Move speed</span><span class="num">${Math.round(st.moveSpeed * 100)}%</span></li>` : "",
-    `<li><span data-tip="What the Fence pays for it at home">Worth</span><span class="num">${def.bound ? "Not for sale" : `🍌 ${def.value}`}</span></li>`,
-    `<li><span>Weight</span><span class="num">${def.weight.toFixed(1)} kg</span></li>`,
-    ...(gs ? def.slots.filter((q) => gs.atts[q]).map((q) => `<li><span>${SLOT_LABEL[q]}</span><span>${esc(attName(gs.atts[q]!))}</span></li>`) : []),
+    `<li><span data-tip="How far a round flies; aim zoom is how far the view leans toward your aim (right mouse)">Range, zoom</span><span class="num">${st.range.toFixed(0)} m, ${zoomText(st.adsDist)}${def.move < 1 ? `, you move at ${Math.round(st.moveSpeed * 100)}%` : ""}</span></li>`,
+    `<li><span data-tip="What the Fence pays for it at home">Worth</span><span class="num">${def.bound ? "Not for sale" : `🍌 ${def.value}`}, ${def.weight.toFixed(1)} kg</span></li>`,
+    parts.length ? `<li><span>Fitted</span><span>${esc(parts.join(", "))}</span></li>` : "",
   ].join("");
   const btn = (act: string, label: string, pri = false) => `<button class="b3${pri ? " pri" : ""}" data-act="${act}">${label}</button>`;
   const acts = src.z === "gun" ? (def.bound && !home() ? "" : btn("primary", home() ? (def.bound ? "Put on the rack" : "Put in locker") : target ? "Leave it here" : "Sling it in your pack"))
     : src.z === "pack" ? (target ? btn("primary", "Leave it here", true) : btn("primary", "Put in a gun slot", true)) + btn("drop", "Drop")
     : src.z === "them" ? btn("primary", home() ? "Put in a gun slot" : "Take", true) + (home() ? "" : btn("wear", "Take into a gun slot")) : "";
-  return `<div class="tag3" style="--rar:var(--rar-${def.tier})"><span class="hole"></span>${iconHtml(inst, 200).replace('class="ico"', 'class="ico big"')}
+  return `<div class="tag3" style="--rar:var(--rar-${def.tier})"><span class="hole"></span>${iconHtml(inst, 140).replace('class="ico"', 'class="ico big"')}
     <h3>${esc(def.name)}</h3><div class="rar">${esc(`${t.name} ${CLASS_LABEL[def.cls].toLowerCase()}${def.bound ? ", yours for good" : ""}`)}</div><p class="blurb">${esc(def.blurb)}</p>
-    <ul class="does"><li>${esc(def.trait)}</li></ul><ul class="facts">${facts}</ul>${acts ? `<div class="acts">${acts}</div>` : ""}<p class="how">${esc(src.z === "gun" ? `Press ${k + 1} to draw it. Drag parts onto it to fit them.` : cp.use + ".")}</p></div>`.replace('<span class="emo"', '<span class="emo bigemo"');
+    <ul class="does"><li>${esc(def.trait)}</li></ul><ul class="facts">${facts}</ul>${acts ? `<div class="acts">${acts}</div>` : ""}</div>`.replace('<span class="emo"', '<span class="emo bigemo"');
 }
 const keysHtml = () => home()
   ? `<span><kbd>Click</kbd>Read the tag</span><span><kbd>Double-click</kbd>Wear or store</span><span><kbd>Drag</kbd>Move</span><span><kbd>R</kbd>Sort</span><span><kbd>Esc</kbd>Close</span>`

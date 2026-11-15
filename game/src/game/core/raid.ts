@@ -151,6 +151,8 @@ export function quitRaid() { if (G.scene === "raid") finish("bonked", 0, "quit")
 export const camLead = new THREE.Vector3(), camFocus = new THREE.Vector3();
 /** Moo 2026-11-15: guns were way too big; Duckov-like proportions put a pistol at ~1/4 of the character's height */
 const GUN_SCALE = 0.65;
+/** the long-gun hold handed to the rig (actors/rig.ts LONG_HOLD), filled from the gun view each frame */
+const HOLD = { support: new THREE.Vector3(), reach: 0, bore: 0.3, scale: GUN_SCALE };
 const focus = new THREE.Vector3(), chest = new THREE.Vector3(), sockQ = new THREE.Quaternion(), yawQ = new THREE.Quaternion(), UPV = new THREE.Vector3(0, 1, 0);
 export function stepRaid(dt: number) {
   G.raidT += dt; G.time += dt;
@@ -163,7 +165,10 @@ export function renderRaid(dt: number) {
   const action = !G.alive && G.hp <= 0 ? "defeat" : G.rollT >= 0 ? "roll" : G.meleeT >= 0 ? "melee" : G.reloadT >= 0 ? "reload" : G.hurtT >= 0 ? "hurt" : G.fireT < 1 ? "fire" : G.vel.lengthSq() > 0.3 ? "run" : "idle";
   const at = action === "defeat" ? Math.min(1, bonkT / 0.9) : action === "roll" ? G.rollT : action === "melee" ? G.meleeT : action === "reload" ? G.reloadT : action === "hurt" ? G.hurtT : action === "fire" ? G.fireT : 0;
   G.rig.root.rotation.y = G.moveYaw;
-  G.rig.pose({ time: G.time, speed: G.vel.length(), moveYaw: G.moveYaw, faceYaw: action === "roll" ? G.moveYaw : G.aimYaw, action, actionT: at, armed: G.meleeT >= 0 ? "briefcase" : "pistol", flash: G.iframes > 0.25 ? 1 : 0 });
+  const long = G.gun.hold === "two" && !!G.gun.support && GUN.armed; // SMG, rifle, shotgun, sniper, LMG: shouldered, two hands
+  // in gun space, read through the gun's last world pose (the support can ride a pump's fore-end)
+  if (long) { G.gun.root.updateMatrixWorld(true); G.gun.root.worldToLocal(G.gun.support!.getWorldPosition(HOLD.support)); HOLD.reach = G.gun.stockReach ?? 0; HOLD.bore = G.gun.root.worldToLocal(G.gun.muzzle.getWorldPosition(chest)).y; }
+  G.rig.pose({ time: G.time, speed: G.vel.length(), moveYaw: G.moveYaw, faceYaw: action === "roll" ? G.moveYaw : G.aimYaw, action, actionT: at, armed: G.meleeT >= 0 ? "briefcase" : long ? "long" : "pistol", flash: G.iframes > 0.25 ? 1 : 0, hold: long ? HOLD : null });
   // level the gun in the hand and point it along the aim (the socket's own rotation follows the arm pose)
   G.rig.root.updateMatrixWorld(true); G.rig.sockets.handR.getWorldQuaternion(sockQ);
   G.gun.root.quaternion.copy(sockQ.invert()).multiply(yawQ.setFromAxisAngle(UPV, G.aimYaw));

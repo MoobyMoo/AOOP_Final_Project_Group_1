@@ -4,12 +4,17 @@
 // preloadGunModels() once at boot (it also loads the Kingpin); createGunView(id) and gunPickupModel(id) are synchronous
 // after it. Before the preload, or with no file, a gun shows its placeholder.
 //
-// GLB CONVENTIONS (the Kingpin's, tools/blender/kingpin/kp_common.py): grip at the origin, barrel along +z, ejection on
-// +x. Nodes: `slide` or `bolt` (the cycling part; a shotgun's pump fore-end is `slide`), `mag` (absent on tube and
-// single-shot guns), `muzzle`, `eject`, and empties socket_sight / socket_muzzle / socket_mag / socket_rail (laser) /
-// socket_grip / socket_stock for the slots the gun has (extras.rides = "slide" | "mag" | "body", as the Kingpin's).
-// Clips in the file are ignored: every non-Kingpin gun is animated here, procedurally, from {fireT, reloadT}, so a
-// GLB only needs its nodes named. Missing nodes skip their motion.
+// GLB LAYOUT (Fable's guns kit, tools/blender/guns/manifest.json): `<gunId>` > `body` > nodes; `frame` is the fixed part.
+// Grip at the origin, bore along +z, ejection on +x. Points `muzzle_flash` (the muzzle) and `eject`; empties
+// socket_sight / socket_muzzle / socket_mag / socket_rail (laser) / socket_grip / socket_stock with extras.rides naming
+// the part each moves with. The root's extras say what moves and how: `moving` (slide, bolt, fore_end, hammer,
+// bolt_handle) runs back `travel` u along -z, or turns `swing` deg about +x (the revolver hammer), or for a bolt action
+// lifts `boltLift` deg about +z on its pivot (the node origin) then runs back; `mag` names the magazine node (mag,
+// box_mag, or a loading point: cylinder, shells, tube, which bob on reload and show no mag attachment); `builtinSight`
+// hides while a sight is fitted. No clips: the motion is procedural from {fireT, reloadT}. The Kingpin-era names
+// (`slide`/`bolt`, `mag`, `muzzle`, rides "slide"/"mag") still work. The bipod stays folded.
+// HOLD: every non-pistol is two-handed; `support` (the off hand) sits on socket_grip, else on the pump fore-end (riding
+// it), else under the handguard 60% of the way to the muzzle; `stockReach` = how far the frame reaches behind the grip.
 //
 // PLACEHOLDERS: chunky per-class silhouettes from a few rounded boxes and cylinders, vertex coloured and merged into
 // three meshes (static body, slide/bolt, magazine): <= 3 draw calls, cached per id. Dark gunmetal and wood like the
@@ -52,7 +57,10 @@ const seg = (t: number, a: number, b: number) => { const x = (t - a) / (b - a); 
 const BODY = 0, MOVER = 1, MAG = 2;
 type Part = typeof BODY | typeof MOVER | typeof MAG;
 type Sock = { slot: AttSlot; p: THREE.Vector3; rides: Part; rx: number };
-type Placeholder = { geo: [THREE.BufferGeometry, THREE.BufferGeometry | null, THREE.BufferGeometry | null]; mover: "slide" | "bolt"; muzzle: THREE.Vector3; eject: THREE.Vector3; sockets: Sock[] };
+type Placeholder = {
+  geo: [THREE.BufferGeometry, THREE.BufferGeometry | null, THREE.BufferGeometry | null]; mover: "slide" | "bolt"; muzzle: THREE.Vector3; eject: THREE.Vector3; sockets: Sock[];
+  /** the off hand (gun space, or the mover's on a pump) and the stock's reach behind the grip */ support: { pos: THREE.Vector3; onMover: boolean } | null; stockReach: number;
+};
 
 // palette: dielectric albedos (the stage sun shows a lit dielectric at about 2.5x, kp_common.py), matched by eye to the
 // Kingpin's gunmetal, graphite, steel and ivory under the same light
@@ -297,6 +305,28 @@ function styleOf(d: GunDef): Style {
   return s;
 }
 
+/** the bottom of the gun under the bore at z (the hand's place under a handguard): the lowest vertex of `pos` (moved by
+ *  m) within 0.06 u of z and within 0.4 u under the bore; just under the bore if nothing is there */
+function underBore(pos: THREE.BufferAttribute | THREE.InterleavedBufferAttribute, m: THREE.Matrix4 | null, z: number, boreY: number): number {
+  const v = new THREE.Vector3(); let best = Infinity;
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i); if (m) v.applyMatrix4(m);
+    if (Math.abs(v.z - z) > 0.06 || Math.abs(v.x) > 0.12 || v.y > boreY || v.y < boreY - 0.4) continue;
+    if (v.y < best) best = v.y;
+  }
+  return best === Infinity ? boreY - 0.12 : best;
+}
+
+/** where the off hand goes on a gun with no fore-grip socket and no pump: 60% of the way from the grip to the muzzle,
+ *  but no further forward than 0.12 u behind the front of the handguard (the furthest point of `pos` hanging more
+ *  than 0.07 u under the bore: not the bare barrel), at the bottom of the gun there */
+function handguardPoint(pos: THREE.BufferAttribute | THREE.InterleavedBufferAttribute, m: THREE.Matrix4 | null, muzzle: THREE.Vector3): THREE.Vector3 {
+  const v = new THREE.Vector3(); let front = 0;
+  for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i); if (m) v.applyMatrix4(m); if (v.y < muzzle.y - 0.07 && Math.abs(v.x) < 0.12 && v.z > front) front = v.z; }
+  const z = Math.max(0.1, Math.min(muzzle.z * 0.6, front - 0.12));
+  return new THREE.Vector3(0, underBore(pos, m, z, muzzle.y), z);
+}
+
 const PLACEHOLDERS = new Map<string, Placeholder>();
 function placeholder(id: string): Placeholder {
   const hit = PLACEHOLDERS.get(id); if (hit) return hit;
@@ -315,12 +345,17 @@ function placeholder(id: string): Placeholder {
     if (st.scale !== 1) g.scale(st.scale, st.scale, st.scale);
     g.computeBoundingBox(); g.computeBoundingSphere(); return g;
   };
-  const s = st.scale;
+  const s = st.scale, geo: Placeholder["geo"] = [merge(k.parts[BODY])!, merge(k.parts[MOVER]), merge(k.parts[MAG])];
+  const pump = d.cls === "shotgun" && d.fire === "bolt", muzzle = k.muzzle.multiplyScalar(s), sockets = k.sockets.map((q) => ({ ...q, p: q.p.multiplyScalar(s) }));
+  // the off hand: on the fore-grip socket, on the pump, or under the handguard 60% of the way to the muzzle
+  const grip = sockets.find((q) => q.slot === "grip");
+  const support: Placeholder["support"] = d.cls === "pistol" ? null
+    : grip ? { pos: grip.p.clone(), onMover: false }
+    : pump && geo[1] ? { pos: geo[1].boundingBox!.getCenter(new THREE.Vector3()), onMover: true }
+    : { pos: handguardPoint(geo[0].attributes.position, null, muzzle), onMover: false };
   const p: Placeholder = {
-    geo: [merge(k.parts[BODY])!, merge(k.parts[MOVER]), merge(k.parts[MAG])],
-    mover: d.cls === "pistol" || (d.cls === "shotgun" && d.fire === "bolt") ? "slide" : "bolt",
-    muzzle: k.muzzle.multiplyScalar(s), eject: k.eject.multiplyScalar(s),
-    sockets: k.sockets.map((q) => ({ ...q, p: q.p.multiplyScalar(s) })),
+    geo, mover: d.cls === "pistol" || pump ? "slide" : "bolt", muzzle, eject: k.eject.multiplyScalar(s), sockets,
+    support, stockReach: d.cls === "pistol" ? 0 : Math.max(0, -geo[0].boundingBox!.min.z),
   };
   PLACEHOLDERS.set(id, p);
   return p;
@@ -329,14 +364,23 @@ let PH_MAT: THREE.Material | null = null;
 const placeholderMat = () => (PH_MAT ??= gunMat(0.5, "none"));
 
 // ================================================================================================ GLB guns
-/** a loaded gun GLB, prepared once: materials swapped for the gun material, sockets brought under the parts they ride.
- *  Views clone `scene` (geometry and materials shared). spec: how to make a fading copy of each material (magazines). */
-type GlbAsset = { scene: THREE.Object3D; spec: Map<THREE.Material, { rough: number; pbr?: { map: THREE.Texture; orm: THREE.Texture | null }; color: THREE.Color }> };
+/** per-gun data in the GLB root's extras (tools/blender/guns/manifest.json "extras"): the moving part and how it moves
+ *  (travel u along -z; swing deg about +x; boltLift deg about +z, then travel), the magazine node and its kind
+ *  (cylinder / shells / tube: a loading point, not a detachable magazine), the built-in sight a fitted one replaces */
+type GlbExtras = { moving?: string; travel?: number; swing?: number; boltLift?: number; mag?: string; magKind?: string; builtinSight?: string; bipodDeploy?: number };
+/** a loaded gun GLB, prepared once: materials swapped for the gun material, sockets brought under the parts they ride,
+ *  the off-hand point found. Views clone `scene` (geometry and materials shared). fadeOf: a per-view dissolving copy of
+ *  a material (the magazine's). support: in scene space, or in the local space of the node `on` (the pump). */
+type GlbAsset = {
+  scene: THREE.Object3D; fadeOf: Map<THREE.Material, () => THREE.Material>; ex: GlbExtras;
+  support: { on: string | null; pos: THREE.Vector3 } | null; stockReach: number;
+};
 const GLBS = new Map<string, GlbAsset>();
 const MISSING = new Set<string>();
+const LOADING_POINTS = ["cylinder", "shells", "tube"];
 
 function prepGlb(id: string, scene: THREE.Object3D): GlbAsset {
-  const spec: GlbAsset["spec"] = new Map(), made = new Map<THREE.Material, THREE.Material>();
+  const fadeOf: GlbAsset["fadeOf"] = new Map(), made = new Map<THREE.Material, THREE.Material>();
   scene.traverse((o) => {
     const m = o as THREE.Mesh; if (!m.isMesh) return;
     m.castShadow = true; m.receiveShadow = true;
@@ -344,38 +388,53 @@ function prepGlb(id: string, scene: THREE.Object3D): GlbAsset {
     const src = (Array.isArray(m.material) ? m.material[0] : m.material) as THREE.MeshStandardMaterial;
     let mat = made.get(src);
     if (!mat) {
-      if (!src.map && src.emissive && src.emissive.getHex() !== 0) { // a glowing part (a sight dot, an LED): unlit, like attachments.glb
+      const map = src.map ?? null, orm = src.metalnessMap ?? src.roughnessMap ?? null;
+      if (!map && src.emissive && src.emissive.getHex() !== 0) { // a glowing part (a sight dot, an LED): unlit, like attachments.glb
         mat = new THREE.MeshBasicMaterial({ color: src.emissive.clone().multiplyScalar(Math.max(1, src.emissiveIntensity ?? 1) * 2.5), toneMapped: false });
+      } else if (map && map.name === "kingpin_palette") {
+        // the guns kit paints with the Kingpin's palette (COLOR_0 = tint x AO, all three channels): its own material
+        mat = gunMaterial(); fadeOf.set(mat, () => gunMaterial("uniform"));
       } else {
-        const map = src.map ?? null, orm = src.metalnessMap ?? src.roughnessMap ?? null;
-        if (map && map.image && (map.image as { width?: number }).width! <= 64) { map.magFilter = map.minFilter = THREE.NearestFilter; map.generateMipmaps = false; map.needsUpdate = true; }
-        if (orm && orm.image && (orm.image as { width?: number }).width! <= 64) { orm.magFilter = orm.minFilter = THREE.NearestFilter; orm.generateMipmaps = false; orm.needsUpdate = true; }
-        const s = { rough: map ? 0.4 : src.roughness ?? 0.5, pbr: map ? { map, orm } : undefined, color: map ? new THREE.Color(1, 1, 1) : src.color.clone() };
-        const g = gunMat(s.rough, "none", s.pbr) as THREE.MeshStandardMaterial; g.color.copy(s.color);
-        spec.set(g, s); mat = g;
+        for (const t of [map, orm]) if (t?.image && ((t.image as { width?: number }).width ?? 999) <= 64) { t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true; }
+        const rough = map ? 0.4 : src.roughness ?? 0.5, pbr = map ? { map, orm } : undefined, color = map ? new THREE.Color(1, 1, 1) : src.color.clone();
+        const make = (fade: "none" | "uniform") => { const g = gunMat(rough, fade, pbr) as THREE.MeshStandardMaterial; g.color.copy(color); return g; };
+        mat = make("none"); fadeOf.set(mat, () => make("uniform"));
       }
       made.set(src, mat);
     }
     m.material = mat;
   });
-  // sockets that say they ride the slide or the magazine move under that part (Kingpin convention: extras.rides)
-  const mover = scene.getObjectByName("slide") ?? scene.getObjectByName("bolt"), mag = scene.getObjectByName("mag");
+  let ex: GlbExtras = {};
+  scene.traverse((o) => { const u = o.userData as GlbExtras & { gunId?: string }; if (!ex.moving && (u.gunId || u.moving)) ex = u; });
+  // sockets move under the part they ride (extras.rides names it: slide, fore_end, mag, cylinder, shells, tube, box_mag)
   scene.updateMatrixWorld(true);
   for (const name of Object.values(SOCKET_OF)) {
     const o = scene.getObjectByName(name); if (!o) continue;
-    const rides = String((o.userData as { rides?: string }).rides ?? "body"), to = rides === "slide" ? mover : rides === "mag" ? mag : null;
+    const rides = String((o.userData as { rides?: string }).rides ?? "body"), to = rides === "body" ? null : scene.getObjectByName(rides) ?? null;
     let under = false; for (let p = o.parent; p; p = p.parent) if (p === to) under = true;
     if (to && !under) to.attach(o);
   }
   // fixed points a file may lack: the muzzle at the front of the bounds on the bore line, the port on +x
   const box = new THREE.Box3().setFromObject(scene), c = box.getCenter(new THREE.Vector3());
-  if (!scene.getObjectByName("muzzle")) { const o = new THREE.Object3D(); o.name = "muzzle"; o.position.set(0, c.y + (box.max.y - c.y) * 0.4, box.max.z); scene.add(o); }
+  if (!scene.getObjectByName("muzzle_flash") && !scene.getObjectByName("muzzle")) { const o = new THREE.Object3D(); o.name = "muzzle"; o.position.set(0, c.y + (box.max.y - c.y) * 0.4, box.max.z); scene.add(o); }
   if (!scene.getObjectByName("eject")) { const o = new THREE.Object3D(); o.name = "eject"; o.position.set(box.max.x, c.y + (box.max.y - c.y) * 0.5, Math.max(box.min.z, 0.1)); scene.add(o); }
+  scene.updateMatrixWorld(true);
+  // the off hand and the stock, from the fixed frame
+  const pistol = GUNS[id].cls === "pistol", frame = (scene.getObjectByName("frame") as THREE.Mesh | undefined) ?? null;
+  const mz = (scene.getObjectByName("muzzle_flash") ?? scene.getObjectByName("muzzle")!).getWorldPosition(new THREE.Vector3());
+  const gripS = scene.getObjectByName("socket_grip"), fore = ex.moving === "fore_end" ? scene.getObjectByName("fore_end") ?? null : null;
+  let support: GlbAsset["support"] = null;
+  if (!pistol) {
+    if (gripS) support = { on: null, pos: gripS.getWorldPosition(new THREE.Vector3()) };
+    else if (fore) support = { on: "fore_end", pos: fore.worldToLocal(new THREE.Box3().setFromObject(fore).getCenter(new THREE.Vector3())) };
+    else support = { on: null, pos: frame?.isMesh ? handguardPoint(frame.geometry.attributes.position, frame.matrixWorld, mz) : new THREE.Vector3(0, mz.y - 0.12, mz.z * 0.6) };
+  }
+  const stockReach = pistol ? 0 : Math.max(0, -new THREE.Box3().setFromObject(frame ?? scene).min.z);
   scene.name = `${id}_glb`;
-  return { scene, spec };
+  return { scene, fadeOf, ex, support, stockReach };
 }
 
-async function loadGlb(id: string): Promise<GlbAsset | null> {
+async function loadGlb(id: string): Promise<THREE.Object3D | null> {
   const url = GUN_URL(id);
   let buf: ArrayBuffer;
   try {
@@ -385,8 +444,7 @@ async function loadGlb(id: string): Promise<GlbAsset | null> {
   } catch { return null; }
   if (buf.byteLength < 12 || new DataView(buf).getUint32(0, true) !== 0x46546c67) return null; // not a binary glTF ("glTF")
   try {
-    const gltf = await new GLTFLoader().parseAsync(buf, url.slice(0, url.lastIndexOf("/") + 1));
-    return prepGlb(id, gltf.scene);
+    return (await new GLTFLoader().parseAsync(buf, url.slice(0, url.lastIndexOf("/") + 1))).scene;
   } catch (e) {
     console.warn(`models/guns/${id}.glb did not load; using the placeholder`, e);
     return null;
@@ -401,7 +459,11 @@ export function preloadGunModels(): Promise<void> {
     const ids = GUN_IDS.filter((id) => id !== KINGPIN_ID);
     const [kp, ...got] = await Promise.allSettled([preloadKingpin(), ...ids.map(loadGlb)]);
     if (kp.status === "rejected") console.warn("preloadGunModels: the Kingpin did not load", kp.reason);
-    got.forEach((r, i) => { const a = r.status === "fulfilled" ? r.value : null; if (a) GLBS.set(ids[i], a); else MISSING.add(ids[i]); });
+    got.forEach((r, i) => {   // prepared after the Kingpin: the guns share its palette material
+      const sc = r.status === "fulfilled" ? r.value : null;
+      try { if (sc) { GLBS.set(ids[i], prepGlb(ids[i], sc)); return; } } catch (e) { console.warn(`models/guns/${ids[i]}.glb: prepare failed; using the placeholder`, e); }
+      MISSING.add(ids[i]);
+    });
     if (MISSING.size) console.info(`gun models: placeholders for ${[...MISSING].join(", ")}`);
   })().catch((e) => { console.warn("preloadGunModels:", e); }));
 }
@@ -412,11 +474,20 @@ export function gunModelSource(id: string): GunModelSource {
 }
 
 // ================================================================================================ views
+const SLIDE = 0, SWING = 1, LIFT = 2;
 type Built = {
-  root: THREE.Group; body: THREE.Group; mover: THREE.Object3D | null; mag: THREE.Object3D | null;
-  muzzle: THREE.Object3D; eject: THREE.Object3D; mounts: Partial<Record<AttSlot, THREE.Object3D>>;
+  root: THREE.Group; body: THREE.Group; muzzle: THREE.Object3D; eject: THREE.Object3D; mounts: Partial<Record<AttSlot, THREE.Object3D>>;
+  /** the moving part and how it moves: SLIDE runs back `travel`; SWING turns `swing` rad about x; LIFT (a bolt
+   *  handle) turns `lift` rad about z, runs back `travel`, then reverses */
+  mover: THREE.Object3D | null; kind: number; travel: number; swing: number; lift: number;
+  mag: THREE.Object3D | null; /** a loading point (cylinder, shells, tube): it bobs on reload, takes no mag attachment */ loadPoint: boolean;
   /** the magazine's fade uniforms (dither dissolve); none = it just hides */ fades: { value: number }[];
+  /** hidden while a sight is fitted */ builtin: THREE.Object3D | null;
+  support: THREE.Object3D | null; stockReach: number;
 };
+function supportPoint(parent: THREE.Object3D, pos: THREE.Vector3) {
+  const o = new THREE.Object3D(); o.name = "support"; o.position.copy(pos); parent.add(o); return o;
+}
 
 function buildPlaceholder(id: string, mounts: boolean): Built {
   const P = placeholder(id), mat = placeholderMat();
@@ -436,47 +507,60 @@ function buildPlaceholder(id: string, mounts: boolean): Built {
     const g = new THREE.Group(); g.name = SOCKET_OF[s.slot]; g.position.copy(s.p); g.rotation.x = s.rx;
     (s.rides === MOVER && mover ? mover : s.rides === MAG && mag ? mag : body).add(g); m[s.slot] = g;
   }
-  return { root, body, mover, mag, muzzle, eject, mounts: m, fades };
+  const support = P.support ? supportPoint(P.support.onMover && mover ? mover : body, P.support.pos) : null;
+  return { root, body, mover, kind: SLIDE, travel: motionOf(GUNS[id]).travel, swing: 0, lift: 0, mag, loadPoint: false, muzzle, eject, mounts: m, fades, builtin: null, support, stockReach: P.stockReach };
 }
 
 function buildGlb(id: string, A: GlbAsset, mounts: boolean): Built {
   const root = new THREE.Group(); root.name = id;
   const body = new THREE.Group(); body.name = "body"; root.add(body);
   const scene = A.scene.clone(true); body.add(scene);
-  const mover = scene.getObjectByName("slide") ?? scene.getObjectByName("bolt") ?? null, mag = scene.getObjectByName("mag") ?? null;
+  const ex = A.ex, D2R = Math.PI / 180;
+  const mover = (ex.moving ? scene.getObjectByName(ex.moving) : scene.getObjectByName("slide") ?? scene.getObjectByName("bolt")) ?? null;
+  const mag = scene.getObjectByName(ex.mag ?? "mag") ?? null, loadPoint = LOADING_POINTS.includes(ex.magKind ?? ex.mag ?? "");
   const fades: { value: number }[] = [];
-  if (mag && mounts) {   // the magazine's materials become per-view fading copies, so a dropped one dissolves alone
+  if (mag && mounts && !loadPoint) {   // the magazine's materials become per-view fading copies, so a dropped one dissolves alone
     const copies = new Map<THREE.Material, THREE.Material>();
     mag.traverse((o) => {
       const m = o as THREE.Mesh; if (!m.isMesh) return;
-      const src = m.material as THREE.Material, s = A.spec.get(src); if (!s) return;
+      const src = m.material as THREE.Material, make = A.fadeOf.get(src); if (!make) return;
       let c = copies.get(src);
-      if (!c) { const g = gunMat(s.rough, "uniform", s.pbr) as THREE.MeshStandardMaterial; g.color.copy(s.color); fades.push(g.userData.uFade as { value: number }); copies.set(src, g); c = g; }
+      if (!c) { c = make(); fades.push(c.userData.uFade as { value: number }); copies.set(src, c); }
       m.material = c;
     });
   }
   const m: Built["mounts"] = {};
-  for (const [slot, name] of Object.entries(SOCKET_OF) as [AttSlot, string][]) {
-    const o = scene.getObjectByName(name); if (!o || !mounts) continue;
+  if (mounts) for (const [slot, name] of Object.entries(SOCKET_OF) as [AttSlot, string][]) {
+    const o = scene.getObjectByName(name); if (!o) continue;
     const g = new THREE.Group(); g.name = `${name}_mount`; o.add(g); m[slot] = g;
   }
-  return { root, body, mover, mag, muzzle: scene.getObjectByName("muzzle")!, eject: scene.getObjectByName("eject")!, mounts: m, fades };
+  const S = A.support, support = S ? supportPoint((S.on ? scene.getObjectByName(S.on) : null) ?? scene, S.pos) : null;
+  return {
+    root, body, mover, kind: ex.boltLift ? LIFT : ex.swing ? SWING : SLIDE,
+    travel: ex.travel ?? motionOf(GUNS[id]).travel, swing: (ex.swing ?? 0) * D2R, lift: (ex.boltLift ?? 0) * D2R,
+    mag, loadPoint, fades, builtin: ex.builtinSight ? scene.getObjectByName(ex.builtinSight) ?? null : null,
+    muzzle: scene.getObjectByName("muzzle_flash") ?? scene.getObjectByName("muzzle")!, eject: scene.getObjectByName("eject")!, mounts: m,
+    support, stockReach: A.stockReach,
+  };
 }
 
 const _v = new THREE.Vector3();
 function makeView(id: string, B: Built): GunView {
   const M = motionOf(GUNS[id]), { body, mover, mag, muzzle, mounts, fades } = B;
-  const moverZ = mover ? mover.position.z : 0, magY = mag ? mag.position.y : 0, muzzleRest = muzzle.position.clone();
+  const mz0 = mover ? mover.position.z : 0, rx0 = mover ? mover.rotation.x : 0, ry0 = mover ? mover.rotation.y : 0, rz0 = mover ? mover.rotation.z : 0;
+  const magY = mag ? mag.position.y : 0, muzzleRest = muzzle.position.clone();
   const shown: Partial<Record<AttSlot, string | null>> = {};
   const laser = new THREE.Object3D(); laser.name = "laserEmit";
   let magPalette: THREE.Material | null = null;   // the Kingpin palette, fading with this gun's magazine (a mag attachment)
   const view: GunView = {
     root: B.root, muzzle, eject: B.eject, laser: null,
+    hold: GUNS[id].cls === "pistol" ? "one" : "two", support: B.support, stockReach: B.stockReach,
     setVariant() { /* the extended magazine is an attachment on these guns */ },
     setAttachments(fitted: GunAtts) {
       for (const slot of Object.keys(fitted) as AttSlot[]) {
         const id2 = fitted[slot], g = mounts[slot]; if (shown[slot] === id2) continue; shown[slot] = id2;
-        const a = attachmentAsset(id2);
+        // a loading point (revolver cylinder, shell holder, tube) takes the mag's stats but shows no magazine
+        const a = slot === "mag" && B.loadPoint ? undefined : attachmentAsset(id2);
         if (g) {
           g.clear();
           if (a) {
@@ -488,6 +572,7 @@ function makeView(id: string, B: Built): GunView {
             if (a.emit && slot === "laser") { laser.position.copy(a.emit); g.add(laser); }
           }
         }
+        if (slot === "sight" && B.builtin) B.builtin.visible = !(g && a);   // a fitted sight replaces the built-in scope
         if (slot === "laser") view.laser = g && a?.emit ? laser : null;
         // a muzzle device moves the flash and tracer origin to its own tip (through world space: the socket may sit
         // anywhere in a GLB's hierarchy)
@@ -498,23 +583,31 @@ function makeView(id: string, B: Built): GunView {
       }
     },
     pose(s) {
-      const f = s.fireT, r = s.reloadT;
-      let kick = 0, cyc = 0;
-      if (f >= 0 && f < 1) {
-        if (M.slow) { const a = 1 - seg(f, 0, 0.25); kick = a * a * a; cyc = sstep(seg(f, 0.22, 0.42)) * (1 - sstep(seg(f, 0.56, 0.8))); }   // kick, then the throw
-        else { const a = 1 - seg(f, 0, 0.5); kick = a * a * a; cyc = 1 - sstep(seg(f, 0, 0.5)); }                                           // blow-back
+      const f = s.fireT, r = s.reloadT, firing = f >= 0 && f < 1;
+      let kick = 0, cyc = 0, lift = 0;
+      if (firing) {
+        if (B.kind === LIFT) {          // bolt action: kick, lift the handle, run it back, forward, down
+          const a = 1 - seg(f, 0, 0.25); kick = a * a * a;
+          lift = sstep(seg(f, 0.18, 0.28)) * (1 - sstep(seg(f, 0.7, 0.8)));
+          cyc = sstep(seg(f, 0.28, 0.42)) * (1 - sstep(seg(f, 0.56, 0.7)));
+        } else if (M.slow) { const a = 1 - seg(f, 0, 0.25); kick = a * a * a; cyc = sstep(seg(f, 0.22, 0.42)) * (1 - sstep(seg(f, 0.56, 0.8))); }   // kick, then the pump
+        else { const a = 1 - seg(f, 0, 0.5); kick = a * a * a; cyc = 1 - sstep(seg(f, 0, 0.5)); }                                                   // blow-back
       }
-      let tilt = 0, drop = 0, alpha = 1;
+      let tilt = 0, drop = 0, alpha = 1, bob = 0;
       if (r >= 0 && r <= 1) {
         tilt = sstep(seg(r, 0, 0.2)) * (1 - sstep(seg(r, 0.75, 1)));
-        if (r < 0.5) { drop = sstep(seg(r, 0.15, 0.45)); alpha = 1 - sstep(seg(r, 0.25, 0.45)); }
+        if (B.loadPoint) bob = Math.sin(Math.PI * seg(r, 0.15, 0.85));
+        else if (r < 0.5) { drop = sstep(seg(r, 0.15, 0.45)); alpha = 1 - sstep(seg(r, 0.25, 0.45)); }
         else { drop = 1 - sstep(seg(r, 0.5, 0.75)); alpha = sstep(seg(r, 0.5, 0.62)); }
       }
       body.rotation.set(-M.recoil * kick + M.tiltX * tilt, 0, M.roll * kick + M.tiltZ * tilt);
       body.position.set(0, M.up * kick, -M.back * kick);
-      if (mover) mover.position.z = moverZ - M.travel * cyc;
+      if (mover) {
+        if (B.kind === SWING) mover.rotation.set(rx0 + B.swing * cyc, ry0, rz0);
+        else { mover.position.z = mz0 - B.travel * cyc; if (B.kind === LIFT) mover.rotation.set(rx0, ry0, rz0 + B.lift * lift); }
+      }
       if (mag) {
-        mag.position.y = magY - M.drop * drop;
+        mag.position.y = magY - M.drop * drop - 0.03 * bob;
         for (let i = 0; i < fades.length; i++) fades[i].value = alpha;
         mag.visible = fades.length ? alpha > 0.01 : alpha > 0.5;
       }
@@ -524,10 +617,10 @@ function makeView(id: string, B: Built): GunView {
   return view;
 }
 
-/** A GunView for any gun id: the Kingpin as authored, the gun's GLB when it has loaded, else its placeholder. Cheap to
- *  call again (geometry and materials are shared; each view is a new small Object3D graph). */
+/** A GunView for any gun id: the Kingpin as authored (one-handed), the gun's GLB when it has loaded, else its
+ *  placeholder. Cheap to call again (geometry and materials are shared; each view is a new small Object3D graph). */
 export function createGunView(id: string): GunView {
-  if (id === KINGPIN_ID || !Object.hasOwn(GUNS, id)) return createKingpin();
+  if (id === KINGPIN_ID || !Object.hasOwn(GUNS, id)) return Object.assign(createKingpin(), { hold: "one" as const, support: null, stockReach: 0 });
   const A = GLBS.get(id);
   return makeView(id, A ? buildGlb(id, A, true) : buildPlaceholder(id, true));
 }

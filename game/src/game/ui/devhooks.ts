@@ -57,3 +57,5 @@ export function gun2(id: string) { const out = takeGun(1); if (out) G.pack.push(
 export function rounds(cal: string, n: number) { return giveItem(withCount(own(cal), n), n); }
 /** a still target with this much HP at x, z */
 export function dummy(x: number, z: number, hp = 48) { const e = spawnDummy(x, z, hp); return e.id; }
+/** any item, picked up the real way */
+export function give(id: string) { return giveItem(own(id)); }

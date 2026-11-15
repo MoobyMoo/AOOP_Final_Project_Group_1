@@ -137,9 +137,9 @@ function gunOnGround(scene: THREE.Object3D) {
 
 /** which model an item shows: an item GLB, a wearable mesh, or the fallback crate-pack */
 export function modelKey(item: string) {
-  const gid = gunId(item); if (gid && groundHooks.gunModel) return "gun:" + gid;
   const id = baseId(item) ?? item, glb = ALIAS[id] ?? id;
-  if (RAW.has(glb)) return "glb:" + glb;
+  if (RAW.has(glb)) return "glb:" + glb; // the kit guns land here (GUN_GLBS, palette-baked, on their side)
+  const gid = gunId(item); if (gid && groundHooks.gunModel) return "gun:" + gid; // a gun whose GLB is missing: its in-hand model
   if (hasWearable(id)) return "wear:" + id;
   return "glb:bunch";
 }
