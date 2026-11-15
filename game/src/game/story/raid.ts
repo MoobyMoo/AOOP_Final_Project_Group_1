@@ -32,6 +32,7 @@ import { floatText, burst } from "../../fx";
 import { npcRig, NPCS, CHATTER } from "./npcs";
 import { keeperCampModel, cellarModel } from "./props";
 import { dialogueHtml, esc, noteTagHtml, questLogHtml, trackerHtml } from "./dialogue";
+import { menuPages, refreshPage } from "../ui/menubar";
 
 const BRK = `<i class="brk tl"></i><i class="brk tr"></i><i class="brk bl"></i><i class="brk br"></i>`;
 let dest = "beach", lastArea = "", trackT = 0, dirty = false, radioT = -1, warned = false;
@@ -144,6 +145,9 @@ export function readNote(inst: string) {
 }
 lootHooks.read = readNote;
 lootHooks.note = noteTagHtml;
+// the menu bar's Jobs and Notes pages in a raid (ui/menubar.ts)
+menuPages.jobs = () => `<div class="q3-side">${questLogHtml(G.save, { pack: G.pack, part: "jobs" })}</div>`;
+menuPages.notes = () => `<div class="q3-side">${questLogHtml(G.save, { pack: G.pack, part: "notes" })}</div>`;
 lootHooks.side = () => G.scene === "raid" ? `${BRK}<header class="lv-head"><h2>Jobs</h2><small>${qs(G.save).active.length} on</small></header><div class="tie"></div><div class="lv-body q3-side">${questLogHtml(G.save, { pack: G.pack })}</div>` : "";
 
 // ---------------------------------------------------------------- the tracker line (HUD, under the minimap)
@@ -206,8 +210,8 @@ addEventListener("keydown", (e) => {
   e.preventDefault(); e.stopImmediatePropagation(); closePanel();
 }, true);
 document.addEventListener("click", (e) => { // the job log's Track buttons in the Tab screen
-  const b = (e.target as HTMLElement | null)?.closest?.(".lv [data-a^='q:track:']") as HTMLElement | null; if (!b) return;
-  track(G.save, b.dataset.a!.split(":")[2]); dirty = true; trackT = 0; sfx("ui");
+  const b = (e.target as HTMLElement | null)?.closest?.(".lv [data-a^='q:track:'], .mb3-page [data-a^='q:track:']") as HTMLElement | null; if (!b) return;
+  track(G.save, b.dataset.a!.split(":")[2]); dirty = true; trackT = 0; sfx("ui"); refreshPage();
 });
 /** the raid ended: credit an extraction to the jobs that want one (main.ts, with the settlement record) */
 export function storyRaidEnd(record: { id: string; reason: string }) {

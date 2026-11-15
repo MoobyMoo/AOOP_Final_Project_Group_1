@@ -14,6 +14,7 @@ import { accept, qs, questOf, radioIn, track, type NpcId } from "../core/quests"
 import { payQuest } from "../core/settlement";
 import { NPCS, BARKS, CHATTER, npcRig } from "./npcs";
 import { dialogueHtml, esc, questLogHtml } from "./dialogue";
+import { menuOpened, menuHooks, openPage } from "../ui/menubar";
 import type { Station } from "../home/bunker";
 
 type NpcRig = ReturnType<typeof npcRig>;
@@ -102,9 +103,13 @@ export function npcPanel(id: NpcId, lines?: string[]) {
   return dialogueHtml(id, G.save, { lines, extra: extras[id]?.(), foot });
 }
 export function openNpc(id: NpcId, lines?: string[]) { api?.show(npcPanel(id, lines), "npc"); }
-export function openQuestLog() {
-  api?.show(`<header><h2>Jobs</h2><small>Tab or J</small></header>${questLogHtml(G.save)}`, "qlog");
+/** the job log (Tab or J): the menu bar's Jobs or Notes page, as a vault plate */
+export function openQuestLog(part: "jobs" | "notes" = "jobs") {
+  api?.show(`<header><h2>${part === "jobs" ? "Jobs" : "Notes"}</h2><small>Tab or J</small></header>${questLogHtml(G.save, { part })}`, "qlog");
+  const el = document.querySelector<HTMLElement>(".panel.qlog"); if (el) el.dataset.part = part;
+  menuOpened(part);
 }
+menuHooks.page = (t) => { if (G.scene === "raid") openPage(t); else openQuestLog(t); };
 /** a dialogue or quest-log button. Returns true when handled. */
 export function questAct(a: string): boolean {
   const [k, verb, id] = a.split(":");
@@ -117,7 +122,7 @@ export function questAct(a: string): boolean {
     else sfx("nope");
     openNpc(q.giver); return true;
   }
-  if (verb === "track") { track(G.save, id); save(G.save); sfx("ui"); if (log) openQuestLog(); else openNpc(q.giver); return true; }
+  if (verb === "track") { track(G.save, id); save(G.save); sfx("ui"); if (log) openQuestLog((document.querySelector<HTMLElement>(".panel.qlog")?.dataset.part as "jobs" | "notes") ?? "jobs"); else openNpc(q.giver); return true; }
   if (verb === "turnin") {
     let paid: ReturnType<typeof payQuest> = null;
     try { paid = payQuest(G.save, id); } catch (e) { console.error("job payout refused", e); }

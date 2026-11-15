@@ -65,7 +65,10 @@ await at("sell"); await p.keyboard.press("e"); await p.waitForSelector(".panel")
 await shot("s08-fence-dialogue");
 await p.keyboard.press("Escape"); await p.waitForTimeout(300);
 await p.keyboard.press("Tab"); await p.waitForSelector(".panel.qlog");
-{ const t = await p.locator(".panel.qlog").innerText(); log(/Foreman's Payroll/.test(t) && /Notes/.test(t) && /Checkpoint Guard Log/.test(t), "Tab: the job log with the notes read"); }
+{ const t = await p.locator(".panel.qlog").innerText(); log(/Foreman's Payroll/.test(t) && await p.locator('.mb3 button[data-tab="jobs"].on').count() === 1, "Tab: the job log, the menu bar's Jobs tab lit"); }
+// the menu bar (UI v4): the notes are the bar's Notes tab
+await p.click('.mb3 button[data-tab="notes"]'); await p.waitForSelector('.panel.qlog[data-part="notes"]');
+{ const t = await p.locator(".panel.qlog").innerText(); log(/Notes/.test(t) && /Checkpoint Guard Log/.test(t) && await p.locator('.mb3 button[data-tab="notes"].on').count() === 1, "the Notes tab: the notes read"); }
 await p.click(".q3-note summary >> nth=1"); await shot("s09-job-log");
 await p.keyboard.press("Tab"); await p.waitForTimeout(300);
 log(!(await p.locator(".panel.qlog").count()), "Tab closes the job log");

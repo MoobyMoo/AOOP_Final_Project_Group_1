@@ -29,6 +29,7 @@ import { buildVault, facilityModel, animateFacilities, LAMPS, openBuild, closeBu
 import { makePod, makeBoard, destinationsHtml, confirmHtml, showCurtain, POD_DOOR_OPEN, POD_GAUGE_REST, type Pod, type Board } from "./dispatch";
 import { deploy, destOf, type DeployRequest } from "../core/deployment";
 import { unlocked, wantedItems, type NpcId } from "../core/quests";
+import { menuClosed } from "../ui/menubar";
 import { initVault, syncNpcs, poseNpcs, stepNpcs, npcBlockers, openNpc, openQuestLog, questAct, setExtras, clearBarks } from "../story/vault";
 import { dialogueHtml } from "../story/dialogue";
 import { trackerHtml } from "../story/dialogue";
@@ -134,7 +135,7 @@ function money() { const el = document.querySelector(".home-money b"); if (el) e
 const BRK = `<i class="brk tl"></i><i class="brk tr"></i><i class="brk bl"></i><i class="brk br"></i>`;
 // UI v3: every station is the same pinstripe plate as the raid screens (brass brackets, tie stripe under the title)
 function showPanel(html: string, cls = "") { closePanel(); panel = document.createElement("div"); panel.className = "panel " + cls; panel.innerHTML = (cls === "result" ? html : BRK + html.replace("</header>", `</header><div class="tie"></div>`)) + `<div class="foot"><kbd>E</kbd> or <kbd>Esc</kbd> to close</div>`; document.getElementById("ui")!.appendChild(panel); panel.style.pointerEvents = "auto"; panel.querySelectorAll<HTMLButtonElement>("button[data-a]").forEach((b) => b.onclick = () => act(b.dataset.a!)); }
-function closePanel() { panel?.remove(); panel = null; closeLoot(); }
+function closePanel() { const part = panel?.classList.contains("qlog") ? (panel.dataset.part as "jobs" | "notes" | undefined) ?? "jobs" : null; panel?.remove(); panel = null; closeLoot(); if (part) menuClosed(part); }
 function openBuildMode() {
   closePanel(); vel.set(0, 0, 0);
   openBuild({ scene: bunkerScene, objects, sync: () => { sync(); money(); }, money, exit: () => { drawHud(); } });
