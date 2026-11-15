@@ -811,6 +811,47 @@ def hat_warden_full():
 
 
 # ---------------------------------------------------------------- face: snorkel mask
+# ---------------------------------------------------------------- the boss's escorts (G1.5 row 26)
+# Two pieces in the boss gorilla's armour language (steel plate, yellow hazard trim, dark studs, banana horns), so a
+# bandit wearing either one reads as one of its guards. Zones: metal, yellow, nail, leather2, banana, prop2.
+def hat_guard():
+    """Guard's Horned Band: an open-top steel band round the brow with rolled rims and two short banana horns. The
+    scalp stays bare, like the boss's helmet"""
+    z0, z1 = P.HC.z + 0.2, P.HC.z + 0.34
+    rings = [around_head(lerp(z0, z1, t), 0.035 + 0.008 * math.sin(math.pi * t), 18) for t in (0, 0.33, 0.67, 1)]
+    band = C._orient(loft(rings, "metal"), lambda c: Vector((c.x, c.y - P.HC.y, 0)))
+    rims = M()
+    for ringp, reg, rr in ((rings[0], "yellow", 0.036), (rings[-1], "nail", 0.03)):
+        rims.add(tube(ringp + [ringp[0]], [rr] * 19, 4, reg, up=Vector((0, 0, 1)), cap0=False, cap1=False))
+    bits = M()
+    for a in (0.5, -0.5, math.pi - 0.55, math.pi + 0.55):
+        d = Vector((math.sin(a), -math.cos(a), 0))
+        bits.add(ell(2, around_head(P.HC.z + 0.27, 0.045, 1, a, a + 1e-4)[0], (0.028, 0.028, 0.028), "nail"))
+    hp = around_head(P.HC.z + 0.31, 0.0, 4)[1]                       # the character's left side
+    path = [hp + Vector((-0.03, 0, -0.01)), hp + Vector((0.06, 0, 0.03)), hp + Vector((0.17, -0.015, 0.12)), hp + Vector((0.21, -0.03, 0.27)), hp + Vector((0.175, -0.04, 0.4))]
+    horn = tube(path, [0.085, 0.085, 0.07, 0.048, 0.014], 6, "banana", up=Vector((0, -1, 0)), regs=["nail", "banana", "banana", "prop2"])
+    return [(m.move(-TOP), 0, None) for m in (band, rims, bits, horn.both())]
+
+
+def b_guard_plate():
+    """Guard's Plate: a steel breastplate and back plate with yellow trim on a hide harness, a dark keel down the
+    chest and four rivets. Flat on the back, so a sack or a pack still sits over it"""
+    def off(a, t, z):
+        return side_thin(a, 0.07, 0.03, 0.45)
+
+    def reg(a, t, z):
+        s_ = abs(abs(a) - math.pi / 2)
+        if s_ < 0.5:
+            return "leather2"
+        return "yellow" if (t < 0.17 or t > 0.83 or s_ < 0.68) else "metal"
+    m = wrap(lambda a: HEM + 0.025, lambda a: arm_dip(a, 0.7, 0.925, 0.5) - neck_dip(a, 0.06, 0.4), off, reg, 24, 6, edge=0.1)
+    bits = tube([torso_at(0.0, z, 0.082) for z in (0.6, 0.67, 0.74, 0.8, 0.84)], [0.014, 0.024, 0.026, 0.024, 0.014], 4, "nail", up=Vector((1, 0, 0)), flat=0.7)
+    for a in (-0.42, 0.42, math.pi - 0.42, math.pi + 0.42):
+        for z in (0.63, 0.82):
+            bits.add(on_torso(a, z, 0.076, (0.02, 0.012, 0.02), 0.008, "nail", 2))
+    return [(body_local(m), 0, None), (body_local(bits), 0, None)]
+
+
 def g_snorkel():
     """Snorkel Mask: one wide window in a blue rubber frame with a nose pocket, black strap, and the tube clipped to
     the strap by the left temple, orange tip standing clear of any hat brim"""
@@ -960,10 +1001,11 @@ BUILD = {"bowler": hat_bowler, "tophat": hat_tophat, "fedora": hat_fedora, "cap"
          "pot_helmet": hat_pot, "coconut_helmet": hat_coconut, "warden_helmet": hat_warden_full, "snorkel": g_snorkel,
          "leaf_vest": b_leaf_vest, "life_jacket": b_life_jacket, "peel_jacket": b_peel_jacket, "bamboo_plate": b_bamboo_plate,
          "coconut_cuirass": b_coconut_cuirass, "warden_vest": b_warden_vest, "sack": p_sack,
+         "guard_helmet": hat_guard, "guard_plate": b_guard_plate,                           # G1.5 row 26: the boss's escorts
          "walkman": e_walkman(), "walkman_nb": e_walkman(True), "radio_headset": e_radio(), "radio_headset_nb": e_radio(True)}
-SLOT = {"head": ("bowler", "tophat", "fedora", "cap", "hardhat", "pith", "beanie", "crown", "pot_helmet", "coconut_helmet", "warden_helmet"),
+SLOT = {"head": ("bowler", "tophat", "fedora", "cap", "hardhat", "pith", "beanie", "crown", "pot_helmet", "coconut_helmet", "warden_helmet", "guard_helmet"),
         "back": ("satchel", "bigpack", "cratepack", "prop_sack", "sack"), "hand": ("prop_briefcase", "prop_boomerang"),
-        "body": ("leaf_vest", "life_jacket", "peel_jacket", "bamboo_plate", "coconut_cuirass", "warden_vest"),
+        "body": ("leaf_vest", "life_jacket", "peel_jacket", "bamboo_plate", "coconut_cuirass", "warden_vest", "guard_plate"),
         "ears": ("walkman", "walkman_nb", "radio_headset", "radio_headset_nb")}
 slot_of = lambda name: next((k for k, v in SLOT.items() if name in v), "face")
 only = ARGS[ARGS.index("--only") + 1].split(",") if "--only" in ARGS else list(BUILD)

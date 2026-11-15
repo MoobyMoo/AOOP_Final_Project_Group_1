@@ -8,6 +8,7 @@ blender -b --factory-startup --python tools/blender/build_gorilla.py    # -> pub
 blender -b --factory-startup --python tools/blender/build_wearables.py  # -> public/models/wearables.glb
 tools/blender/qa.sh                                                     # asset QA gate (run after the builds)
 blender -b tools/blender/build/monkey.blend --python-exit-code 1 --python tools/blender/clip_check.py -- --clean dash --ground dash   # clip gate: loop pops, one-frame spikes, clean start/end
+blender -b tools/blender/build/gorilla.blend --python-exit-code 1 --python tools/blender/clear_check.py -- --skip sleep              # boss helmet never inside an arm or pauldron, every clip
 ```
 Options: `-- --sheet out.png` renders an Eevee turnaround (front, 3/4, side, back); `-- --poses <dir> run:8,melee:6`
 renders clip strips. Editable `.blend` files land in `tools/blender/build/` (ignored by git; the scripts are the source).
@@ -67,7 +68,13 @@ Body zones a replacement body mesh must use: `fur` (head, tail, bare limbs), `fa
 **Parts.** Mesh objects are named `p_<slot>_<style>`; the runtime merges one style per slot into a single skinned mesh:
 `head`, `ears_{round,pointy,floppy}`, `eyes_/lids_{round,sleepy,sparkle,beady}`, `brows_{bold,thin,bushy}`, `mouth_{smile,grin,smirk,toothy,whistle}`,
 `torso_{suit,vest,fur,tee}` (torso + arms + legs), `front_{two,double,vest,open}` (suit front), `tie_{tie,bowtie}`, `square`, `hands`,
-`feet_{round,shoes}`, `tail`, `tuft`. Gorilla: `body`, `face`, `vest`, `sleepmask`, `chain`.
+`feet_{round,shoes}`, `tail`, `tuft`. Gorilla: `body`, `face`, `vest`, `sleepmask`, `chain` (the Sleeper), `boss_plates`, `boss_helmet` (the boss).
+
+**The boss gorilla (G1.5 row 26)** is the brute's body and skeleton plus two parts, so every gorilla clip plays on it: `boss_plates` (breastplate, two back
+plates with a row of spikes, dome pauldrons, forearm bracers, belt) and `boss_helmet` (an open-top steel band with two banana horns). The armour covers the
+body and leaves the scalp and face bare, so the head reads as the place to shoot. Zones: `metal` plate, `yellow` trim, `nail` spikes and studs, `leather` +
+`gold` belt, `banana` + `prop2` horns (recolour them through the palette). Review scale 1.35 (the Sleeper is 1.26); 8,624 tris with the body.
+Its escorts are bandits in `guard_helmet` (head) and `guard_plate` (body) from `wearables.glb`, in the same steel-and-yellow language.
 
 **Shape keys.** `blink` (lids), `eyeWide` (eyes, lids, brows: +15 % spacing at 1), `browTilt` (brows: +24 deg scheming at 1),
 `build` (torso, front, tie, square: chubby at +1, driven negative for slim). Head size, ear size and tail curl are bone scales /
