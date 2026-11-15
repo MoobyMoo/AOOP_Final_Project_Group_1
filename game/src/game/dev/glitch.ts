@@ -22,12 +22,26 @@ import { G } from "../core/state";
 import type { Collider } from "../contracts";
 import { CUT } from "../render/cutout";
 
-export type Sev = "bug" | "visible" | "minor";
-export type Finding = { cat: string; sev: Sev; x: number; y: number; z: number; k: string; what: string; v: number; src?: string; id?: string };
+export type Sev = "bug" | "visible" | "minor" | "accepted";
+export type Finding = { cat: string; sev: Sev; x: number; y: number; z: number; k: string; what: string; v: number; src?: string; id?: string; why?: string };
 const out: Finding[] = [];
 const r2 = (v: number) => Math.round(v * 100) / 100;
+/** findings that are there by design (G1.5 zero-glitch gate). One entry per spot: the category, the owner label as the
+ *  finding prints it (src:kind#id@x,z), what the finding says, and the reason. A match reports as "accepted" with the
+ *  reason instead of "visible"/"minor". Bugs are never accepted, and no entry covers a whole category or kind. */
+export const ALLOW: { cat: string; at: string; what: RegExp; why: string }[] = [
+  { cat: "collider", at: "placed:hatch#hatch@-8,102", what: /reaches .* past its collider/, why: "the bunker hatch's rim and lid frame are the 0.3-0.6 u step you stand on to open it (the hatch route); the raised lid has its own collider" },
+  { cat: "collider", at: "placed:portal_cave#cove-cave@-97,91", what: /reaches .* past its collider/, why: "the cave mouth's arch lip (1.1 u up) overhangs the mouth you walk into: walking under it is the portal into the grotto" },
+  { cat: "collider", at: "placed:portal_cave_dark#cove-cave-back@141.5,63", what: /reaches .* past its collider/, why: "the grotto side of the same cave mouth: its arch lip overhangs the mouth you walk into to go back to the cove" },
+  { cat: "ground", at: "placed:portal_cave_dark#cove-cave-back@141.5,63", what: /uphill side buried/, why: "the cave mouth is cut into the grotto's rock slope: its back half is meant to run into the ground" },
+  { cat: "ground", at: "placed:portal_roots#hollow-roots-back@150,-31.4", what: /whole base buried/, why: "the root arch grows out of the floor like the nature roots (planted, never set on top); the tunnel behind it is the cave-in" },
+  { cat: "collider", at: "placed:portal_roots#hollow-roots-back@150,-31.4", what: /reaches .* past its collider/, why: "the root curtain hangs in the hollow's mouth: it is the portal surface you push into (the cave-in lock blocks it in the demo)" },
+];
+/** the owner label appears whole in the text (so "@-8,102" never matches "@-8,1025") */
+const labelIn = (what: string, at: string) => { const i = what.indexOf(at); return i >= 0 && !/[\d.]/.test(what[i + at.length] ?? ""); };
 function add(cat: string, sev: Sev, x: number, z: number, k: string, what: string, v: number, extra: Partial<Finding> = {}) {
-  out.push({ cat, sev, x: r2(x), y: r2(extra.y ?? groundHeight(x, z)), z: r2(z), k, what, v: Math.round(v * 1000) / 1000, ...extra });
+  const ok = sev === "bug" ? undefined : ALLOW.find((a) => a.cat === cat && labelIn(what, a.at) && a.what.test(what));
+  out.push({ cat, sev: ok ? "accepted" : sev, x: r2(x), y: r2(extra.y ?? groundHeight(x, z)), z: r2(z), k, what, v: Math.round(v * 1000) / 1000, ...extra, ...(ok ? { why: ok.why } : {}) });
 }
 
 // ---------------------------------------------------------------- surfaces
@@ -675,4 +689,40 @@ export function localProfile(k: string, x: number, z: number, lo = 0.2, hi = 1.5
     const b = Math.round(lx * 2) / 2, e = prof.get(b) ?? prof.set(b, [1e9, -1e9]).get(b)!; e[0] = Math.min(e[0], lz); e[1] = Math.max(e[1], lz);
   }
   return { x: [r2(x0), r2(x1)], z: [r2(z0), r2(z1)], prof: [...prof].sort((a, b) => a[0] - b[0]).map(([b, e]) => [b, r2(e[0]), r2(e[1])]) };
+}
+/** debug: where a placed piece's body (0.35-1.6 u up) pokes more than 0.4 u past every collider, in its own space:
+ *  the 0.2 u cells, grouped into 0.5 u bins with their height range (fit the missing colliders to these) */
+export function walkInto(k: string, x: number, z: number) {
+  const w = owners().find((q) => q.o.k === k && Math.abs(q.o.x - x) < 0.15 && Math.abs(q.o.z - z) < 0.15); if (!w) return null;
+  const dg = debugGrid() as unknown as { cols: W[] }, all = colIndex(dg.cols.filter((q) => q.flags! & 1));
+  const c = Math.cos(w.o.yaw), s = Math.sin(w.o.yaw), k1 = w.o.s, bins = new Map<string, number[]>();
+  // the same rule as colliderMismatch: any triangle overlapping the 0.35-1.6 u band counts with its corners and centroid
+  const pts: [number, number, number][] = [];
+  for (let i = 0; i + 8 < w.hard.length; i += 9) {
+    const p = w.hard; let lo = 1e9, hi = -1e9; for (let k = 1; k < 9; k += 3) { lo = Math.min(lo, p[i + k]); hi = Math.max(hi, p[i + k]); }
+    if (hi < w.base + 0.35 || lo > w.base + 1.6) continue;
+    for (let k = 0; k < 9; k += 3) pts.push([p[i + k], Math.max(lo, w.base + 0.35) - w.base, p[i + k + 2]]);
+    pts.push([(p[i] + p[i + 3] + p[i + 6]) / 3, (lo + hi) / 2 - w.base, (p[i + 2] + p[i + 5] + p[i + 8]) / 3]);
+  }
+  for (const [wx, y, wz] of pts) {
+    if (all.dist(wx, wz) <= 0.4) continue;
+    const dx = wx - w.o.x, dz = wz - w.o.z, lx = (dx * c - dz * s) / k1, lz = (dx * s + dz * c) / k1, key = `${Math.round(lx * 2) / 2},${Math.round(lz * 2) / 2}`;
+    const e = bins.get(key) ?? bins.set(key, [lx, lx, lz, lz, y, y, 0]).get(key)!; e[0] = Math.min(e[0], lx); e[1] = Math.max(e[1], lx); e[2] = Math.min(e[2], lz); e[3] = Math.max(e[3], lz); e[4] = Math.min(e[4], y); e[5] = Math.max(e[5], y); e[6]++;
+  }
+  return { yaw: r2(w.o.yaw), s: k1, bins: [...bins.values()].map((e) => e.slice(0, 6).map(r2).concat(e[6])) };
+}
+/** debug: a build asset's static bounds (piece space) and its body outline cut at height h: the 0.5 u x-bins with their
+ *  z range (fit colliders to set pieces the same way fitNature does nature) */
+export function assetCut(name: string, h = 0.5, house = false) {
+  const b = house ? houseModule(name) : K.asset(name), box = new THREE.Box3();
+  const bins = new Map<number, number[]>();
+  for (const p of b.pieces) {
+    p.geo.computeBoundingBox(); box.union(p.geo.boundingBox!);
+    const a = p.geo.attributes.position, idx = p.geo.index, n = idx ? idx.count : a.count;
+    for (let k = 0; k + 2 < n; k += 3) {
+      const V = [0, 1, 2].map((j) => { const q = idx ? idx.getX(k + j) : k + j; return [a.getX(q), a.getY(q), a.getZ(q)]; });
+      for (const [u, w] of [[0, 1], [1, 2], [2, 0]]) { const A = V[u], B = V[w]; if ((A[1] - h) * (B[1] - h) < 0) { const f = (h - A[1]) / (B[1] - A[1]), x = A[0] + (B[0] - A[0]) * f, z = A[2] + (B[2] - A[2]) * f, key = Math.round(x * 2) / 2, e = bins.get(key) ?? bins.set(key, [1e9, -1e9]).get(key)!; e[0] = Math.min(e[0], z); e[1] = Math.max(e[1], z); } }
+    }
+  }
+  return { min: [r2(box.min.x), r2(box.min.y), r2(box.min.z)], max: [r2(box.max.x), r2(box.max.y), r2(box.max.z)], cut: [...bins].sort((p, q) => p[0] - q[0]).map(([x, e]) => [x, r2(e[0]), r2(e[1])]) };
 }

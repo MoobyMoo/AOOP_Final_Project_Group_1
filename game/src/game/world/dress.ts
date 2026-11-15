@@ -214,7 +214,7 @@ const NATURE = new Set<string>();
 /** deck height of the boardwalk sections above their origin: they are sunk by this so the deck sits on the causeway */
 const DECK_Y = 0.1;
 /** kinds built elsewhere (interactive props, buildings) or that have no geometry */
-const SKIP = new Set(["pool", "zip_tower", "zip_end", "vine_door", "ground", "light"]);
+const SKIP = new Set(["pool", "zip_tower", "zip_end", "vine_door", "ground", "light", "cove_boat"]); // cove_boat: props.ts draws it
 let pieceSeed = 1;
 // ---------------------------------------------------------------- ground clearance (G1.5-12, Moo's flickering molasses puddle)
 // Anything flat that lies on the ground (floor plates, bedrolls, ash beds, crash plates, deck boards, the vat's spill)
