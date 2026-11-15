@@ -40,6 +40,10 @@ import { createKingpin, createGunFx, preloadKingpin } from "./combat/kingpin";
 import { botTick, setBot } from "./core/botdrive";
 import { createBot } from "./core/bot";
 import { hud } from "./ui/hud";
+import "./story/story.css";
+import { setRaidDestination, storyRaidEnd, storyPanelOpen } from "./story/raid";
+import { playIntro, introRunning } from "./story/intro";
+import { qs } from "./core/quests";
 
 const QS = new URLSearchParams(location.search);
 G.stage = new Stage(document.getElementById("game") as HTMLCanvasElement);
@@ -51,7 +55,7 @@ if (QS.has("dev")) Object.assign(window as unknown as object, { __G: G, __RIG_TU
 addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlockAudio);
 // Esc settings (ui/settings.ts): the loot screen, the map and the bunker panels own Esc while open and close first;
 // quitting a raid from it is a bonk-out (core/raid.ts quitRaid)
-initSettings({ blocked: () => lootOpen() || mapOpen() || homeApi.panelOpen(), quit: () => quitRaid() });
+initSettings({ blocked: () => lootOpen() || mapOpen() || homeApi.panelOpen() || storyPanelOpen() || introRunning(), quit: () => quitRaid() });
 
 // world + rig up front (the map snapshot needs the raid scene built); the gun model is a GLB, loaded before anything asks for it
 await preloadKingpin();
@@ -60,7 +64,8 @@ await preloadCharacters(); // character GLBs (rig v2): createRig() is synchronou
 await Promise.all([preloadNature(), preloadHouse(), preloadGroundItems(), preloadFauna()]); // nature + building kits (the structures kit is loaded above): the raid world builds from them
 buildRaidWorld(); G.stage.setScene(raidScene); buildMapShots(raidScene);
 if (QS.has("dev")) (window as unknown as { __ui: unknown }).__ui = await import("./ui/devhooks"); // UI captures and tools/uitest.mjs
-if (QS.has("tune")) (await import("./ui/tunepanel")).openTunePanel(); // live tuning panel (core/tune.ts)
+if (QS.has("tune")) (await import("./ui/tunepanel")).openTunePanel();
+if (QS.has("dev")) (window as unknown as { __story: unknown }).__story = { portrait: (await import("./story/portrait")).portrait, quests: await import("./core/quests") }; // story captures and tests // live tuning panel (core/tune.ts)
 if (QS.has("glitch")) (window as unknown as { __glitch: unknown }).__glitch = await import("./dev/glitch"); // the glitch hunt (tools/glitchcheck.mjs)
 G.rig = createRig("monkey", G.save.look); G.gun = createKingpin(); G.fx = createGunFx(raidScene); G.rig.sockets.handR.add(G.gun.root); G.rig.setGear?.(G.save.gear);
 
@@ -71,7 +76,7 @@ function goMirror() { leaveBunker(); openCreator(() => goHome(), bunkerScene); }
 function goRaid(req: DeployRequest) {
   const outbound = structuredClone(G.save);
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    try { leaveBunker(); startRaid(onRaidEnd, { entryGroup: req.entryGroup, title: req.name }); setMusic("raid"); settleDeploy(); }
+    try { leaveBunker(); setRaidDestination(req.destinationId); startRaid(onRaidEnd, { entryGroup: req.entryGroup, title: req.name }); setMusic("raid"); settleDeploy(); }
     catch (e) {
       console.error("deploy failed", e); G.save = outbound;
       try {
@@ -86,12 +91,14 @@ function onRaidEnd(r: RaidResult) {
   const sv = G.save, record = sv.settlements?.find(entry => entry.id === r.raidId);
   if (!record || shownSettlements.has(record.id)) return;
   shownSettlements.add(record.id); sting(r.how === "bonked" ? "stingBonk" : "stingExtract");
+  const jobs = storyRaidEnd(record); // an extraction a job wanted (story/raid.ts; credited once per settlement id)
   const kept = record.kept, value = record.value, bonus = record.bonus;
   // the payout slip (ui/payout.ts): B's appraisal receipt in A's palette
   const kills = Object.values(r.log.kills).reduce((x, y) => x + y, 0);
   const html = payoutSlip({ raid: sv.raids, how: r.how, raidT: r.raidT, kills, crates: r.log.crates, kept, lost: r.lost.length, value, bonus, vineKey: r.kept.some(inst => itemType(inst) === "vine_key"), delivery: sv.delivery?.length });
   (window as unknown as { __raids: object[] }).__raids ??= []; (window as unknown as { __raids: object[] }).__raids.push({ raid: sv.raids - 1, seed: G.seed, how: r.how, t: r.raidT, value, bonus, kept: r.kept.length, lost: r.lost.length, log: structuredClone(r.log), ammo: G.ammo + G.mag, hp: G.hp, maxHp: G.maxHp, usefulFound: G.lootCtx.usefulFound, upgrades: { ...sv.upgrades } });
-  G.alive = true; goHome(html);
+  const jobLines = jobs.map((n) => `<p class="q3-sum">◆ <b>${n.title}</b> · ${n.text}${n.ready ? ": ready to hand in" : ""}</p>`).join("");
+  G.alive = true; goHome(jobLines ? html.replace('<p class="note">Sell your stash', `${jobLines}<p class="note">Sell your stash`) : html);
 }
 const shownSettlements = new Set<string>();
 
@@ -113,7 +120,7 @@ function frame() {
     if (hud.swallowInteract() && G.scene === "raid") Object.assign(G.intent, { interact: false, interactHeld: false }); // E closes an open container; don't reopen it
     if (G.intent.mini && G.scene === "raid") toggleMinimap();
     if (G.intent.esc && mapOpen()) toggleMap();
-    if (G.scene === "raid") { interpSnap(); if (G.hitStop > 0) G.hitStop -= STEP; else { if (mapOpen()) neutral(); stepRaid(STEP); } }
+    if (G.scene === "raid") { interpSnap(); if (G.hitStop > 0) G.hitStop -= STEP; else { if (mapOpen() || storyPanelOpen()) neutral(); stepRaid(STEP); } }
     else if (G.scene === "bunker") stepBunker(STEP);
     acc -= STEP;
   }
@@ -134,8 +141,11 @@ function neutral() { const i = G.intent; i.move = { x: 0, z: 0 }; i.fire = i.fir
   tp: (x: number, z: number) => { G.pp.set(x, groundHeight(x, z), z); G.vel.set(0, 0, 0); }, gates, setGate, pathLength, houses, svg: () => blockoutSvg(scattered),
   exits: () => exits.map((e) => ({ id: e.id, x: e.x, z: e.z, ...exitStatus(e) })), spawn: () => lastSpawn };
 
-if (QS.has("raid")) { G.save.lookDone = true; startRaid(onRaidEnd); setMusic("raid"); }
-else if (!G.save.lookDone) openCreator(() => goHome(), bunkerScene);
+/** the arrival plays once per save: after the creator on a new save (story/intro.ts); ?intro replays it for captures */
+const arrive = () => (!qs(G.save).intro && !G.bot) || QS.has("intro") ? playIntro(() => goHome()) : goHome();
+if (QS.has("raid")) { G.save.lookDone = true; setRaidDestination("beach"); startRaid(onRaidEnd); setMusic("raid"); }
+else if (!G.save.lookDone) openCreator(() => arrive(), bunkerScene);
+else if (QS.has("intro")) arrive();
 else goHome();
 requestAnimationFrame(frame);
 void createRig;

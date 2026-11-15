@@ -37,6 +37,7 @@ import { openLoot, closeLoot, lootOpen, type LootTarget } from "../ui/hud";
 import { lootTarget } from "../ui/lootview";
 import { own, itemType, withCount } from "./instances";
 import { consumeInstance } from "../core/raid-journal";
+import { storyExtras, storyForced } from "../story/raid";
 
 export const containerType = (crate: Crate) => crate.type;
 export const RAR_COLOR: Record<string, string> = { common: "#f3ead6", uncommon: "#6ad16a", rare: "#4aa8ff", epic: "#c77dff" };
@@ -75,7 +76,7 @@ export function setupCrates() {
     G.crates.push({ id: nid++, x: s.x, z: s.z, tier: s.tier, fixed: s.fixed, obj, opened: false, search: 0, items: null, kind: "crate", type, label: s.fixed === "key" ? "the gang's strongbox" : `${s.tier} crate`, r: 0.6 });
   }
   // typed containers (G1.5-27): their own models, lids and readability marks
-  for (const s of selectContainers(G.rng)) {
+  for (const s of selectContainers(G.rng, storyForced())) {
     const b = containerKit(s.type), obj = mergePieces(b.pieces); obj.add(b.parts.root); obj.userData.lid = b.parts.lid;
     const host = s.in ? PLACED.find((p) => p.id === s.in) : undefined;
     obj.position.set(s.x, groundHeight(s.x, s.z) + (s.y ?? 0), s.z); obj.rotation.y = s.yaw ?? (host ? (host.yaw ?? 0) + (Math.floor(G.rng() * 2) * Math.PI) : G.rng() * 6.28);
@@ -112,7 +113,9 @@ export function sessionOf(c: Crate): SearchSession | null {
     if (c.fixed === "satchel") items = [...(c.items ?? [])];
     else if (c.kind === "container" && c.type) items = rollContainer(c.type, G.rng, ctx);
     else { ctx.fixed = c.fixed as LootContext["fixed"]; ctx.ownsExtendedMag = [G.save.gun.mag, ...G.save.locker, ...G.pack].some(inst => inst && itemType(inst) === "att_mag_ext"); ctx.containerType = c.type; items = rollCrate(c.tier, ctx, G.rng); ctx.fixed = undefined; ctx.containerType = undefined; }
-    items = items.map(own); c.items = items;
+    items = items.map(own);
+    if (c.kind === "container" && c.socket) items.push(...storyExtras(c.socket)); // a lore note or a job item hidden in this one (story/raid.ts)
+    c.items = items;
     c.session = createSearch(items, { openSeconds: c.kind === "container" && c.type ? CONTAINERS[c.type].openSeconds : OPEN[c.tier], searchFactor: factor });
   }
   return c.session ?? null;
@@ -131,7 +134,7 @@ const BODY_NAME: Record<Enemy["kind"], string> = { wild: "Wild monkey", bandit: 
 function lootTargetOf(c: Crate, s: SearchSession): LootTarget {
   if (c.kind === "body") c.items = s.slots.filter((q) => !q.taken).map((q) => q.item);
   c.items ??= s.slots.filter((q) => !q.taken).map((q) => q.item);
-  const name = c.kind === "body" ? (c.enemy?.tag === "plantation-foreman" ? "Foreman Knucklebark" : c.enemy?.fauna ? { boar: "Boar", croc: "Crocodile" }[c.enemy.fauna] : BODY_NAME[c.enemy?.kind ?? "bandit"]) : c.kind === "container" && c.type ? CONTAINER_NAME[c.type] : c.fixed === "satchel" ? "Your satchel" : c.fixed === "supply" ? "Supply gondola" : c.fixed === "key" ? "Gang strongbox" : `${c.tier[0].toUpperCase()}${c.tier.slice(1)} crate`;
+  const name = c.fixed === "story" ? c.label ?? "Cache" : c.kind === "body" ? (c.enemy?.tag === "plantation-foreman" ? "Foreman Knucklebark" : c.enemy?.fauna ? { boar: "Boar", croc: "Crocodile" }[c.enemy.fauna] : BODY_NAME[c.enemy?.kind ?? "bandit"]) : c.kind === "container" && c.type ? CONTAINER_NAME[c.type] : c.fixed === "satchel" ? "Your satchel" : c.fixed === "supply" ? "Supply gondola" : c.fixed === "key" ? "Gang strongbox" : `${c.tier[0].toUpperCase()}${c.tier.slice(1)} crate`;
   const sub = c.kind === "body" ? (c.enemy?.fauna ? "Out cold" : "Knocked out") : c.note;
   return { name, sub, kind: c.kind === "body" ? "body" : "container", items: c.items, search: s,
     near: () => G.alive && G.rollT < 0 && flat(c, G.pp) < 2.2,

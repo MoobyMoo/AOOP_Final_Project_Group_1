@@ -174,7 +174,9 @@ const cash = (save: { money: number }) => save.money; // read through a call: TS
   build(c, "med", 4, 4, 0); assert(craft(c, "bandage") && c.reserved.filter((inst) => itemType(inst) === "bandage").length === 2 && !c.reserved.includes("vine_rope"), "a vine rope makes two bandages");
   build(c, "press", 8, 4, 0);
   assert(!c.base.items.some((item) => item.def === "press"), "the press can't be built without power");
-  build(c, "generator", 12, 4, 0); build(c, "press", 8, 4, 0); const ammo = c.ammo;
+  build(c, "generator", 12, 4, 0); build(c, "press", 8, 4, 0);
+  assert(!c.base.items.some((item) => item.def === "press") && canBuild(c, "press").reason.includes("Gang Frequencies"), "the press blueprint comes from a job (G1.5 row 40)");
+  c.quests!.unlocks.push("fac:press"); build(c, "press", 8, 4, 0); const ammo = c.ammo;
   assert(craft(c, "rounds8") && c.ammo === ammo + 8 && !c.reserved.includes("spring"), "a spring presses 8 rounds");
   assert(stashCapacity(c) === 24 && (build(c, "stash", -6, 6, 0), stashCapacity(c)) === 36, "a safe-deposit wall adds 12 slots");
   c.reserved = Array(36).fill("banana"); c.locker = []; assert(!craft(c, "smoothie") || c.reserved.length <= 36, "crafting respects the stash");
@@ -183,7 +185,11 @@ const cash = (save: { money: number }) => save.money; // read through a call: TS
 { // deploying (G1.5 row 33): the plantation road opens after one return; the fare is paid once
   const d = migrate(null); d.money = 50; let writes = 0; const write = () => { writes++; }, count = () => writes;
   assert(canDeploy("beach", d).ok && !canDeploy("plantation", d).ok, "only the beach is open at first");
-  d.stats.extracts = 1; assert(canDeploy("plantation", d).ok, "one return opens the plantation road");
+  d.stats.extracts = 1; assert(!canDeploy("plantation", d).ok && canDeploy("plantation", d).reason.includes("road map"), "a return alone no longer opens it: the road map job does");
+  d.quests!.unlocks.push("dest:plantation"); assert(canDeploy("plantation", d).ok, "the road map job's unlock opens the plantation road");
+  assert(!canDeploy("cove", d).ok && canDeploy("cove", d).reason.includes("flare"), "the cove needs a signal flare in the stash");
+  d.reserved.push("cove_flare"); assert(canDeploy("cove", d).ok, "a flare in the stash opens the cove (it isn't spent)");
+  d.reserved.pop();
   const first = deploy("plantation", d, write), second = deploy("plantation", d, write);
   assert(first.ok && !second.ok && cash(d) === 30 && count() === 1, "a second confirm while one is on its way pays nothing");
   cancelDeploy(d, write); assert(cash(d) === 50 && count() === 2 && canDeploy("plantation", d).ok, "a failed load refunds the fare");
@@ -197,5 +203,21 @@ const cash = (save: { money: number }) => save.money; // read through a call: TS
   const all = pickEntry("beach", beach.map((e) => ({ x: e.x + 1, z: e.z })), open, 1); assert(all.fallback === "crowded", "every candidate crowded: explicit fallback");
   const none = pickEntry("plantation-road", [], () => false, 1); assert(none.fallback === "start", "nothing walkable: explicit fallback to the hatch START");
   equal(pickEntry("beach", [], open, 7).entry.id, pickEntry("beach", [], open, 7).entry.id, "the pick is seeded per raid");
+}
+{ // jobs in the save (G1.5 row 40): a fresh save, the migration from a save before jobs, validation, idempotence
+  const fresh = migrate(null);
+  equal({ intro: fresh.quests!.intro, active: fresh.quests!.active, done: fresh.quests!.done, unlocks: fresh.quests!.unlocks }, { intro: false, active: [], done: [], unlocks: [] }, "a new save has no jobs and the intro to come");
+  const old = migrate({ v: 1, raids: 6, money: 50, lookDone: true, salMovedIn: true, stats: { extracts: 3, bonkOuts: 1, best: 90 } });
+  assert(old.quests!.intro && ["sal_roadmap", "sal_office", "sal_supplies"].every((id) => old.quests!.done.includes(id)), "an old save where Sal moved in counts his first three jobs done; no intro");
+  assert(old.quests!.unlocks.includes("dest:plantation") && old.quests!.unlocks.includes("fac:radio") && canDeploy("plantation", old).ok, "an old save that had made a return keeps the plantation road; the radio blueprint comes with Sal");
+  const early = migrate({ v: 1, raids: 0, money: 0, lookDone: false });
+  assert(!early.quests!.intro && !early.quests!.unlocks.includes("dest:plantation"), "a save that never played still gets the intro, no free routes");
+  const messy = migrate({ v: 1, quests: { v: 1, intro: true, active: ["sal_roadmap", "nope", "sal_office"], done: ["sal_office"], tracked: "nope", progress: { "sal_office/0": 9, "x/1": 2, "radio_gang/0": -1 }, notes: ["note_gang_dues", 3], unlocks: ["dest:plantation"], seen: [], counted: [], ledger: [{ quest: "sal_payroll", at: "home", consumed: [], granted: [], money: 120, unlocks: [] }] } });
+  const m = messy.quests!;
+  assert(m.active.join() === "sal_roadmap" && m.tracked === "sal_roadmap", "unknown and finished jobs leave the active list; tracking falls back");
+  assert(m.done.includes("sal_payroll") && !m.active.includes("sal_payroll"), "the payout ledger is the authority: a paid job is done");
+  equal(m.progress, { "sal_office/0": 1 }, "progress is clamped to the task and unknown keys dropped");
+  equal(m.notes, ["note_gang_dues"], "only valid note ids survive");
+  equal(migrate(JSON.parse(JSON.stringify(messy))).quests, messy.quests, "the job state round-trips unchanged");
 }
 console.log(`Save self-test: PASS (${checks} checks; migration, corrupt data, nested types, storage failures, reset)`);

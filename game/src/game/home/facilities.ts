@@ -15,20 +15,23 @@
 // pod on foot, so you can never wall yourself off from the Fence or the exit.
 import type { BaseLayout, SaveV1 } from "../contracts";
 import { itemType, own } from "../loot/instances";
+import { unlocked } from "../core/quests";
 
 export const AREA = { minX: -16, maxX: 16, minZ: -12, maxZ: 12 } as const;
 export const AREA_W = AREA.maxX - AREA.minX + 1, AREA_D = AREA.maxZ - AREA.minZ + 1; // 33 x 25
 
-export type FacilityId = "fence" | "bench" | "sal" | "trophy" | "med" | "stash" | "generator" | "press" | "desk" | "plant";
+export type FacilityId = "fence" | "bench" | "sal" | "trophy" | "med" | "stash" | "generator" | "press" | "desk" | "plant" | "radio";
 export type StarterId = "pod" | "board" | "locker" | "blueprints";
 /** what E does at a facility (home/bunker.ts open()) */
-export type StationId = "sell" | "bench" | "sal" | "trophies" | "med" | "stash" | "generator" | "press" | "deploy" | "locker" | "blueprints";
+export type StationId = "sell" | "bench" | "sal" | "trophies" | "med" | "stash" | "generator" | "press" | "deploy" | "locker" | "blueprints" | "radio" | "talk";
 export type FacilityDef = {
   id: FacilityId; name: string; does: string;   // name and one line on what it is for (catalog card)
   w: number; d: number;                         // footprint in cells at rotation 0 (w along x, d along z; front faces +z)
   cost: number; maxCount: number; requires: FacilityId[];
   station?: StationId; label?: string;          // E prompt
   decor?: boolean;                              // no station: needs no free front row
+  /** a job's unlock key (core/quests.ts) the blueprint needs, and the card's reason while it's missing */
+  unlock?: { key: string; reason: string };
   duckov: string;                               // the Duckov facility function it maps to (SYSTEMS_PORT H02 row)
 };
 /** Our catalog. Costs are bananas from loot/tables.ts's economy; npm run sim checks them (loot/sim.ts "Base"). The
@@ -42,7 +45,10 @@ export const CATALOG: FacilityDef[] = [
   { id: "med", name: "First-Aid Kiosk", does: "Make bandages from vine rope and smoothies from bananas", w: 3, d: 1, cost: 120, maxCount: 1, requires: [], station: "med", label: "First-aid kiosk: make heals", duckov: "H02 #11 medical station (medical crafting)" },
   { id: "stash", name: "Safe-Deposit Wall", does: "12 more stash slots for loot and gear. You can build two", w: 3, d: 1, cost: 80, maxCount: 2, requires: [], station: "stash", label: "Safe-deposit wall", duckov: "H04 player storage capacity (+slots)" },
   { id: "generator", name: "Vault Generator", does: "Powers the ammo press and switches on the big vault lights", w: 2, d: 2, cost: 60, maxCount: 1, requires: [], station: "generator", label: "Vault generator", duckov: "H01 building prerequisites (upgrade gate)" },
-  { id: "press", name: "Coin-Op Ammo Press", does: "Press springs and old gears into .45 rounds. Needs the generator", w: 2, d: 2, cost: 140, maxCount: 1, requires: ["generator"], station: "press", label: "Ammo press", duckov: "H03 crafting (ammo recipe)" },
+  { id: "press", name: "Coin-Op Ammo Press", does: "Press springs and old gears into .45 rounds. Needs the generator", w: 2, d: 2, cost: 140, maxCount: 1, requires: ["generator"], station: "press", label: "Ammo press", duckov: "H03 crafting (ammo recipe)",
+    unlock: { key: "fac:press", reason: "Blueprint from the Radio Operator's job \"Gang Frequencies\"" } },
+  { id: "radio", name: "Radio Desk", does: "A desk for the Radio Operator: gang chatter, hints, raid warnings and his jobs", w: 2, d: 1, cost: 0, maxCount: 1, requires: [], station: "radio", label: "The Radio Operator", duckov: "H02 move-in NPC + E03 quest giver",
+    unlock: { key: "fac:radio", reason: "Blueprint from Sal's job \"Office Supplies\"" } },
   { id: "desk", name: "Manager's Desk", does: "Decor. Somewhere to put your feet up", w: 4, d: 2, cost: 25, maxCount: 1, requires: [], decor: true, duckov: "H02 #26 decoration (no action)" },
   { id: "plant", name: "Potted Palm", does: "Decor. A bit of green down here", w: 1, d: 1, cost: 10, maxCount: 3, requires: [], decor: true, duckov: "H02 #26 decoration (no action)" },
 ];
@@ -156,6 +162,7 @@ export function canBuild(save: SaveV1, id: string): { ok: boolean; reason: strin
   if (builtCount(save.base, id) >= def.maxCount) return { ok: false, reason: def.maxCount > 1 ? `All ${def.maxCount} built` : "Already built", free, cost };
   const missing = def.requires.filter((r) => !has(save, r));
   if (missing.length) return { ok: false, reason: `Needs the ${missing.map((m) => defOf(m)!.name).join(" and ")}`, free, cost };
+  if (def.unlock && !free && !unlocked(save, def.unlock.key)) return { ok: false, reason: def.unlock.reason, free, cost }; // a packed-up one (a token) is already yours
   if (save.money < cost) return { ok: false, reason: `Needs 🍌 ${cost}`, free, cost };
   return { ok: true, reason: "", free, cost };
 }

@@ -42,6 +42,7 @@ import { beginRaid, settleRaid } from "./settlement";
 import { checkpointInventory } from "./raid-journal";
 import { itemType, own } from "../loot/instances";
 import { placeItem } from "../loot/raidloot";
+import { storyRaidStart, storyStep } from "../story/raid";
 
 const QS = new URLSearchParams(location.search);
 /** ?seed= is the world seed: map scatter, crate sockets and patrol set all derive from it (the bot has ?botseed=) */
@@ -116,6 +117,7 @@ export function startRaid(end: (r: RaidResult) => void, entry: RaidEntry = {}) {
   placeItem(own("oar"), START.x + 3, START.z + 3);
   for (const c of raidScene.children) if (!before.has(c)) c.userData.perRaid = true;
   resetHandling(); hud.build(); buildMinimap(); resetTrail(); clearBullets(); clearRangFx(); clearDashFx(); startInteractions(); bonkT = 0;
+  storyRaidStart(); // the Keeper camp, loose notes, the root cellar, the job tracker, the radio (story/raid.ts)
   (G.fx as KingpinFx).groundY = groundHeight; // casings land on the terrain
   // warm-up: compile every shader now (hidden enemies/props would otherwise compile mid-raid and hitch)
   const hidden: THREE.Object3D[] = []; raidScene.traverse((o) => { if (!o.visible) { hidden.push(o); o.visible = true; } });
@@ -152,7 +154,7 @@ const GUN_SCALE = 0.65;
 const focus = new THREE.Vector3(), chest = new THREE.Vector3(), sockQ = new THREE.Quaternion(), yawQ = new THREE.Quaternion(), UPV = new THREE.Vector3(0, 1, 0);
 export function stepRaid(dt: number) {
   G.raidT += dt; G.time += dt;
-  updatePlayer(dt); updateBullets(dt); updateEnemies(dt); updateFauna(dt); updateLoot(dt); updateInteractions(dt); recordTrail();
+  updatePlayer(dt); updateBullets(dt); updateEnemies(dt); updateFauna(dt); updateLoot(dt); updateInteractions(dt); storyStep(dt); recordTrail();
   checkpointInventory();
   if (!G.alive && G.hp <= 0) { bonkT += dt; if (bonkT > 1.8 && bonkT - dt <= 1.8) finish("bonked", 0); }
 }
