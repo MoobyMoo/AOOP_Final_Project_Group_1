@@ -12,6 +12,8 @@ export type Enemy = {
   zs: number; quiet: number; lastSeen: THREE.Vector3 | null; lostT: number; rang?: Rang | null; ring?: THREE.Mesh; stripe?: THREE.Group;
   alertMark?: THREE.Sprite; active: boolean; down: boolean; downT: number; hatOff?: boolean;
   gear?: Gear; gearSeed?: number;
+  /** raid time it may wake (staggered activation, ai/encounters.ts); fauna = a hostile animal run by ai/fauna.ts */
+  wakeAt?: number; fauna?: "boar" | "croc";
 };
 export type Rang = { p: THREE.Vector3; from: THREE.Vector3; dir: THREE.Vector3; t: number; out: number; mesh: THREE.Object3D; owner: Enemy; hitDone: boolean; back: boolean };
 /** anything you search with E (G1.5 rows 18, 27): a generic crate (tiered, fixed rewards), a typed container or a
@@ -19,7 +21,7 @@ export type Rang = { p: THREE.Vector3; from: THREE.Vector3; dir: THREE.Vector3; 
  *  opened = searched out (nothing left to reveal or take); started = the lid is up / the search has begun */
 export type Crate = {
   id: number; x: number; z: number; tier: "wood" | "green" | "gold"; fixed?: string; obj: THREE.Object3D; opened: boolean; search: number; items: string[] | null; beam?: THREE.Object3D;
-  kind?: "crate" | "container" | "body"; type?: "weapon" | "food" | "ammo" | "parts" | "medical"; label?: string; socket?: string;
+  kind?: "crate" | "container" | "body"; type?: import("../loot/containers").ContainerType; label?: string; socket?: string;
   session?: import("../loot/search").SearchSession | null; started?: boolean; enemy?: Enemy; r?: number; note?: string;
 };
 /** an item lying in the world as its own model (G1.5 row 04+). p = where it is (x, z; y = its height while it flies),
@@ -51,6 +53,8 @@ export const G = {
   log: { crates: 0, kills: {} as Record<string, number>, killsBy: { pistol: 0, briefcase: 0 }, shots: 0, hits: 0, hurt: 0, rolls: 0, swaps: 0, missed: 0, firstShot: -1, firstCrate: -1, firstRoll: -1, breaks: [] as string[], value: 0 },
   lootCtx: { raid: 0, cratesOpened: 0, usefulFound: 0, emptyStreak: 0, ammoFound: 0, orderNeeds: [] as string[] },
   bot: false,
+  /** this raid's rolled encounters (ai/encounters.ts): what spawned where, for the logs */
+  encounters: [] as { id: string; count: number }[],
 };
 export const V = (x: number, z: number, y = 0) => new THREE.Vector3(x, y, z);
 export const flat = (a: { x: number; z: number }, b: { x: number; z: number }) => Math.hypot(a.x - b.x, a.z - b.z);

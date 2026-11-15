@@ -12,7 +12,7 @@ import { pieceRec, type PieceOwner } from "../world/dress";
 import { groundHeight, meshHeight, meshHeightMax } from "../world/terrain";
 import { houses } from "../world/buildings";
 import { debugGrid, walkable, path, gates, edgeDist, roadDist, flood } from "../world/grid";
-import { PLACED, CRATES, SPAWNS, START, POI, PORTALS, ZIPLINES, SUPPLY_DROPS, UNDER_X, PIERS, PIER_Y, inDemo, portalOpen, CONTAINER_SOCKETS } from "../world/map/grove";
+import { PLACED, CRATES, SPAWNS, START, POI, PORTALS, ZIPLINES, SUPPLY_DROPS, UNDER_X, PIERS, PIER_Y, inDemo, portalOpen, CONTAINER_SOCKETS, ENCOUNTERS } from "../world/map/grove";
 import { collidersFor, NATURE_VARIANTS } from "../world/map/colliders";
 import { toWorld } from "../world/map/types";
 import * as K from "../world/kit_build";
@@ -489,7 +489,7 @@ function sockets() {
   }
   // enemies: home on open ground, a patrol ring that is mostly walkable, a way to the player
   const seenHome = new Set<string>();
-  SPAWNS.flat().filter((s) => inDemo(s.x, s.z)).forEach((s) => {
+  [...SPAWNS.flat(), ...ENCOUNTERS.flatMap((e) => e.points.map(([x, z]) => ({ kind: e.weightedRoles.some(([k]) => k === "brute") ? "brute" as const : "bandit" as const, x, z })))].filter((s) => inDemo(s.x, s.z)).forEach((s) => {
     const key = `${s.x},${s.z}`; if (seenHome.has(key)) return; seenHome.add(key);
     const rad = s.kind === "brute" ? 0.72 : 0.36, clear = idx.dist(s.x, s.z);
     if (!walkable(s.x, s.z) || clear < rad * 0.5) add("socket", "bug", s.x, s.z, s.kind, `${s.kind} spawn ${r2(s.x)},${r2(s.z)} inside a collider (${r2(clear)} u clear)`, clear);

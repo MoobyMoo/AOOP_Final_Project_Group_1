@@ -19,18 +19,20 @@ export { bodyContents, bodySearch } from './bodies';
 export { advanceSearch, take, takeAll } from './search';
 import { equipDef, gearStats, isEquip } from "./equipment";
 import { collectEquipment, equipFromPack } from "./equipment-actions";
-import { PLACED } from "../world/layout";
+import { PLACED, START, UNDER_X } from "../world/layout";
+import { inDemo } from "../world/map/grove";
 import { selectSockets, selectContainers } from "./sockets";
 import { groundHeight } from "../world/terrain";
 import { block, walkable, los } from "../world/grid";
 import { crate as crateKit, container as containerKit, satchel as satchelKit, CRATE_LID_OPEN } from "../world/kit_build";
+import * as K from "../world/kit_build";
 import { mergePieces } from "../world/kitutil";
 import { sfx } from "../core/audio";
 import { floatText, popIn } from "../../fx";
 import { hud } from "../ui/hud";
 import { KINGPIN } from "../combat/weapons";
 import { makeNoise } from "../combat/combat";
-import { takeModel, releaseModel, throwVelocity, stepThrow, poseModel, PICK_REACH, hullResolution } from "./ground";
+import { takeModel, releaseModel, throwVelocity, stepThrow, poseModel, PICK_REACH, hullResolution, plainModel } from "./ground";
 import { openLoot, closeLoot, lootOpen, type LootTarget } from "../ui/hud";
 import { lootTarget } from "../ui/lootview";
 
@@ -39,7 +41,7 @@ export const RAR_COLOR: Record<string, string> = { common: "#f3ead6", uncommon: 
 /** a generic crate's opening delay by tier (the old whole-crate search times, now just the lid) */
 const OPEN: Record<string, number> = { wood: 0.5, green: 0.9, gold: 1.4 };
 /** type colours for the readability mark (kit_build container(): slate-blue weapon, straw food, olive ammo, teal parts, coral medical) */
-const TYPE_COLOR: Record<ContainerType, string> = { weapon: "#7fa6ff", food: "#ffd36a", ammo: "#c8d96a", parts: "#6fe0d2", medical: "#ff8f7a" };
+const TYPE_COLOR: Record<ContainerType, string> = { weapon: "#7fa6ff", food: "#ffd36a", ammo: "#c8d96a", parts: "#6fe0d2", medical: "#ff8f7a", lunchbox: "#ffd36a", toolbox: "#6fe0d2", medcabinet: "#ff8f7a", safe: "#f0c45a", trash: "#b7a98a", sack: "#e3c48a", jacket: "#d9b37a" };
 export { itemDef };
 export const worth = (id: string) => { const d = itemDef(id); return d.kind === "key" ? 999 : d.value; };
 export const sortPack = () => G.pack.sort((a, b) => worth(b) - worth(a));
@@ -72,7 +74,9 @@ export function setupCrates() {
   }
   // typed containers (G1.5-27): their own models, lids and readability marks
   for (const s of selectContainers(G.rng)) {
-    const b = containerKit(s.type), obj = mergePieces(b.pieces); obj.add(b.parts.root); obj.userData.lid = b.parts.lid;
+    // a hanging jacket has no container model (the brief): a worn jacket or bag from the wearables, laid where it was left
+    const b = s.type === "jacket" ? null : containerKit(s.type), obj = b ? mergePieces(b.pieces) : plainModel(G.rng() < 0.5 ? "peel_jacket" : "satchel");
+    if (b) { obj.add(b.parts.root); obj.userData.lid = b.parts.lid; }
     const host = s.in ? PLACED.find((p) => p.id === s.in) : undefined;
     obj.position.set(s.x, groundHeight(s.x, s.z) + (s.y ?? 0), s.z); obj.rotation.y = s.yaw ?? (host ? (host.yaw ?? 0) + (Math.floor(G.rng() * 2) * Math.PI) : G.rng() * 6.28);
     G.stage.scene.add(obj);
@@ -80,8 +84,11 @@ export function setupCrates() {
     block(s.x, s.z, r, true);
     const c: Crate = { id: nid++, x: s.x, z: s.z, tier: s.type === "weapon" ? "green" : "wood", obj, opened: false, search: 0, items: null, kind: "container", type: s.type, label: CONTAINERS[s.type].label, socket: s.id, note: s.note[0].toUpperCase() + s.note.slice(1), r };
     G.crates.push(c);
-    obj.updateMatrixWorld(true); const at = (b.parts.mark ?? b.parts.root).getWorldPosition(new THREE.Vector3()); at.y += 0.25; addMark(c, at, TYPE_COLOR[s.type]);
+    obj.updateMatrixWorld(true); const at = b ? (b.parts.mark ?? b.parts.root).getWorldPosition(new THREE.Vector3()) : obj.position.clone().setY(obj.position.y + 0.6); at.y += 0.25;
+    if (b && !b.parts.mark) at.y = box.max.y + 0.35; // a stand-in without a mark point: over its top
+    addMark(c, at, TYPE_COLOR[s.type]);
   }
+  looseItems();
   // your satchel from the last bonk-out: recoverable once (Duckov corpse rule, CODE_FINDINGS 4.2)
   const sat = G.save.satchel;
   if (sat) {
@@ -118,7 +125,7 @@ export const currentSearch = () => searching;
 /** the nearest thing to search within reach (bodies a little closer: you crouch over them) */
 export function nearestCrate(r = 1.9) { let best: Crate | null = null, bd = r; for (const c of G.crates) { if (c.opened) continue; const d = flat(c, G.pp) - (c.kind === "body" ? 0.3 : 0); if (d < bd) { bd = d; best = c; } } return best; }
 /** what the looting screen calls a container (the lead's names, by type) */
-export const CONTAINER_NAME: Record<ContainerType, string> = { weapon: "Weapon crate", food: "Food box", ammo: "Ammo tin", parts: "Material crate", medical: "Medical box" };
+export const CONTAINER_NAME: Record<ContainerType, string> = { weapon: "Weapon crate", food: "Food box", ammo: "Ammo tin", parts: "Material crate", medical: "Medical box", lunchbox: "Lunchbox", toolbox: "Toolbox", medcabinet: "Medicine cabinet", safe: "Safe", trash: "Junk heap", sack: "Supply sack", jacket: "Hanging jacket" };
 const BODY_NAME: Record<Enemy["kind"], string> = { wild: "Wild monkey", bandit: "Peel Gang bandit", brute: "Plantation brute", sleeper: "The Sleeper" };
 /** the screen's view of a lootable: the live items list and its session (they stay in step: the screen splices both) */
 function lootTargetOf(c: Crate, s: SearchSession): LootTarget {
@@ -245,8 +252,27 @@ export function dropItem(item: string, from: THREE.Vector3, aim: number, n?: num
   const p = makePickup(item, from.x, y, from.z, n); p.v = throwVelocity(aim, G.rng); return p;
 }
 /** place an item at rest (procedural loot: the supply drop, a spawn): random yaw, on open ground you can walk to */
-export function placeItem(item: string, x: number, z: number, n?: number) {
-  const p = makePickup(item, x, groundHeight(x, z), z, n); p.landed = true; p.land = 1; popIn(p.obj); return p;
+export function placeItem(item: string, x: number, z: number, n?: number, y = groundHeight(x, z)) {
+  const p = makePickup(item, x, y, z, n); p.landed = true; p.land = 1; popIn(p.obj); return p;
+}
+/** loose finds lying on things (the population pass; Duckov's loose-loot spawners): a seeded handful each raid on the
+ *  tops of crates, barrels, benches and sack piles in the slice. Each sits on the top it is on (a ray down onto the drawn
+ *  piece), so nothing floats */
+const LOOSE_ON = new Set(["crate_wood", "crate_wood_b", "crate_green", "barrel_wood", "barrel_rust", "barrel_teal", "log_bench", "log_bench_b", "sack_pile"]);
+const LOOSE_POOL: Record<string, number> = { banana: 4, coconut: 3, bandage: 3, scrap_tin: 3, vine_rope: 2, spring: 2, ammo45: 2, plank: 1, honey_pot: 1, smoothie: 1, banana_notes: 1 };
+export const LOOSE_PER_RAID = 12;
+/** the height of a piece's top above its origin (its model's bounds; the world chunks keep no CPU copy to ray-cast) */
+const tops = new Map<string, number>();
+const topOf = (k: string) => { let t = tops.get(k); if (t === undefined) { const box = new THREE.Box3(); for (const q of K.asset(k).pieces) { q.geo.computeBoundingBox(); box.union(q.geo.boundingBox!); } t = box.max.y; tops.set(k, t); } return t; };
+function looseItems() {
+  const spots = PLACED.filter((p) => LOOSE_ON.has(p.k) && inDemo(p.x, p.z) && p.x < UNDER_X && Math.hypot(p.x - START.x, p.z - START.z) > 20);
+  const total = Object.values(LOOSE_POOL).reduce((a, b) => a + b, 0), pick = () => { let r = G.rng() * total; for (const [id, w] of Object.entries(LOOSE_POOL)) { r -= w; if (r < 0) return id; } return "banana"; };
+  for (let n = 0; n < LOOSE_PER_RAID && spots.length; n++) {
+    const p = spots.splice(Math.floor(G.rng() * spots.length), 1)[0], ox = (G.rng() - 0.5) * 0.25, oz = (G.rng() - 0.5) * 0.25;
+    // on level ground only: a prop settled onto a slope tilts its top (dress.ts settle)
+    if (Math.abs(groundHeight(p.x + 0.6, p.z) - groundHeight(p.x - 0.6, p.z)) + Math.abs(groundHeight(p.x, p.z + 0.6) - groundHeight(p.x, p.z - 0.6)) > 0.06) { n--; continue; }
+    placeItem(pick(), p.x + ox, p.z + oz, undefined, groundHeight(p.x, p.z) - 0.04 + topOf(p.k) * (p.s ?? 1) - 0.025);
+  }
 }
 /** the old entry point: k of n items around a point. Placed at rest on open ground in reach of the point */
 export function spawnPickup(id: string, from: THREE.Vector3, k = 0, n = 1, n2?: number) {

@@ -15,14 +15,15 @@ import { musicTick, setMusic, sting, musicState } from "./core/music";
 import { startRaid, stepRaid, renderRaid, buildRaidWorld, raidScene, quitRaid, type RaidResult } from "./core/raid";
 import { initSettings, settingsOpen } from "./ui/settings";
 import { lootOpen } from "./ui/lootview";
-import { path, walkable, los, lintReport, exactReach, clearance, gates, setGate, pathLength, collide } from "./world/grid";
+import { path, walkable, los, lintReport, exactReach, clearance, areaStats, gates, setGate, pathLength, collide } from "./world/grid";
 import { worldStats, countVisible, scattered } from "./world/world";
 import { blockoutSvg } from "./world/map/dump";
 import { preloadNature } from "./world/kit_nature";
 import { preloadHouse } from "./world/buildings";
 import { preloadGroundItems } from "./loot/ground";
 import { groundHeight } from "./world/terrain";
-import { houses } from "./world/buildings";
+import { houses, houseFootprints } from "./world/buildings";
+import { CONTAINER_SOCKETS } from "./world/map/grove";
 import { enterBunker, stepBunker, renderBunker, leaveBunker, bunkerScene, homeApi } from "./home/bunker";
 import { openCreator, renderCreator } from "./ui/creator";
 import { buildMapShots, toggleMap, mapOpen, toggleMinimap } from "./ui/mapview";
@@ -111,7 +112,7 @@ function frame() {
 function neutral() { const i = G.intent; i.move = { x: 0, z: 0 }; i.fire = i.firePressed = i.melee = i.roll = i.interact = i.reload = i.heal = false; }
 (window as unknown as { __g: unknown }).__g = { G, path, walkable, los, collide, home: homeApi, info: () => ({ calls: G.stage.renderer.info.render.calls, tris: G.stage.renderer.info.render.triangles }),
   // map v3 checks: lint report, world build stats, objects in the current frame (G1-21), teleport, gates
-  lint: lintReport, exactReach, clearance, loot: { dropItem, placeItem }, world: () => worldStats, density: () => countVisible(G.stage.camera, [...G.crates, ...G.enemies.filter((e) => !e.down).map((e) => ({ x: e.p.x, z: e.p.z }))]),
+  lint: lintReport, exactReach, clearance, sockets: CONTAINER_SOCKETS, areas: () => areaStats(houseFootprints()), feet: () => houseFootprints(), loot: { dropItem, placeItem }, world: () => worldStats, density: () => countVisible(G.stage.camera, [...G.crates, ...G.enemies.filter((e) => !e.down).map((e) => ({ x: e.p.x, z: e.p.z }))]),
   tp: (x: number, z: number) => { G.pp.set(x, groundHeight(x, z), z); G.vel.set(0, 0, 0); }, gates, setGate, pathLength, houses, svg: () => blockoutSvg(scattered) };
 
 if (QS.has("raid")) { G.save.lookDone = true; startRaid(onRaidEnd); setMusic("raid"); }

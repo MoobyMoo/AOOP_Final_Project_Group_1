@@ -31,6 +31,11 @@ export const ITEMS: Record<string, ItemDef> = {
   radio_key: { id: "radio_key", name: "Radio Shack Key", icon: "🗝️", rarity: "rare", value: 0, kind: "key", weight: 0.1 },
   spring: { id: "spring", name: "Spring", icon: "🌀", rarity: "common", value: 11, kind: "part", weight: 0.5 },
   plantation_seal: { id: 'plantation_seal', name: 'Plantation Workshop Seal', icon: '🔩', rarity: 'rare', value: 0, kind: 'key', weight: 0.2 },
+  // G1.5 population pass: animal drops and the small containers' junk and cash
+  meat: { id: "meat", name: "Boar Meat", icon: "🍖", rarity: "common", value: 14, kind: "sell", weight: 1.0 },
+  hide: { id: "hide", name: "Animal Hide", icon: "🟫", rarity: "uncommon", value: 22, kind: "part", weight: 1.2 },
+  scrap_tin: { id: "scrap_tin", name: "Scrap Tin", icon: "🥫", rarity: "common", value: 4, kind: "part", weight: 0.3 },
+  banana_notes: { id: "banana_notes", name: "Banana Notes", icon: "💵", rarity: "uncommon", value: 25, kind: "sell", weight: 0.1 },
   plank: { id: "plank", name: "Plank", icon: "🪵", rarity: "common", value: 8, kind: "part", weight: 2.0 },
   ...ATTACHMENT_ITEMS, // gun attachments (loot/attachments.ts; att_mag_ext is the old extended_mag)
   ...Object.fromEntries(Object.values(EQUIP).map(def => [def.id, { id: def.id, name: def.name, icon: { head: "🎩", face: "🕶️", body: "🦺", back: "🎒", ears: "🎧" }[def.slot], rarity: def.rarity, value: def.value, weight: def.weight, kind: "wear" as const }])),

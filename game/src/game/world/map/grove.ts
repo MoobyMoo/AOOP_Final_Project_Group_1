@@ -11,7 +11,7 @@
 // sits next to the spawn: the first crates are 30+ u out, gold and the key are 100+ u out behind guards.
 // Buildings stand at half-integer coordinates with yaw in quarter turns, so walls and doorways land on nav cells.
 import type { Placed } from "../../contracts";
-import type { Zone, Road, Shape, Wall, Portal, CrateSocket, Spawn, Pt, EdgeKind } from "./types";
+import type { Zone, Road, Shape, Wall, Portal, CrateSocket, Spawn, Pt, EdgeKind, SpawnKind } from "./types";
 import { toWorld } from "./types";
 import { pinVariant } from "./colliders";
 import { plugGaps } from "./seal";
@@ -596,7 +596,7 @@ export const CRATES: CrateSocket[] = [
  *  at rest and treatment spots, weapon crates in the two secured places. Budget 8 food, 6 ammo, 8 parts, 4 medical,
  *  2 weapon (DEMO_CONTAINER_BUDGET); loot/sockets.ts spawns a type-balanced share of them each raid. Each is its own
  *  model (kit_build container(type)), so it reads before you open it. Interior ones square up with their building. */
-export type ContainerSocket = { id: string; type: "weapon" | "food" | "ammo" | "parts" | "medical"; x: number; z: number; y?: number; in?: string; yaw?: number; note: string; /** spawns every raid (the grotto's den: worth the trip) */ always?: boolean };
+export type ContainerSocket = { id: string; type: "weapon" | "food" | "ammo" | "parts" | "medical" | "lunchbox" | "toolbox" | "medcabinet" | "safe" | "trash" | "sack" | "jacket"; x: number; z: number; y?: number; in?: string; yaw?: number; note: string; /** spawns every raid (the grotto's den: worth the trip) */ always?: boolean };
 const cs = (id: string, type: ContainerSocket["type"], p: { x: number; z: number }, note: string, o: Partial<ContainerSocket> = {}): ContainerSocket => ({ id, type, x: p.x, z: p.z, note, ...o });
 export const CONTAINER_SOCKETS: ContainerSocket[] = [
   // food: picnics, galleys, harvests, kitchens
@@ -631,6 +631,26 @@ export const CONTAINER_SOCKETS: ContainerSocket[] = [
   cs("farm-bedside", "medical", at("farmhouse", -3.4, 1.4), "the farmhouse bedside", { in: "farmhouse" }),
   // weapon: the secured places
   cs("hut-rack", "weapon", { x: 10.6, z: 78.4 }, "the checkpoint's locked rack, behind the hut") /* inside, the hut is too small to stand beside it (bot softlock, G1.5 matrix) */,
+  // the population pass (G1.5): the small, frequent containers (Duckov's trash cans, toolboxes, cabinets) where they make
+  // sense: junk and sacks round the camps and the beach, toolboxes by benches, lunchboxes where people eat, pockets in
+  // jackets left on bunks and lines, safes in the office, the gang boss's corner and the smugglers' hall
+  cs("beach-junk", "trash", { x: -37.6, z: 101.4 }, "the flotsam pile"), cs("beach-sack", "sack", { x: 36.6, z: 102.6 }, "a washed-up supply sack"),
+  cs("bottle-jacket", "jacket", { x: -30.6, z: 106 }, "a coat on the driftwood"),
+  cs("cove-sack", "sack", { x: -85.6, z: 95.6 }, "the smugglers' supplies"), cs("cove-jacket", "jacket", { x: -79.4, z: 96.6 }, "a coat by the fire"),
+  cs("bunk-jacket", "jacket", { x: -8, z: 74.6 }, "the guard's coat on his bunk"), cs("bunk-lunch", "lunchbox", { x: -5.9, z: 72 }, "the guard's lunch"),
+  cs("cart-sack", "sack", { x: -16.2, z: 68.4 }, "the looted cart's load"), cs("cart-tools", "toolbox", { x: -20.8, z: 63.6 }, "the cart's toolbox"),
+  cs("lookout-lunch", "lunchbox", { x: -39.2, z: 61.4 }, "the lookout's lunch"),
+  cs("yard-tools", "toolbox", { x: 12.3, z: 55 }, "the foreman's bench"),
+  cs("camp-junk", "trash", { x: -48.5, z: 17 }, "the camp midden"), cs("camp-tools", "toolbox", { x: -69.5, z: 33 }, "the lean-to bench"),
+  cs("line-jacket", "jacket", { x: -58.6, z: 35.2 }, "the washing line"), cs("tower-sack", "sack", { x: -72.4, z: 22.6 }, "under the watchtower"),
+  cs("boss-safe", "safe", { x: -73.9, z: 28.9 }, "the gang boss's corner"), cs("fire-lunch", "lunchbox", { x: -63.6, z: 22 }, "by the cookfire"),
+  cs("office-safe", "safe", at("farmhouse", -0.6, 1.4), "the plantation office", { in: "farmhouse" }), cs("farm-lunch", "lunchbox", at("farmhouse", -0.4, -1.0), "the farmhouse table", { in: "farmhouse" }),
+  cs("yard-junk", "trash", { x: 8.6, z: 18.6 }, "the yard's scrap heap"), cs("field-sack", "sack", { x: -14.2, z: 30.4 }, "a harvest sack by the rows"),
+  cs("hub-tools", "toolbox", { x: 46.2, z: 51.6 }, "the boardwalk hub"), cs("bw-junk", "trash", { x: 66.6, z: 45.6 }, "rubbish on the boardwalk"),
+  cs("hall-safe", "safe", { x: 174.6, z: 30.2 }, "the smugglers' strongroom"), cs("hall-junk", "trash", { x: 160.4, z: 22.6 }, "the smugglers' midden"),
+  cs("mouth-sack", "sack", { x: 157, z: 60 }, "a sack by the grotto mouth"), cs("roots-tools", "toolbox", { x: 157.8, z: -21.2 }, "a toolbox in the root chamber"),
+  cs("hall-lunch", "lunchbox", { x: 162.6, z: 28.2 }, "the smugglers' supper"), cs("hall-jacket", "jacket", { x: 161.4, z: 21.4 }, "a coat under the tarp"),
+  cs("roots-cabinet", "medcabinet", { x: 151.2, z: -19.6 }, "a medicine chest in the root chamber"),
   // the grotto (open in the demo): a smugglers' den, so ammo, parts and a weapon crate, every raid
   cs("hall-ammo", "ammo", { x: 166, z: 33.2 }, "the smugglers' hall", { always: true }),
   cs("hall-parts", "parts", { x: 178, z: 24.6 }, "the smugglers' stores", { always: true }),
@@ -670,9 +690,32 @@ export const SPAWNS: Spawn[][] = [[...base,
   { kind: "wild", x: 36, z: -58 }, { kind: "brute", x: 8, z: -90, group: "landing" }, { kind: "bandit", x: 24.2, z: -100.8, group: "landing" }, { kind: "bandit", x: 33, z: -102.6, group: "landing" }, { kind: "bandit", x: -7.7, z: -111.5, group: "landing" }, { kind: "wild", x: -40, z: -101 }, { kind: "wild", x: 33, z: -100, group: "landing" },
   { kind: "bandit", x: 165, z: 32, group: "grotto" }, { kind: "wild", x: 153, z: -21 },
 ]];
+// ---------------------------------------------------------------- encounters (G1.5 population pass, SYSTEMS_PORT A05)
+/** An encounter group, rolled once per raid: a count in [min, max] drawn at its candidate points (no two closer than
+ *  3 u, none within exclusionRadius of where you deploy), each member's role by weight. conditions: a presence chance.
+ *  No respawn during a raid; members wake staggered (ai/enemies.ts). The boss yard is its own fixed encounter
+ *  (BOSS_ENCOUNTER). Points sit 20-35 u apart across areas, Duckov's nearest-neighbour spacing between spawn clouds on
+ *  its denser maps (MAP_FINDINGS: 19.8 m Ground Zero, 29.3 m Warehouse, 33 m Farm) */
+export type EncounterDef = { id: string; points: Pt[]; min: number; max: number; weightedRoles: [SpawnKind, number][]; conditions: { chance?: number }[]; oncePerRaid: true; exclusionRadius: number; ring: number; note: string };
+const enc = (id: string, note: string, points: Pt[], min: number, max: number, weightedRoles: [SpawnKind, number][], ring = 14, chance = 1): EncounterDef =>
+  ({ id, note, points, min, max, weightedRoles, conditions: chance < 1 ? [{ chance }] : [], oncePerRaid: true, exclusionRadius: 18, ring });
+export const ENCOUNTERS: EncounterDef[] = [
+  enc("checkpoint", "a sentry at the palm checkpoint", [[2.4, 79.2], [-3.6, 78.4], [8.6, 82.6]], 1, 2, [["bandit", 3], ["wild", 1]], 10),
+  enc("palm-edge", "a patrol on the Palm Edge roads", [[-9.5, 67.5], [12, 66], [8, 70], [-12.5, 72.5], [-22, 74]], 1, 2, [["wild", 3], ["bandit", 1]]),
+  enc("lookout", "the bandit lookout over the west trail", [[-39, 63], [-36.5, 58.5], [-43, 58]], 1, 2, [["bandit", 3], ["wild", 1]], 10),
+  enc("camp", "the Peel Gang campers", [[-60, 31], [-66, 21], [-54, 27], [-58, 19], [-70.3, 30.5], [-52, 36]], 3, 4, [["bandit", 1]], 19),
+  enc("plantation", "the plantation's hands and its brute", [[4, 24], [-12, 25], [14, 36], [20, 10], [-4.2, 18.2]], 1, 2, [["brute", 1], ["wild", 2], ["bandit", 1]]),
+  enc("mangrove", "swamp monkeys on the boardwalk", [[50.5, 58.5], [42, 58], [64, 46], [68.4, 60.6], [58, 70]], 1, 2, [["wild", 2], ["bandit", 1]]),
+  enc("coast", "beachcombers at the ferry and the cove", [[58, 96], [70, 96.5], [-80, 95], [-60, 103], [26.6, 105.5]], 1, 2, [["wild", 2], ["bandit", 1]], 12),
+  enc("brush", "a lone wild monkey in the brush", [[66, 20], [80, 24], [36, 30], [-28, 40], [-90, 40]], 1, 1, [["wild", 1]], 8),
+  enc("grotto", "smugglers in the grotto", [[166, 24], [172, 29], [165, 32], [153, -21], [150, 58], [176, 22]], 2, 3, [["bandit", 2], ["wild", 1]], 14),
+];
+/** the camp's fixed member: the lemon bandit with the Radio Shack Key (LORE.md EGG ep02) */
+export const FIXED_SPAWNS: Spawn[] = [{ kind: "bandit", x: -63.4, z: 37.2, group: "camp", tag: "lemon", carry: "radio_key" }];
 /** allies share an alert only inside their group's ring (CODE_FINDINGS rule 11) */
 export const GROUP_RINGS: Record<string, { x: number; z: number; r: number }> = {
   'plantation-boss': { x: BOSS_ENCOUNTER.x, z: BOSS_ENCOUNTER.z, r: BOSS_ENCOUNTER.radius },
+  ...Object.fromEntries(ENCOUNTERS.map((e) => [e.id, { x: e.points.reduce((a, q) => a + q[0], 0) / e.points.length, z: e.points.reduce((a, q) => a + q[1], 0) / e.points.length, r: e.ring }])),
   camp: { x: -62, z: 26, r: 19 }, plane: { x: -64, z: -45, r: 14 }, grotto: { x: 168, z: 26, r: 14 }, ruin: { x: 68, z: -4, r: 20 }, landing: { x: 8, z: -98, r: 26 },
 };
 /** dynamic event: a bandit supply balloon crash-lands one gold crate (with red smoke) 90-150 s into a raid */

@@ -189,6 +189,12 @@ export function takeModel(item: string): { obj: THREE.Group; key: string } {
   g.userData = { body, warm, shade, foot: t.foot, h: t.h };
   return { obj: g, key };
 }
+/** an item's ground model with no outline and no shade (a jacket left on a bench: a container, not a pickup) */
+export function plainModel(item: string): THREE.Group {
+  const t = template(modelKey(item)), g = new THREE.Group();
+  for (const m of t.meshes) { const mesh = new THREE.Mesh(m.geo, m.mat); mesh.castShadow = true; mesh.receiveShadow = true; g.add(mesh); }
+  return g;
+}
 export function releaseModel(obj: THREE.Object3D, key: string) {
   obj.visible = false; obj.removeFromParent();
   (pool.get(key) ?? pool.set(key, []).get(key)!).push(obj as THREE.Group);
@@ -231,7 +237,9 @@ export function poseModel(obj: THREE.Object3D, p: THREE.Vector3, landT: number |
   obj.position.set(p.x, 0, p.z);
   u.body.position.y = p.y;
   if (landT !== undefined && landT < 0.18) { const k = Math.sin((landT / 0.18) * Math.PI) * 0.16; u.body.scale.set(1 + k * 0.5, 1 - k, 1 + k * 0.5); } else u.body.scale.set(1, 1, 1);
-  const gy = meshHeightMax(p.x, p.z, Math.min(0.45, u.foot * 0.5)), air = Math.max(0, p.y - groundHeight(p.x, p.z));
+  // resting on top of something (a crate, a barrel: loose finds) the shade lies on that top, not on the ground below
+  const onTop = landT !== undefined && p.y - groundHeight(p.x, p.z) > 0.15;
+  const gy = onTop ? p.y - 0.035 : meshHeightMax(p.x, p.z, Math.min(0.45, u.foot * 0.5)), air = onTop ? 0 : Math.max(0, p.y - groundHeight(p.x, p.z));
   u.shade.position.y = gy + 0.045; (u.shade.material as THREE.Material).opacity = 1;
   const s = (u.foot * 1.35 + 0.25) * (1 + air * 0.35); u.shade.scale.set(s, 1, s); u.shade.visible = air < 2.5;
   u.warm.visible = selected; void dt; void tmp;

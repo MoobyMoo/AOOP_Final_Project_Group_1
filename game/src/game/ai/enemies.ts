@@ -10,7 +10,9 @@ import { ENEMY, aimRang } from "../combat/weapons";
 import { makeRangVisual } from "../combat/rangfx";
 import { createRig } from "../actors/rig";
 import { SPAWNS, GROUP_RINGS } from "../world/layout";
-import { inDemo } from "../world/map/grove";
+import { inDemo, DEMO } from "../world/map/grove";
+import { demoSpawns } from "./encounters";
+import type { Spawn } from "../world/map/types";
 import { path as findPath, pathLength, los, collide, walkable, ramAt, gates, straightWalk } from "../world/grid";
 import { groundHeight, standHeight } from "../world/terrain";
 import { sfx } from "../core/audio";
@@ -75,7 +77,10 @@ export function spawnEnemies(set: number) {
   sharedAlerts.clear();
   bossBrains.clear();
   for (const e of G.enemies) e.rig.dispose(); G.enemies = [];
-  for (const [index, s] of SPAWNS[set % SPAWNS.length].entries()) {
+  // the demo slice rolls its encounters once per raid (G1.5 population pass, A05); the full map keeps its two patrol sets
+  const demo = DEMO ? demoSpawns(G.rng) : null; G.encounters = demo ? demo.rolled.map((r) => ({ id: r.id, count: r.count })) : [];
+  const list: (Spawn & { wake?: number })[] = demo ? demo.spawns : SPAWNS[set % SPAWNS.length];
+  for (const [index, s] of list.entries()) {
     if (!inDemo(s.x, s.z)) continue; // past the demo's route locks: parked in the data (G1.5-13)
     const plan = s.kind === "brute" || s.kind === "sleeper" ? "gorilla" : "monkey";
     const gearSeed = G.seed ^ Math.imul(index + 1, 7), gear = enemyGear(gearSeed, s.kind);
@@ -87,6 +92,7 @@ export function spawnEnemies(set: number) {
     const e: Enemy = { id: nextId++, kind: s.kind, rig, p: V(s.x, s.z), vel: new THREE.Vector3(), face: G.rng() * 6.28, hp: st.hp, max: st.hp,
       state: s.kind === "sleeper" ? "sleep" : "patrol", t: G.rng() * 2, actionT: 0, home: V(s.x, s.z), group: s.group, tag: s.tag, path: [], repath: 0, flash: 0,
       stolen: [], carry: [], gear, gearSeed, zs: 3, quiet: 0, lastSeen: null, lostT: 0, rang: null, active: false, down: false, downT: 0 };
+    e.wakeAt = s.wake ?? 0;
     if (s.carry) e.carry.push(s.carry); // e.g. the Radio Shack Key on the lemon bandit: bonk him and it drops
     if (isBoss(e)) {
       rig.dressBoss?.();
@@ -216,7 +222,7 @@ export function updateEnemies(dt: number) {
   }
   for (const e of G.enemies) {
     const d = flat(e.p, G.pp);
-    e.active = d < 32;
+    e.active = d < 32 && G.raidT >= (e.wakeAt ?? 0); // staggered activation (A05)
     e.flash = Math.max(0, e.flash - dt);
     windCue(e);
     if (e.down) {
