@@ -97,7 +97,7 @@ function open(start?: Level) {
       </div>
       <aside class="mv3-side">
         <h3>Legend</h3>
-        <ul>${LEGEND.map(([k, t]) => `<li><span class="ic">${ICON[k]}</span>${t}</li>`).join("")}<li><span class="ic trail-k"></span>Your route this raid</li><li><span class="ic closed-k"></span>Closed until the full game</li></ul>
+        <ul>${LEGEND.map(([k, t]) => `<li><span class="ic">${ICON[k]}</span>${t}</li>`).join("")}<li><span class="ic trail-k"></span>Your route this raid</li><li class="closed-row"><span class="ic closed-k"></span><span>Closed until the full game<small>Old Colony, the Vault, the Hollow and Raft Landing open after the demo</small></span></li></ul>
         <h3>Raid</h3>
         <dl><dt>Areas found</dt><dd class="num">${[...G.discovered].filter((id) => inDemo(CLEARINGS.find((c) => c.id === id)?.x ?? 0, CLEARINGS.find((c) => c.id === id)?.z ?? 0)).length} / ${areaLabels("surface").length + areaLabels("under").length}</dd><dt>Pins</dt><dd class="num pins">${pins.length}</dd></dl>
       </aside>
@@ -142,18 +142,13 @@ function setLevel(l: Level, opening = false) {
   // fit: the rotated image's bounding box inside the view
   const a = Math.abs(G.stage.cam.yaw), bw = m.w * Math.cos(a) + m.h * Math.sin(a), bh = m.w * Math.sin(a) + m.h * Math.cos(a);
   fit = Math.min(vw / bw, vh / bh) * 0.98;
-  // Duckov opens on the player; the grotto is small enough to show whole, so it opens on the level itself
-  const here = levelOf(G.pp.x) === l && l === "surface", p = here ? planePx(m, G.pp.x, G.pp.z) : { x: m.w / 2, y: m.h / 2 };
-  zoom = fit * (l === "under" ? 1 : 1.5); fx = p.x; fy = p.y; clampFocus();
+  // the demo area is small enough to show whole on both levels (Moo needs the full picture first; the wheel zooms in
+  // around the cursor's centre from there)
+  zoom = fit; fx = m.w / 2; fy = m.h / 2;
   // labels: upright, screen-sized, placed each frame from the matrix
   const over = el.querySelector(".mv3-over") as HTMLDivElement; over.innerHTML = ""; markEls = new Map(); labelEls = [];
   for (const a of areaLabels(l)) {
     const d = document.createElement("span"); d.className = "lab" + (a.id === G.area ? " cur" : "") + (G.discovered.has(a.id) ? "" : " new"); d.textContent = a.name; over.appendChild(d); labelEls.push({ el: d, x: a.x, z: a.z });
-  }
-  if (l === "surface") { // the closed north gets one upright notice in the middle of the strip
-    const e = demoEdge(), mid = e.reduce((s, q) => s + q[1], 0) / e.length;
-    const d = document.createElement("span"); d.className = "lab closed"; d.innerHTML = "Routes north closed<small>Old Colony, the Vault, the Hollow, Raft Landing: after the demo</small>"; over.appendChild(d);
-    labelEls.push({ el: d, x: SURFACE.minX + 0.3 * (SURFACE.maxX - SURFACE.minX), z: Math.max(SURFACE.minZ + 8, mid - 11) });
   }
   const me = document.createElement("b"); me.className = "me"; me.innerHTML = ICON.me; over.appendChild(me); markEls.set("me", me);
   lastMarks = 0; trailKey = -1; update(); void opening;
@@ -172,7 +167,7 @@ function place() {
     const out = p.x < -40 || p.y < -40 || p.x > vw + 40 || p.y > vh + 40; e.style.display = out ? "none" : "";
     e.style.transform = `translate(${p.x.toFixed(1)}px,${p.y.toFixed(1)}px) translate(-50%,-50%)` + (e.dataset.rot ? ` rotate(${e.dataset.rot}deg)` : "");
   };
-  // markers first, then the labels, each pushed up or down off any marker box it would cover (screen space)
+  // markers first, then the labels, each pushed up or down off any marker or earlier label it would cover (screen space)
   const boxes: { l: number; t: number; r: number; b: number }[] = [];
   const toScreen = (x: number, z: number) => M.transformPoint(new DOMPoint((x - m.minX) * m.ppu, (z - m.minZ) * m.ppu));
   for (const [id, e] of markEls) {
@@ -181,6 +176,7 @@ function place() {
     boxes.push({ l: p.x - hw, t: p.y - hh, r: p.x + hw, b: p.y + hh });
     if (sp && sp.offsetWidth) boxes.push({ l: p.x - sp.offsetWidth / 2, t: p.y + hh, r: p.x + sp.offsetWidth / 2, b: p.y + hh + sp.offsetHeight + 2 });
   }
+  if (levelOf(G.pp.x) === level) { const p = toScreen(G.pp.x, G.pp.z); boxes.push({ l: p.x - 14, t: p.y - 14, r: p.x + 14, b: p.y + 14 }); } // the player arrow
   for (const q of labelEls) {
     const p = toScreen(q.x, q.z), w = q.el.offsetWidth / 2, h = q.el.offsetHeight / 2; let dy = 0;
     for (let n = 0; n < 4; n++) {
@@ -189,6 +185,7 @@ function place() {
     }
     const out = p.x < -80 || p.y < -40 || p.x > vw + 80 || p.y > vh + 40; q.el.style.display = out ? "none" : "";
     q.el.style.transform = `translate(${p.x.toFixed(1)}px,${(p.y + dy).toFixed(1)}px) translate(-50%,-50%)`;
+    if (!out) boxes.push({ l: p.x - w, t: p.y + dy - h, r: p.x + w, b: p.y + dy + h }); // later labels step off this one
   }
   const me = markEls.get("me")!; me.style.visibility = levelOf(G.pp.x) === level ? "visible" : "hidden";
   me.dataset.rot = deg(G.stage.cam.yaw - G.moveYaw + Math.PI).toFixed(1); put(me, G.pp.x, G.pp.z);

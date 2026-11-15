@@ -53,7 +53,7 @@
 .mv3 .mk span { position: absolute; top: 100%; margin-top: 2px; white-space: nowrap; font: 600 calc(14px * var(--s, 1))/1 var(--mfont); color: var(--ink);
   -webkit-text-stroke: 3px rgba(18,16,20,.9); paint-order: stroke fill; }
 .mv3 .mk.lock span { color: #ff8a7a; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
-.mv3 .mk.lock span::before { content: "Route closed · "; }
+/* the lock icon and the legend already say "route closed": the caption names only the obstacle */
 .mv3 .mk.boss span, .mv3 .mk.danger span { color: #ff8a7a; }
 .mv3 .mk.exit span { color: #9ef0a4; }
 .mv3 .mk.pin span, .mv3 .mk.link span, .mv3 .mk.zip span { display: none; }
@@ -102,3 +102,13 @@
   color: var(--tie); font: 700 12px/15px var(--mfont); text-align: center; font-style: normal; }
 /* a pin's tip, not its middle, marks the spot */
 .mv3 .mk.pin svg { transform: translateY(-12px); } .mm3 .mk.pin svg { transform: translateY(-7px); }
+/* lock captions collide where routes sit close together; the red icon and the legend carry the meaning */
+.mv3 .mk.lock span { display: none; }
+.mv3-side .closed-row small { display: block; margin-top: 3px; font: 400 calc(13px * var(--s, 1))/1.25 var(--mfont); color: var(--dim); }
+/* short screens: the legend and the raid lines fit without scrolling */
+@media (max-height: 800px) {
+  .mv3-side li { padding: 3px 0; }
+  .mv3-side .ic { width: 24px; height: 24px; }
+  .mv3-side .ic svg { max-width: 21px; max-height: 21px; }
+  .mv3-side ul { margin-bottom: 10px; }
+}

@@ -124,10 +124,6 @@ html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .h3-hurt{position:absolute;inset:0;box-shadow:inset 0 0 160px 40px rgba(255,91,74,0)}
 .h3-hurt.on{animation:a-hurt .45s ease-out}
 @keyframes a-hurt{from{box-shadow:inset 0 0 160px 40px rgba(255,91,74,.55)}}
-/* the minimap (ui/mapview.ts builds it at 180 px): brass-rimmed, at the mockup's 190 px, scaled with the HUD */
-#ui .minimap{top:calc(20px * var(--s));right:calc(24px * var(--s));transform:scale(calc(var(--s) * 190 / 180));transform-origin:100% 0;border:2px solid var(--a-brass);background:#1a1916;box-shadow:0 6px 18px rgba(0,0,0,.5)}
-#ui .minimap .mm-me{border-bottom-color:var(--a-tie)}
-#ui .minimap .mm-n{background:var(--a-wool);color:var(--a-brass);font-family:var(--a-font);font-weight:700}
 /* combat/feedback.ts markers and numbers, restyled to A (its own CSS sets shape and timing) */
 .dmgnum{font-family:var(--a-font)!important;font-weight:700!important;font-size:24px!important;color:var(--a-ink);-webkit-text-stroke:4px rgba(20,19,23,.9)}
 .dmgnum.crit{color:#ffcf3a}.dmgnum.crit::before{background:var(--a-tie)!important}

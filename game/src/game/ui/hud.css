@@ -1,4 +1,4 @@
-/* Base layer + the M map and minimap (ui/mapview.ts, a separate task). Everything else, the raid HUD, the loot and
+/* Base layer. The M map and minimap are ui/map.css (map v3). Everything else, the raid HUD, the loot and
    Tab screen, bunker panels, the payout slip and the creator, is UI v3 in ui/ui3.css (direction A, "Corner office"). */
 :root{
   --ink:#241820; --panel:rgba(30,22,28,.72); --panel-solid:rgba(30,22,28,.92); --line:rgba(255,246,214,.14); --line-2:rgba(255,246,214,.28);
@@ -16,31 +16,5 @@ kbd{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 .floater{position:fixed;transform:translate(-50%,-50%);font:800 18px/1 var(--body);pointer-events:none;-webkit-text-stroke:4px rgba(20,14,18,.85);paint-order:stroke fill;white-space:nowrap;z-index:5}
 .fade{position:fixed;inset:0;background:#120c08;opacity:0;pointer-events:none;transition:opacity .35s;z-index:20}.fade.on{opacity:1}
-.minimap{position:absolute;top:16px;right:22px;width:180px;height:180px;border-radius:50%;overflow:hidden;background:#1a1612;border:2px solid var(--line-2);box-shadow:var(--shadow)}
-.minimap .mm-rot{position:absolute;inset:0;transform-origin:50% 50%}
-.minimap .mm-img{position:absolute;background-size:100% 100%}
-.minimap .mm-fog{position:absolute}
-.minimap .mm-icons em{position:absolute;font-style:normal;font-size:14px}
-.minimap .mm-me{position:absolute;left:50%;top:50%;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:14px solid var(--banana);filter:drop-shadow(0 0 2px #000);font-size:0}
-.minimap .mm-n{position:absolute;left:50%;top:50%;margin:-8px 0 0 -8px;width:16px;height:16px;border-radius:50%;background:var(--panel-solid);color:var(--banana);font:800 10px/16px var(--body);text-align:center;font-style:normal}
-/* ---------------------------------------------------------------- the M map */
-.mapview{position:fixed;inset:0;background:rgba(14,10,12,.84);backdrop-filter:blur(3px);z-index:15;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;color:var(--text);font-family:var(--body);font-weight:700}
-.mwrap{display:flex;gap:22px;align-items:flex-start;transform-origin:center}
-.mp h3{margin:0 0 8px;font:800 20px/1 var(--body)}
-.mp.big .mimg{height:76vh}.mp.small .mimg{height:40vh}
-.mimg{position:relative;border-radius:12px;overflow:hidden;cursor:crosshair;border:1px solid var(--line-2);box-shadow:0 20px 40px rgba(0,0,0,.6)}
-.mimg img{display:block;height:100%;width:100%;filter:saturate(.85)}
-.mimg .fogimg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.mimg .lab{position:absolute;transform:translate(-50%,-50%);font-size:12px;font-weight:800;background:var(--panel-solid);padding:3px 8px;border-radius:6px;white-space:nowrap;pointer-events:none}.mimg .lab.unk{opacity:.6}
-.mimg .ico{position:absolute;transform:translate(-50%,-50%);font-style:normal;font-size:18px;pointer-events:none;filter:drop-shadow(0 2px 2px rgba(0,0,0,.6))}
-.mimg .me{position:absolute;width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:18px solid var(--banana);filter:drop-shadow(0 0 3px #000);pointer-events:none;font-size:0}
-.mfoot{margin-top:14px;font-size:13px;color:var(--dim)}
-.mrot{transform-origin:50% 50%}
-.mimg .trail{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.mimg .trail polyline{fill:none;stroke:var(--banana);stroke-width:.35;stroke-dasharray:.8 .8;opacity:.75}
-.mneedle{position:absolute;top:24px;right:28px;width:34px;height:34px;border-radius:50%;background:var(--panel-solid);border:1px solid var(--line-2);display:grid;place-items:center;font-weight:800;color:var(--coral)}
-.minimap{transition:opacity .2s}
-.mp h3{position:relative;z-index:2;display:inline-block;background:var(--panel-solid);padding:6px 12px;border-radius:8px}
-.mfoot{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);z-index:2;background:var(--panel-solid);padding:7px 14px;border-radius:8px;margin:0}
 /* the HUD layer sits above world-anchored text: the floaters (fx.ts, body, z 5) drew over the open pack and the bunker panels */
 #ui{z-index:6}
-.mapview{box-sizing:border-box;padding-bottom:56px}
