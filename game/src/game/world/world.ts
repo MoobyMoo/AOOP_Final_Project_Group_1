@@ -25,7 +25,7 @@ export function buildWorld(scene: THREE.Scene, seed = 4242, o: { wind?: boolean 
   initGrid(houseDef, scattered);
   const lint = lintReport();
   buildTerrain(scene);
-  buildPlaced(scene, PLACED, rng); buildPlaced(scene, scattered, rng);
+  buildPlaced(scene, PLACED, rng); buildPlaced(scene, scattered, rng, "scatter");
   buildHouses(scene); buildProps(scene);
   const edge = dressEdges(rng);
   if (o.wind !== false) enableFoliageWind();

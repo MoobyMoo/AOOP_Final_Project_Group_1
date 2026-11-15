@@ -13,6 +13,7 @@
 import type { Placed } from "../../contracts";
 import type { Zone, Road, Shape, Wall, Portal, CrateSocket, Spawn, Pt, EdgeKind } from "./types";
 import { toWorld } from "./types";
+import { pinVariant } from "./colliders";
 
 // ---------------------------------------------------------------- authoring helpers (deterministic)
 const P: Placed[] = [];
@@ -391,7 +392,7 @@ export const PATHS: Pt[][] = [
   [[10, -98], [13.4, -100.4], [16.6, -101.4]], [[8, -102], [12.6, -102.4], [15.8, -102.2]],       // down to the dock
   [[-64, -42], [-60.6, -46.4], [-57, -47.8]],                                                  // round the wreck
 ];
-export const PLACED: Placed[] = P;
+export const PLACED: Placed[] = P.map(pinVariant); // multi-rock and leaning nature pieces get a fixed variant (colliders.ts)
 export const WALLS: Wall[] = WALLS_;
 
 // ================================================================ gameplay sockets

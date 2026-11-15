@@ -14,7 +14,7 @@ import { PLACED } from "./map/grove";
 import { toWorld } from "./map/types";
 import type { Footprint } from "./map/scatter";
 import { groundHeight } from "./terrain";
-import { addPieces, objects } from "./dress";
+import { addPieces, objects, pieceRec } from "./dress";
 import { kitMaterial } from "./kitutil";
 import { fadeMaterial, stepFade } from "../render/fade";
 import { addLamp } from "./lights";
@@ -47,7 +47,8 @@ const FLOOR = 0.05;
 export function buildHouses(scene: THREE.Scene) {
   for (const p of placedHouses()) {
     const def = houseDef(p), y = groundHeight(p.x, p.z) - FLOOR, yaw = p.yaw ?? 0, near = { value: 0 }, far = { value: 0 }, s = def.size;
-    addPieces(def.pieces, p.x, p.z, yaw, 1, y);
+    if (pieceRec.on) pieceRec.owner = { src: "house", k: p.k, x: p.x, z: p.z, yaw, s: 1, id: p.id, p };
+    addPieces(def.pieces, p.x, p.z, yaw, 1, y); pieceRec.owner = null;
     const root = def.parts.root; root.position.set(p.x, y, p.z); root.rotation.y = yaw; scene.add(root); root.updateMatrixWorld(true);
     // two fade uniforms per building: the roof + camera-side walls + partitions, and the far walls (north and east in world)
     const mats = new Map<string, THREE.Material>(), nearParts: THREE.Object3D[] = [], farParts: THREE.Object3D[] = [];

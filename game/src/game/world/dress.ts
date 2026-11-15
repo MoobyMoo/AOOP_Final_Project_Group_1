@@ -46,10 +46,15 @@ export function groupToPieces(g: THREE.Object3D, o: { tall?: boolean; blocks?: b
 const CH = 16;
 const chunks = new Map<string, Map<string, THREE.BufferGeometry[]>>();
 const tmpM = new THREE.Matrix4();
+/** glitch hunt (?glitch=1 only): every piece that goes into the chunks, with the thing it belongs to, so
+ *  src/game/dev/glitch.ts can test bounds against the ground, the floors and each other (G1.5-12). Off in play. */
+export type PieceOwner = { src: "placed" | "scatter" | "edge" | "house" | "prop"; k: string; x: number; z: number; yaw: number; s: number; id?: string; p?: Placed };
+export const pieceRec = { on: typeof location !== "undefined" && /[?&]glitch\b/.test(location.search), owner: null as PieceOwner | null, list: [] as { o: PieceOwner; geo: THREE.BufferGeometry; m: THREE.Matrix4; mat: MatId; tall: boolean }[] };
 /** add one piece to its chunk at a world transform (y defaults to just under the ground, so bases embed) */
 export function addPiece(p: KitPiece, x: number, z: number, yaw: number, s = 1, y?: number) {
   tmpM.copy(M(x, y ?? groundHeight(x, z) - 0.04, z, 0, yaw, 0, s));
   const geo = p.geo.clone().applyMatrix4(tmpM);
+  if (pieceRec.on && pieceRec.owner) pieceRec.list.push({ o: pieceRec.owner, geo: p.geo, m: tmpM.clone(), mat: p.mat, tall: p.tall });
   const key = `${Math.floor(x / CH)},${Math.floor(z / CH)}`, sub = `${p.mat}|${p.tall ? 1 : 0}`;
   const c = chunks.get(key) ?? chunks.set(key, new Map()).get(key)!;
   (c.get(sub) ?? c.set(sub, []).get(sub)!).push(geo);
@@ -196,7 +201,10 @@ function buildOne(scene: THREE.Scene, p: Placed, rng: () => number) {
   contact(p);
   if (NATURE.has(p.k)) {
     const y = o.water !== undefined && p.k === "lily" ? Number(o.water) - 0.03 : undefined;
-    addPieces(naturePiece(p.k, rng, s, o.v !== undefined ? { variant: Number(o.v) } : {}), p.x, p.z, yaw, 1, y); return;
+    // a pinned variant (o.cv, map/colliders.ts) still draws the rng number the free pick would have, so every later piece keeps its look
+    if (o.v === undefined && o.cv !== undefined) rng();
+    const v = o.v ?? o.cv;
+    addPieces(naturePiece(p.k, rng, s, v !== undefined ? { variant: Number(v) } : {}), p.x, p.z, yaw, 1, y); return;
   }
   if (p.k === "waterfall") { const w = waterfall(); w.position.set(p.x, POOL_Y, p.z); w.rotation.y = yaw; scene.add(w); if (p.id) placedParts.set(p.id, { root: w }); return; }
   let b: K.Built;
@@ -208,9 +216,10 @@ function buildOne(scene: THREE.Scene, p: Placed, rng: () => number) {
   if (b.parts.root.children.length) { b.parts.root.position.set(p.x, y, p.z); b.parts.root.rotation.y = yaw; b.parts.root.scale.setScalar(s); scene.add(b.parts.root); if (p.id) placedParts.set(p.id, b.parts); }
   else if (p.id) placedParts.set(p.id, b.parts);
 }
-export function buildPlaced(scene: THREE.Scene, list: Placed[], rng: () => number) {
+export function buildPlaced(scene: THREE.Scene, list: Placed[], rng: () => number, src: "placed" | "scatter" = "placed") {
   if (!NATURE.size) for (const t of natureTypes()) NATURE.add(t.type);
-  for (const p of list) buildOne(scene, p, rng);
+  for (const p of list) { if (pieceRec.on) pieceRec.owner = { src, k: p.k, x: p.x, z: p.z, yaw: p.yaw ?? 0, s: p.s ?? 1, id: p.id, p }; buildOne(scene, p, rng); }
+  pieceRec.owner = null;
 }
 
 // ---------------------------------------------------------------- the world edge (rule-dressed: visual only, it stands outside the outline)
@@ -221,7 +230,7 @@ export function dressEdges(rng: () => number) {
   const rr = (a: number, b: number) => a + rng() * (b - a), info = { kind: "jungle" as EdgeKind | "cave" };
   let n = 0;
   /** edge pieces are in the frame too: they count as objects (G1-21) */
-  const add = (ps: KitPiece[], x: number, z: number, yaw: number, k: string) => { addPieces(ps, x, z, yaw); objects.push({ x, z, k, big: true }); n++; };
+  const add = (ps: KitPiece[], x: number, z: number, yaw: number, k: string) => { if (pieceRec.on) pieceRec.owner = { src: "edge", k: info.kind + ":" + k, x, z, yaw, s: 1 }; addPieces(ps, x, z, yaw); objects.push({ x, z, k, big: true }); n++; };
   const STEP = 1.9;
   for (let gz = BOUNDS.minZ - 14; gz < BOUNDS.maxZ + 14; gz += STEP) for (let gx = BOUNDS.minX - 14; gx < BOUNDS.maxX + 6; gx += STEP) {
     const x = gx + rng() * STEP, z = gz + rng() * STEP, d = edgeDist(x, z, info), band = -d, f = rng(), yaw = rng() * 6.28;
@@ -246,6 +255,7 @@ export function dressEdges(rng: () => number) {
     else if (band < 6) { if (f < 0.55) { add(N(f < 0.22 ? "palm" : f < 0.44 ? "tree" : "bush", rng, f < 0.44 ? rr(0.95, 1.25) : rr(1.3, 1.8)), x, z, yaw, "edge"); } }
     else if (f < 0.13) { add(N("treefar", rng, rr(1.3, 1.9)), x, z, yaw, "edge"); }
   }
+  pieceRec.owner = null;
   return n;
 }
 
