@@ -767,6 +767,7 @@ export const STORY_SOCKETS = {
     { item: "note_pirate_iou", container: "cove-picnic" },
     { item: "note_alien_report", container: "tower-sack" },
     { item: "note_ferry_manifest", container: "ferry-jacket" },
+    { item: "note_courier_slip", container: "ferry-locker" },
     { item: "note_gang_dues", container: "boss-safe" },
     { item: "note_robot_memo", container: "barn-parts" },
     { item: "note_grove_board", x: 42.6, z: 63.4 },

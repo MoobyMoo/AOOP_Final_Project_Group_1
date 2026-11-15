@@ -138,12 +138,14 @@ export const BARKS: Record<NpcId, (Line & { id: string })[]> = {
     { id: "radio-hi", when: () => true, text: "Testing, testing. Is this thing on? Is that a banana?" },
     { id: "radio-cove", when: (s) => unlocked(s, "dest:plantation"), text: "Chatter says the foreman wants his map back. Ha." },
     { id: "radio-flare", when: (s) => done(s, "radio_flare"), text: "Pirates on nine, bandits on four, my mum on two." },
+    { id: "radio-tech", when: (s) => s.stats.extracts > 0, text: "Breaking! BananaGPT raises another round. Nobody knows what it does. Valuation: yes." },
   ],
   keeper: [],
 };
 export const greetLine = (id: NpcId, s: SaveV1) => GREET[id].find((l) => l.when(s))?.text ?? "";
 /** the Radio Operator's lore drops when you ask for chatter (cycled) */
 export const CHATTER = [
+  "Mainland news: BananaGPT raised another round. Nobody knows what it does. Investors say that's the point.",
   "The Peel Gang thinks the foreman's ledger is a cookbook. It sort of is.",
   "Hired Guns charge by the day. The gangs pay by the banana. Somebody's losing that maths.",
   "A lookout keeps seeing green lights over the north jungle. He also keeps drinking.",

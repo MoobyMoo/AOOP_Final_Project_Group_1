@@ -29,6 +29,9 @@ export const NOTES: NoteDef[] = [
     text: "Monthly dues: 5 bananas. Members who paid: 0. Members who say they paid: all of them. Treasury: one button, some string and an IOU from Sal. Boss says the next one who robs the gang gets thrown out of the gang. Nobody got the joke." },
   { id: "note_robot_memo", title: "Warden's Memo: Prototype R-1", where: "the barn's parts bins",
     text: "To all staff. Security prototype R-1 was shipped to the plantation barn by mistake. Do not open its panel. Do not feed it bananas. Do not say \"audit\" near it. If it starts counting, leave the barn. The Warden. P.S. Who ordered forty robots?" },
+  // a hint at the later acts' twist (LORE.md "The tech boom and the twist"): intriguing, gives nothing away, gates nothing
+  { id: "note_courier_slip", title: "Mainland Courier Slip", where: "the ferry's guard locker, where the captain kept the mail",
+    text: "SEALED. CAPTAIN'S EYES ONLY. A certain investor, V.P., will make the crossing once the exile's enterprise is worth the trip. Extend every courtesy. Ask nothing. Our usual arrangement applies. Burn after reading. (Pressed in green wax: a bank seal, filed off. Badly.)" },
 ];
 export const noteOf = (id: string) => NOTES.find((n) => n.id === id);
 export const isNote = (type: string) => NOTES.some((n) => n.id === type);
