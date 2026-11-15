@@ -81,7 +81,7 @@ function set(path: string, v: string | number | boolean) {
 }
 function finish() { G.save.look = look; G.save.lookDone = true; save(G.save); sfx("extract"); el?.remove(); el = null; const c = G.stage.renderer.domElement; c.onpointerdown = c.onpointermove = null; onDone(); }
 export function renderCreator(dt: number) {
-  G.time += dt; U.uTime.value = G.time; if (drag === null) spin += dt * 0.15;
+  G.time += dt; U.uTime.value = G.time; // no auto-spin (Moo 2026-11-15): the monkey turns only when dragged
   const r = G.rig; r.root.rotation.y = G.stage.cam.yaw + spin;
   r.pose({ time: G.time, speed: 0, moveYaw: G.stage.cam.yaw + spin, faceYaw: G.stage.cam.yaw + spin, action: "idle", actionT: 0, armed: "none", flash: 0 });
   // close-up: the monkey on the right third of the screen, the panel on the left
