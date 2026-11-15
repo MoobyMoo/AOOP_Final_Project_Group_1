@@ -12,6 +12,10 @@ async function selfTest() {
   const { output } = await bundle.generate({ format: "esm" });
   await bundle.close();
   const { createBot } = await import(`data:text/javascript;base64,${Buffer.from(output[0].code).toString("base64")}`);
+  const weaponBundle = await rolldown({ input: "src/game/combat/weapons.ts" });
+  const weaponOutput = await weaponBundle.generate({ format: "esm" });
+  await weaponBundle.close();
+  const { aimRang } = await import(`data:text/javascript;base64,${Buffer.from(weaponOutput.output[0].code).toString("base64")}`);
   const observation = () => ({
     t: 0, scene: "raid", raidT: 0, raids: 0, money: 0,
     player: { x: 0, z: 0, hearts: 3, maxHearts: 3, hp: 100, maxHp: 100, ammo: 8, mag: 8, packFree: 8, packValue: 0, rolling: false, reloading: false },
@@ -22,6 +26,63 @@ async function selfTest() {
     upgrades: { mag: 0, pack: 0, heart: 0 }, combatEvents: [],
   });
   const tests = [
+    ["open a reachable door when extraction starts inside a closed room", () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0.25, seed: 1 });
+      const view = observation(); view.crates = []; view.walkable = () => true; view.raidT = 421;
+      view.exits = [{ id: "raft", x: 20, z: 0, open: true }];
+      view.gates = [{ id: "room", x: 1.5, z: 0, nx: 1, nz: 0, open: false, breakable: false, usable: true }];
+      view.path = (fromX, fromZ, toX, toZ) => toX < 2 ? [{ x: toX, z: toZ }] : [];
+      bot.tick(view, 1 / 60);
+      assert.equal(bot.tick(view, 1 / 60).interact, true);
+    }],
+    ["compensate the boomerang curve at the intended intercept", () => {
+      for (const target of [{ x: 6, z: 0 }, { x: -3, z: 4 }, { x: 0, z: -2 }]) {
+        const out = Math.hypot(target.x, target.z) + 1.5;
+        const aim = aimRang(target.x, target.z, out);
+        const lateral = Math.sin(aim.travel / out * Math.PI) * 1.6;
+        assert.ok(Math.hypot(aim.x * aim.travel - aim.z * lateral - target.x, aim.z * aim.travel + aim.x * lateral - target.z) < 0.01);
+      }
+    }],
+    ["finish an in-range rubble attack without a movement timeout", () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0.25, seed: 1 });
+      const view = observation(); view.raidId = 2; view.crates = []; view.walkable = () => true;
+      view.exits.push({ id: "tunnel", x: 20, z: 0, open: false });
+      view.gates = [{ id: "grotto-rubble", x: 1.5, z: 0, nx: 1, nz: 0, open: false, breakable: true, usable: true }];
+      for (let tick = 0; tick < 600; tick++) bot.tick(view, 1 / 60);
+      assert.ok(!bot.events.some(event => event.type === "stuck" && event.goal.startsWith("break:")));
+    }],
+    ["try both sides of a closed tunnel barrier", () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0.25, seed: 1 });
+      const view = observation(); view.raidId = 2; view.crates = []; view.walkable = () => true;
+      view.exits.push({ id: "tunnel", x: 20, z: 0, open: false });
+      view.gates = [{ id: "grotto-rubble", x: 10, z: 0, nx: 1, nz: 0, open: false, breakable: true, usable: true }];
+      view.path = (fromX, fromZ, toX, toZ) => toX > 10 || toX < 0 ? [{ x: toX, z: toZ }] : [];
+      assert.ok(bot.tick(view, 1 / 60).move[0] > 0);
+    }],
+    ["use the pistol rather than request exhausted melee", () => {
+      const bot = createBot({ greed: 0.3, reactionLag: 0.25, seed: 1 });
+      const view = observation(); view.player.stamina = 0;
+      view.enemies = [{ id: 1, x: 1, z: 0, hp: 48, kind: "bandit", state: "chase", awake: true, windup: false }];
+      bot.tick(view, 0.3);
+      const input = bot.tick(view, 0.3);
+      assert.notEqual(input.melee, true);
+      assert.equal(input.fire, true);
+    }],
+    ["choose the tunnel when it is the available exit", () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0.25, seed: 1 });
+      const view = observation(); view.crates = []; view.walkable = () => true;
+      view.path = (fromX, fromZ, toX, toZ) => [{ x: toX, z: toZ }];
+      view.exits = [{ id: "tunnel", x: 10, z: 0, open: true }];
+      assert.ok(bot.tick(view, 1 / 60).move[0] > 0);
+    }],
+    ["route to a tunnel through a real portal interaction", () => {
+      const bot = createBot({ greed: 0.8, reactionLag: 0.25, seed: 1 });
+      const view = observation(); view.crates = []; view.walkable = () => true;
+      view.path = (fromX, fromZ, toX, toZ) => (fromX < 100) === (toX < 100) ? [{ x: toX, z: toZ }] : [];
+      view.portals = [{ id: "cave", x: 1, z: 0, to: { x: 150, z: 0 } }];
+      view.exits = [{ id: "tunnel", x: 160, z: 0, open: true }];
+      assert.equal(bot.tick(view, 1 / 60).interact, true);
+    }],
     ["interact from the reachable crate cell centre", () => {
       const bot = createBot({ greed: 0.5, reactionLag: 0.25, seed: 1 });
       assert.equal(bot.tick(observation(), 1 / 60).interact, true);
@@ -128,7 +189,7 @@ async function runCampaign(browser, { raids, ts, greed, seed, lag = 0.25 }) {
     }, 100);
   });
   const base = process.env.BASE ?? "http://127.0.0.1:5330";
-  assert.notEqual(new URL(base).port, "5318", "port 5318 belongs to the owner's live server");
+  assert.ok(!["5318", "5340"].includes(new URL(base).port), "use an isolated systems preview");
   const url = `${base}/game.html?fresh=1&bot=1&ts=${ts}&post=0&dpr=1&fixdpr=1&greed=${greed}&lag=${lag}&seed=${seed}`;
   const started = Date.now();
   const report = { config: { raids, ts, greed, seed, lag, url }, started: new Date().toISOString(), errors };
@@ -209,8 +270,6 @@ async function writeReport() {
   const high = rows.filter(row => row.greed === 0.8 && row.lag === 0.25), bonks = high.filter(row => row.how === "bonked").length;
   const percentage = (numerator, denominator) => (100 * numerator / denominator).toFixed(1) + "%";
   const range = values => `${Math.min(...values).toFixed(2)}–${Math.max(...values).toFixed(2)}`;
-  const failedUseful = rows.find(row => row.usefulFound === 0);
-  const usefulExample = failedUseful ? `The failed case (greed ${failedUseful.greed}, bot seed ${failedUseful.botSeed}, raid ${failedUseful.raid + 1}) opened ${failedUseful.log.crates} crate(s) and returned value ${failedUseful.value + failedUseful.bonus}, including bonus.` : "Every sampled raid passed the shipped roll condition.";
   const gates = [
     { name: "Human-estimated raid length 4–8 min", pass: inLength === rows.length, measured: `${inLength}/${rows.length} in range; ${range(rows.map(row => row.humanSeconds / 60))} min; mean ${(rows.reduce((sum, row) => sum + row.humanSeconds, 0) / rows.length / 60).toFixed(2)} min` },
     { name: "Briefcase ≥30% of all kills", pass: totalKills > 0 && meleeKills / totalKills >= 0.3, measured: `${meleeKills}/${totalKills} = ${percentage(meleeKills, totalKills)}` },
@@ -222,7 +281,7 @@ async function writeReport() {
   const assets = await readdir(`${buildDir}/assets`);
   const entry = assets.find(file => /^game-.*\.js$/.test(file));
   const buildSha256 = createHash("sha256").update(await readFile(`${buildDir}/assets/${entry}`)).digest("hex");
-  const sourcePaths = ["src/game/core/bot.ts", "src/game/core/botdrive.ts", "src/game/core/raid.ts", "src/game/combat/combat.ts", "src/game/main.ts"];
+  const sourcePaths = ["src/game/ai/enemies.ts", "src/game/combat/combat.ts", "src/game/combat/weapons.ts", "src/game/core/bot.ts", "src/game/core/botdrive.ts", "src/game/core/raid.ts", "src/game/core/save.ts", "src/game/loot/raidloot.ts", "src/game/loot/sockets.ts", "src/game/loot/tables.ts", "src/game/main.ts", "src/game/world/buildings.ts", "src/game/world/grid.ts", "src/game/world/map/grove.ts"];
   const sourceHashes = Object.fromEntries(await Promise.all(sourcePaths.map(async file => [file, createHash("sha256").update(await readFile(file)).digest("hex")])));
   const summary = { generated: new Date().toISOString(), build: { entry, sha256: buildSha256, sourceHashes }, inputs: files, gates, rows };
   await writeFile(`${outputDir}/G1_PACING.json`, JSON.stringify(summary, null, 2) + "\n");
@@ -255,34 +314,23 @@ ${raidRows.join("\n")}
 | --- | --- | ---: | ---: | ---: | ---: |
 ${perGreed.join("\n")}
 
-## What changed and why
+## Systems tuning and interpretation
 
-- Combat events originate in \`shoot\` / \`knockOut\`; finish outcomes originate in \`raid.finish\`. Serial numbers deduplicate combat events and the raid ID remains stable across the result transition. The runner checks shot and kill totals against each game's own per-raid log, requires exactly one non-inferred outcome, and rejects inferred events.
-- The adapter latches deployment until the asynchronous fade changes scenes. Previously every bunker simulation tick scheduled another deployment; the reset enemy arrays appeared as a burst of inferred kills. The actual creator has its own bot-aware completion callback. Summary panels are closed using normal Intent interaction; sale, cheapest affordable upgrade, and deployment use the existing home API.
-- A crate is searched from 1.9 u and an A* endpoint can sit about 1.5 u from its centre. Arrival now uses 1.8 u, while pickup arrival uses 0.8 u for the game's 1.1 u collection radius. Pickup goals track their coordinates and use the existing scatter destination rather than the temporarily blocked crate centre. An unarmed exit gets a departure-and-return route. Searches and extraction countdowns are exempt from the bot's short recovery watchdog, not from the runner's 20-second non-extraction check.
-- HP/maxHP, healing-in-progress, upgrades and authoritative outcomes are exposed without converting HP into fictional hearts. Compatibility hearts remain available. A non-stunned Sleeper is not shot; a quiet policy that declines firing returns to navigation rather than waiting forever.
+This run uses map-v3 sockets and the local tunnel/portal/gate observation extension. Bot crate quotas remain 6/8/10 for low/medium/high greed. Pack occupancy no longer ends a route after three crates; a full pack can exchange low-value items for higher-value finds. The bot uses its pistol when stamina cannot support melee, rather than repeatedly requesting failed swings. No minimum duration or idle wait was added.
 
-## Top five game issues and recommended tuning
+The all-raids 4–8-minute gate and the brief's 2.5–3.5-minute hatch budget do not overlap. Report both rather than changing the existing ×1.33 human estimator. Successful hatch and raft samples need separate comparison to the brief. Bonk-outs still count in the all-raids gate.
 
-1. **The measured loop is too short.** The observed human-estimated range is ${range(rows.map(row => row.humanSeconds / 60))} min, versus 4–8 min. Nearby crates can satisfy the bot's pack/greed policy before deeper map rewards matter. Recommend moving worthwhile objectives and rewards farther into route choices, then validating with human runs. Do not add idle waits or multiply movement times just to pass the bot gate.
-2. **High greed does not produce the requested risk.** At greed 0.8 and 250 ms lag, ${bonks}/${high.length} raids ended bonked. The bot repeatedly reaches the raft without needing to defeat the Sleeper or stay in a contested extraction ring. Recommend testing encounters on rewarding routes and extraction approaches; do not raise all enemy damage based on one small sample.
-3. **The useful-find guarantee has an eligibility gap.** ${useful}/${rows.length} raids rolled a useful item. ${usefulExample} \`rollCrate\` only forces useful loot after the third crate. Recommend guaranteeing a useful item on the first eligible loot opportunity, or stating the three-crate condition honestly. Also validate scatter positions and track collection: \`usefulFound\` counts generated items, not acquired ones, and scattering currently ignores collision.
-4. **Persistent collision state accumulates across raids.** \`grid.block\` appends blockers and marks PROP cells; \`startRaid\` rebuilds props and crates but does not restore either collection. Old crate sockets can remain solid when the next raid chooses different sockets. Recommend a static baseline plus a resettable per-raid collision layer. Left unchanged because grid/props are outside this task's edit scope.
-5. **The seed query is not a world seed.** The three requested bot seeds are exercised, but \`startRaid\` derives world seeds from \`save.raids * 7919 + 13\` regardless of the query. AI also uses \`Math.random\` for timers, so identical URLs are not deterministic replays. Recommend separate explicit bot/world seeds and routing simulation randomness through the raid RNG. Raw reports retain actual world seeds; do not treat these as three independent seeded maps per greed.
+Tunnel extraction coverage: ${rows.filter(row => row.how === "tunnel").length}/${rows.length}. Shared contracts.ts remains unchanged. The lead should widen BotView.exits to hatch | raft | tunnel, expose open state, and adopt the optional portal/gate/safePath observations from BotObservation.
 
-Contract problem: \`BotView\` describes hearts but the game uses 100 HP (+25 per health upgrade), and its exit union excludes the real tunnel. The local observation extension carries HP and tunnel outcomes, but tunnel navigation remains untested/excluded by the adapter. The shared contract needs a central update followed by an underground/tunnel scenario; it is unchanged here as requested.
-
-Risk tuning: the greed-0.8/250-ms sample is ${bonks}/${high.length} bonk-outs (${percentage(bonks, high.length)}), ${bonks / high.length >= 0.1 && bonks / high.length <= 0.3 ? "inside" : "outside"} the target band. If this persists with larger samples, tune contested extraction approaches and route incentives before changing enemy damage. Ammo tuning: ${zeroAmmo}/${rows.length} finish empty; adjust ammo availability only after the collision and pickup-delivery issues are addressed. Melee share is ${percentage(meleeKills, totalKills)}; preserve close-range bandit counterplay rather than forcing the bot to waste ammunition or melee invulnerable targets.
+See research/equipment/G1_MAPV3_TUNING.md for the before/after gate table, numerical changes, AI mechanisms, API details, limitations and final verification outputs. This generator does not claim separate checks passed merely because campaigns completed.
 
 ## Reproduction and evidence
 
-\`npx tsc --noEmit -p .\` and \`node tools/botrun.mjs --self-test\` validate types and the bot regressions. Build: \`npx vite build --outDir /tmp/bv-sol-dist --emptyOutDir\`. Serve separately: \`npx vite preview --outDir /tmp/bv-sol-dist --port 5330 --strictPort --host 127.0.0.1\`. Run \`node tools/botrun.mjs --matrix\` (4 low, 4 medium, 10 high), then \`node tools/botrun.mjs --report\`. Campaigns use isolated browser contexts, fresh saves, Chromium at \`/usr/bin/chromium\`, the requested GPU flags, \`ts=4\`, \`post=0\`, \`dpr=1\`, \`fixdpr=1\`. Port 5318 was never used.
+Build with npm run build; serve the production dist on isolated port 5338. Set BASE=http://127.0.0.1:5338 BOT_DIST=dist BOT_OUT=<evidence-directory>, then run node tools/botrun.mjs --matrix and --report. Campaigns use isolated browser contexts, fresh saves, Chromium at /usr/bin/chromium, ts=4, post=0, dpr=1 and fixdpr=1. The runner rejects ports 5318 and 5340.
 
-The runner samples every 100 ms wall time, retaining roughly one trace point per simulated second. A softlock is no movement exceeding 0.5 u for 20 simulated raid seconds while not counting down extraction, or a raid exceeding 900 s. Detection aborts the campaign and writes its failure context. All accepted campaigns have zero page errors and zero softlocks, traverse creator/bunker/raid/result/bunker, and start another raid after the final result so its home purchases are recorded. Diagnostic pre-fix runs under \`diagnostic/\` are excluded from every gate.
+The runner samples every 100 ms wall time. It aborts on no movement beyond 0.5 u for 20 simulated raid seconds outside extraction, or a raid above 900 s. It checks authoritative shot, kill and outcome events against game logs, rejects inferred outcomes and requires another deployment after each final result. Diagnostic runs are excluded from this aggregate. Bot seeds differ from actual world seeds; both are retained in raw evidence.
 
-Raw evidence: ${files.map(file => `\`${file}\``).join(", ")}; machine-readable aggregate: \`G1_PACING.json\`. Build entry: \`${entry}\`; SHA-256: \`${buildSha256}\`. The aggregate also records source hashes. Implementation choices are grounded in the shipped interaction distances, collision/path implementation, actual HP constants and home API, rather than outdated brief numbers.
-
-Validation: TypeScript passes; all seven bot regression checks pass; rebuilding after the final type-only correction produces the identical game bundle SHA-256 used by these runs. Home file audit reports four pre-existing entries: \`/home/moo/0f840a8ea5fae3927f1d1022d7b10fcd0e677cde4bf3681a5fa5d4218c333b86.png\`, \`/home/moo/nltk_data\`, \`/home/moo/shorts-pilot\`, and \`/home/moo/tiny-apps\`. None was created or moved by this task.
+Raw evidence: ${files.map(file => `\`${file}\``).join(", ")}; aggregate G1_PACING.json. Build entry: ${entry}; SHA-256: ${buildSha256}. The JSON records source hashes.
 `;
   await writeFile(`${outputDir}/G1_PACING.md`, document);
   console.log(gates.map(gate => `${gate.pass ? "PASS" : "FAIL"} ${gate.name}: ${gate.measured}`).join("\n"));

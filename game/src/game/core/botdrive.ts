@@ -5,10 +5,10 @@ import type { Intent } from "./input";
 import type { BotInput } from "../contracts";
 import type { BotObservation } from "./bot";
 import { botTelemetry } from "./bot";
-import { path, walkable, los, state as gridState } from "../world/grid";
-import { exits } from "../world/props";
+import { path, walkable, los, gates, state as gridState } from "../world/grid";
+import { exits, portalMarks } from "../world/props";
 import { homeApi, stations } from "../home/bunker";
-import { packValue, currentSearch } from "../loot/raidloot";
+import { packValue, currentSearch, worth } from "../loot/raidloot";
 import { SLOTS, equipDef } from "../loot/equipment";
 import { betterEquipment, equipFromLocker, equipFromPack, repair, sellEquip } from "../loot/equipment-actions";
 
@@ -21,15 +21,18 @@ export function view(): BotObservation {
     t: G.time, scene: G.scene === "map" ? "raid" : G.scene,
     raidId: botTelemetry.raidId, outcome: botTelemetry.outcome, combatEvents: botTelemetry.combatEvents,
     homePanelOpen: homeApi.panelOpen(), searching: !!currentSearch(), extracting: !!G.extract.id,
+    packMinValue: Math.min(...G.pack.map(worth)),
     exitArmed: Object.fromEntries(exits.map(exit => [exit.id, exit.armed])),
     player: { x: G.pp.x, z: G.pp.z, hearts: Math.ceil(G.hp / 34), maxHearts: Math.ceil(G.maxHp / 34), hp: G.hp, maxHp: G.maxHp, stamina: G.stamina, usingItem: !!G.useItem, ammo: G.ammo, mag: G.mag, reloading: G.reloadT >= 0, rolling: G.rollT >= 0, packFree: G.packSlots - G.pack.length, packValue: packValue(), smoothies: G.pack.filter((i) => i === "smoothie" || i === "bandage" || i === "firstaid").length },
     enemies: G.enemies.filter((e) => !e.down).map((e) => ({ id: e.id, kind: e.kind, x: e.p.x, z: e.p.z, state: e.state, hp: e.hp, windup: e.state === "windup" || e.state === "aim" || e.state === "charge", awake: e.state !== "sleep" && e.state !== "patrol" })),
     crates: G.crates.map((c) => ({ id: c.id, x: c.x, z: c.z, tier: c.tier, opened: c.opened })),
     pickups: G.pickups.map((p) => ({ id: p.id, x: p.p.x, z: p.p.z, item: p.item })),
-    exits: exits.filter((e) => e.open && e.id !== "tunnel").map((e) => ({ id: e.id as "hatch" | "raft", x: e.x, z: e.z })),
+    exits: exits.map(e => ({ id: e.id, x: e.x, z: e.z, open: e.open })),
+    portals: portalMarks.filter(portal => !portal.id.startsWith("zip-")).map(portal => ({ id: portal.id, x: portal.x, z: portal.z, to: portal.to })),
+    gates: gates.map(gate => ({ id: gate.id, x: gate.x, z: gate.z, nx: gate.nx, nz: gate.nz, open: gate.open, breakable: gate.hp !== undefined, usable: !gate.locked || G.pack.includes(gate.locked) || G.save.keys.includes(gate.locked) })),
     stations: stations.map((s) => ({ id: s.id === "trophies" ? "orders" : s.id, x: s.x, z: s.z })),
     upgrades: { ...G.save.upgrades },
-    walkable, path, los, raidT: G.raidT, money: G.save.money, raids: G.save.raids, doorOpen: gridState.doorOpen, hasKey: G.pack.includes("vine_key"),
+    walkable, path, safePath: (fx, fz, tx, tz, allow) => path(fx, fz, tx, tz, 60000, allow), los, raidT: G.raidT, money: G.save.money, raids: G.save.raids, doorOpen: gridState.doorOpen, hasKey: G.pack.includes("vine_key"),
   };
 }
 export function botTick(dt: number): Intent {

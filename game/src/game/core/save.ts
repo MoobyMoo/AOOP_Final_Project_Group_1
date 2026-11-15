@@ -2,7 +2,11 @@ import type { MonkeyLook, SaveV1, Gear } from "../contracts";
 import { BOUND_KIT, SLOTS, equipDef, fmtInst, parseInst } from "../loot/equipment";
 import { DEFAULT_LOOK, sanitizeLook, type MonkeyLookX } from "../actors/look";
 import { KINGPIN } from "../combat/weapons";
-import { ITEMS, PRICES } from "../loot/tables";
+import { ITEMS, PRICES, itemDef } from "../loot/tables";
+
+export function retainKeys(save: SaveV1, kept: readonly string[]) {
+  for (const id of kept) if (itemDef(id).kind === "key" && !save.keys.includes(id)) save.keys.push(id);
+}
 
 const KEY = "bv_g1";
 type RecordValue = Record<string, unknown>;

@@ -386,8 +386,8 @@ export const LANDMARKS = [
   { id: "audit", x: -6, z: -63, note: "a NOTICE OF AUDIT nailed to the giant tree (foreshadows the ending gag)" },
   { id: "falls", x: 66, z: -72, note: "a waterfall you can walk through to a hidden nook" },
 ];
-/** 35 authored sockets; the 5 fixed ones always spawn (key, vault, sleeper, secret, the radio shack's headset crate),
- *  18 of the rest per raid. Tiers rise with distance from the hatch */
+/** 35 authored sockets; the 5 fixed ones always spawn; loot/sockets.ts selects 10 optional sockets.
+ *  Tiers rise with distance from the hatch and behind contested doors. */
 export const CRATES: CrateSocket[] = [
   // the south is thin on purpose (pacing report: raids ended on the first three crates by the hatch): one crate in
   // the ferry hull, one behind the cove rocks; the beach itself holds nothing
@@ -401,7 +401,7 @@ export const CRATES: CrateSocket[] = [
   // Mangrove: on the boardwalk hub and the jetty
   { x: 50.6, z: 51.6, tier: "green" }, { x: 69.6, z: 39.4, tier: "wood" },
   // Penal Colony: the yard, the locked evidence cell, the back yard; the vault and the shrine are gated
-  { x: 59.4, z: 9.4, tier: "wood" }, { ...at("cellblock", 5.4, 2.8), tier: "green", in: "cellblock" }, { x: 79, z: 9, tier: "wood" },
+  { x: 59.4, z: 9.4, tier: "wood" }, { ...at("cellblock", 5.4, 2.8), tier: "gold", in: "cellblock" }, { x: 79, z: 9, tier: "wood" },
   { x: 82.2, z: -28.4, tier: "gold", fixed: "vault", y: 0.44 }, { x: 64.2, z: -19.6, tier: "gold", fixed: "secret" },
   // the radio shack, the stash on the camp's north road, the bomber
   { ...at("radio", 0.3, 0.2), tier: "green", fixed: "radio", in: "radio" }, { x: -72.6, z: -8.4, tier: "wood" }, { x: -60, z: -49.4, tier: "green" }, { x: -73.5, z: -39, tier: "wood" },
@@ -412,7 +412,7 @@ export const CRATES: CrateSocket[] = [
   // the river checkpoint and the landing
   { ...at("hut-north", -0.7, 0), tier: "wood", in: "hut-north" }, { ...at("boathouse", 1.1, 0.4), tier: "green", in: "boathouse" }, { x: 31.5, z: -104.5, tier: "wood" }, { x: -54.4, z: -100.6, tier: "wood" },
   // the grotto
-  { x: 173.6, z: 33, tier: "green" }, { x: 157.6, z: -27.6, tier: "green" }, { x: 146.6, z: 67.4, tier: "wood" },
+  { x: 173.6, z: 33, tier: "gold" }, { x: 157.6, z: -27.6, tier: "gold" }, { x: 146.6, z: 67.4, tier: "wood" },
 ];
 const base: Spawn[] = [
   { kind: "bandit", x: -60, z: 31, group: "camp" }, { kind: "bandit", x: -66, z: 21, group: "camp" }, { kind: "bandit", x: -63.4, z: 37.2, group: "camp", tag: "lemon", carry: "radio_key" }, { kind: "bandit", x: -54, z: 27, group: "camp" },
@@ -425,18 +425,18 @@ export const SPAWNS: Spawn[][] = [[...base,
   { kind: "bandit", x: 0.6, z: 84.6 }, { kind: "wild", x: -9.5, z: 67.5 }, { kind: "wild", x: 12, z: 66 }, { kind: "bandit", x: -39, z: 63 },
   { kind: "wild", x: 50.5, z: 58.5 }, { kind: "wild", x: 66, z: 20 }, { kind: "bandit", x: 62, z: 6, group: "ruin" }, { kind: "bandit", x: 65.5, z: -5.4, group: "ruin" }, { kind: "bandit", x: 77.5, z: -14, group: "ruin" },
   { kind: "bandit", x: -62, z: -40, group: "plane" }, { kind: "bandit", x: -58, z: -51, group: "plane" }, { kind: "wild", x: 60, z: -56 },
-  { kind: "brute", x: 8, z: -90.5 }, { kind: "bandit", x: -7.7, z: -111.5, group: "landing" }, { kind: "bandit", x: 16.5, z: -106, group: "landing" }, { kind: "bandit", x: 28, z: -107.5, group: "landing" }, { kind: "wild", x: 30, z: -99 },
+  { kind: "brute", x: 8, z: -90.5, group: "landing" }, { kind: "bandit", x: -7.7, z: -111.5, group: "landing" }, { kind: "bandit", x: 16.5, z: -106, group: "landing" }, { kind: "bandit", x: 28, z: -107.5, group: "landing" }, { kind: "wild", x: 30, z: -99, group: "landing" },
   { kind: "bandit", x: 166, z: 24, group: "grotto" }, { kind: "bandit", x: 172, z: 29, group: "grotto" },
 ], [...base,
   { kind: "wild", x: 8, z: 70 }, { kind: "wild", x: -80, z: 95 }, { kind: "wild", x: 42, z: 58 }, { kind: "wild", x: 64, z: 46 }, { kind: "bandit", x: 4, z: 50 },
-  { kind: "wild", x: 72, z: 8 }, { kind: "bandit", x: 69.5, z: -5.4, group: "ruin" }, { kind: "bandit", x: 76, z: -15, group: "ruin" },
+  { kind: "wild", x: 72, z: 8, group: "ruin" }, { kind: "bandit", x: 69.5, z: -5.4, group: "ruin" }, { kind: "bandit", x: 76, z: -15, group: "ruin" },
   { kind: "bandit", x: -24, z: -11 }, { kind: "wild", x: -60, z: -16.5 }, { kind: "bandit", x: -70, z: -48, group: "plane" }, { kind: "wild", x: -56, z: -40 },
-  { kind: "wild", x: 36, z: -58 }, { kind: "brute", x: 8, z: -90 }, { kind: "bandit", x: 16.5, z: -105, group: "landing" }, { kind: "bandit", x: 27, z: -108, group: "landing" }, { kind: "bandit", x: -7.7, z: -111.5, group: "landing" }, { kind: "wild", x: -40, z: -101 }, { kind: "wild", x: 33, z: -100 },
+  { kind: "wild", x: 36, z: -58 }, { kind: "brute", x: 8, z: -90, group: "landing" }, { kind: "bandit", x: 16.5, z: -105, group: "landing" }, { kind: "bandit", x: 27, z: -108, group: "landing" }, { kind: "bandit", x: -7.7, z: -111.5, group: "landing" }, { kind: "wild", x: -40, z: -101 }, { kind: "wild", x: 33, z: -100, group: "landing" },
   { kind: "bandit", x: 165, z: 32, group: "grotto" }, { kind: "wild", x: 153, z: -21 },
 ]];
 /** allies share an alert only inside their group's ring (CODE_FINDINGS rule 11) */
 export const GROUP_RINGS: Record<string, { x: number; z: number; r: number }> = {
-  camp: { x: -62, z: 26, r: 19 }, plane: { x: -64, z: -45, r: 14 }, grotto: { x: 168, z: 26, r: 14 }, ruin: { x: 68, z: -4, r: 20 }, landing: { x: 8, z: -98, r: 20 },
+  camp: { x: -62, z: 26, r: 19 }, plane: { x: -64, z: -45, r: 14 }, grotto: { x: 168, z: 26, r: 14 }, ruin: { x: 68, z: -4, r: 20 }, landing: { x: 8, z: -98, r: 26 },
 };
 /** dynamic event: a bandit supply balloon crash-lands one gold crate (with red smoke) 90-150 s into a raid */
 export const SUPPLY_DROPS = [{ x: 12, z: 16, area: "plantation" }, { x: -54, z: -54, area: "planecrash" }, { x: 76, z: -58, area: "waterfall" }, { x: -76, z: 102, area: "cove" }];

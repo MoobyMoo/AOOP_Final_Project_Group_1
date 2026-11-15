@@ -1,5 +1,6 @@
 import { DEFAULT_LOOK } from "../actors/look";
-import { load, migrate, reset, save } from "./save";
+import { KINGPIN } from "../combat/weapons";
+import { load, migrate, reset, save, retainKeys } from "./save";
 import "../loot/equipment.test";
 import "../loot/equipment-actions.test";
 
@@ -21,6 +22,10 @@ const storage = {
 Object.defineProperty(globalThis, "localStorage", { configurable: true, value: storage });
 
 const fresh = load();
+retainKeys(fresh, ["radio_key", "vine_key", "radio_key", "banana"]);
+save(fresh);
+equal(load().keys, ["radio_key", "vine_key"], "all extracted key kinds persist once, not ordinary loot");
+reset();
 assert(fresh.v === 1 && fresh.money === 0 && fresh.raids === 0, "missing storage returns defaults");
 assert(Number.isFinite(Date.parse(fresh.createdAt)), "creation date is valid");
 equal(fresh.look, DEFAULT_LOOK, "brand default look");
@@ -45,7 +50,7 @@ const bad = migrate({
   stats: { bonkOuts: -5, extracts: 3, best: "9" },
   order: { id: "sal", progress: { vine_rope: 2, old_gear: "3", bad: -2 }, done: "yes" },
 });
-equal([bad.money, bad.raids, bad.ammo, bad.lookDone], [0, 0, 16, false], "reject wrong scalar types/ranges");
+equal([bad.money, bad.raids, bad.ammo, bad.lookDone], [0, 0, KINGPIN.startAmmo, false], "reject wrong scalar types/ranges");
 equal(bad.upgrades, { mag: 1, pack: 0, heart: 0 }, "upgrade levels validated");
 equal(bad.keys, ["vine_key"], "mixed arrays sanitized and deduplicated");
 equal(bad.trophies, [], "wrong list type defaults");
