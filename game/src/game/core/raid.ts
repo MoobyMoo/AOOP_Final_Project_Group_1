@@ -46,7 +46,7 @@ export const raidScene = new THREE.Scene();
  *  gun's ADS lead factor (Duckov GameCamera: aimOffsetDistanceFactor and maxAimOffset both x ADSAimDistanceFactor). */
 export const CAMERA = tuneObject("camera", {
   pitch: Number(QS.get("pitch") ?? 55), yaw: Number(QS.get("yaw") ?? -30), dist: Number(QS.get("dist") ?? 40), fov: 24, fovPortrait: 34,
-  lead: 0.22, leadMax: 10, follow: 6, followFiring: 3, heightFollow: 2.2,
+  lead: 0.22, leadMax: 10, follow: 12, followFiring: 1.5, heightFollow: 2.2, // follow rates = Duckov (research/duckov-re/BALANCE_RANGES.md top 10)
 }, {
   pitch: { min: 20, max: 89, step: 0.5, label: "pitch (deg)" }, yaw: { min: -180, max: 180, step: 1, label: "yaw (deg)" }, dist: { min: 10, max: 90, step: 0.5, label: "distance (height)" },
   fov: { min: 10, max: 60, step: 0.5, label: "FOV" }, fovPortrait: { min: 10, max: 80, step: 0.5, label: "FOV portrait" },
