@@ -9,7 +9,7 @@
 // tools/glitchcheck.mjs drives it in the built preview and writes the report. Everything here is read-only.
 import * as THREE from "three";
 import { pieceRec, type PieceOwner } from "../world/dress";
-import { groundHeight, terrainHeight } from "../world/terrain";
+import { groundHeight, meshHeight, meshHeightMax } from "../world/terrain";
 import { houses } from "../world/buildings";
 import { debugGrid, walkable, path, gates, edgeDist, roadDist, flood } from "../world/grid";
 import { PLACED, CRATES, SPAWNS, START, POI, PORTALS, ZIPLINES, SUPPLY_DROPS, UNDER_X, PIERS, PIER_Y } from "../world/map/grove";
@@ -31,13 +31,8 @@ function add(cat: string, sev: Sev, x: number, z: number, k: string, what: strin
 }
 
 // ---------------------------------------------------------------- surfaces
-/** the rendered terrain: PlaneGeometry tiles of 0.8 u on one lattice from (-128, -144), triangles split b-d (u + v = 1) */
-const LX = -128, LZ = -144, LS = 0.8;
-export function meshH(x: number, z: number) {
-  const fx = (x - LX) / LS, fz = (z - LZ) / LS, c = Math.floor(fx), r = Math.floor(fz), u = fx - c, v = fz - r;
-  const x0 = LX + c * LS, z0 = LZ + r * LS, ha = terrainHeight(x0, z0), hb = terrainHeight(x0, z0 + LS), hc = terrainHeight(x0 + LS, z0 + LS), hd = terrainHeight(x0 + LS, z0);
-  return u + v <= 1 ? ha + (hd - ha) * u + (hb - ha) * v : hc + (hb - hc) * (1 - u) + (hd - hc) * (1 - v);
-}
+/** the rendered terrain (terrain.ts meshHeight: the 0.8 u tile triangles, not the 1 u field) */
+export const meshH = meshHeight;
 const FLOOR_TOP = 0.08;
 /** the house whose footprint covers a point (pad u), or null */
 function houseAt(x: number, z: number, pad = 0) {
@@ -291,16 +286,27 @@ function assetFaces() {
   for (const name of houseAssetNames()) { try { const b = (HOUSE_IDS as readonly string[]).includes(name) ? building(name) : houseModule(name); test("house/" + name, b.pieces, b.parts.root); } catch { /* skip */ } }
   return res;
 }
+/** two surfaces closer than this in depth fight or stripe under the low sun's shadow map (the lead's 0.03 u rule) */
+const NEAR = 0.03;
 function zfight(list: Own[], scene: THREE.Scene) {
   // a) between different placed things (hard faces of the play space)
   const tris: Tri[] = [];
   for (const w of list) { if (w.o.src === "edge") continue; trisOf(w.hard, w.i, false, 0.004, tris); trisOf(w.leaf, w.i, true, 0.004, tris); }
   const pairs = new Map<string, { t: Tri; u: Tri; area: number }>();
   for (const h of coplanar(tris, { cross: true })) { const k = h.t.o < h.u.o ? `${h.t.o}|${h.u.o}` : `${h.u.o}|${h.t.o}`, cur = pairs.get(k); if (!cur || cur.area < h.area) pairs.set(k, h); }
-  for (const [, h] of pairs) { const a = list[h.t.o], b = list[h.u.o]; add("zfight", h.area > 0.05 ? "visible" : "minor", h.t.a[0], h.t.a[2], `${a.o.k}|${b.o.k}`, `coplanar faces of ${label(a)} and ${label(b)} overlap (${r2(h.area * 1000) / 1000} m2)`, h.area, { y: h.t.a[1] }); }
+  /** a point with a face of the same owner above it within its footprint is inside that thing (a crate's inner floor): not seen */
+  const hiddenIn = (w: Own, x: number, y: number, z: number) => { const p = w.hard; for (let i = 0; i + 8 < p.length; i += 9) {
+    const ax = p[i], az = p[i + 2], bx = p[i + 3], bz = p[i + 5], cx = p[i + 6], cz = p[i + 8], d1 = (ax - x) * (bz - z) - (bx - x) * (az - z), d2 = (bx - x) * (cz - z) - (cx - x) * (bz - z), d3 = (cx - x) * (az - z) - (ax - x) * (cz - z);
+    if (!((d1 > 0 && d2 > 0 && d3 > 0) || (d1 < 0 && d2 < 0 && d3 < 0))) continue; if ((p[i + 1] + p[i + 4] + p[i + 7]) / 3 > y + 0.05) return true; } return false; };
+  for (const [, h] of pairs) { const a = list[h.t.o], b = list[h.u.o];
+    const cen = (q: Tri) => [(q.a[0] + q.b[0] + q.c[0]) / 3, (q.a[1] + q.b[1] + q.c[1]) / 3, (q.a[2] + q.b[2] + q.c[2]) / 3];
+    const [tx, ty, tz] = cen(h.t), [ux, uy, uz] = cen(h.u);
+    if (Math.abs(h.t.n[1]) > 0.97 && (hiddenIn(a, tx, ty, tz) || hiddenIn(b, ux, uy, uz))) continue; // one of them is a floor inside a closed thing
+    if (Math.min(h.t.bb[4], h.u.bb[4]) < meshH(tx, tz) - 0.01) continue; // the shared patch is under the ground (buried piles, stringers)
+    add("zfight", h.area > 0.05 ? "visible" : "minor", h.t.a[0], h.t.a[2], `${a.o.k}|${b.o.k}`, `coplanar faces of ${label(a)} and ${label(b)} overlap (${r2(h.area * 1000) / 1000} m2, normal ${h.t.n.map((q) => r2(q)).join(",")}, y ${r2(h.t.a[1])})`, h.area, { y: h.t.a[1] }); }
   // b) up-facing faces lying on the terrain mesh (floors, decks, tops of buried things)
   for (const w of list) {
-    if (w.o.src === "house" || w.o.src === "edge") continue;
+    if (w.o.src === "house" || w.o.src === "edge" || isNature(w.o.k)) continue; // (nature is planted below its origin on purpose)
     let n = 0, area = 0, at: number[] = [], worst = 1;
     const own = trisOf(w.hard, w.i, false, 0.0005);
     /** is there a face of the same thing above this point (the face is hidden inside it, e.g. a crate's inner floor) */
@@ -311,16 +317,35 @@ function zfight(list: Own[], scene: THREE.Scene) {
       return (u.d - u.n[0] * x - u.n[2] * z) / u.n[1] > y + 0.02;
     });
     for (const t of own) {
-      if (t.n[1] < 0.97 || t.area < 0.002) continue;
+      if (t.n[1] < 0.995 || t.area < 0.002) continue; // level faces only: a sloped board that runs into the ground meets it along a line, it does not fight it
       const cx = (t.a[0] + t.b[0] + t.c[0]) / 3, cy = (t.a[1] + t.b[1] + t.c[1]) / 3, cz = (t.a[2] + t.b[2] + t.c[2]) / 3;
       if (houseAt(cx, cz) || onDeck(cx, cz) || covered(cx, cy, cz)) continue;
       const pts = [[cx, cy, cz], t.a, t.b, t.c]; let close = 0, minD = 1;
-      for (const p of pts) { const d = p[1] - meshH(p[0], p[2]); minD = Math.min(minD, d); if (Math.abs(d) < 0.01) close++; }
-      // only faces that show: the face lies within 1 cm of the ground at two or more of its points, or the ground cuts through it
-      if (close >= 2 || (minD < -0.004 && cy - meshH(cx, cz) > -0.03)) { n++; area += t.area; if (minD < worst) { worst = minD; at = [cx, cy, cz]; } }
+      for (const p of pts) { const d = p[1] - meshH(p[0], p[2]); minD = Math.min(minD, d); if (Math.abs(d) < NEAR) close++; }
+      // faces that show: within NEAR of the drawn ground at any of its points, or the ground cuts through it
+      if (close >= 1 || (minD < 0 && cy - meshH(cx, cz) > -0.03)) { n++; area += t.area; if (minD < worst) { worst = minD; at = [cx, cy, cz]; } }
     }
     if (n && area > 0.03) add("zfight", area > 0.3 ? "visible" : "minor", at[0], at[2], w.o.k, `${n} up-facing faces of ${label(w)} lie on or under the terrain mesh (${r2(area)} m2, worst ${r2(worst)} u)`, area, { y: at[1], src: w.o.src });
   }
+  // b2) flat sheets among the scene's own nodes (the vat's spill, set-piece plates): clearance and no shadow casting
+  const skipRoots = new Set<THREE.Object3D>([G.rig?.root, ...G.enemies.map((e) => e.rig.root)].filter(Boolean) as THREE.Object3D[]);
+  const bx = new THREE.Box3(), vv = new THREE.Vector3();
+  const sheet = (o: THREE.Object3D) => {
+    if (skipRoots.has(o) || ["chunk", "grass", "terrain", "water", "decals", "glitch-cols"].includes(o.name)) return;
+    const m = o as THREE.Mesh;
+    if (m.isMesh && m.visible && m.geometry.attributes.position?.array) {
+      bx.setFromObject(m); const h = bx.max.y - bx.min.y, wide = Math.max(bx.max.x - bx.min.x, bx.max.z - bx.min.z), cx = (bx.min.x + bx.max.x) / 2, cz = (bx.min.z + bx.max.z) / 2;
+      if (wide > 0.4 && h <= 0.12 && h <= wide * 0.05 && bx.min.y < meshH(cx, cz) + 0.15 && !houseAt(cx, cz) && !onDeck(cx, cz)) {
+        const pos = m.geometry.attributes.position; let worst = 1;
+        for (let i = 0; i < pos.count; i++) { vv.fromBufferAttribute(pos, i).applyMatrix4(m.matrixWorld); worst = Math.min(worst, vv.y - meshHeightMax(vv.x, vv.z, 0.4)); }
+        const mat = m.material as THREE.Material, overlay = mat.transparent && !mat.depthWrite;
+        if (worst < NEAR && !overlay) add("zfight", "visible", cx, cz, m.name || m.parent?.name || "sheet", `flat node ${m.parent?.name ?? ""}/${m.name} lies ${r2(worst * 100) / 100} u from the drawn terrain (rule: >= ${NEAR})`, NEAR - worst, { y: bx.max.y });
+        if (m.castShadow && !overlay) add("zfight", "minor", cx, cz, m.name || "sheet", `flat node ${m.parent?.name ?? ""}/${m.name} casts a shadow (a sheet on the ground stripes under a low sun)`, 0, { y: bx.max.y });
+      }
+    }
+    for (const c of o.children) sheet(c);
+  };
+  for (const c of scene.children) sheet(c);
   // c) decals that dip under the terrain mesh (they lie 0.035 u up on the 1 u height field; the mesh is 0.8 u triangles)
   const cells = new Map<string, { n: number; worst: number; x: number; z: number }>();
   scene.traverse((o) => {
@@ -332,7 +357,7 @@ function zfight(list: Own[], scene: THREE.Scene) {
       for (const [u, w] of [[1 / 3, 1 / 3], [0.5, 0], [0, 0.5], [0.5, 0.5]]) {
         const x = V[0][0] + (V[1][0] - V[0][0]) * u + (V[2][0] - V[0][0]) * w, y = V[0][1] + (V[1][1] - V[0][1]) * u + (V[2][1] - V[0][1]) * w, z = V[0][2] + (V[1][2] - V[0][2]) * u + (V[2][2] - V[0][2]) * w;
         if (houseAt(x, z, 0.05) || onDeck(x, z)) continue;
-        const d = y - meshH(x, z); if (d > 0.004) continue;
+        const d = y - meshH(x, z); if (d > 0.01) continue; // decals: +0.035 lift, polygon offset, no depth write; under 1 cm they fight
         const k = `${Math.floor(x / 2)},${Math.floor(z / 2)}`, c = cells.get(k) ?? cells.set(k, { n: 0, worst: 1, x, z }).get(k)!; c.n++; if (d < c.worst) { c.worst = d; c.x = x; c.z = z; }
       }
     }
@@ -592,6 +617,34 @@ export function fitNature(type: string, h = 0.15) {
       circles.push([r2(cx), r2(cz), r2(rs[Math.floor(rs.length * 0.6)]), r2(rs[rs.length - 1])]);
     }
     out2.push({ v: i, circles: circles.sort((p, q) => q[2] - p[2]) });
+  }
+  return out2;
+}
+/** flat (up-facing) faces of one build asset grouped by height: where its floors, puddles and plates sit in piece space */
+export function flatFaces(name: string) {
+  const b = K.asset(name), lv = new Map<number, { area: number; n: number; x0: number; x1: number; z0: number; z1: number; mat: string }>();
+  for (const p of b.pieces) for (const t of trisOf(Array.from(p.geo.attributes.position.array as Float32Array), 0, false, 0)) {
+    if (t.n[1] < 0.97) continue; const y = Math.round(((t.a[1] + t.b[1] + t.c[1]) / 3) * 1000) / 1000;
+    const e = lv.get(y) ?? lv.set(y, { area: 0, n: 0, x0: 9, x1: -9, z0: 9, z1: -9, mat: p.mat }).get(y)!; e.area += t.area; e.n++; e.x0 = Math.min(e.x0, t.bb[0]); e.x1 = Math.max(e.x1, t.bb[3]); e.z0 = Math.min(e.z0, t.bb[2]); e.z1 = Math.max(e.z1, t.bb[5]);
+  }
+  return [...lv].filter(([, e]) => e.area > 0.01).sort((a, b) => a[0] - b[0]).map(([y, e]) => ({ y, area: r2(e.area), n: e.n, x: [r2(e.x0), r2(e.x1)], z: [r2(e.z0), r2(e.z1)], mat: e.mat }));
+}
+/** debug: the up-facing faces of one placed owner with their height over the drawn terrain at each corner */
+export function ownerFlats(k: string, x: number, z: number) {
+  const w = owners().find((q) => q.o.k === k && Math.abs(q.o.x - x) < 0.05 && Math.abs(q.o.z - z) < 0.05); if (!w) return null;
+  return trisOf(w.hard, 0, false, 0.002).filter((t) => t.n[1] > 0.97).map((t) => [t.a, t.b, t.c].map((p) => [r2(p[0]), Math.round(p[1] * 1000) / 1000, r2(p[2]), Math.round((p[1] - meshH(p[0], p[2])) * 1000) / 1000])).filter((f) => f.some((p) => p[3] < 0.04));
+}
+/** debug: the cutout's occluder test (render/cutout.ts cut_occl) for the tall pieces near a point, with this frame's camera */
+export function occlTest(x: number, z: number, r = 6) {
+  const cam = G.stage.camera.position, T = CUT.uHeroW.value, out2: unknown[] = [];
+  for (const rec of pieceRec.list) {
+    if (!rec.tall || Math.hypot(rec.o.x - x, rec.o.z - z) > r) continue;
+    const g = rec.geo.clone().applyMatrix4(rec.m); g.computeBoundingBox(); const b = g.boundingBox!;
+    const ox = (b.min.x + b.max.x) / 2, oz = (b.min.z + b.max.z) / 2, top = b.max.y, reach = Math.max(b.max.x - ox, b.max.z - oz);
+    const cx = cam.x, cz = cam.z, dx = T.x - cx, dz = T.z - cz, len = Math.hypot(dx, dz), ux = dx / len, uz = dz / len, along = (ox - cx) * ux + (oz - cz) * uz;
+    const a = Math.max(0, Math.min(len, along)), lat = Math.hypot(cx + ux * a - ox, cz + uz * a - oz), los = cam.y + (T.y - cam.y) * (Math.max(0, Math.min(len, along + reach)) / len);
+    const cut = top >= T.y + 0.1 && along <= len + reach && lat <= reach + 0.9 && top > los - 0.6;
+    out2.push({ cut, k: rec.o.k, x: r2(ox), z: r2(oz), top: r2(top), reach: r2(reach), along: r2(along - len), lat: r2(lat), los: r2(los), Ty: r2(T.y) });
   }
   return out2;
 }

@@ -319,7 +319,7 @@ put("statue", 61.5, -18.6, 0, 1, undefined, "statue"); put("ruin_floor_c", 61.5,
 group(61.5, -17, 0, [["pillar_b", -3.6, -3.6], ["pillar_b", 3.6, -3.6], ["rubble_pile", -3.2, 3.6], ["lantern", -1.6, 0.4], ["lantern", 1.6, 0.4], ["banana_stash", 3.2, 3.4, 1], ["fern", -3.6, 0.6], ["bigleaf", 3.8, 0.2]]);
 // the vault's own walls: the rock it is cut into (west side low so the camera sees in)
 ridge([[75.6, -24.2], [75.2, -31.6]], 1.25);
-wall("stone", 73.7, -22, 76.4, -22); wall("stone", 83.6, -22, 86, -22);
+// (two runs here, 73.7-76.4 and 83.6-86, doubled the compound's own north wall in the same place: coplanar stone, removed G1.5-12)
 
 // ---------------------------------------------------------------- Bomber Wreck (EGG ep03) and the road from the camp
 put("bomber", -66, -44, 0.3, 1, undefined, "bomber");

@@ -5,6 +5,10 @@
 // so you see where you shoot through trees and walls. Ours is one opaque, depth-writing shader on the tall chunk
 // meshes (no material swaps, no sorting), driven by uniforms set once per frame. Only fragments nearer the camera
 // than the point of interest are cut, so nothing behind the hero or the cursor ever opens.
+// Duckov fades only the occluders it finds between the camera and the player, not everything near him. Ours does the
+// same per piece (G1.5-12; Moo's dithered banana plants): every tall chunk piece carries aObj = its base x, z, its top
+// y and its reach (dress.ts), and a piece is cut only if it stands taller than the hero's chest, sits between the
+// camera and the target, and reaches up into the sight line there. Low plants beside or in front of the hero stay whole.
 import * as THREE from "three";
 
 /** hole radius and dissolve width in world units at the target's depth (Duckov: viewRange 4, viewFadeRange 1) */
@@ -14,7 +18,10 @@ export const CUT = {
   uAimPx: { value: new THREE.Vector2(-9999, -9999) }, uAimDepth: { value: 0.5 },
   uCutR: { value: 100 }, uCutFade: { value: 30 },   // framebuffer pixels (from world units at the camera distance)
   uCutOn: { value: 1 },
+  uHeroW: { value: new THREE.Vector3(0, -999, 0) }, uAimW: { value: new THREE.Vector3(0, -999, 0) }, // targets in world space
 };
+/** aObj is stored as Int16: x and z at 1/50 u, top and reach at 1/500 u (dress.ts writes it with these scales) */
+export const OBJ_SCALE = [50, 50, 500, 500] as const;
 /** interleaved gradient noise in [0, 1): shared by the cutout and the building fade */
 export const IGN = /* glsl */ `
 #ifndef CUT_IGN
@@ -31,27 +38,47 @@ float cut_keep(vec2 frag, vec2 c, float depth, float r, float fade) {
   float k = (length(frag - c) - r) / fade;                       // < 0 inside the core, 0..1 across the dissolve
   float n = 0.62 * cut_vn(frag / 14.0) + 0.38 * cut_vn(frag / 5.0);
   return k - (n - 0.5) * 0.9;                                     // blotchy edge; discard when < noise threshold
+}
+// is this piece an occluder of target T: taller than T (the chest), between the camera and T on the ground plan
+// (its reach may overhang T from just behind), within its reach + 0.9 u of the sight line, and up into the sight line
+bool cut_occl(vec3 T) {
+  if (vObj.w < 0.01) return true;                                // no piece data (review pages): the old behaviour
+  if (vObj.z < T.y + 0.1) return false;                          // lower than about 1.2 u: never cut
+  vec2 c = cameraPosition.xz, ct = T.xz - c; float len = max(length(ct), 1e-3); vec2 dir = ct / len;
+  float along = dot(vObj.xy - c, dir);
+  if (along > len + vObj.w) return false;                        // behind the target
+  float a = clamp(along, 0.0, len), lat = length(c + dir * a - vObj.xy);
+  if (lat > vObj.w + 0.9) return false;                          // off to the side of the sight line
+  float los = mix(cameraPosition.y, T.y, clamp(along + vObj.w, 0.0, len) / len); // sight-line height over the piece's edge nearest T
+  return vObj.z > los - 0.6;
 }`;
 /** wrap an already-patched material's onBeforeCompile with the cutout */
 export function withCutout<T extends THREE.Material>(m: T): T {
   const prev = m.onBeforeCompile.bind(m), key = m.customProgramCacheKey?.bind(m);
   m.onBeforeCompile = (sh, r) => {
     prev(sh, r); Object.assign(sh.uniforms, CUT);
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", "#include <common>\nattribute vec4 aObj;\nvarying vec4 vObj;")
+      .replace("#include <begin_vertex>", `#include <begin_vertex>\n  vObj = aObj / vec4(${OBJ_SCALE.map((v) => v.toFixed(1)).join(", ")});`);
     sh.fragmentShader = sh.fragmentShader
-      .replace("#include <common>", `#include <common>\nuniform vec2 uHeroPx; uniform float uHeroDepth; uniform vec2 uAimPx; uniform float uAimDepth; uniform float uCutR; uniform float uCutFade; uniform float uCutOn;\n${IGN}\n${BLOT}`)
+      .replace("#include <common>", `#include <common>\nuniform vec2 uHeroPx; uniform float uHeroDepth; uniform vec2 uAimPx; uniform float uAimDepth; uniform float uCutR; uniform float uCutFade; uniform float uCutOn; uniform vec3 uHeroW; uniform vec3 uAimW;\nvarying vec4 vObj;\n${IGN}\n${BLOT}`)
       .replace("void main() {", `void main() {
   if (uCutOn > 0.5) {
-    float keep = min(cut_keep(gl_FragCoord.xy, uHeroPx, uHeroDepth, uCutR, uCutFade), cut_keep(gl_FragCoord.xy, uAimPx, uAimDepth, uCutR * 0.8, uCutFade));
+    float keep = 1.0;
+    if (cut_occl(uHeroW)) keep = cut_keep(gl_FragCoord.xy, uHeroPx, uHeroDepth, uCutR, uCutFade);
+    if (cut_occl(uAimW)) keep = min(keep, cut_keep(gl_FragCoord.xy, uAimPx, uAimDepth, uCutR * 0.8, uCutFade));
     if (keep < cut_ign(gl_FragCoord.xy) * 0.35) discard;
   }`);
   };
-  m.customProgramCacheKey = () => (key ? key() : "") + "cut3";
+  m.customProgramCacheKey = () => (key ? key() : "") + "cut4";
   return m;
 }
 const v = new THREE.Vector3(), size = new THREE.Vector2(), camPos = new THREE.Vector3();
 /** call once per frame with the hero's chest position and the aim point (omit aim to cut round the hero only) */
 export function updateCutout(cam: THREE.Camera, hero: THREE.Vector3, renderer: THREE.WebGLRenderer, aim?: THREE.Vector3) {
   renderer.getDrawingBufferSize(size);
+  CUT.uHeroW.value.copy(hero);
+  if (aim) CUT.uAimW.value.copy(aim).setY(aim.y + 1.0); else CUT.uAimW.value.set(0, -999, 0);
   v.copy(hero).project(cam);
   CUT.uHeroPx.value.set((v.x * 0.5 + 0.5) * size.x, (v.y * 0.5 + 0.5) * size.y); CUT.uHeroDepth.value = v.z * 0.5 + 0.5;
   if (aim) { v.copy(aim).setY(aim.y + 1.0).project(cam); CUT.uAimPx.value.set((v.x * 0.5 + 0.5) * size.x, (v.y * 0.5 + 0.5) * size.y); CUT.uAimDepth.value = v.z * 0.5 + 0.5; }
