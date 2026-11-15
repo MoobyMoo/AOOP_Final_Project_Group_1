@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
-import { createHash } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { chromium } from "playwright-core";
+import { buildEntry, captureBuild } from './botbuild.mjs';
 
 const outputDir = process.env.BOT_OUT ?? "playlogs/bot";
-const buildDir = process.env.BOT_DIST ?? "/tmp/bv-sol-dist";
+const buildDir = process.env.BOT_DIST ?? "/tmp/bv-systems-dist";
 
 async function selfTest() {
+  assert.equal(buildEntry('<script type="module" src="/assets/game-current.js"></script>'), 'game-current.js');
+  assert.throws(() => buildEntry('<script src="/assets/game-stale.js"></script>'));
+  assert.throws(() => buildEntry('<script type="module" src="/assets/../game.js"></script>'));
+  console.log('PASS identify the entry from HTML rather than stale asset files');
   const { rolldown } = await import("rolldown");
   const bundle = await rolldown({ input: "src/game/core/bot.ts" });
   const { output } = await bundle.generate({ format: "esm" });
@@ -26,6 +30,13 @@ async function selfTest() {
     upgrades: { mag: 0, pack: 0, heart: 0 }, combatEvents: [],
   });
   const tests = [
+    ['shoot a bandit outside melee reach rather than path-locking at a fence', () => {
+      const bot = createBot({ greed: 0.5, reactionLag: 0.25, seed: 1 });
+      const view = observation(); view.walkable = () => true;
+      view.enemies = [{ id: 1, x: 2.5, z: 0, hp: 48, kind: 'bandit', state: 'chase', awake: true, windup: false }];
+      bot.tick(view, 0.3);
+      assert.equal(bot.tick(view, 0.3).fire, true);
+    }],
     ["open a reachable door when extraction starts inside a closed room", () => {
       const bot = createBot({ greed: 0.8, reactionLag: 0.25, seed: 1 });
       const view = observation(); view.crates = []; view.walkable = () => true; view.raidT = 421;
@@ -188,11 +199,12 @@ async function runCampaign(browser, { raids, ts, greed, seed, lag = 0.25 }) {
       }
     }, 100);
   });
-  const base = process.env.BASE ?? "http://127.0.0.1:5330";
+  const base = process.env.BASE ?? "http://127.0.0.1:5347";
   assert.ok(!["5318", "5340"].includes(new URL(base).port), "use an isolated systems preview");
   const url = `${base}/game.html?fresh=1&bot=1&ts=${ts}&post=0&dpr=1&fixdpr=1&greed=${greed}&lag=${lag}&seed=${seed}`;
   const started = Date.now();
-  const report = { config: { raids, ts, greed, seed, lag, url }, started: new Date().toISOString(), errors };
+  const build = await captureBuild(buildDir, base);
+  const report = { config: { raids, ts, greed, seed, lag, url }, build, started: new Date().toISOString(), errors };
   const destination = `${outputDir}/g${greed}-s${seed}.json`;
   let logged = -1, lastProgress = 0;
   try {
@@ -213,6 +225,7 @@ async function runCampaign(browser, { raids, ts, greed, seed, lag = 0.25 }) {
       if (state.raids.length >= raids && state.current?.scene === "raid" && state.current.raid >= raids) { report.complete = true; break; }
     }
     if (!report.complete) throw new Error("Campaign exceeded the 30-minute wall-clock deadline");
+    assert.deepEqual(await captureBuild(buildDir, base), build, 'build and runtime sources unchanged during campaign');
     for (const result of report.raids) {
       const events = report.events.filter(event => event.raid === result.raid);
       assert.equal(events.filter(event => event.type === "kill").length, Object.values(result.log.kills).reduce((sum, count) => sum + count, 0), "authoritative kill total");
@@ -254,7 +267,7 @@ async function writeReport() {
   const rows = campaigns.flatMap(campaign => campaign.raids.map(raid => {
     const events = campaign.events.filter(event => event.raid === raid.raid);
     const kills = Object.values(raid.log.kills).reduce((sum, count) => sum + count, 0);
-    return { greed: campaign.config.greed, botSeed: campaign.config.seed, lag: campaign.config.lag, ...raid,
+    return { greed: campaign.config.greed, botSeed: campaign.config.seed, lag: campaign.config.lag, ...raid, bossEngaged: events.some(event => event.type === 'boss-engaged'),
       humanSeconds: raid.t * 1.33, kills,
       hpLost: events.filter(event => event.type === "hurt").reduce((sum, event) => sum + (event.hp ?? 0), 0),
       upgradesBought: events.filter(event => event.type === "upgrade-bought").map(event => `${event.upgrade} ${event.level} (${event.cost})`),
@@ -266,24 +279,26 @@ async function writeReport() {
   const meleeKills = rows.reduce((sum, row) => sum + row.log.killsBy.briefcase, 0);
   const zeroAmmo = rows.filter(row => row.ammo === 0).length;
   const useful = rows.filter(row => row.usefulFound > 0).length;
-  const inLength = rows.filter(row => row.humanSeconds >= 240 && row.humanSeconds <= 480).length;
+  const inLength = rows.filter(row => row.humanSeconds >= 180 && row.humanSeconds <= 360).length;
   const high = rows.filter(row => row.greed === 0.8 && row.lag === 0.25), bonks = high.filter(row => row.how === "bonked").length;
+  const bossHigh = high.filter(row => row.bossEngaged), bossBonks = bossHigh.filter(row => row.how === 'bonked').length;
+  const low = rows.filter(row => row.greed === 0.3), lowEngaged = low.filter(row => row.bossEngaged).length;
   const percentage = (numerator, denominator) => (100 * numerator / denominator).toFixed(1) + "%";
   const range = values => `${Math.min(...values).toFixed(2)}–${Math.max(...values).toFixed(2)}`;
   const gates = [
-    { name: "Human-estimated raid length 4–8 min", pass: inLength === rows.length, measured: `${inLength}/${rows.length} in range; ${range(rows.map(row => row.humanSeconds / 60))} min; mean ${(rows.reduce((sum, row) => sum + row.humanSeconds, 0) / rows.length / 60).toFixed(2)} min` },
+    { name: "Demo human-estimated raid length 3–6 min", pass: inLength === rows.length, measured: `${inLength}/${rows.length} in range; ${range(rows.map(row => row.humanSeconds / 60))} min; mean ${(rows.reduce((sum, row) => sum + row.humanSeconds, 0) / rows.length / 60).toFixed(2)} min` },
     { name: "Briefcase ≥30% of all kills", pass: totalKills > 0 && meleeKills / totalKills >= 0.3, measured: `${meleeKills}/${totalKills} = ${percentage(meleeKills, totalKills)}` },
     { name: "<20% of raids end with zero ammo", pass: zeroAmmo / rows.length < 0.2, measured: `${zeroAmmo}/${rows.length} = ${percentage(zeroAmmo, rows.length)}; loaded + reserve` },
     { name: "Every raid yields a useful find", pass: useful === rows.length, measured: `${useful}/${rows.length} raids rolled ≥1 useful item; minimum ${Math.min(...rows.map(row => row.usefulFound))}` },
-    { name: "10–30% bonk-out at greed 0.8 / 250 ms lag", pass: bonks / high.length >= 0.1 && bonks / high.length <= 0.3, measured: `${bonks}/${high.length} = ${percentage(bonks, high.length)}` },
+    { name: 'Low-greed avoids the boss', pass: low.length > 0 && lowEngaged === 0, measured: `${lowEngaged}/${low.length} engaged` },
+    { name: 'Boss-engaging high-greed bonk rate at least 40%', pass: bossHigh.length > 0 && bossBonks / bossHigh.length >= 0.4, measured: `${bossBonks}/${bossHigh.length} engaged raids; all high-greed bonks ${bonks}/${high.length}` },
     { name: "Zero softlocks", pass: true, measured: `0/${rows.length}; longest raid ${Math.max(...rows.map(row => row.t)).toFixed(2)} s <900 s` },
   ];
-  const assets = await readdir(`${buildDir}/assets`);
-  const entry = assets.find(file => /^game-.*\.js$/.test(file));
-  const buildSha256 = createHash("sha256").update(await readFile(`${buildDir}/assets/${entry}`)).digest("hex");
-  const sourcePaths = ["src/game/ai/enemies.ts", "src/game/combat/combat.ts", "src/game/combat/weapons.ts", "src/game/core/bot.ts", "src/game/core/botdrive.ts", "src/game/core/raid.ts", "src/game/core/save.ts", "src/game/loot/raidloot.ts", "src/game/loot/sockets.ts", "src/game/loot/tables.ts", "src/game/main.ts", "src/game/world/buildings.ts", "src/game/world/grid.ts", "src/game/world/map/grove.ts"];
-  const sourceHashes = Object.fromEntries(await Promise.all(sourcePaths.map(async file => [file, createHash("sha256").update(await readFile(file)).digest("hex")])));
-  const summary = { generated: new Date().toISOString(), build: { entry, sha256: buildSha256, sourceHashes }, inputs: files, gates, rows };
+  const build = campaigns[0].build;
+  assert.ok(build?.sha256 && build?.sourceHashes, 'campaign must capture build identity at execution time');
+  for (const campaign of campaigns) assert.deepEqual(campaign.build, build, 'all campaigns use the same build');
+  const { entry, sha256: buildSha256 } = build;
+  const summary = { generated: new Date().toISOString(), build, inputs: files, gates, rows };
   await writeFile(`${outputDir}/G1_PACING.json`, JSON.stringify(summary, null, 2) + "\n");
   const perGreed = campaigns.map(campaign => {
     const subset = rows.filter(row => row.greed === campaign.config.greed);
@@ -316,17 +331,17 @@ ${perGreed.join("\n")}
 
 ## Systems tuning and interpretation
 
-This run uses map-v3 sockets and the local tunnel/portal/gate observation extension. Bot crate quotas remain 6/8/10 for low/medium/high greed. Pack occupancy no longer ends a route after three crates; a full pack can exchange low-value items for higher-value finds. The bot uses its pistol when stamina cannot support melee, rather than repeatedly requesting failed swings. No minimum duration or idle wait was added.
+This run includes the Plantation boss and typed pools on the existing map-v3 sockets. The wave-2 demo boundaries, new container props, search screen and cove exit are not part of this worker. Bot crate quotas remain 6/8/10. Bots avoid the boss below greed 0.75 and deliberately approach it above that threshold. The bot shoots rather than trying to path into melee through a camp fence. No minimum duration or idle wait was added.
 
-The all-raids 4–8-minute gate and the brief's 2.5–3.5-minute hatch budget do not overlap. Report both rather than changing the existing ×1.33 human estimator. Successful hatch and raft samples need separate comparison to the brief. Bonk-outs still count in the all-raids gate.
+The updated demo target is 3–6 human-estimated minutes, using the unchanged ×1.33 estimator. Bonk-outs count too. The old world can still send bots north, so this matrix is a regression check, not proof of the final slice's timing. The isolated boss matrix separately tests unprepared and prepared encounter outcomes.
 
 Tunnel extraction coverage: ${rows.filter(row => row.how === "tunnel").length}/${rows.length}. Shared contracts.ts remains unchanged. The lead should widen BotView.exits to hatch | raft | tunnel, expose open state, and adopt the optional portal/gate/safePath observations from BotObservation.
 
-See research/equipment/G1_MAPV3_TUNING.md for the before/after gate table, numerical changes, AI mechanisms, API details, limitations and final verification outputs. This generator does not claim separate checks passed merely because campaigns completed.
+See research/economy/G1_5_SYSTEMS.md for API details, the economy comparison and integration boundaries. Completing a campaign does not imply the numeric gates pass.
 
 ## Reproduction and evidence
 
-Build with npm run build; serve the production dist on isolated port 5338. Set BASE=http://127.0.0.1:5338 BOT_DIST=dist BOT_OUT=<evidence-directory>, then run node tools/botrun.mjs --matrix and --report. Campaigns use isolated browser contexts, fresh saves, Chromium at /usr/bin/chromium, ts=4, post=0, dpr=1 and fixdpr=1. The runner rejects ports 5318 and 5340.
+Build with npx vite build --outDir /tmp/bv-systems-dist and serve it on 5347. Set BASE=http://127.0.0.1:5347 BOT_DIST=/tmp/bv-systems-dist BOT_OUT=<evidence-directory>, then run node tools/botrun.mjs --matrix and --report. Use --boss-matrix with a separate output directory for live arena fixtures. Campaigns use isolated browser contexts, fresh saves, Chromium at /usr/bin/chromium, ts=4, post=0, dpr=1 and fixdpr=1. The runner rejects ports 5318 and 5340.
 
 The runner samples every 100 ms wall time. It aborts on no movement beyond 0.5 u for 20 simulated raid seconds outside extraction, or a raid above 900 s. It checks authoritative shot, kill and outcome events against game logs, rejects inferred outcomes and requires another deployment after each final result. Diagnostic runs are excluded from this aggregate. Bot seeds differ from actual world seeds; both are retained in raw evidence.
 
@@ -337,8 +352,9 @@ Raw evidence: ${files.map(file => `\`${file}\``).join(", ")}; aggregate G1_PACIN
 }
 
 if (process.argv.includes("--report")) await writeReport();
+if (process.argv.includes('--boss-matrix')) await (await import('./bossrun.mjs')).runBossMatrix();
 
-if (!process.argv.includes("--self-test") && !process.argv.includes("--report")) {
+if (!process.argv.includes("--self-test") && !process.argv.includes("--report") && !process.argv.includes('--boss-matrix')) {
   await mkdir(outputDir, { recursive: true });
   const browser = await chromium.launch({ executablePath: "/usr/bin/chromium", args: ["--use-angle=gl", "--enable-gpu", "--ignore-gpu-blocklist"] });
   try {

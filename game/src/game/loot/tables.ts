@@ -1,12 +1,14 @@
 import type { CrateTier, EnemyStyle, ItemDef, RaidLootCtx } from "../contracts";
 import type { CrateSocket } from "../world/layout";
 import { EQUIP, enemyGear, parseInst, saleValue } from "./equipment";
+import { rollContainer, type ContainerType } from './containers';
 
 export type LootContext = RaidLootCtx & {
   fixed?: CrateSocket["fixed"] | "radio" | "radio_shack";
   ownsExtendedMag?: boolean;
   carried?: string[];
   enemySeed?: number;
+  containerType?: ContainerType;
 };
 
 export const ITEMS: Record<string, ItemDef> = {
@@ -28,6 +30,7 @@ export const ITEMS: Record<string, ItemDef> = {
   radio_key: { id: "radio_key", name: "Radio Shack Key", icon: "🗝️", rarity: "rare", value: 0, kind: "key", weight: 0.1 },
   extended_mag: { id: "extended_mag", name: "Kingpin Extended Mag", icon: "📎", rarity: "epic", value: 0, kind: "attachment", weight: 0.2 },
   spring: { id: "spring", name: "Spring", icon: "🌀", rarity: "common", value: 11, kind: "part", weight: 0.5 },
+  plantation_seal: { id: 'plantation_seal', name: 'Plantation Workshop Seal', icon: '🔩', rarity: 'rare', value: 0, kind: 'key', weight: 0.2 },
   plank: { id: "plank", name: "Plank", icon: "🪵", rarity: "common", value: 8, kind: "part", weight: 2.0 },
   ...Object.fromEntries(Object.values(EQUIP).map(def => [def.id, { id: def.id, name: def.name, icon: { head: "🎩", face: "🕶️", body: "🦺", back: "🎒", ears: "🎧" }[def.slot], rarity: def.rarity, value: def.value, weight: def.weight, kind: "wear" as const }])),
 };
@@ -39,7 +42,7 @@ export function itemDef(inst: string): ItemDef {
 export const EQUIPMENT_CHANCE: Record<CrateTier, number> = { wood: 0.02, green: 0.10, gold: 0.28 };
 
 export const PRICES = {
-  upgrades: { mag: [240], pack: [540], heart: [720] },
+  upgrades: { mag: [160], pack: [260], heart: [340] },
   ammo8: 24,
   smoothie: 36,
   bandage: 12,
@@ -113,6 +116,7 @@ function record(found: string[], ctx: LootContext): string[] {
 }
 
 export function rollCrate(tier: CrateTier, ctx: LootContext, rng: () => number): string[] {
+  if (ctx.containerType && !ctx.fixed) return rollContainer(ctx.containerType, rng, ctx);
   const special = ctx.fixed === "key" || ctx.fixed === "vault" || ctx.fixed === "sleeper";
   const found = randomContents(special ? "gold" : tier, ctx, rng, ctx.fixed === "sleeper");
   if (ctx.fixed === "key") found.unshift("vine_key");

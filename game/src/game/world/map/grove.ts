@@ -457,7 +457,16 @@ export const CRATES: CrateSocket[] = [
   // the grotto
   { x: 173.6, z: 33, tier: "gold" }, { x: 157.6, z: -27.6, tier: "gold" }, { x: 146.6, z: 67.4, tier: "wood" },
 ];
+export const BOSS_ENCOUNTER = {
+  x: -3, z: 43, retreat: { x: -24, z: 74 }, radius: 30,
+  spawns: [
+    { kind: 'brute', x: -3, z: 43, group: 'plantation-boss', tag: 'plantation-foreman' },
+    { kind: 'wild', x: -8, z: 39, group: 'plantation-boss', tag: 'foreman-escort-0' },
+    { kind: 'wild', x: 7, z: 40.5, group: 'plantation-boss', tag: 'foreman-escort-1' },
+  ] satisfies Spawn[],
+};
 const base: Spawn[] = [
+  ...BOSS_ENCOUNTER.spawns,
   { kind: "bandit", x: -60, z: 31, group: "camp" }, { kind: "bandit", x: -66, z: 21, group: "camp" }, { kind: "bandit", x: -63.4, z: 37.2, group: "camp", tag: "lemon", carry: "radio_key" }, { kind: "bandit", x: -54, z: 27, group: "camp" },
   { kind: "brute", x: 4, z: 24 }, { kind: "sleeper", x: 2, z: -57.4 },
 ];
@@ -479,6 +488,7 @@ export const SPAWNS: Spawn[][] = [[...base,
 ]];
 /** allies share an alert only inside their group's ring (CODE_FINDINGS rule 11) */
 export const GROUP_RINGS: Record<string, { x: number; z: number; r: number }> = {
+  'plantation-boss': { x: BOSS_ENCOUNTER.x, z: BOSS_ENCOUNTER.z, r: BOSS_ENCOUNTER.radius },
   camp: { x: -62, z: 26, r: 19 }, plane: { x: -64, z: -45, r: 14 }, grotto: { x: 168, z: 26, r: 14 }, ruin: { x: 68, z: -4, r: 20 }, landing: { x: 8, z: -98, r: 26 },
 };
 /** dynamic event: a bandit supply balloon crash-lands one gold crate (with red smoke) 90-150 s into a raid */

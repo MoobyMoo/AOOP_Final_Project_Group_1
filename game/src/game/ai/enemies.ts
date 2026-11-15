@@ -18,6 +18,12 @@ import { damage, hitWall } from "../combat/combat";
 import { hud } from "../ui/hud";
 import { enemyGear, gearStats, visualGear } from "../loot/equipment";
 import { openDoorForEnemy } from "../world/buildings";
+import { BOSS, bossPockets, createBossBrain, stepBoss, isBoss, bossMarker, escortMayAttack, type BossBrain } from './boss';
+import { seedEnemyInventory } from '../loot/bodies';
+
+const bossBrains = new Map<Enemy, BossBrain>();
+export { bossDamage, enemyHearingRange } from './boss';
+export function bossMarkers() { return [...bossBrains].map(([enemy, brain]) => bossMarker(brain, enemy.p)); }
 
 let nextId = 1;
 const sharedAlerts = new Map<Enemy, { delay: number; at: THREE.Vector3 }>();
@@ -44,7 +50,8 @@ const windMarks = new WeakMap<Enemy, THREE.Sprite>();
 /** the attack-ready cue: pops in when a wind-up starts, swells and beats faster until the hit lands */
 function windCue(e: Enemy) {
   let m = windMarks.get(e);
-  const total = e.kind === "sleeper" ? ENEMY.sleeper.aim * 0.5 : ENEMY[e.kind].wind;
+  const boss = bossBrains.get(e);
+  const total = boss ? { throw: BOSS.throwWindup, swat: BOSS.swatWindup, slam: BOSS.slamWindup }[boss.attack] : e.kind === "sleeper" ? ENEMY.sleeper.aim * 0.5 : ENEMY[e.kind].wind;
   const on = !e.down && e.active && (e.state === "windup" || (e.kind === "sleeper" && e.state === "aim" && e.t < total));
   if (!on) { if (m) m.visible = false; return; }
   if (!m) { m = new THREE.Sprite(windMat); m.renderOrder = 22; m.center.copy(CUE_CENTER); e.rig.root.add(m); windMarks.set(e, m); }
@@ -56,10 +63,12 @@ const zTex = (() => { const c = document.createElement("canvas"); c.width = c.he
 
 export function spawnEnemies(set: number) {
   sharedAlerts.clear();
+  bossBrains.clear();
   for (const e of G.enemies) e.rig.dispose(); G.enemies = [];
   for (const [index, s] of SPAWNS[set % SPAWNS.length].entries()) {
     const plan = s.kind === "brute" || s.kind === "sleeper" ? "gorilla" : "monkey";
     const gearSeed = G.seed ^ Math.imul(index + 1, 7), gear = enemyGear(gearSeed, s.kind);
+    if (s.tag === BOSS.id) { gear.head = null; gear.body = 'leaf_vest'; }
     const rig = createRig(plan, { kind: s.kind, seed: gearSeed });
     rig.setGear?.(gear);
     const st = ENEMY[s.kind];
@@ -67,6 +76,13 @@ export function spawnEnemies(set: number) {
       state: s.kind === "sleeper" ? "sleep" : "patrol", t: G.rng() * 2, actionT: 0, home: V(s.x, s.z), group: s.group, tag: s.tag, path: [], repath: 0, flash: 0,
       stolen: [], carry: [], gear, gearSeed, zs: 3, quiet: 0, lastSeen: null, lostT: 0, rang: null, active: false, down: false, downT: 0 };
     if (s.carry) e.carry.push(s.carry); // e.g. the Radio Shack Key on the lemon bandit: bonk him and it drops
+    if (isBoss(e)) {
+      e.hp = e.max = BOSS.hp; bossBrains.set(e, createBossBrain(e.home));
+      seedEnemyInventory(e, G.rng, { weapon: 'boomerang', pockets: bossPockets(G.rng) });
+    } else {
+      if (s.group === 'plantation-boss') e.hp = e.max = BOSS.escortHp;
+      seedEnemyInventory(e, G.rng);
+    }
     rig.root.position.copy(e.p); G.stage.scene.add(rig.root);
     if (s.kind === "sleeper") for (let i = 0; i < 3; i++) { const z = new THREE.Sprite(new THREE.SpriteMaterial({ map: zTex, depthTest: false })); z.name = "z" + i; z.scale.setScalar(0.6 + i * 0.15); z.position.set(0.5 + i * 0.35, rig.bounds.height + 0.3 + i * 0.45, 0); z.renderOrder = 20; rig.root.add(z); }
     G.enemies.push(e);
@@ -87,6 +103,8 @@ function mark(e: Enemy) {
 /** the notice cue (rule 9) + local group alert (rule 11) */
 export function alertEnemy(e: Enemy, direct = false) {
   if (e.down) return;
+  const boss = bossBrains.get(e);
+  if (boss) { boss.alerted = true; if (e.state === 'patrol' || e.state === 'return') { boss.state = 'notice'; boss.timer = BOSS.reaction; e.state = 'notice'; mark(e); } return; }
   if (e.kind === "sleeper") { if (e.state === "sleep") { e.zs = 0; wake(e); } return; }
   if (e.state === "patrol" || e.state === "return") {
     e.state = "notice"; e.t = e.kind === "bandit" ? ENEMY.bandit.notice : 0.35; mark(e); sfx("notice", 0.7);
@@ -188,11 +206,25 @@ export function updateEnemies(dt: number) {
     e.active = d < 32;
     e.flash = Math.max(0, e.flash - dt);
     windCue(e);
-    if (e.down) { e.downT += dt; poseRig(e, dt); continue; }
+    if (e.down) {
+      const boss = bossBrains.get(e); if (boss) boss.state = 'down';
+      e.downT += dt; poseRig(e, dt);
+      let stars = e.rig.root.getObjectByName('body-stars');
+      if (!stars) {
+        stars = new THREE.Group(); stars.name = 'body-stars';
+        const geometry = new THREE.OctahedronGeometry(0.11), material = new THREE.MeshBasicMaterial({ color: '#ffd84a' });
+        for (let index = 0; index < 3; index++) { const star = new THREE.Mesh(geometry, material); const angle = index * Math.PI * 2 / 3; star.position.set(Math.cos(angle) * 0.45, 0, Math.sin(angle) * 0.45); stars.add(star); }
+        e.rig.root.add(stars);
+      }
+      stars.position.y = 0.8; stars.rotation.y += dt * 2;
+      continue;
+    }
     if (!e.active) { e.rig.root.visible = d < 48; continue; }
     e.rig.root.visible = true;
     e.t -= dt;
-    switch (e.kind) { case "wild": wild(e, dt, d); break; case "bandit": bandit(e, dt, d); break; case "brute": brute(e, dt, d); break; case "sleeper": sleeper(e, dt, d); break; }
+    if (isBoss(e)) updateBoss(e, dt);
+    else if (e.group === 'plantation-boss') updateEscort(e, dt, d);
+    else switch (e.kind) { case "wild": wild(e, dt, d); break; case "bandit": bandit(e, dt, d); break; case "brute": brute(e, dt, d); break; case "sleeper": sleeper(e, dt, d); break; }
     if (e.kind !== "sleeper" || e.state !== "charge") {
       const nx = e.p.x + e.vel.x * dt, nz = e.p.z + e.vel.z * dt;
       if (walkable(nx, nz)) { e.p.x = nx; e.p.z = nz; } else e.vel.multiplyScalar(0.3);
@@ -211,7 +243,7 @@ function poseRig(e: Enemy, dt: number) {
   let action: string = "idle", at = 0;
   const sp = Math.hypot(e.vel.x, e.vel.z);
   switch (e.state) {
-    case "down": action = "defeat"; at = Math.min(1, e.downT / 0.9); if (e.downT > 1.6) { r.root.scale.setScalar(Math.max(0.001, 1 - (e.downT - 1.6) * 3) * r.root.scale.x / Math.max(0.001, r.root.scale.x)); if (e.downT > 1.95) r.root.visible = false; } break;
+    case "down": action = "defeat"; at = Math.min(1, e.downT / 0.9); r.root.visible = true; break;
     case "windup": action = e.kind === "brute" ? "windup" : e.kind === "wild" ? "throw" : "melee"; at = 1 - Math.max(0, e.t) / (e.kind === "brute" ? ENEMY.brute.wind : e.kind === "wild" ? ENEMY.wild.wind : ENEMY.bandit.wind); at *= e.kind === "brute" ? 0.6 : 0.3; break;
     case "slam": action = "slam"; at = 0.6 + (1 - Math.max(0, e.t) / 0.25) * 0.4; break;
     case "swipe": action = "melee"; at = 0.3 + (1 - Math.max(0, e.t) / 0.3) * 0.7; break;
@@ -224,6 +256,8 @@ function poseRig(e: Enemy, dt: number) {
     default: action = sp > 0.3 ? (e.kind === "brute" || e.kind === "sleeper" ? "walk" : "run") : "idle";
   }
   r.pose({ time: G.time + e.id, speed: sp, moveYaw: e.face, faceYaw: e.face, action: action as never, actionT: at, armed: "none", flash: e.flash > 0 ? 1 : 0 });
+  const boss = bossBrains.get(e);
+  if (boss && !e.down) r.pose({ time: G.time, speed: sp, moveYaw: e.face, faceYaw: e.face, action: boss.state === 'windup' ? 'windup' : boss.state === 'recover' ? 'stunned' : sp > 0.3 ? 'walk' : 'idle', actionT: boss.state === 'windup' ? 0.6 * (1 - boss.timer / { throw: BOSS.throwWindup, swat: BOSS.swatWindup, slam: BOSS.slamWindup }[boss.attack]) : 0, armed: 'none', flash: e.flash > 0 ? 1 : 0 });
   void dt;
 }
 
@@ -250,12 +284,13 @@ function wild(e: Enemy, dt: number, d: number) {
   }
 }
 const rangGeo = new THREE.TorusGeometry(0.32, 0.08, 6, 14, Math.PI * 0.9), rangMat = new THREE.MeshStandardMaterial({ color: "#ffd23a", roughness: 0.5, emissive: "#ffb020", emissiveIntensity: 0.35 });
-function throwRang(e: Enemy) {
+function throwRang(e: Enemy, angle = 0) {
   const mesh = new THREE.Mesh(rangGeo, rangMat); mesh.castShadow = true; mesh.rotation.x = Math.PI / 2; const holder = new THREE.Group(); holder.add(mesh); G.stage.scene.add(holder);
   const flight = e.group ? Math.min(0.5, flat(e.p, G.pp) / ENEMY.wild.rangSpeed) : 0;
-  const target = toPlayer(e).addScaledVector(G.vel, flight), out = Math.min(ENEMY.wild.rangMax, flat(e.p, G.pp) + 1.5);
+  const target = toPlayer(e).addScaledVector(G.vel, flight), out = Math.min(isBoss(e) ? BOSS.throwRange : ENEMY.wild.rangMax, flat(e.p, G.pp) + 1.5);
   const aim = aimRang(target.x, target.z, out), dir = e.group ? V(aim.x, aim.z) : target.normalize();
-  const r = { p: e.p.clone().setY(1.1), from: e.p.clone(), dir, t: 0, out, mesh: holder, owner: e, hitDone: false, back: false };
+  dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+  const r = { p: e.p.clone().setY(e.p.y + 1.1), from: e.p.clone(), dir, t: 0, out, mesh: holder, owner: e, hitDone: false, back: false };
   e.rang = r; G.rangs.push(r); sfx("throw");
 }
 function updateRangs(dt: number) {
@@ -264,15 +299,15 @@ function updateRangs(dt: number) {
     const sp = ENEMY.wild.rangSpeed, travelled = r.t * sp;
     // out along dir with a sideways curve, then home to the owner along a mirrored curve
     if (!r.back && travelled > r.out) { r.back = true; r.hitDone = false; }
-    if (!r.back) { const k = travelled / r.out; r.p.set(r.from.x + r.dir.x * travelled - r.dir.z * Math.sin(k * Math.PI) * 1.6, 1.1, r.from.z + r.dir.z * travelled + r.dir.x * Math.sin(k * Math.PI) * 1.6); }
+    if (!r.back) { const k = travelled / r.out; r.p.set(r.from.x + r.dir.x * travelled - r.dir.z * Math.sin(k * Math.PI) * 1.6, r.from.y + 1.1, r.from.z + r.dir.z * travelled + r.dir.x * Math.sin(k * Math.PI) * 1.6); }
     else { const tgt = r.owner.down ? r.owner.p.clone().add(V(0, 0, 0)) : r.owner.p; const dd = V(tgt.x - r.p.x, tgt.z - r.p.z); const L = dd.length(); if (L < 0.8) { remove(i, r, r.owner.down); continue; } dd.normalize(); r.p.x += (dd.x + dd.z * 0.35) * sp * dt; r.p.z += (dd.z - dd.x * 0.35) * sp * dt; }
     r.mesh.position.copy(r.p); r.mesh.rotation.y += dt * 22;
-    if (flat(r.p, G.pp) < 0.8 && !r.hitDone) { if (hurtPlayer(r.p, "boomerang", ENEMY.wild.dmg)) r.hitDone = true; } // it keeps flying: dodge the throw and the return
+    if (flat(r.p, G.pp) < 0.8 && !r.hitDone) { if (hurtPlayer(r.p, "boomerang", isBoss(r.owner) ? BOSS.throwDamage : ENEMY.wild.dmg)) r.hitDone = true; } // it keeps flying: dodge the throw and the return
     if (r.t > 4) remove(i, r, true);
   }
   function remove(i: number, r: typeof G.rangs[number], drop: boolean) {
-    G.stage.scene.remove(r.mesh); G.rangs.splice(i, 1); r.owner.rang = null;
-    if (drop) { r.owner.carry.push("boomerang"); }
+    G.stage.scene.remove(r.mesh); G.rangs.splice(i, 1); if (r.owner.rang === r) r.owner.rang = null;
+    void drop;
   }
 }
 
@@ -376,6 +411,53 @@ function stripe(e: Enemy, locked: boolean) {
   }
   e.stripe.visible = true; e.stripe.position.set(e.p.x, e.p.y + 0.06, e.p.z); e.stripe.rotation.set(0, e.face, 0);
   ((e.stripe.children[0] as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = locked ? 0.8 : 0.3 + Math.abs(Math.sin(G.time * 16)) * 0.3;
+}
+function updateBoss(e: Enemy, dt: number) {
+  const brain = bossBrains.get(e)!;
+  const before = brain.state;
+  const visible = G.alive && !G.zipping && flat(e.p, G.pp) <= BOSS.sight && los(e.p.x, e.p.z, G.pp.x, G.pp.z);
+  const escortsBusy = G.enemies.some(ally => ally !== e && ally.group === e.group && !ally.down && (['windup', 'throwing', 'rooted'].includes(ally.state) || !!ally.rang));
+  const events = stepBoss(brain, { hp: e.hp, position: e.p, target: G.pp, visible, onScreen: onScreen(e.p), alive: G.alive, escortsBusy }, dt);
+  e.state = brain.state; e.t = brain.timer;
+  if (brain.state === 'chase') goTo(e, G.pp.x, G.pp.z, ENEMY.bandit.speed * BOSS.speedMultiplier, dt);
+  else if (brain.state === 'return') goTo(e, e.home.x, e.home.z, ENEMY.bandit.speed * BOSS.speedMultiplier, dt);
+  else e.vel.set(0, 0, 0);
+  if (brain.state === 'windup') e.face = brain.lockedYaw;
+  if (brain.state === 'notice' && before !== 'notice') { mark(e); sfx('notice'); }
+  if (brain.state === 'windup' && before !== 'windup') sfx('windup');
+  if (!e.ring) {
+    e.ring = new THREE.Mesh(new THREE.RingGeometry(0.93, 1, 40), new THREE.MeshBasicMaterial({ color: '#ffae32', transparent: true, opacity: 0.7, depthWrite: false, side: THREE.DoubleSide }));
+    e.ring.rotation.x = -Math.PI / 2; G.stage.scene.add(e.ring);
+  }
+  e.ring.visible = brain.state === 'windup' && brain.attack !== 'throw';
+  e.ring.position.set(e.p.x, e.p.y + 0.08, e.p.z);
+  e.ring.scale.setScalar(brain.attack === 'slam' ? BOSS.slamRange : BOSS.swatRange);
+  for (const event of events) {
+    if (event.type === 'phase') { floatText('DOUBLE TROUBLE!', e.p.clone().setY(e.p.y + e.rig.bounds.height + 0.6), '#ffd84a', 28); sfx('roar'); }
+    else if (event.attack === 'throw') for (const angle of event.angles) throwRang(e, angle);
+    else {
+      const radius = event.attack === 'slam' ? BOSS.slamRange : BOSS.swatRange;
+      if (flat(e.p, G.pp) <= radius && los(e.p.x, e.p.z, G.pp.x, G.pp.z)) hurtPlayer(e.p, event.attack === 'slam' ? 'slam' : 'swipe', event.attack === 'slam' ? BOSS.slamDamage : BOSS.swatDamage);
+      sfx(event.attack === 'slam' ? 'slam' : 'bonk'); burst(e.p.clone().setY(e.p.y + 0.3), 14, '#ffd84a', 1.2);
+    }
+  }
+}
+function updateEscort(e: Enemy, dt: number, distance: number) {
+  const leader = [...bossBrains].find(([boss]) => boss.group === e.group);
+  if (!leader) { wild(e, dt, distance); return; }
+  const [, brain] = leader;
+  const index = e.tag === 'foreman-escort-0' ? 0 : 1;
+  const outside = flat(G.pp, brain.home) > BOSS.leash;
+  if (outside || brain.state === 'return') { e.state = 'return'; goTo(e, e.home.x, e.home.z, ENEMY.wild.speed, dt); return; }
+  if (brain.state !== 'patrol' && e.state === 'patrol') { e.state = 'notice'; e.t = BOSS.reaction + index * 0.4; mark(e); }
+  if (!escortMayAttack(brain, index, G.raidT) && ['windup', 'kite'].includes(e.state)) {
+    e.state = 'kite'; e.t = 0.15;
+    const target = toPlayer(e).normalize(); e.face = Math.atan2(target.x, target.z);
+    if (distance > 8.5) goTo(e, G.pp.x, G.pp.z, ENEMY.wild.speed, dt);
+    else e.vel.copy(target).multiplyScalar(distance < 7 ? -1.5 : 0);
+    return;
+  }
+  wild(e, dt, distance);
 }
 function patrol(e: Enemy, dt: number, speed: number) {
   if (e.t <= 0) { e.t = 1.5 + G.rng() * 2.5; const a = G.rng() * 6.28; e.path = []; e.lastSeen = V(e.home.x + Math.cos(a) * 3, e.home.z + Math.sin(a) * 3); }
