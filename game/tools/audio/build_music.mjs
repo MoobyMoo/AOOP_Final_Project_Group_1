@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { readdirSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 const RAW = "research/audio/raw/music", OUT = "public/audio/music";
-/** name -> [target LUFS, crossfade seconds (0 = one-shot, no loop)] */
+/** name -> [target LUFS, crossfade seconds (0 = one-shot, no loop), optional max length for a one-shot that runs on] */
 const SPEC = {
   // home
   bunkerTheme: [-18, 4], bunkerBed: [-26, 3],
@@ -17,24 +17,32 @@ const SPEC = {
   // fights: combat sits on top of an area theme; the boss loop replaces both
   combat: [-18, 2], bossTheme: [-16, 2],
   // one-shots
-  stingExtract: [-15, 0], stingBonk: [-16, 0], stingRare: [-17, 0], stingBossIntro: [-15, 0], stingBossDown: [-15, 0],
+  stingExtract: [-15, 0], stingBonk: [-16, 0], stingRare: [-17, 0, 2.2], stingBossIntro: [-15, 0], stingBossDown: [-15, 0],
 };
 const dur = (f) => Number(spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f], { encoding: "utf8" }).stdout);
 if (!existsSync(RAW) || !readdirSync(RAW).some((f) => /\.(mp3|wav)$/.test(f))) { console.error(`no raw renders in ${RAW}; leaving ${OUT} as it is`); process.exit(1); }
+/** a one-shot ends at its last sound: cut trailing silence (0.3 s after it falls under -45 dB, with a fade), so a sting
+ *  doesn't hold the music ducked through dead air */
+function oneShotTrim(src, D) {
+  const r = spawnSync("ffmpeg", ["-hide_banner", "-i", src, "-af", "silencedetect=noise=-45dB:d=0.3", "-f", "null", "-"], { encoding: "utf8" }).stderr;
+  const starts = [...r.matchAll(/silence_start: ([\d.]+)/g)].map((m) => Number(m[1])), ends = [...r.matchAll(/silence_end: ([\d.]+)/g)].map((m) => Number(m[1]));
+  const last = starts.at(-1); if (last === undefined || starts.length !== ends.length + 1 && !(ends.at(-1) >= D - 0.05)) return "";
+  const end = Math.min(D, last + 0.3); return `atrim=0:${end.toFixed(3)},afade=t=out:st=${Math.max(0, end - 0.3).toFixed(3)}:d=0.3,`;
+}
 mkdirSync(OUT, { recursive: true });
 for (const f of readdirSync(OUT)) if (f.endsWith(".ogg") || f === "manifest.json") rmSync(join(OUT, f));
 const manifest = {};
 for (const f of readdirSync(RAW).filter((f) => /\.(mp3|wav)$/.test(f))) {
   const name = f.replace(/\.(mp3|wav)$/, ""), spec = SPEC[name];
   if (!spec) { console.log(`skip ${f}: not in SPEC`); continue; }
-  const [lufs, X] = spec, src = join(RAW, f), D = dur(src), out = `${name}.ogg`;
+  const [lufs, X, maxLen] = spec, src = join(RAW, f), D = dur(src), out = `${name}.ogg`;
   const norm = `loudnorm=I=${lufs}:TP=-1.5:LRA=11`;
   const graph = X > 0
     ? `[0]asplit=3[a][b][c];[a]atrim=${X}:${D - X},asetpts=PTS-STARTPTS[body];` +
       `[b]atrim=${D - X}:${D},asetpts=PTS-STARTPTS,afade=t=out:d=${X}:curve=qsin[tail];` +
       `[c]atrim=0:${X},asetpts=PTS-STARTPTS,afade=t=in:d=${X}:curve=qsin[head];` +
       `[tail][head]amix=inputs=2:normalize=0[seam];[body][seam]concat=n=2:v=0:a=1,${norm}[o]`
-    : `[0]${norm}[o]`;
+    : `[0]${maxLen ? `atrim=0:${maxLen},afade=t=out:st=${maxLen - 0.45}:d=0.45,` : oneShotTrim(src, D)}${norm}[o]`;
   const r = spawnSync("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", "-i", src, "-filter_complex", graph, "-map", "[o]", "-ar", "44100", "-c:a", "libvorbis", "-q:a", "4", join(OUT, out)], { encoding: "utf8" });
   if (r.status) { console.error(`${f}: ${r.stderr}`); continue; }
   manifest[name] = out; console.log(`${name}: ${D.toFixed(1)} s -> ${dur(join(OUT, out)).toFixed(1)} s${X ? " loop" : ""}`);

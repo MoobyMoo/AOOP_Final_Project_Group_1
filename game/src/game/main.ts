@@ -9,7 +9,7 @@ import { Stage } from "./render/stage";
 import { Input } from "./core/input";
 import { G } from "./core/state";
 import { load, save, retainKeys } from "./core/save";
-import { unlockAudio } from "./core/audio";
+import { unlockAudio, sfx, stepOn } from "./core/audio";
 import { musicTick, setMusic, sting, musicState } from "./core/music";
 import { startRaid, stepRaid, renderRaid, buildRaidWorld, raidScene, quitRaid, type RaidResult } from "./core/raid";
 import { initSettings, settingsOpen } from "./ui/settings";
@@ -41,7 +41,7 @@ G.input = new Input(G.stage.renderer.domElement);
 if (QS.has("fresh")) localStorage.removeItem("bv_g1");
 G.save = load(); G.bot = QS.has("bot"); G.intent = G.input.read(0);
 if (G.bot) { const bot = createBot({ greed: Number(QS.get("greed") ?? 0.5), reactionLag: Number(QS.get("lag") ?? 0.25), seed: Number(QS.get("botseed") ?? QS.get("seed") ?? 1) }); setBot(bot); (window as unknown as { __bot: unknown }).__bot = bot; }
-if (QS.has("dev")) Object.assign(window as unknown as object, { __G: G, __RIG_TUNE: RIG_TUNE, __music: musicState }); // captures and debugging only
+if (QS.has("dev")) Object.assign(window as unknown as object, { __G: G, __RIG_TUNE: RIG_TUNE, __music: musicState, __sfx: { sfx, stepOn } }); // captures and debugging only
 addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlockAudio);
 // Esc settings (ui/settings.ts): the loot screen, the map and the bunker panels own Esc while open and close first;
 // quitting a raid from it is a bonk-out (core/raid.ts quitRaid)
