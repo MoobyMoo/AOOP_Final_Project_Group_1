@@ -54,7 +54,10 @@ const PATCHED = new WeakSet<THREE.Material>();
 function fromGlb(id: FaunaId): Model | null {
   const src = GLB?.getObjectByName(`fauna_${id}`); if (!src) return null;
   const root = new THREE.Group(), body = skClone(src) as THREE.Object3D; body.position.set(0, 0, 0); body.rotation.set(0, 0, 0); root.add(body);
-  body.traverse((o) => { const m = o as THREE.Mesh; if (!m.isMesh) return; m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false;
+  // culled like any mesh (a bind-pose sphere grown for the clips' reach), and only the bigger animals cast a shadow:
+  // a crab's or a frog's is a speck the shadow pass would still pay for
+  body.traverse((o) => { const m = o as THREE.Mesh; if (!m.isMesh) return; m.castShadow = id === "boar" || id === "croc" || id === "parrot"; m.receiveShadow = true;
+    m.geometry.computeBoundingSphere(); const bs = m.geometry.boundingSphere!; if (!(m.geometry.userData as { grown?: boolean }).grown) { bs.radius *= 1.6; (m.geometry.userData as { grown?: boolean }).grown = true; } m.frustumCulled = true;
     for (const mt of Array.isArray(m.material) ? m.material : [m.material]) if (!PATCHED.has(mt)) { patch(mt, { rim: 0.55 }); PATCHED.add(mt); } });
   const mixer = new THREE.AnimationMixer(body), clips = new Map(CLIPS.filter((c) => c.name.startsWith(id + "_")).map((c) => [c.name.slice(id.length + 1), c]));
   let cur: THREE.AnimationAction | null = null, curName = "";
@@ -217,12 +220,12 @@ export function updateFauna(dt: number) {
     const d = flat(a.p, G.pp); a.t += dt;
     a.m.root.visible = d < 46;
     if (d > 46 && a.state !== "fly") continue;
-    a.m.mixer?.update(dt);
+    if (d < 34 || a.state === "fly") a.m.mixer?.update(dt); // past the screen's reach the pose can wait
     if (a.id === "crab") crab(a, d, dt, sprint); else if (a.id === "frog") frog(a, d, dt); else parrot(a, d, dt, sprint);
     a.m.root.position.copy(a.p); a.m.root.rotation.y = a.face;
   }
   for (const e of hostiles) {
-    const m = models.get(e); if (m?.mixer && e.rig.root.visible && flat(e.p, G.pp) < 46) m.mixer.update(dt);
+    const m = models.get(e); if (m?.mixer && e.rig.root.visible && flat(e.p, G.pp) < 34) m.mixer.update(dt);
     if (e.down || !e.active) continue;
     const hpSeen = (e as Enemy & { hpSeen?: number }).hpSeen ?? e.hp, hurt = e.hp < hpSeen; (e as Enemy & { hpSeen?: number }).hpSeen = e.hp;
     if (e.fauna === "boar") boar(e, dt, hurt); else croc(e, dt, hurt);
