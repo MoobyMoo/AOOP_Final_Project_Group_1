@@ -1,4 +1,4 @@
-"""The 18 loot items (ids match src/game/loot/interim.ts). Units are metres, front faces -Y, Z up."""
+"""The 19 loot items (ids match src/game/loot/tables.ts; itemicon.ts maps the long table ids to these short ones). Units are metres, front faces -Y, Z up."""
 import math
 
 from kit import (Model, arc_pts, ball, banana, bullet, circle_pts, helix_pts, lathe, leaf, lin, mix,
@@ -450,6 +450,34 @@ def key():
     return m
 
 
+def radio_key():
+    """Radio Shack Key (G1.5 row 08: the one loot item that had no icon): a brass key on a steel ring with a teal
+    tag, three signal bars on the tag. Lies flat like the vine key."""
+    m = Model("radio_key", "Radio Shack Key")
+    bow = plate(circle_pts(0.052, 14), [circle_pts(0.024, 10)], h=0.022, bevel=0.005)
+    bow.grad(GOLD_LO, BRASS, axis=1)
+    m.add(bow.at(-0.1, 0, 0), mat="metal")
+    shaft = rcyl(0.0125, 0.2, 0.003, 8).rot(ry=90).at(-0.052, 0, 0)
+    shaft.grad(GOLD_LO, BRASS, axis=0)
+    m.add(shaft, mat="metal")
+    for x in (-0.04, -0.022):
+        m.add(torus(0.015, 0.0055, 10, 5).rot(ry=90).at(x, 0, 0), GOLD_LO, "metal")
+    bit = [(0, 0), (0.052, 0), (0.052, -0.05), (0.038, -0.05), (0.038, -0.028), (0.026, -0.028), (0.026, -0.056),
+           (0.012, -0.056), (0.012, -0.036), (0, -0.036)]
+    m.add(plate(bit, h=0.016, bevel=0.003).at(0.088, 0.004, 0), STEEL, "metal")
+    m.add(ball(0.016, 8, 5).sc(0.7, 1, 1).at(0.15, 0, 0), GOLD_LO, "metal")
+    m.add(torus(0.03, 0.0048, 16, 5).at(-0.13, -0.03, 0.006), STEEL, "metal")           # key ring through the bow
+    tag = plate(rrect_pts(0.066, 0.094, 0.013), [circle_pts(0.0085, 8, cy=0.032)], h=0.013, bevel=0.003)
+    tag.grad("#23747c", "#37a5ab", axis=1)
+    parts = [(tag, None, "satin")]
+    for i, hgt in enumerate((0.016, 0.027, 0.038)):                                      # signal bars
+        parts.append((rbox(0.011, hgt, 0.006, 0.0015).at((i - 1) * 0.017, -0.036 + hgt / 2, 0.0095), CREAM, "satin"))
+    for part, col, mat in parts:
+        m.add(part.rot(rz=-45).at(-0.174, -0.074, 0), col, mat)
+    m.icon_rot = (62, 0, 38)
+    return m
+
+
 def extmag():
     m = Model("extmag", "Kingpin Extended Mag")
     h = 0.2
@@ -479,4 +507,4 @@ def extmag():
 
 
 ALL = [bunch, coconut, rope, plank, golden, honey, gear, spring, boomerang, mango, compass, idol, smoothie,
-       bandage, firstaid, ammo, key, extmag]
+       bandage, firstaid, ammo, key, extmag, radio_key]

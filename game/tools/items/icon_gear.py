@@ -24,6 +24,8 @@ GEAR = {
     "leaf_vest": ("Banana-Leaf Vest", (0, 0, 10), 0.84), "life_jacket": ("Ferry Life Jacket", (0, 0, 10), 0.84), "peel_jacket": ("Peel Gang Padded Jacket", (0, 0, 10), 0.84),
     "bamboo_plate": ("Bamboo Plate Vest", (0, 0, 10), 0.84), "coconut_cuirass": ("Coconut Cuirass", (0, 0, 10), 0.84), "warden_vest": ("Warden's Kevlar", (0, 0, 10), 0.84),
     "sack": ("Loot Sack", (0, 0, 165), 0.84), "walkman": ("Walkman Headphones", (0, 0, 16), 0.86), "radio_headset": ("Radio Headset", (0, 0, 16), 0.86),
+    # G1.5 row 26: the boss's escorts
+    "guard_helmet": ("Guard's Horned Band", (-6, 0, 12), 0.86), "guard_plate": ("Guard's Plate", (0, 0, 10), 0.84),
 }
 for o in list(bpy.context.scene.objects):
     if o.name not in GEAR:

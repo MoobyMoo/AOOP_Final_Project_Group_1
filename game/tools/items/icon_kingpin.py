@@ -34,8 +34,8 @@ gun.rotation_mode = "XYZ"   # the glTF importer leaves QUATERNION mode, so rende
 d = gun.dimensions
 gun["kind"] = "weapon"
 c = sum((v.co for v in gun.data.vertices), muzzle * 0) / len(gun.data.vertices)
-# turn the muzzle to screen-right: render.py's camera right vector sits 28 deg around z from +x
-gun["icon_rot"] = (0, 0, round(28 - math.degrees(math.atan2(muzzle.y - c.y, muzzle.x - c.x)), 1))
+# turn the muzzle to screen-right: render.py's camera right vector sits 35 deg around z from +x (CAM_AZ)
+gun["icon_rot"] = (0, 0, round(35 - math.degrees(math.atan2(muzzle.y - c.y, muzzle.x - c.x)), 1))
 gun["icon_fill"] = 0.86
 print("@@ kingpin dims", tuple(round(v, 3) for v in d), "rot", tuple(gun["icon_rot"]))
 out = os.path.join(ROOT, "spikes", "items")
