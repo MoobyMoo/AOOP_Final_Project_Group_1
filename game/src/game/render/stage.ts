@@ -13,6 +13,8 @@ import { EffectComposer, RenderPass, EffectPass, BloomEffect, SMAAEffect, Vignet
 import { U, inkU } from "./shading";
 
 const QS = new URLSearchParams(location.search);
+/** camera-side fill intensity (?bounce= overrides) */
+export const BOUNCE = 1.1;
 
 export class Stage {
   renderer: THREE.WebGLRenderer;
@@ -45,7 +47,8 @@ export class Stage {
     // warm bounce from the camera side: the sun sits behind the scene (long shadows toward the camera), so every
     // camera-facing wall was lit by the hemisphere alone (~0.3 sRGB; flagged by the structures and house kits).
     // No shadows; Duckov-style soft "plastic" fill rather than a second sun.
-    this.bounce = new THREE.DirectionalLight("#ffd8b0", Number(QS.get("bounce") ?? 1.6));
+    // BOUNCE down from 1.6 (G1 council fix 2/3): at 1.6 it lit every face the sun misses, so props had no shaded side.
+    this.bounce = new THREE.DirectionalLight("#ffd8b0", Number(QS.get("bounce") ?? BOUNCE));
     this.bounce.position.setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - 28), THREE.MathUtils.degToRad(Number(QS.get("sunaz") ?? 160) - 180));
     s.add(this.sun, this.sun.target, this.hemi, this.bounce);
     this.composer = new EffectComposer(r, { frameBufferType: THREE.HalfFloatType });
