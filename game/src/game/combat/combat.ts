@@ -3,7 +3,7 @@
 import * as THREE from "three";
 import { G, V, flat, angDiff, type Enemy } from "../core/state";
 import { KINGPIN, BRIEFCASE, ENEMY, FEEL } from "./weapons";
-import { rayShot, wallAt, breakWall, isWall, gate } from "../world/grid";
+import { rayShot, wallAt, breakWall, isWall, gate, los } from "../world/grid";
 import { sfx } from "../core/audio";
 import { burst, floatText } from "../../fx";
 import { hud } from "../ui/hud";
@@ -94,6 +94,7 @@ export function swingBriefcase() {
   for (const e of G.enemies) {
     if (e.down) continue; const d = flat(G.pp, e.p) - e.rig.bounds.radius; if (d > BRIEFCASE.reach) continue;
     const a = Math.abs(angDiff(Math.atan2(e.p.x - G.pp.x, e.p.z - G.pp.z), G.aimYaw)); if (a > BRIEFCASE.arc / 2 && d > 0.4) continue;
+    if (!los(G.pp.x, G.pp.z, e.p.x, e.p.z)) continue;
     damage(e, BRIEFCASE.damage, "briefcase", V(fx, fz)); any = true;
   }
   // breakable walls in front

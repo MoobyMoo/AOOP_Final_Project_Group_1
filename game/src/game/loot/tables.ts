@@ -39,7 +39,7 @@ export function itemDef(inst: string): ItemDef {
 export const EQUIPMENT_CHANCE: Record<CrateTier, number> = { wood: 0.02, green: 0.10, gold: 0.28 };
 
 export const PRICES = {
-  upgrades: { mag: [240], pack: [720], heart: [1050] },
+  upgrades: { mag: [240], pack: [540], heart: [720] },
   ammo8: 24,
   smoothie: 36,
   bandage: 12,
@@ -105,8 +105,7 @@ function randomContents(tier: CrateTier, ctx: RaidLootCtx, rng: () => number, ep
 function record(found: string[], ctx: LootContext): string[] {
   return found.map(id => {
     if (id === "ammo45") {
-      if (ctx.ammoFound >= 16) id = "banana";
-      else ctx.ammoFound += ITEMS.ammo45.stack!;
+      ctx.ammoFound += ITEMS.ammo45.stack!;
     }
     if (isUseful(id, ctx)) ctx.usefulFound++;
     return id;
@@ -123,8 +122,8 @@ export function rollCrate(tier: CrateTier, ctx: LootContext, rng: () => number):
     found.unshift("extended_mag");
     ctx.ownsExtendedMag = true;
   }
-  if (ctx.cratesOpened >= 1 && ctx.usefulFound === 0 && !found.some(id => isUseful(id, ctx))) found.push("smoothie");
-  if (ctx.cratesOpened >= 4 && ctx.ammoFound < 8 && !found.includes("ammo45")) found.push("ammo45");
+  if (ctx.usefulFound === 0 && !found.some(id => isUseful(id, ctx))) found.push("smoothie");
+  if (ctx.ammoFound < Math.floor((ctx.cratesOpened + 1) / 3) * 8 && !found.includes("ammo45")) found.push("ammo45");
   const result = record(found, ctx);
   ctx.cratesOpened++;
   ctx.emptyStreak = result.length ? 0 : ctx.emptyStreak + 1;
@@ -136,11 +135,11 @@ export function rollEnemyDrop(kind: EnemyStyle["kind"], ctx: LootContext, rng: (
   switch (kind) {
     case "wild":
       found = rng() < 0.35 ? ["banana"] : [];
-      if (rng() < 0.16) found.push("ammo45");
+      if (rng() < 0.30) found.push("ammo45");
       break;
     case "bandit":
       found = ctx.carried ? ctx.carried.filter(id => ITEMS[id]?.kind === "sell") : [draw({ banana: 0.25, coconut: 0.20, vine_rope: 0.30, old_gear: 0.25 }, ctx, rng)];
-      if (rng() < 0.18) found.push("ammo45");
+      if (rng() < 0.35) found.push("ammo45");
       break;
     case "brute":
       found = randomContents("green", ctx, rng, false, false);

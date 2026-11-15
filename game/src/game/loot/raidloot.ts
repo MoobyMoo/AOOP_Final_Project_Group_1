@@ -6,7 +6,8 @@ import { G, V, flat, type Crate, type Pickup, type Enemy } from "../core/state";
 import { ITEMS, itemDef, rollCrate, rollEnemyDrop, type LootContext } from "./tables";
 import { equipDef, gearStats, isEquip } from "./equipment";
 import { collectEquipment, equipFromPack } from "./equipment-actions";
-import { CRATES, PLACED } from "../world/layout";
+import { PLACED } from "../world/layout";
+import { selectSockets } from "./sockets";
 import { groundHeight } from "../world/terrain";
 import { block, walkable, los } from "../world/grid";
 import { crate as crateKit, satchel as satchelKit, CRATE_LID_OPEN } from "../world/kit_build";
@@ -15,6 +16,7 @@ import { sfx } from "../core/audio";
 import { burst, floatText, popIn } from "../../fx";
 import { hud } from "../ui/hud";
 import { KINGPIN } from "../combat/weapons";
+import { makeNoise } from "../combat/combat";
 
 export const RAR_COLOR: Record<string, string> = { common: "#f3ead6", uncommon: "#6ad16a", rare: "#4aa8ff", epic: "#c77dff" };
 const SEARCH: Record<string, number> = { wood: 0.5, green: 0.9, gold: 1.4 };
@@ -27,9 +29,7 @@ let nid = 1;
 export function setupCrates() {
   for (const c of G.crates) c.obj.removeFromParent(); G.crates = [];
   for (const p of G.pickups) p.obj.removeFromParent(); G.pickups = [];
-  const optional = CRATES.filter((c) => !c.fixed), pickN = Math.min(optional.length, 18);
-  const chosen = new Set<number>(); while (chosen.size < pickN) chosen.add(Math.floor(G.rng() * optional.length));
-  const list = [...CRATES.filter((c) => c.fixed && (c.fixed !== "vault" || true)), ...[...chosen].map((i) => optional[i])];
+  const list = selectSockets(G.rng);
   for (const s of list) {
     // the kit crate: static body merged into one mesh, the lid is its own node (hinge on the back edge)
     const b = crateKit(s.tier, { variant: nid }), obj = mergePieces(b.pieces); obj.add(b.parts.root); obj.userData.lid = b.parts.lid;
@@ -81,6 +81,7 @@ function openCrate(c: Crate) {
   if (c.fixed === "satchel") { G.save.satchel = null; hud.toast("You got your satchel back!"); }
   c.items = items;
   sfx("crate"); squashOpen(c);
+  makeNoise(V(c.x, c.z), { wood: 3, green: 6, gold: 10 }[c.tier], "loot");
   if (!items.length) { floatText("empty... 🕸️", V(c.x, c.z, 1.6), "#8a7d6a", 22); return; }
   const best = items.reduce((a, b) => (rank(itemDef(b).rarity) > rank(itemDef(a).rarity) ? b : a));
   const br = itemDef(best).rarity;

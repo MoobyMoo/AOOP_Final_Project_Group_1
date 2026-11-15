@@ -147,6 +147,11 @@ export function updateHouses(dt: number, under = false) {
 }
 const doorOf = (gateId: string) => { for (const h of houses) for (const d of h.doors) if (d.gateId === gateId) return d; return null; };
 const hasKey = (id: string) => G.pack.includes(id) || G.save.keys.includes(id);
+export function openDoorForEnemy(gateId: string): boolean {
+  const door = doorOf(gateId), current = gate(gateId);
+  if (!door || !current || current.open || door.locked) return false;
+  setGate(gateId, true); sfx("door"); return true;
+}
 /** E/F on a door: returns the toast text when it can't move, "" when it did */
 export function useDoor(gateId: string): string {
   const d = doorOf(gateId), g = gate(gateId); if (!d || !g) return "";

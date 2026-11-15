@@ -257,12 +257,13 @@ export function rayShot(x: number, z: number, dx: number, dz: number, len: numbe
 export const los = (ax: number, az: number, bx: number, bz: number) => { const d = Math.hypot(bx - ax, bz - az); return d < 0.01 || rayShot(ax, az, (bx - ax) / d, (bz - az) / d, d) >= d - 0.3; };
 
 // ---------------------------------------------------------------- A* with a binary heap
-const gScore = new Float32Array(GW * GH), came = new Int32Array(GW * GH), stamp = new Uint32Array(GW * GH); let gen = 0;
+const gScore = new Float32Array(GW * GH), came = new Int32Array(GW * GH), stamp = new Uint32Array(GW * GH), settled = new Uint32Array(GW * GH); let gen = 0;
 class Heap { k: number[] = []; v: number[] = []; push(key: number, val: number) { const k = this.k, v = this.v; let i = k.length; k.push(key); v.push(val); while (i > 0) { const p = (i - 1) >> 1; if (k[p] <= key) break; k[i] = k[p]; v[i] = v[p]; i = p; } k[i] = key; v[i] = val; }
   pop() { const k = this.k, v = this.v, top = v[0], lk = k.pop()!, lv = v.pop()!; if (k.length) { let i = 0; for (;;) { let c = 2 * i + 1; if (c >= k.length) break; if (c + 1 < k.length && k[c + 1] < k[c]) c++; if (k[c] >= lk) break; k[i] = k[c]; v[i] = v[c]; i = c; } k[i] = lk; v[i] = lv; } return top; } get size() { return this.k.length; } }
 const DC = [1, -1, 0, 0, 1, 1, -1, -1], DR = [0, 0, 1, -1, 1, -1, 1, -1];
 /** shortest walkable route as waypoints (cell centres, string-pulled). Open doors are passable, closed ones are not */
-export function path(fx: number, fz: number, tx: number, tz: number, maxNodes = 60000): { x: number; z: number }[] {
+export function path(fx: number, fz: number, tx: number, tz: number, maxNodes = 60000, allow?: (x: number, z: number) => boolean): { x: number; z: number }[] {
+  if (isUnder(fx) !== isUnder(tx)) return [];
   let g = ci(tx, tz); const s = ci(fx, fz); if (s < 0 || g < 0) return [];
   if (!passable(g)) { // a blocked goal (a crate, a tree): aim for the nearest open cell within 3 u
     let best = -1, bd = 1e9; const gc0 = g % GW, gr0 = (g / GW) | 0;
@@ -272,11 +273,13 @@ export function path(fx: number, fz: number, tx: number, tz: number, maxNodes = 
   gen++; const gc = g % GW, gr = (g / GW) | 0, H = (i: number) => { const dx = Math.abs((i % GW) - gc), dz = Math.abs(((i / GW) | 0) - gr); return dx + dz - 0.586 * Math.min(dx, dz); };
   const heap = new Heap(); stamp[s] = gen; gScore[s] = 0; came[s] = -1; heap.push(H(s), s);
   let n = 0, found = s === g;
-  while (heap.size && n++ < maxNodes && !found) {
+  while (heap.size && n < maxNodes && !found) {
     const cur = heap.pop(), c = cur % GW, r = (cur / GW) | 0, gcur = gScore[cur];
+    if (settled[cur] === gen) continue;
+    settled[cur] = gen; n++;
     for (let d = 0; d < 8; d++) {
       const dc = DC[d], dr = DR[d], nc = c + dc, nr = r + dr; if (nc < 0 || nr < 0 || nc >= GW || nr >= GH) continue;
-      const ni = nr * GW + nc; if (!passable(ni)) continue;
+      const ni = nr * GW + nc; if (settled[ni] === gen || !passable(ni) || allow && !allow(cx(nc), cz(nr))) continue;
       if (dc && dr && (!passable(r * GW + nc) || !passable(nr * GW + c) || cornerBlock[(r + (dr > 0 ? 1 : 0)) * (GW + 1) + c + (dc > 0 ? 1 : 0)])) continue;
       const ng = gcur + (dc && dr ? 1.414 : 1);
       if (stamp[ni] !== gen || ng < gScore[ni]) { stamp[ni] = gen; gScore[ni] = ng; came[ni] = cur; if (ni === g) { found = true; break; } heap.push(ng + H(ni), ni); }
@@ -286,20 +289,20 @@ export function path(fx: number, fz: number, tx: number, tz: number, maxNodes = 
   const out: { x: number; z: number }[] = []; for (let k = g; k !== s && k >= 0; k = came[k]) out.push({ x: cx(k % GW), z: cz((k / GW) | 0) });
   out.reverse();
   const simp: { x: number; z: number }[] = []; let a = { x: fx, z: fz };
-  for (let k = 0; k < out.length; k++) { const nxt = out[k + 1]; if (!nxt || !straightWalk(a.x, a.z, nxt.x, nxt.z)) { simp.push(out[k]); a = out[k]; } }
+  for (let k = 0; k < out.length; k++) { const nxt = out[k + 1]; if (!nxt || !straightWalk(a.x, a.z, nxt.x, nxt.z, allow)) { simp.push(out[k]); a = out[k]; } }
   return simp;
 }
 /** true if a straight walk from a to b stays on open nav cells and clear of every collider */
-export function straightWalk(ax: number, az: number, bx: number, bz: number) {
+export function straightWalk(ax: number, az: number, bx: number, bz: number, allow?: (x: number, z: number) => boolean) {
   const d = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(d / 0.25));
-  for (let k = 1; k <= n; k++) { const t = k / n, x = ax + (bx - ax) * t, z = az + (bz - az) * t; if (!passable(ci(x, z)) || !walkable(x, z)) return false; }
+  for (let k = 1; k <= n; k++) { const t = k / n, x = ax + (bx - ax) * t, z = az + (bz - az) * t; if (!passable(ci(x, z)) || !walkable(x, z) || allow && !allow(x, z)) return false; }
   return true;
 }
 export function pathLength(pts: { x: number; z: number }[], fx: number, fz: number) { let l = 0, x = fx, z = fz; for (const p of pts) { l += Math.hypot(p.x - x, p.z - z); x = p.x; z = p.z; } return l; }
 
 // ---------------------------------------------------------------- lint (level-design skill: validate the critical path's key order, not just connectivity)
 /** flood fill from a point, following portals; returns a reachability test */
-function flood(x: number, z: number) {
+export function flood(x: number, z: number) {
   const seen = new Uint8Array(GW * GH), q: number[] = []; const push = (i: number) => { if (i >= 0 && !seen[i] && passable(i)) { seen[i] = 1; q.push(i); } };
   push(ci(x, z));
   for (let h = 0; h < q.length; h++) {

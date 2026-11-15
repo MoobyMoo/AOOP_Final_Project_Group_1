@@ -22,7 +22,7 @@ export const PLAYER = {
  *  resumes after); it never interrupts the 0.1 s melee wind-up. Melee interrupts a reload (restarts it). */
 export const KINGPIN = {
   id: "kingpin45", name: "Kingpin .45", mag: 8, extMag: 12, interval: 0.22, damage: 12, reload: 1.2, range: 16, pen: 1,
-  magnet: 7 * Math.PI / 180, magnetAds: 10 * Math.PI / 180, noise: 14, kick: 0.09, startAmmo: 16, crit: 0.06,
+  magnet: 7 * Math.PI / 180, magnetAds: 10 * Math.PI / 180, noise: 14, kick: 0.09, startAmmo: 24, crit: 0.06,
 };
 export const BRIEFCASE = { reach: 1.9, arc: Math.PI * 0.6, wind: 0.1, damage: 22, cycle: 0.45, knock: 5.5, noise: 2 };
 /** enemy HP and the damage their attacks do to the player (before armor) */
@@ -33,6 +33,18 @@ export const ENEMY = {
   /** the Sleeper: awake hits plink for 0; stunned hits do full damage (advisor 18) */
   sleeper: { hp: 240, wake: 14, aim: 0.9, charge: 13, stun: 3.2, roar: 1.2, dmg: 35 },
 };
+export function aimRang(targetX: number, targetZ: number, out: number) {
+  const distance = Math.hypot(targetX, targetZ);
+  let lower = 0, upper = Math.min(distance, out);
+  for (let iteration = 0; iteration < 12; iteration++) {
+    const travel = (lower + upper) / 2;
+    if (Math.hypot(travel, Math.sin(travel / out * Math.PI) * 1.6) < distance) lower = travel;
+    else upper = travel;
+  }
+  const travel = (lower + upper) / 2;
+  const angle = Math.atan2(targetZ, targetX) - Math.atan2(Math.sin(travel / out * Math.PI) * 1.6, travel);
+  return { x: Math.cos(angle), z: Math.sin(angle), travel };
+}
 /** healing items: heal value + use time (Drug.cs / CA_UseItem.cs mechanism); uses > 1 = a multi-use kit */
 export const HEALS: Record<string, { heal: number; time: number; uses?: number; slow: number }> = {
   bandage: { heal: 15, time: 1.0, slow: 0.5 },

@@ -6,10 +6,10 @@
 // Activation: only enemies within 32 u think; at most 6 engaged at once. No wind-up may start off-screen (advisor 15).
 import * as THREE from "three";
 import { G, V, flat, type Enemy } from "../core/state";
-import { ENEMY } from "../combat/weapons";
+import { ENEMY, aimRang } from "../combat/weapons";
 import { createRig } from "../actors/rig";
 import { SPAWNS, GROUP_RINGS } from "../world/layout";
-import { path as findPath, los, collide, walkable, ramAt, gates, straightWalk } from "../world/grid";
+import { path as findPath, pathLength, los, collide, walkable, ramAt, gates, straightWalk } from "../world/grid";
 import { groundHeight } from "../world/terrain";
 import { sfx } from "../core/audio";
 import { floatText, burst } from "../../fx";
@@ -17,12 +17,15 @@ import { hurtPlayer } from "../actors/player";
 import { damage, hitWall } from "../combat/combat";
 import { hud } from "../ui/hud";
 import { enemyGear, gearStats, visualGear } from "../loot/equipment";
+import { openDoorForEnemy } from "../world/buildings";
 
 let nextId = 1;
+const sharedAlerts = new Map<Enemy, { delay: number; at: THREE.Vector3 }>();
 const markTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d")!; x.fillStyle = "#ffd84a"; x.strokeStyle = "#2a1a12"; x.lineWidth = 6; x.beginPath(); x.arc(32, 32, 26, 0, 7); x.fill(); x.stroke(); x.fillStyle = "#2a1a12"; x.font = "bold 44px Trebuchet MS"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("!", 32, 35); return new THREE.CanvasTexture(c); })();
 const zTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d")!; x.fillStyle = "#e8f2ff"; x.strokeStyle = "#3a4a6a"; x.lineWidth = 5; x.font = "bold 50px Trebuchet MS"; x.textAlign = "center"; x.textBaseline = "middle"; x.strokeText("Z", 32, 34); x.fillText("Z", 32, 34); return new THREE.CanvasTexture(c); })();
 
 export function spawnEnemies(set: number) {
+  sharedAlerts.clear();
   for (const e of G.enemies) e.rig.dispose(); G.enemies = [];
   for (const [index, s] of SPAWNS[set % SPAWNS.length].entries()) {
     const plan = s.kind === "brute" || s.kind === "sleeper" ? "gorilla" : "monkey";
@@ -57,9 +60,13 @@ export function alertEnemy(e: Enemy, direct = false) {
   if (e.kind === "sleeper") { if (e.state === "sleep") { e.zs = 0; wake(e); } return; }
   if (e.state === "patrol" || e.state === "return") {
     e.state = "notice"; e.t = e.kind === "bandit" ? ENEMY.bandit.notice : 0.35; mark(e); sfx("notice", 0.7);
-    if (e.group && GROUP_RINGS[e.group]) { const r = GROUP_RINGS[e.group]; for (const o of G.enemies) if (o !== e && o.group === e.group && flat(o.p, r) < r.r && (o.state === "patrol" || o.state === "return")) setTimeout(() => alertEnemy(o), 250 + G.rng() * 300); }
+    if (direct && e.group && GROUP_RINGS[e.group]) {
+      const ring = GROUP_RINGS[e.group];
+      if (flat(e.p, ring) < ring.r) for (const ally of G.enemies) if (ally !== e && ally.group === e.group && flat(ally.p, ring) < ring.r && !ally.down && ["patrol", "return"].includes(ally.state)) {
+        sharedAlerts.set(ally, { delay: 0.45 + G.rng() * 0.35, at: (e.lastSeen ?? e.p).clone() });
+      }
+    }
   }
-  void direct;
 }
 export function hearNoise(e: Enemy, loud: number, at?: THREE.Vector3) {
   if (e.down) return;
@@ -71,7 +78,7 @@ export function hearNoise(e: Enemy, loud: number, at?: THREE.Vector3) {
     if (e.zs <= 0) wake(e);
     return;
   }
-  if ((e.state === "patrol" || e.state === "return") && at) { e.lastSeen = at.clone(); alertEnemy(e); }
+  if ((e.state === "patrol" || e.state === "return") && at) { e.lastSeen = at.clone(); alertEnemy(e, true); }
 }
 function wake(e: Enemy) {
   for (let i = 0; i < 3; i++) { const z = e.rig.root.getObjectByName("z" + i); if (z) z.visible = false; }
@@ -80,16 +87,34 @@ function wake(e: Enemy) {
   hud.toast("The Sleeper is awake! Dodge his charge so he rams a tree, then hit him while he's dizzy");
 }
 function goTo(e: Enemy, tx: number, tz: number, speed: number, dt: number) {
+  if (e.state !== "patrol" && e.state !== "return") for (const door of gates) {
+    if (door.kind === "door" && !door.locked && !door.open && Math.hypot(door.x - e.p.x, door.z - e.p.z) < 2.4 && openDoorForEnemy(door.id)) { e.path = []; e.repath = 0; }
+  }
   e.repath -= dt;
-  if (e.repath <= 0 || !e.path.length) { e.repath = 0.45 + G.rng() * 0.2; e.path = straightWalk(e.p.x, e.p.z, tx, tz) ? [{ x: tx, z: tz }] : findPath(e.p.x, e.p.z, tx, tz, 6000); } // A* sees door state: open doors are routes, shut ones are walls
+  if (e.repath <= 0 || !e.path.length) {
+    e.repath = 0.45 + G.rng() * 0.2; e.path = straightWalk(e.p.x, e.p.z, tx, tz) ? [{ x: tx, z: tz }] : findPath(e.p.x, e.p.z, tx, tz, 6000);
+    if (!e.path.length && e.state !== "patrol" && e.state !== "return") {
+      let best = Infinity;
+      for (const door of gates) if (door.kind === "door" && !door.locked && !door.open && flat(e.p, door) < 16) for (const side of [-1, 1]) {
+        const x = door.x + door.nx * side * 1.3, z = door.z + door.nz * side * 1.3;
+        const approach = findPath(e.p.x, e.p.z, x, z, 6000);
+        const cost = pathLength(approach, e.p.x, e.p.z) + Math.hypot(door.x - tx, door.z - tz);
+        if (approach.length && cost < best) { best = cost; e.path = approach; }
+      }
+    }
+  }
   const w = e.path[0]; if (!w) { e.vel.multiplyScalar(0.8); return; }
   const d = Math.hypot(w.x - e.p.x, w.z - e.p.z); if (d < 0.5) { e.path.shift(); return; }
   const want = V((w.x - e.p.x) / d, (w.z - e.p.z) / d).multiplyScalar(speed);
   e.vel.lerp(want, Math.min(1, dt * 8)); e.face = Math.atan2(e.vel.x, e.vel.z);
 }
-const engaged = () => G.enemies.filter((e) => !e.down && !["patrol", "return", "sleep", "down"].includes(e.state)).length;
+const engaged = () => G.enemies.filter((e) => !e.down && ["windup", "swipe", "slam", "throwing", "charge"].includes(e.state)).length;
 
 export function updateEnemies(dt: number) {
+  for (const [ally, alert] of sharedAlerts) {
+    alert.delay -= dt;
+    if (alert.delay <= 0) { sharedAlerts.delete(ally); if (!ally.down && ["patrol", "return"].includes(ally.state)) { ally.lastSeen = alert.at; alertEnemy(ally); } }
+  }
   for (const e of G.enemies) {
     const d = flat(e.p, G.pp);
     e.active = d < 32;
@@ -136,7 +161,7 @@ function poseRig(e: Enemy, dt: number) {
 function wild(e: Enemy, dt: number, d: number) {
   const s = ENEMY.wild;
   switch (e.state) {
-    case "patrol": patrol(e, dt, 1.6); if (sees(e, s.sight)) alertEnemy(e); break;
+    case "patrol": patrol(e, dt, 1.6); if (sees(e, s.sight)) { e.lastSeen = G.pp.clone(); alertEnemy(e, true); } break;
     case "notice": e.vel.set(0, 0, 0); e.face = Math.atan2(G.pp.x - e.p.x, G.pp.z - e.p.z); if (e.t <= 0) { e.state = "kite"; e.t = 0.8 + G.rng(); } break;
     case "kite": {
       if (!G.alive) { e.state = "return"; break; }
@@ -144,7 +169,7 @@ function wild(e: Enemy, dt: number, d: number) {
       const want = d < s.keep[0] ? -1 : d > s.keep[1] ? 1 : 0, side = V(-tp.z, tp.x).multiplyScalar(Math.sin(G.time * 0.9 + e.id) * 0.8);
       e.vel.lerp(tp.clone().multiplyScalar(want * s.speed).add(side.multiplyScalar(s.speed * 0.6)), Math.min(1, dt * 5));
       if (d > 14 && !los(e.p.x, e.p.z, G.pp.x, G.pp.z)) { goTo(e, G.pp.x, G.pp.z, s.speed, dt); }
-      if (e.t <= 0 && d < s.rangMax + 1 && los(e.p.x, e.p.z, G.pp.x, G.pp.z) && onScreen(e.p) && engaged() <= 6) { e.state = "windup"; e.t = s.wind; e.vel.set(0, 0, 0); sfx("windup", 0.5); }
+      if (e.t <= 0 && d < s.rangMax + 1 && los(e.p.x, e.p.z, G.pp.x, G.pp.z) && onScreen(e.p) && engaged() < 6) { e.state = "windup"; e.t = s.wind; e.vel.set(0, 0, 0); sfx("windup", 0.5); }
       if (d > 26) e.state = "return";
       break;
     }
@@ -157,8 +182,10 @@ function wild(e: Enemy, dt: number, d: number) {
 const rangGeo = new THREE.TorusGeometry(0.32, 0.08, 6, 14, Math.PI * 0.9), rangMat = new THREE.MeshStandardMaterial({ color: "#ffd23a", roughness: 0.5, emissive: "#ffb020", emissiveIntensity: 0.35 });
 function throwRang(e: Enemy) {
   const mesh = new THREE.Mesh(rangGeo, rangMat); mesh.castShadow = true; mesh.rotation.x = Math.PI / 2; const holder = new THREE.Group(); holder.add(mesh); G.stage.scene.add(holder);
-  const dir = toPlayer(e).normalize();
-  const r = { p: e.p.clone().setY(1.1), from: e.p.clone(), dir, t: 0, out: Math.min(ENEMY.wild.rangMax, flat(e.p, G.pp) + 1.5), mesh: holder, owner: e, hitDone: false, back: false };
+  const flight = e.group ? Math.min(0.5, flat(e.p, G.pp) / ENEMY.wild.rangSpeed) : 0;
+  const target = toPlayer(e).addScaledVector(G.vel, flight), out = Math.min(ENEMY.wild.rangMax, flat(e.p, G.pp) + 1.5);
+  const aim = aimRang(target.x, target.z, out), dir = e.group ? V(aim.x, aim.z) : target.normalize();
+  const r = { p: e.p.clone().setY(1.1), from: e.p.clone(), dir, t: 0, out, mesh: holder, owner: e, hitDone: false, back: false };
   e.rang = r; G.rangs.push(r); sfx("throw");
 }
 function updateRangs(dt: number) {
@@ -183,15 +210,16 @@ function updateRangs(dt: number) {
 function bandit(e: Enemy, dt: number, d: number) {
   const s = ENEMY.bandit;
   switch (e.state) {
-    case "patrol": patrol(e, dt, 1.6); if (sees(e, s.sight)) alertEnemy(e); break;
+    case "patrol": patrol(e, dt, 1.6); if (sees(e, s.sight * (e.group === "landing" || e.group === "ruin" ? 1.4 : 1))) { e.lastSeen = G.pp.clone(); alertEnemy(e, true); } break;
     case "notice": e.vel.set(0, 0, 0); e.face = Math.atan2(G.pp.x - e.p.x, G.pp.z - e.p.z); if (e.t <= 0) e.state = "chase"; break;
     case "chase":
       if (!G.alive) { e.state = "return"; break; }
-      goTo(e, G.pp.x, G.pp.z, s.speed, dt);
-      if (d < s.reach + 0.3 && onScreen(e.p) && engaged() <= 6) { e.state = "windup"; e.t = s.wind; e.vel.set(0, 0, 0); sfx("windup", 0.4); e.flash = 0.05; }
-      if (d > 20 || !los(e.p.x, e.p.z, G.pp.x, G.pp.z)) { e.lostT += dt; if (e.lostT > 4) { e.state = "return"; e.lostT = 0; } } else e.lostT = 0;
+      if (sees(e, 24)) { e.lastSeen = G.pp.clone(); e.lostT = 0; }
+      goTo(e, e.lastSeen?.x ?? e.home.x, e.lastSeen?.z ?? e.home.z, s.speed, dt);
+      if (d < s.reach + 0.3 && los(e.p.x, e.p.z, G.pp.x, G.pp.z) && onScreen(e.p) && engaged() < 6) { e.state = "windup"; e.t = s.wind; e.vel.set(0, 0, 0); sfx("windup", 0.4); e.flash = 0.05; }
+      if (d > 24 || !los(e.p.x, e.p.z, G.pp.x, G.pp.z)) { e.lostT += dt; if (e.lostT > (e.group === "landing" || e.group === "ruin" ? 9 : 6)) { e.state = "return"; e.lostT = 0; } } else e.lostT = 0;
       break;
-    case "windup": e.face = Math.atan2(G.pp.x - e.p.x, G.pp.z - e.p.z); if (e.t <= 0) { e.state = "swipe"; e.t = 0.3; if (flat(e.p, G.pp) < s.reach + 0.4) { if (hurtPlayer(e.p, "swipe", s.dmg, e) && e.stolen.length) { e.state = "flee"; e.t = 3.5; sfx("snatch"); floatText("YOINK!", e.p.clone().setY(2.6), "#c0392b", 24); } } } break;
+    case "windup": e.face = Math.atan2(G.pp.x - e.p.x, G.pp.z - e.p.z); if (e.t <= 0) { e.state = "swipe"; e.t = 0.3; if (flat(e.p, G.pp) < s.reach + 0.4 && los(e.p.x, e.p.z, G.pp.x, G.pp.z)) { if (hurtPlayer(e.p, "swipe", s.dmg, e) && e.stolen.length) { e.state = "flee"; e.t = 3.5; sfx("snatch"); floatText("YOINK!", e.p.clone().setY(2.6), "#c0392b", 24); } } } break;
     case "swipe": if (e.t <= 0) { e.state = "recover"; e.t = s.recover; } break;
     case "recover": e.vel.set(0, 0, 0); if (e.t <= 0) e.state = "chase"; break;
     case "flee": { const away = toPlayer(e).normalize().multiplyScalar(-6); goTo(e, e.p.x + away.x, e.p.z + away.z, s.flee, dt); if (e.t <= 0) e.state = "chase"; break; }
@@ -219,7 +247,7 @@ function brute(e: Enemy, dt: number, d: number) {
       e.flash = Math.sin(G.time * 22) > 0.6 ? 0.03 : 0;
       if (e.t <= 0) {
         e.state = "slam"; e.t = 0.25; e.ring!.visible = false; sfx("slam"); G.stage.trauma = Math.min(1, G.stage.trauma + 0.45); burst(e.p.clone().setY(0.3), 22, "#c9a46a", 1.4);
-        if (flat(e.p, G.pp) < s.slam + 0.3) hurtPlayer(e.p, "slam", s.dmg);
+        if (flat(e.p, G.pp) < s.slam + 0.3 && los(e.p.x, e.p.z, G.pp.x, G.pp.z)) hurtPlayer(e.p, "slam", s.dmg);
         for (const g of gates) if (g.hp !== undefined && !g.open && Math.hypot(g.x - e.p.x, g.z - e.p.z) < s.slam + 1.5 + g.w * 0.25) hitWall(g.id, 3, V(g.x, g.z, 1)); // the slam smashes breakable walls and boarded doors
         for (const o of G.enemies) if (o !== e && !o.down && flat(o.p, e.p) < s.slam) damage(o, 20, "slam", o.p.clone().sub(e.p).setY(0).normalize());
       }

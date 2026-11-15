@@ -8,7 +8,7 @@ import * as THREE from "three";
 import { Stage } from "./render/stage";
 import { Input } from "./core/input";
 import { G } from "./core/state";
-import { load, save } from "./core/save";
+import { load, save, retainKeys } from "./core/save";
 import { unlockAudio } from "./core/audio";
 import { startRaid, stepRaid, renderRaid, buildRaidWorld, raidScene, type RaidResult } from "./core/raid";
 import { path, walkable, los, lintReport, gates, setGate, pathLength } from "./world/grid";
@@ -54,7 +54,7 @@ function goRaid() { fadeTo(() => { leaveBunker(); startRaid(onRaidEnd); }); }
 function onRaidEnd(r: RaidResult) {
   const sv = G.save; sv.raids++;
   if (r.how === "bonked") sv.stats.bonkOuts++; else sv.stats.extracts++;
-  if (r.kept.includes("vine_key") && !sv.keys.includes("vine_key")) sv.keys.push("vine_key");
+  retainKeys(sv, r.kept);
   const kept = r.kept.filter((i) => itemDef(i).kind !== "key");
   const value = kept.reduce((a, i) => a + itemDef(i).value, 0), bonus = Math.round(value * r.bonus);
   sv.reserved.push(...kept.filter(inst => !isEquip(inst))); sv.locker.push(...kept.filter(isEquip)); sv.money += bonus; sv.stats.best = Math.max(sv.stats.best, value + bonus);
