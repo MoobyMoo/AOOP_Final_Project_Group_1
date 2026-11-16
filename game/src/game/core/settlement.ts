@@ -2,6 +2,7 @@ import type { Gear, GunSlots, SaveV1 } from "../contracts";
 import { BOUND_KIT, SLOTS, equipDef } from "../loot/equipment";
 import { instanceId, own, itemType } from "../loot/instances";
 import { itemDef } from "../loot/tables";
+import { fitsInPack, packStacks } from "../loot/pack";
 import { tierAtLeast } from "../loot/tiers";
 import { ATT_SLOTS, attachmentDef, isAttachment } from "../loot/attachments";
 import { CALIBER_IDS, gunOf, isCaliber, noRounds, type Rounds } from "../combat/guns";
@@ -130,8 +131,9 @@ export function settleRaid(save: SaveV1, reason: string, pouchSlots: number, bon
   const definition = EXIT_DEFS[reason as ExitId];
   if (!bonked && (!definition || !exitCondition(definition, active.pack, active.elapsed, save.fixtures).open)) throw new Error("Extraction conditions are not met");
   const costs = bonked ? [] : exitCosts(definition, active.pack);
-  const kept = bonked ? active.pack.slice(0, pouchSlots) : active.pack.filter(inst => !costs.includes(inst));
-  const lost = bonked ? active.pack.slice(pouchSlots) : [];
+  const slots = bonked ? packStacks(active.pack) : [];
+  const kept = bonked ? slots.slice(0, pouchSlots).flat() : active.pack.filter(inst => !costs.includes(inst));
+  const lost = bonked ? slots.slice(pouchSlots).flat() : [];
   const abandoned = [...active.world];
   next.gear = { ...active.gear };
   next.guns = structuredClone(active.guns ?? save.guns);
@@ -219,7 +221,7 @@ export function payQuest(save: SaveV1, id: string, raid?: { pack: readonly strin
     else if (r.t === "unlock") { if (!q.unlocks.includes(r.key)) q.unlocks.push(r.key); unlocks.push(r.key); if (r.key === "flag:salMovedIn") next.salMovedIn = true; }
     else for (let k = 0; k < r.n; k++) {
       const inst = own(r.item); granted.push(inst);
-      if (pack) { if (pack.length < raid!.slots) pack.push(inst); else drop.push(inst); }
+      if (pack) { if (fitsInPack(pack, raid!.slots, inst)) pack.push(inst); else drop.push(inst); }
       else (next.delivery ??= []).push(inst);
     }
   }
