@@ -189,7 +189,9 @@ body:has(.lv) #ui > .ui-ref.h3,body:has(.mb3-page) #ui > .ui-ref.h3,body:has(.lv
 .c3 .emo{font-size:40px;pointer-events:none}
 .c3::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--rar,transparent)}
 .c3 .q{position:absolute;right:5px;top:4px;font:600 15px/1 var(--a-font);font-variant-numeric:tabular-nums;pointer-events:none}
+.lv-me .c3 .q{top:auto;bottom:5px;z-index:1;padding:2px 5px;border-radius:3px;background:#16140f;color:#fff1d2;font-weight:700}
 .c3 .dur{position:absolute;left:6px;right:6px;bottom:8px;height:3px;background:#000;pointer-events:none}
+.lv-me .c3 .dur{right:29px}
 .c3 .dur i{display:block;height:100%;background:var(--a-stam)}.c3 .dur.low i{background:var(--a-warn)}.c3 .dur.broken i{background:var(--a-hp)}
 .c3.empty{background:var(--a-wool3);cursor:default}
 .c3.pouch{background:linear-gradient(135deg,rgba(194,154,91,.16) 0 14px,transparent 14px),var(--a-wool2)}
