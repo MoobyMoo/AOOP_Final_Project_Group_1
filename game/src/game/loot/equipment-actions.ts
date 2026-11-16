@@ -4,6 +4,7 @@ import { save } from "../core/save";
 import { credit, debit } from "../core/wallet";
 import { armorMult } from "../combat/weapons";
 import { attachmentDef } from "./attachments";
+import { packStacks } from "./pack";
 import { BOUND_KIT, EQUIP_MOVE, EQUIP_TIME, SLOTS, equipDef, fmtInst, gearStats, parseInst, repairCost, saleValue, visualGear, wear } from "./equipment";
 
 export { EQUIP_MOVE };
@@ -32,7 +33,7 @@ function canSwap(inst: string, source: "pack" | "worn"): boolean {
   if (!def) return false;
   const old = G.gear[def.slot];
   const next = { ...G.gear, [def.slot]: source === "pack" ? inst : null };
-  const count = G.pack.length + (source === "pack" ? -1 : 0) + (old && !equipDef(old)?.bound ? 1 : 0);
+  const count = packStacks(G.pack).length + (source === "pack" ? -1 : 0) + (old && !equipDef(old)?.bound ? 1 : 0);
   return count <= capacity(next);
 }
 export function equipFromPack(index: number): boolean {
@@ -71,7 +72,7 @@ export function updateEquipment(dt: number) {
 }
 export function collectEquipment(inst: string): "packed" | "equipping" | "full" {
   const def = equipDef(inst);
-  if (!def || def.bound || G.pack.length >= G.packSlots) return "full";
+  if (!def || def.bound || packStacks(G.pack).length >= G.packSlots) return "full";
   G.pack.push(inst);
   if (!G.gear[def.slot] && equipFromPack(G.pack.length - 1)) return "equipping";
   return "packed";
