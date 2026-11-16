@@ -14,7 +14,7 @@
 // it returns false (walked away), onClose() runs on close, kind picks the header stripe.
 import { menuOpened, menuClosed, registerMenu } from "./menubar";
 import { G } from "../core/state";
-import { itemDef, sortPack, spawnPickup } from "../loot/raidloot";
+import { fits, itemDef, sortPack, spawnPickup } from "../loot/raidloot";
 import { advanceSearch, take, type SearchSession, type SearchSlot } from "../loot/search";
 import { equipDef, isEquip, parseInst } from "../loot/equipment";
 import { collectEquipment, equipFromLocker, equipFromPack, unequip } from "../loot/equipment-actions";
@@ -36,6 +36,7 @@ import { placeGun, takeGun, swapSlots, freeGunSlot } from "../combat/arsenal";
 import { tierAtLeast, tierOf } from "../loot/tiers";
 import { lockboxOf, oddsRows } from "../loot/lockbox";
 import { itemType, withCount } from "../loot/instances";
+import { packStacks } from "../loot/pack";
 import { checkpointInventory, consumeInstance } from "../core/raid-journal";
 
 export type LootTarget = {
@@ -92,9 +93,11 @@ function entries(): Entry[] {
   return target.items.map((item, idx) => ({ item, revealed: true, idx }));
 }
 const stackOf = (e: Entry) => { const d = itemDef(e.item); return d.kind === "ammo" ? d.stack ?? 8 : 0; };
+const packStack = (slot: number) => packStacks(G.pack)[slot];
+const packIndex = (slot: number) => G.pack.indexOf(packStack(slot)?.[0] ?? "");
 function itemAt(src: Src | null): string | null {
   if (!src) return null;
-  if (src.z === "pack") return (home() ? undefined : G.pack[src.i]) ?? null;
+  if (src.z === "pack") return (home() ? undefined : packStack(src.i)?.[0]) ?? null;
   if (src.z === "slot") return gear()[src.s] ?? null;
   if (src.z === "fixed") return "briefcase";
   if (src.z === "gun") return G.save.guns[gk(src.s)]?.inst ?? null;
@@ -117,7 +120,7 @@ function removeEntry(e: Entry) {
   if (e.slot && target.search) take(target.search, e.idx);
   const k = e.slot ? target.items.indexOf(e.item) : e.idx; if (k >= 0) target.items.splice(k, 1);
 }
-const packFull = () => G.pack.length >= G.packSlots;
+const packFull = () => !packRoom(1);
 /** take a revealed item from the target into the pack (or straight into the ammo pouch / onto the gun) */
 function takeFrom(i: number, opts: { half?: boolean; wear?: boolean; quiet?: boolean } = {}): boolean {
   if (!home() && !G.alive) return false;
@@ -142,9 +145,8 @@ function takeFrom(i: number, opts: { half?: boolean; wear?: boolean; quiet?: boo
   }
   if (d.kind === "attachment" && opts.wear) return fitFrom({ z: "them", i }); // "Take and fit"; a plain take packs it (Duckov never fits from a container)
   if (d.kind === "gun" && (opts.wear || freeGunSlot() >= 0)) return gunFrom({ z: "them", i }); // Duckov TryPlug: an empty gun slot first
-  if (packFull()) { if (!opts.quiet) say("Your pack is full. Put something back or drop it first.", true); return false; }
+  if (!fits(e.item)) { if (!opts.quiet) say(equipDef(e.item)?.bound ? "That stays with its owner" : "Your pack is full. Put something back or drop it first.", true); return false; }
   if (isEquip(e.item)) {
-    if (equipDef(e.item)?.bound) { say("That stays with its owner", true); return false; }
     removeEntry(e); const r = collectEquipment(e.item);
     if (opts.wear && r === "packed") equipFromPack(G.pack.length - 1);
     say(r === "equipping" || opts.wear ? `Putting on the ${d.name}…` : `Took the ${d.name}`);
@@ -154,7 +156,7 @@ function takeFrom(i: number, opts: { half?: boolean; wear?: boolean; quiet?: boo
 function takeAllSearched() {
   let n = 0;
   for (let guard = 0; guard < 64; guard++) {
-    const list = entries(), i = list.findIndex((e) => e.revealed && (itemDef(e.item).kind === "ammo" || !packFull()));
+    const list = entries(), i = list.findIndex((e) => e.revealed && fits(e.item));
     if (i < 0) break; if (!takeFrom(i, { quiet: true })) break; n++;
   }
   const left = entries().filter((e) => e.revealed).length;
@@ -162,11 +164,15 @@ function takeAllSearched() {
 }
 function putInto(i: number): boolean {
   if (!target || home() || !G.alive) return false;
-  const inst = G.pack[i]; if (!inst) return false;
-  if (G.equipping?.inst === inst) { say("You're putting that on", true); return false; }
-  G.pack.splice(i, 1); target.items.push(inst);
-  if (target.search) target.search.slots.push({ item: inst, revealAt: 0, revealed: true, taken: false });
-  sfx("pick"); say(`Put the ${itemDef(inst).name} in the ${target.name.toLowerCase()}`); sel = null; changed(); return true;
+  const stack = packStack(i); if (!stack) return false;
+  if (stack.includes(G.equipping?.inst ?? "")) { say("You're putting that on", true); return false; }
+  if (stack.includes(G.useItem?.id ?? "")) { say("Finish healing first", true); return false; }
+  for (const inst of stack) {
+    G.pack.splice(G.pack.indexOf(inst), 1);
+    putBack(inst);
+  }
+  const name = itemDef(stack[0]).name;
+  sfx("pick"); say(`Put ${stack.length > 1 ? `${stack.length} × ${name}` : `the ${name}`} in the ${target.name.toLowerCase()}`); sel = null; changed(); return true;
 }
 export function useHeal(id: string): boolean {
   if (G.scene !== "raid" || !G.alive) return false;
@@ -178,9 +184,9 @@ export function useHeal(id: string): boolean {
   G.useItem = { id: inst, t: 0, time: HEALS[itemType(inst)].time }; cancelReload(); sfx("ui"); say(`Using the ${itemDef(inst).name}…`); changed(); return true;
 }
 function wearFromPack(i: number): boolean {
-  const inst = G.pack[i]; if (!inst || !isEquip(inst)) return false;
+  const index = packIndex(i), inst = G.pack[index]; if (!inst || !isEquip(inst)) return false;
   if (G.equipping) { say("Already changing gear", true); return false; }
-  if (!equipFromPack(i)) { say(G.useItem ? "Finish healing first" : "No room in your pack for what you'd take off", true); return false; }
+  if (!equipFromPack(index)) { say(G.useItem ? "Finish healing first" : "No room in your pack for what you'd take off", true); return false; }
   sfx("ui"); say(`Putting on the ${itemDef(inst).name}…`); changed(); return true;
 }
 function takeOff(slot: WearSlot): boolean {
@@ -210,8 +216,9 @@ function fitFrom(src: Src, on?: 0 | 1): boolean {
     if (r.ok && r.old) { if (home()) G.save.locker.push(r.old); else if (!packFull()) G.pack.push(r.old); else putBack(r.old); }
   } else if (src.z === "pack") {
     if (G.equipping?.inst === id) return false;
-    G.pack.splice(src.i, 1); const r = fit(id, k);
-    if (r.ok && r.old) G.pack.splice(src.i, 0, r.old); // swap in place
+    const index = packIndex(src.i);
+    G.pack.splice(index, 1); const r = fit(id, k);
+    if (r.ok && r.old) G.pack.splice(index, 0, r.old); // swap in place
   } else if (src.z === "att") { // from one gun to the other
     const [from, slot] = attOf(src.s); if (from === k) return false;
     unfit(slot, from); const r = fit(id, k);
@@ -222,7 +229,7 @@ function fitFrom(src: Src, on?: 0 | 1): boolean {
 }
 // ---- guns: into a gun slot from the pack, a container or the locker; out to the pack, a container or the locker
 /** room in the pack for n more items */
-const packRoom = (n: number) => G.pack.length + n <= G.packSlots;
+const packRoom = (n: number) => packStacks(G.pack).length + n <= G.packSlots;
 /** the gun in slot k leaves it: the Kingpin can only go on the rack at home; others go to the locker (home), the
  *  open container, or the pack, with their attachments (they come off with the gun) */
 function gunOut(k: 0 | 1, where: "pack" | "them"): boolean {
@@ -256,7 +263,7 @@ function gunFrom(src: Src, on?: 0 | 1): boolean {
     if (!home() && src.z === "pack" && !packRoom(n)) { say("No room in your pack for its parts", true); return false; }
   }
   // take the incoming gun from where it was
-  if (src.z === "pack") G.pack.splice(src.i, 1);
+  if (src.z === "pack") G.pack.splice(packIndex(src.i), 1);
   else if (src.z === "them") { const e = entries()[src.i]!; removeEntry(e); if (home()) { const j = G.save.locker.indexOf(inst); if (j >= 0) G.save.locker.splice(j, 1); } }
   else return false;
   const out = old ? takeGun(k) : null;
@@ -287,13 +294,18 @@ function unfitTo(s: string, where: "pack" | "them"): boolean {
   sfx("ui"); sel = null; changed(); return true;
 }
 function dropFromPack(i: number) {
-  const inst = G.pack[i]; if (!inst || home() || !G.alive) return;
+  const index = packIndex(i), inst = G.pack[index]; if (!inst || home() || !G.alive) return;
   if (G.equipping?.inst === inst) { say("You're putting that on", true); return; }
-  G.pack.splice(i, 1); spawnPickup(inst, G.pp.clone().setY(1), 0, 1); sfx("pick"); say(`Dropped the ${itemDef(inst).name}`); sel = null; changed();
+  if (G.useItem?.id === inst) { say("Finish healing first", true); return; }
+  G.pack.splice(index, 1); spawnPickup(inst, G.pp.clone().setY(1), 0, 1); sfx("pick"); say(`Dropped the ${itemDef(inst).name}`); sel = null; changed();
 }
 function reorder(a: number, b: number) {
   if (a === b || home()) return;
-  if (b >= G.pack.length) { const [x] = G.pack.splice(a, 1); G.pack.push(x); } else [G.pack[a], G.pack[b]] = [G.pack[b], G.pack[a]];
+  const stacks = packStacks(G.pack);
+  if (!stacks[a]) return;
+  if (b >= stacks.length) { const [stack] = stacks.splice(a, 1); stacks.push(stack); }
+  else [stacks[a], stacks[b]] = [stacks[b], stacks[a]];
+  G.pack.splice(0, G.pack.length, ...stacks.flat());
   sel = null; sfx("ui"); changed();
 }
 function sortMine() {
@@ -308,7 +320,7 @@ function primary(src: Src) {
   if (src.z === "fixed") return void say("Your briefcase. Swing it with V.");
   if (src.z === "gun") { const k = gk(src.s); if (!G.save.guns[k]) { if (!kingpinBack(k)) say(home() ? "An empty gun slot. Drag a gun from the locker onto it." : "An empty gun slot. Guns you pick up land here."); return; } return void gunOut(k, target ? "them" : "pack"); }
   if (src.z === "att") return void unfitTo(src.s, "pack");
-  const inst = G.pack[src.i]; if (!inst) return;
+  const inst = itemAt(src); if (!inst) return;
   if (isAttachment(inst)) return void fitFrom(src);
   if (isGun(inst) && !target) return void gunFrom(src);
   if (target) return void putInto(src.i);
@@ -361,7 +373,8 @@ function cellHtml(inst: string | undefined, k: string, o: { pouch?: boolean; cou
   if (!inst) return `<div class="${cls} empty" data-drop="${k}"${o.pouch ? ` data-tip="Cheek pouch: kept even if you get bonked"` : ""}></div>`;
   const d = itemDef(inst), c = isEquip(inst) ? condition(inst) : null;
   const dur = c === null ? "" : `<span class="dur ${c <= 0 ? "broken" : c < 0.35 ? "low" : ""}"><i style="width:${Math.max(4, c * 100)}%"></i></span>`;
-  return `<button class="${cls}" style="--rar:var(--rar-${d.rarity})" data-src="${k}" aria-label="${esc(d.name)}"${o.tip ? ` data-tip="${esc(o.tip)}"` : ""}>${iconHtml(inst, 66)}${o.count ? `<span class="q">${o.count}</span>` : ""}${dur}</button>`;
+  const label = k.startsWith("pack:") ? `${d.name}, quantity ${o.count}` : d.name;
+  return `<button class="${cls}" style="--rar:var(--rar-${d.rarity})" data-src="${k}" aria-label="${esc(label)}"${o.tip ? ` data-tip="${esc(o.tip)}"` : ""}>${iconHtml(inst, 66)}${o.count ? `<span class="q">${o.count}</span>` : ""}${dur}</button>`;
 }
 function eqHtml(s: WearSlot | "case") {
   const k = (s === "case" ? "fixed:" : "slot:") + s, isSel = sel && key(sel) === k ? " sel" : "";
@@ -394,6 +407,7 @@ function weightHtml() {
     <div class="track"><i style="width:${Math.min(100, r * 100).toFixed(1)}%"></i><b style="left:25%"></b><b style="left:75%"></b></div></div>`;
 }
 function leftHtml() {
+  const stacks = home() ? [] : packStacks(G.pack);
   const g = gearSummary(gear());
   let body = `<div class="lv-sect">Weapons <span class="note num">1 and 2 draw, V swings</span></div><div class="lv-guns">${gunHtml(0)}${gunHtml(1)}</div>
     <div class="lv-sect">Wearing <span class="note num">armor ${g.body} body, ${g.head} head</span></div><div class="lv-eq">${EQ_ORDER.map(eqHtml).join("")}</div>`;
@@ -401,11 +415,11 @@ function leftHtml() {
     const stash = G.save.reserved.length;
     body += `<div class="lv-sect">At home</div><p class="lv-empty">Gear you find comes home to this locker. ${stash ? `${stash} item${stash > 1 ? "s" : ""} wait in your stash for the Fence.` : "Your stash is empty."} Pieces marked ★ are yours for good.</p>`;
   } else {
-    let cells = ""; for (let i = 0; i < G.packSlots; i++) cells += cellHtml(G.pack[i], "pack:" + i, { pouch: i < G.pouchSlots });
+    let cells = ""; for (let i = 0; i < G.packSlots; i++) cells += cellHtml(stacks[i]?.[0], "pack:" + i, { pouch: i < G.pouchSlots, count: stacks[i]?.length });
     body += `<div class="lv-sect">Pack <button class="b3 small" data-act="sort" data-tip="Most valuable first, so the cheek pouch keeps the best (R)">Sort <kbd>R</kbd></button></div><div class="lv-grid" data-drop="packGrid">${cells}</div>
       <p class="lv-empty lv-pouch">The first ${G.pouchSlots} slots are your cheek pouch: kept even if you get bonked.</p>`;
   }
-  return `${BRK}<header class="lv-head"><h2>The Businessman</h2><small class="num">${home() ? `🍌 ${G.save.money}` : `${G.pack.length} of ${G.packSlots} slots`}</small></header><div class="tie"></div>
+  return `${BRK}<header class="lv-head"><h2>The Businessman</h2><small class="num">${home() ? `🍌 ${G.save.money}` : `${stacks.length} of ${G.packSlots} slots`}</small></header><div class="tie"></div>
     <div class="lv-body">${body}</div>${home() ? "" : weightHtml()}`;
 }
 function themHtml() {
@@ -457,12 +471,13 @@ function tagHtml() {
     return `<div class="tag3 note3" style="--rar:var(--rar-${d.rarity})"><span class="hole"></span>${lootHooks.note(itemType(inst))}${acts}</div>`;
   }
   const worn = e && src.z !== "slot" ? gear()[e.slot] : null;
+  const quantity = src.z === "pack" ? packStack(src.i)?.length ?? 1 : 1;
   const facts: string[] = [];
   const att = attachmentDef(inst);
   if (d.kind === "lockbox") { const box = lockboxOf(itemType(inst)); if (box) { facts.push(`<li><span data-tip="The Fence opens it at home">Opening fee</span><span class="num">🍌 ${box.fee}</span></li>`); for (const r of oddsRows(box)) facts.push(`<li><span><i class="oddsdot" style="background:${r.color}"></i>${r.name} prize</span><span class="num">${r.pct}%</span></li>`); } }
   else if (d.kind !== "ammo" && d.kind !== "key") facts.push(`<li><span data-tip="What the Fence pays for it at home, before today's market">Worth</span><span class="num">${e?.bound ? "Not for sale" : `🍌 ${d.value}`}</span></li>`);
   if (d.kind === "ammo" && src.z === "them") { const en = entries()[src.i]; facts.push(`<li><span>In this stack</span><span class="num">${en ? stackOf(en) : d.stack} rounds</span></li>`); }
-  facts.push(`<li><span data-tip="Past 75% of your carry limit you slow down">Weight</span><span class="num">${(d.weight ?? 0).toFixed(1)} kg</span></li>`);
+  facts.push(`<li><span data-tip="Past 75% of your carry limit you slow down">Weight</span><span class="num">${((d.weight ?? 0) * quantity).toFixed(1)} kg</span></li>`);
   if (e) facts.push(`<li><span>Slot</span><span>${SLOT_NAME[e.slot]}</span></li>`);
   if (att) {
     const fitsOn = G.save.guns.filter((g) => gunOf(g?.inst)?.slots.includes(att.slot)).map((g) => gunOf(g!.inst)!.name);
@@ -489,8 +504,8 @@ function tagHtml() {
     if (e) acts.push(btn("wear", "Wear it", !target, "Takes a second; a hit interrupts it"));
     if (att) acts.push(btn("wear", "Fit it", !target, "Double-click does the same, or drag it onto the gun"));
     if (HEALS[itemType(inst)]) acts.push(btn("use", "Use it", !target, "Or press its quick key, or Q"));
-    if (target) acts.push(btn("primary", "Leave it here", true, `Puts it in the ${esc(target.name.toLowerCase())}. Double-click does the same.`));
-    acts.push(btn("drop", "Drop"));
+    if (target) acts.push(btn("primary", quantity > 1 ? "Leave stack here" : "Leave it here", true, `Puts it in the ${target.name.toLowerCase()}. Double-click does the same.`));
+    acts.push(btn("drop", quantity > 1 ? "Drop one" : "Drop"));
   } else if (src.z === "slot") {
     if (!(e?.bound && !home())) acts.push(btn("primary", home() ? "Put in locker" : "Take it off", false, "Double-click does the same"));
   }
@@ -549,7 +564,8 @@ let tagKey = "";
 function renderTag() {
   if (!root) return;
   const src = sel ?? hover, inst = itemAt(src), en = src?.z === "them" ? entries()[src.i] : undefined;
-  const k = (src ? key(src) : "") + (src && src === sel ? "!" : "") + "|" + (inst ?? "") + "|" + (target?.name ?? "") + "|" + G.mag + "/" + G.ammo + "|" + (en ? stackOf(en) : "") + "|" + (src?.z === "slot" || src?.z === "pack" ? (gear() ? Object.values(gear()).join() : "") : "") + "|" + JSON.stringify(G.save.guns) + G.loaded.join();
+  const quantity = src?.z === "pack" ? packStack(src.i)?.length : en ? stackOf(en) : undefined;
+  const k = (src ? key(src) : "") + (src && src === sel ? "!" : "") + "|" + (inst ?? "") + "|" + (target?.name ?? "") + "|" + G.mag + "/" + G.ammo + "|" + (quantity ?? "") + "|" + (src?.z === "slot" || src?.z === "pack" ? (gear() ? Object.values(gear()).join() : "") : "") + "|" + JSON.stringify(G.save.guns) + G.loaded.join();
   if (k === tagKey) return; tagKey = k;
   (root.querySelector(".lv-tagwrap") as HTMLElement).innerHTML = tagHtml();
 }
@@ -631,9 +647,9 @@ function wire(r: HTMLDivElement) {
     if (a[0] === "x") { target?.actions?.[+a.slice(1)]?.run(); return; }
     if (!src) return;
     if (a === "primary") primary(src);
-    else if (a === "wear") { if (src.z === "pack") { if (isAttachment(G.pack[src.i])) fitFrom(src); else if (isGun(G.pack[src.i])) gunFrom(src); else wearFromPack(src.i); } else if (src.z === "them") takeFrom(src.i, { wear: true }); }
+    else if (a === "wear") { if (src.z === "pack") { const inst = itemAt(src); if (isAttachment(inst)) fitFrom(src); else if (isGun(inst)) gunFrom(src); else wearFromPack(src.i); } else if (src.z === "them") takeFrom(src.i, { wear: true }); }
     else if (a === "half" && src.z === "them") takeFrom(src.i, { half: true });
-    else if (a === "use" && src.z === "pack") useHeal(G.pack[src.i]);
+    else if (a === "use" && src.z === "pack") { const inst = itemAt(src); if (inst) useHeal(inst); }
     else if (a === "drop" && src.z === "pack") dropFromPack(src.i);
   });
   r.addEventListener("mouseover", (e) => {
