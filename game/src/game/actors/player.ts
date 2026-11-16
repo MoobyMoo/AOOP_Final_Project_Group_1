@@ -5,6 +5,7 @@ import { G, V, flat, angDiff, activeCaliber, type Enemy } from "../core/state";
 import { CALIBERS } from "../combat/guns";
 import { PLAYER, BRIEFCASE, FEEL, HEALS } from "../combat/weapons";
 import { itemType } from "../loot/instances";
+import { packStacks } from "../loot/pack";
 import { consumeInstance } from "../core/raid-journal";
 import { updateHandling, kickedNdc } from "../combat/handling";
 import { tuneObject } from "../core/tune";
@@ -230,7 +231,13 @@ export function hurtPlayer(from: THREE.Vector3, src: string, dmg: number, steal?
   G.stage.kick.addScaledVector(away, 0.22); G.hitStop = 0.05; sfx("hurt");
   floatText(`-${n}`, G.pp.clone().setY(2.5), "#ff5a4a", 26);
   hud.hurt(src); hud.health(); // an ordinary hit never cancels a reload (row 20)
-  if (steal && G.pack.length > G.pouchSlots) { const loose = G.pack.splice(G.pouchSlots, 1)[0]; steal.stolen.push(loose); hud.toast(`A bandit snatched your ${itemDef(loose).name}! Bonk him to get it back`); hud.pack(); }
+  const loose = steal ? packStacks(G.pack)[G.pouchSlots]?.[0] : undefined;
+  if (steal && loose) {
+    G.pack.splice(G.pack.indexOf(loose), 1);
+    steal.stolen.push(loose);
+    hud.toast(`A bandit snatched your ${itemDef(loose).name}! Bonk him to get it back`);
+    hud.pack();
+  }
   if (G.hp <= 0) { G.alive = false; hud.bonkOut(); }
   return n;
 }
