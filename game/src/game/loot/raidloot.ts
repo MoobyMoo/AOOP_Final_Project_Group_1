@@ -40,6 +40,7 @@ import { takeModel, releaseModel, throwVelocity, stepThrow, poseModel, PICK_REAC
 import { openLoot, closeLoot, lootOpen, type LootTarget } from "../ui/hud";
 import { lootTarget } from "../ui/lootview";
 import { own, itemType, withCount } from "./instances";
+import { fitsInPack, packStacks } from "./pack";
 import { consumeInstance } from "../core/raid-journal";
 import { storyExtras, storyForced } from "../story/raid";
 
@@ -221,8 +222,8 @@ export function updateLoot(dt: number) {
         const slot = s.slots[i]; if (!slot.revealed || slot.taken) continue;
         const item = slot.item, d = itemDef(item);
         if (!fits(item)) { // a full pack: swap the cheapest loose item into the container if this one is worth more
-          if (equipDef(item)?.bound || G.pack.length < G.packSlots) continue;
-          const cheapest = cheapestLoot(); if (!(priority(cheapest) < priority(item))) continue;
+          if (equipDef(item)?.bound) continue;
+          const cheapest = cheapestLoot(); if (!cheapest || !(priority(cheapest) < priority(item))) continue;
           G.pack.splice(G.pack.indexOf(cheapest), 1); s.slots.push({ item: cheapest, revealAt: 0, revealed: true, taken: false }); c.items?.push(cheapest); G.log.swaps++;
         }
         take(s, i); const k = c.items?.indexOf(item) ?? -1; if (k >= 0) c.items!.splice(k, 1);
@@ -301,13 +302,21 @@ export function spawnPickup(id: string, from: THREE.Vector3, k = 0, n = 1, n2?: 
 let botHealingReserve = 0;
 export function setBotHealingReserve(healing: number) { botHealingReserve = Math.max(0, healing); }
 const priority = (item: string) => G.bot && botHealingReserve > 0 ? lootPriority(item, G.pack, botHealingReserve) : worth(item);
-const cheapestLoot = () => G.pack.reduce((cheapest, item) => priority(item) < priority(cheapest) ? item : cheapest);
+function cheapestLoot() {
+  let cheapest: string | undefined;
+  // Exchanging one item must actually free a slot.
+  for (const [item, next] of packStacks(G.pack)) {
+    if (next || item === G.useItem?.id || item === G.equipping?.inst) continue;
+    if (!cheapest || priority(item) < priority(cheapest)) cheapest = item;
+  }
+  return cheapest;
+}
 export function fits(item: string) {
   const d = itemDef(item);
   if (equipDef(item)?.bound) return false;
   if (d.kind === "ammo") return true;
   if (d.kind === "gun" && freeGunSlot() >= 0) return true; // Duckov TryPlug: an empty gun slot first, then the pack
-  return G.pack.length < G.packSlots;
+  return fitsInPack(G.pack, G.packSlots, item);
 }
 /** put an item into the pack / the gun / the ammo pouch. Returns false if it did not fit (the caller keeps it) */
 export function giveItem(item: string, n?: number): boolean {
@@ -320,7 +329,7 @@ export function giveItem(item: string, n?: number): boolean {
   // a gun goes into the first empty gun slot, empty of rounds; with both full it packs like loot (never swaps the one in hand)
   if (d.kind === "gun" && equipFound(item) >= 0) { sfx("pick"); hud.ammo(); floatText(`${d.name}`, G.pp.clone().setY(2.4), RAR_COLOR[d.rarity], 22); hud.toast(`${d.name} in gun ${G.save.guns.findIndex(g => g?.inst === item) + 1}: press ${G.save.guns.findIndex(g => g?.inst === item) + 1} to draw it`); return true; }
   // gun attachments pack like loot; Duckov never fits a part on pickup (Tab, then drag it onto the Kingpin)
-  if (G.pack.length >= G.packSlots) return false;
+  if (!fitsInPack(G.pack, G.packSlots, item)) return false;
   if (isEquip(item)) { const result = collectEquipment(item); if (result !== "full") { sortPack(); sfx("pick"); hud.pack(); return true; } }
   G.pack.push(item); sortPack(); sfx("pick"); hud.pack();
   floatText(`${d.icon} ${d.name}`, G.pp.clone().setY(2.4), RAR_COLOR[d.rarity], 20);
@@ -333,15 +342,15 @@ export function giveItem(item: string, n?: number): boolean {
 function collect(p: Pickup): boolean {
   if (giveItem(p.item, p.n)) return true;
   if (equipDef(p.item)?.bound) return false;
-  if (G.pack.length >= G.packSlots) {
+  if (packStacks(G.pack).length >= G.packSlots) {
     // a full pack: swap for the cheapest loose item, which is tossed out where you stand
     const cheapest = cheapestLoot();
-    if (priority(cheapest) < priority(p.item)) {
+    if (cheapest && priority(cheapest) < priority(p.item)) {
       G.pack.splice(G.pack.indexOf(cheapest), 1); dropItem(cheapest, G.pp.clone().setY(G.pp.y + 1), G.aimYaw); G.pack.push(p.item);
       const equipment = equipDef(p.item); if (equipment && !G.gear[equipment.slot]) equipFromPack(G.pack.length - 1);
       sortPack(); G.log.swaps++; sfx("pick"); hud.pack(); return true;
     }
-    hud.toast(`Pack full: your ${itemDef(cheapest).name} is worth more`);
+    hud.toast(cheapest ? `Pack full: your ${itemDef(cheapest).name} is worth more` : "Pack full: make room first");
   }
   return false;
 }
