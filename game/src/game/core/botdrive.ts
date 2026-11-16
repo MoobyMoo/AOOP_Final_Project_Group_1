@@ -14,6 +14,7 @@ import { healingValue } from '../loot/bot-priority';
 import { GUN } from '../combat/gunstats';
 import { exits, exitStatus, portalMarks } from "../world/props";
 import { itemType } from "../loot/instances";
+import { packStacks } from "../loot/pack";
 import { homeApi, stations } from "../home/bunker";
 import { containerType, packValue, currentSearch, worth, setBotHealingReserve } from "../loot/raidloot";
 import { SLOTS, equipDef } from "../loot/equipment";
@@ -44,7 +45,7 @@ export function view(): BotObservation {
     homePanelOpen: homeApi.panelOpen(), searching: !!currentSearch(), extracting: !!G.extract.id,
     packMinValue: Math.min(...G.pack.map(worth)),
     exitArmed: Object.fromEntries(exits.map(exit => [exit.id, exit.armed])),
-    player: { x: G.pp.x, z: G.pp.z, hearts: Math.ceil(G.hp / 34), maxHearts: Math.ceil(G.maxHp / 34), hp: G.hp, maxHp: G.maxHp, stamina: G.stamina, usingItem: !!G.useItem, ammo: G.ammo, mag: G.mag, reloading: G.reloadT >= 0, gun: botGun(), rolling: G.rollT >= 0, packFree: G.packSlots - G.pack.length, packValue: packValue(), healing: G.pack.reduce((sum, item) => sum + healingValue(item), 0), smoothies: G.pack.filter(inst => ["smoothie", "bandage", "firstaid"].includes(itemType(inst))).length, shotNoise: GUN.noise },
+    player: { x: G.pp.x, z: G.pp.z, hearts: Math.ceil(G.hp / 34), maxHearts: Math.ceil(G.maxHp / 34), hp: G.hp, maxHp: G.maxHp, stamina: G.stamina, usingItem: !!G.useItem, ammo: G.ammo, mag: G.mag, reloading: G.reloadT >= 0, gun: botGun(), rolling: G.rollT >= 0, packFree: G.packSlots - packStacks(G.pack).length, packValue: packValue(), healing: G.pack.reduce((sum, item) => sum + healingValue(item), 0), smoothies: G.pack.filter(inst => ["smoothie", "bandage", "firstaid"].includes(itemType(inst))).length, shotNoise: GUN.noise },
     enemies: G.enemies.filter((e) => !e.down && (!e.fauna || ["windup", "charge", "bite"].includes(e.state))).map((e) => ({ id: e.id, kind: e.kind, x: e.p.x, z: e.p.z, state: e.state, hp: e.hp, boss: isBoss(e), escort: e.group === 'plantation-boss' && !isBoss(e), windup: e.state === "windup" || e.state === "aim" || e.state === "charge", awake: e.state !== "sleep" && e.state !== "patrol" })),
     crates: G.crates.filter(crate => crate.kind !== 'body').map((c) => { const area = areaAt(c.x, c.z); return { id: c.id, x: c.x, z: c.z, tier: c.tier, opened: c.opened, type: containerType(c), area: area === 'wreck' ? 'beach' : ['palms', 'westbend'].includes(area) ? 'checkpoint' : area }; }),
     bodies: G.crates.filter(crate => crate.kind === 'body' && !crate.opened).map(crate => ({ id: crate.id, x: crate.x, z: crate.z })),
