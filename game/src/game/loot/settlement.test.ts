@@ -1,8 +1,9 @@
 import { migrate, commitSave, load } from "../core/save";
-import { beginRaid, checkpointRaid, settleRaid, validateOwnership, ownedItems } from "../core/settlement";
+import { beginRaid, checkpointRaid, identifySave, settleRaid, validateOwnership, ownedItems } from "../core/settlement";
 import { instanceId, own, itemType, withCount } from "./instances";
 import { fmtInst, parseInst, wear } from "./equipment";
 import { itemDef, mulberry32 } from "./tables";
+import { fitsInPack, packStacks } from "./pack";
 import { EXIT_DEFS, exitCondition, advanceExit, exitCosts } from "../world/extraction";
 import { G } from "../core/state";
 import { bindLootApi, lootHook } from "./lootables";
@@ -44,6 +45,18 @@ const unworn = structuredClone(upgraded), restored = { ...unworn.gear };
 unworn.gear.body = null;
 const restoredRaid = beginRaid(unworn, "restored-bound-kit", [], restored);
 assert(settleRaid(restoredRaid, "hatch", 2).gear.body === restored.body, "deploy snapshot includes bound instances restored from their locker position");
+
+{
+  const home = identifySave(migrate(null));
+  const bananas = ["banana", "banana"].map(own);
+  const otherHelmet = own("hardhat#72");
+  const pack = [bananas[0], helmet, bananas[1], otherHelmet];
+  assert(packStacks(pack).map(stack => stack.length).join() === "2,1,1", "duplicates use one slot while equipment retains its own condition");
+  assert(fitsInPack(pack, 3, "banana") && !fitsInPack(pack, 3, "coconut"), "a full pack accepts more of an existing stack");
+  const raid = beginRaid(home, "stacked-pouch", pack, home.gear);
+  const record = settleRaid(raid, "bonked", 1).settlements!.at(-1)!;
+  assert(ids(record.kept) === ids(bananas) && ids(record.lost) === ids([helmet, otherHelmet]), "the cheek pouch protects the whole stack and conserves each item identity");
+}
 
 // THE PROPERTY TEST: 150 seeded raids x 100 random operations over the pack, the ground, worn gear, both gun slots
 // (pick up, slot, unslot, swap, draw), attachments on either gun, ammo stacks of every caliber, reloads and shots.
@@ -158,10 +171,11 @@ const reloadedGun = load();
 assert(!reloadedGun.guns[0]!.atts.mag && reloadedGun.satchel?.items.includes(attachmentSave.guns[0]!.atts.mag!), "reload detaches the same fitted attachment into a single satchel");
 const settled = settleRaid(full, "hatch", 2);
 assert(ownedItems(settled).length === ownedItems(full).length, "full home storage keeps extraction overflow owned");
-const recovery = beginRaid(settled, "reload", [own("banana"), own("banana"), own("coconut")], settled.gear);
+const lostOnReload = own("spring");
+const recovery = beginRaid(settled, "reload", [own("banana"), own("coconut"), own("banana"), lostOnReload], settled.gear);
 commitSave(recovery);
 const recovered = load();
-assert(!recovered.activeRaid && recovered.satchel?.items.length === 1, "forced reload bonks latest checkpoint and preserves corpse");
+assert(!recovered.activeRaid && recovered.satchel?.items.length === 1 && recovered.satchel.items[0] === lostOnReload, "forced reload protects the first two stacks and preserves the third in the corpse");
 assert(JSON.stringify(load()) === JSON.stringify(recovered), "reloading recovered settlement cannot repeat it");
 const corpse = recovered.satchel!;
 const retry = beginRaid(recovered, "corpse-recovery", [], recovered.gear);
