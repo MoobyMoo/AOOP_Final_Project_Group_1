@@ -18,7 +18,7 @@ import { own } from "../loot/instances"; // settlement: every item is an owned i
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/addons/utils/SkeletonUtils.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { G, V, flat, type Enemy } from "../core/state";
+import { G, V, flat, entryGraceRemaining, type Enemy } from "../core/state";
 import type { Rig } from "../contracts";
 import { walkable } from "../world/grid";
 import { groundHeight } from "../world/terrain";
@@ -225,6 +225,7 @@ export function updateFauna(dt: number) {
     if (a.id === "crab") crab(a, d, dt, sprint); else if (a.id === "frog") frog(a, d, dt); else parrot(a, d, dt, sprint);
     a.m.root.position.copy(a.p); a.m.root.rotation.y = a.face;
   }
+  if (entryGraceRemaining() > 0) return;
   for (const e of hostiles) {
     const m = models.get(e); if (m?.mixer && e.rig.root.visible && flat(e.p, G.pp) < 34) m.mixer.update(dt);
     if (e.down || !e.active) continue;
