@@ -1,0 +1,19 @@
+ui_hover.wav
+Quiet short tick when moving between menu options.
+
+Source: original AI-assisted additive synthesis created for this repository.
+External audio sources: none.
+Preview: open the WAV in an audio player.
+Location: optional research candidate, outside the Vite public directory.
+Adoption requires a separate audio integration change.
+
+Format: mono, 44100 Hz, signed 16-bit PCM WAV.
+Duration: 0.10 seconds.
+Sample peak: -12 dBFS. RMS: -24.49 dBFS.
+Tone: sine fundamental + 0.15 second harmonic + 0.04 third harmonic.
+Envelope: 6 ms attack, exp(-4 * time / length) decay, 25 ms release.
+Noise: xorshift32 seed 101, optional one-pole lowpass layers.
+Normalization: scale the complete cue to -12 dBFS sample peak.
+Voices [start seconds, length seconds, start Hz, gain, optional end Hz]:
+  [0,0.07,1600,1,1100]
+Noise layers [start seconds, length seconds, gain, lowpass smoothing]:
