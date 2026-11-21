@@ -33,10 +33,12 @@ import { npcRig, NPCS, CHATTER } from "./npcs";
 import { keeperCampModel, cellarModel } from "./props";
 import { dialogueHtml, esc, noteTagHtml, questLogHtml, trackerHtml } from "./dialogue";
 import { menuPages, refreshPage } from "../ui/menubar";
+import { beginRaidReport } from "../core/raid-report";
 
 const BRK = `<i class="brk tl"></i><i class="brk tr"></i><i class="brk bl"></i><i class="brk br"></i>`;
 let dest = "beach", lastArea = "", trackT = 0, dirty = false, radioT = -1, warned = false;
 const koSeen = new Set<number>(), spawned = new Set<string>();
+const readySeen = new Map<string, boolean>();
 let keeper: { rig: ReturnType<typeof npcRig>; camp: THREE.Object3D; x: number; z: number; yaw: number } | null = null;
 let cellar: THREE.Object3D | null = null;
 let panel: HTMLDivElement | null = null;
@@ -75,7 +77,10 @@ export function storyExtras(socket: string): string[] {
 
 // ---------------------------------------------------------------- raid start
 export function storyRaidStart() {
+  beginRaidReport(G.save, G.pack);
   koSeen.clear(); spawned.clear(); lastArea = ""; trackT = 0; dirty = false; warned = false; closePanel();
+  readySeen.clear();
+  for (const id of qs(G.save).active) readySeen.set(id, questStatus(G.save, id, questOf(id)?.turnIn === "raid" ? G.pack : undefined) === "ready");
   stock = Object.fromEntries(TRADES.map((t) => [t.item, t.n]));
   for (const e of G.enemies) if (e.down) koSeen.add(e.id);
   // loose notes
@@ -130,7 +135,7 @@ function notify(list: QuestNotice[]) {
   if (!list.length) return;
   dirty = true;
   for (const n of list) {
-    if (n.ready) { const q = questOf(n.quest)!; hud.banner(`Job ready: ${n.title}`, q.turnIn === "raid" ? `Hand it over at the camp` : `Get home and see ${NPCS[q.giver].name}`); sfx("rare"); }
+    if (n.ready) { const q = questOf(n.quest)!; readySeen.set(n.quest, true); hud.banner(`Job ready: ${n.title}`, q.turnIn === "raid" ? `Hand it over at the camp` : `Get home and see ${NPCS[q.giver].name}`); sfx("rare"); }
     else hud.toast(`◆ <b>${esc(n.title)}</b> · ${esc(n.text)}${n.need > 1 ? ` <b class="num">${n.have}/${n.need}</b>` : " ✔"}`);
   }
   trackT = 0;
@@ -157,6 +162,11 @@ function buildTracker() {
   const el = document.createElement("div"); el.className = "q3-track raid shade"; layer.appendChild(el); updateTracker();
 }
 function updateTracker() {
+  for (const id of qs(G.save).active) {
+    const q = questOf(id)!, ready = questStatus(G.save, id, q.turnIn === "raid" ? G.pack : undefined) === "ready";
+    if (ready && readySeen.get(id) === false) { hud.banner(`Job ready: ${q.title}`, q.turnIn === "raid" ? "Hand it over at the camp" : `Get home and see ${NPCS[q.giver].name}`); sfx("rare"); }
+    readySeen.set(id, ready);
+  }
   const el = document.querySelector<HTMLElement>("#ui .q3-track.raid"); if (!el) return;
   const html = trackerHtml(G.save, { pack: G.pack });
   if (el.innerHTML !== html) el.innerHTML = html; el.style.display = html ? "" : "none";
@@ -198,6 +208,7 @@ function keeperAct(a: string) {
     G.save = commitSave(paid.save); G.pack.length = 0; G.pack.push(...paid.pack); sortPack();
     for (const inst of paid.drop) placeItem(inst, G.pp.x + 0.8, G.pp.z + 0.8);
     checkpointInventory(true); hud.pack();
+    hud.banner(`Job completed: ${questOf(id)!.title}`, "Rewards received");
     sfx("rare"); burst(new THREE.Vector3(keeper!.x, groundHeight(keeper!.x, keeper!.z) + 1.6, keeper!.z), 24, "#9dffb0", 1);
     if (cellarHint()) hud.banner("A secret: the Keepers' root cellar", "Under the great mangrove at the east edge. It fills again each raid");
     openKeeper(questOf(id)!.done); return;
