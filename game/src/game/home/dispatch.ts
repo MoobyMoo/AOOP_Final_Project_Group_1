@@ -9,6 +9,8 @@ import { mat } from "../render/shading";
 import { DESTINATIONS, destOf, destinationState } from "../core/deployment";
 import { mapCrop } from "../ui/mapview";
 import { vaultModel } from "./vaultkit";
+import { departureReadiness } from "../core/loadout";
+import { itemDef } from "../loot/tables";
 
 const brass = () => mat("#c29a5b", { rough: 0.35 }), dark = () => mat("#23272a", { rough: 0.7 });
 function mesh(g: THREE.BufferGeometry, m: THREE.Material, x = 0, y = 0, z = 0, parent?: THREE.Object3D) {
@@ -111,10 +113,23 @@ export function destinationsHtml(save: SaveV1) {
 }
 export function confirmHtml(id: string, save: SaveV1) {
   const d = destOf(id)!, img = crop(id), left = save.money - d.cost;
+  const check = departureReadiness(save);
+  const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+  const healCounts = new Map<string, number>();
+  for (const inst of check.supplies) { const name = itemDef(inst).name; healCounts.set(name, (healCounts.get(name) ?? 0) + 1); }
+  const checklist = `<section class="departure-check" aria-label="Departure checklist"><h3>Loadout check</h3>
+    <dl><dt>Weapons</dt><dd>${check.guns.map(g => esc(g.name)).join(" · ") || "Briefcase only"}</dd>
+    <dt>Ammunition</dt><dd>${[...new Set(check.guns.map(g => `${g.ammoName}: ${g.rounds} rounds`))].map(esc).join(" · ") || "No firearm equipped"}</dd>
+    <dt>Healing supplies</dt><dd>${[...healCounts].map(([name, count]) => `${esc(name)} ×${count}`).join(" · ") || "None"}</dd>
+    <dt>Pack slots</dt><dd>Used ${check.used} / ${check.slots} · Free ${check.free}</dd>
+    <dt>Carry weight</dt><dd>${check.weight.toFixed(1)} / ${check.limit} kg</dd></dl>
+    <p>Up to 3 healing items are packed automatically. Ammo shown is shared by caliber, including rounds loaded on arrival.</p>
+    ${check.warnings.length ? `<ul class="departure-warnings" role="status">${check.warnings.map(w => `<li>${esc(w)}</li>`).join("")}</ul><p>You can still launch with this loadout.</p>` : `<p class="departure-ready">Ready to depart</p>`}</section>`;
   return `<header><h2>Confirm departure</h2><small class="num">🍌 ${save.money}</small></header>
     <div class="dconf">${img ? `<img src="${img}" alt="">` : ""}<div><b>${d.name}</b><p>${d.blurb}</p></div></div>
     <div class="total"><span>Fare</span><b class="num">${fare(d.cost)}</b></div>
     <p class="dim fare-note">${d.cost ? `Paid once when you press Launch. You'll have 🍌 ${left} left.` : "No fare on this route."}</p>
+    ${checklist}
     <div class="actions"><button data-a="launch:${d.id}" class="launch">Launch</button><button class="ghost" data-a="dests">Back</button></div>`;
 }
 
