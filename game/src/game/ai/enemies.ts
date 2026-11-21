@@ -5,7 +5,7 @@
 // the Sleeper = sleeps (3 Z's), noise pops Z's, roars, aims a stripe, charges until he rams something; only stunned hits count.
 // Activation: only enemies within 32 u think; at most 6 engaged at once. No wind-up may start off-screen (advisor 15).
 import * as THREE from "three";
-import { G, V, flat, type Enemy } from "../core/state";
+import { G, V, flat, entryGraceRemaining, type Enemy } from "../core/state";
 import { ENEMY, aimRang } from "../combat/weapons";
 import { makeRangVisual } from "../combat/rangfx";
 import { createRig } from "../actors/rig";
@@ -229,6 +229,7 @@ function separate() {
 /** Fable's croc has its origin on the water line: in the swamp it rides the water, not the mud under it */
 function waterlineOr(e: Enemy, ground: number) { const w = e.fauna === "croc" ? zoneAt(e.p.x, e.p.z)?.water : undefined; return w !== undefined ? Math.max(ground, w) : ground; }
 export function updateEnemies(dt: number) {
+  if (entryGraceRemaining() > 0) return;
   for (const [ally, alert] of sharedAlerts) {
     alert.delay -= dt;
     if (alert.delay <= 0) { sharedAlerts.delete(ally); if (!ally.down && ["patrol", "return"].includes(ally.state)) { ally.lastSeen = alert.at; alertEnemy(ally); } }
