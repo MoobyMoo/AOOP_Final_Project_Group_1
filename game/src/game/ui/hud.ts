@@ -17,6 +17,7 @@ import "@fontsource/ibm-plex-mono/700.css";
 import "./ui3.css";
 import * as THREE from "three";
 import { G, flat, entryGraceRemaining, type Crate, type Enemy } from "../core/state";
+import { buildExitCards, updateExitCards } from "./exitcards";
 import { itemDef } from "../loot/raidloot";
 import { CLEARINGS } from "../world/layout";
 import { drainEquipmentEvents, heardEnemies } from "../loot/equipment-actions";
@@ -117,6 +118,7 @@ export const hud = {
     E.weapons = el("h3-weapons", `<div class="plate h3-slot gun" data-k="0"></div><div class="plate h3-slot gun" data-k="1"></div><div class="plate h3-slot case"><span class="key">V</span><span class="emo" style="font-size:30px">💼</span></div>`);
     E.quick = el("h3-quick");
     E.extract = el("plate h3-extract", "");
+    E.routes = el("h3-routes", ""); buildExitCards(E.routes);
     // the waypoint table, bottom-right (Duckov's [M] distance readout): your newest map marker, else the nearest extract
     E.wp = el("h3-wp shade", `<span class="ic"></span><span class="t"><small></small><b class="num"></b></span><kbd>M</kbd>`); wpT = 0; lastWp = "";
     // ... and its bar above the hotbar's middle with the cancel key under it (frames/reload: about 6% of the screen wide)
@@ -234,6 +236,7 @@ export const hud = {
     E.grace.hidden = grace <= 0;
     if (grace > 0) set(E.grace.querySelector("span") as HTMLElement, `Spawn protection · ${Math.ceil(grace)}s`);
     updateLoot(dt); menuTick();
+    updateExitCards(E.routes, dt);
     // follow-character pieces: projected each frame, written in reference px
     const me = toScreen(G.pp.clone().setY(G.pp.y + 1.2)), mx = toRef(me.x), my = toRef(me.y);
     { // stamina ring beside the character, hidden when full (Duckov: stamina under FollowCharacterHUD, offset left)
