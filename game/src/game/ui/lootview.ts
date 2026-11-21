@@ -39,6 +39,7 @@ import { itemType, withCount } from "../loot/instances";
 import { packStacks } from "../loot/pack";
 import { lookExt } from "../actors/look";
 import { checkpointInventory, consumeInstance } from "../core/raid-journal";
+import { createAppearance } from "./appearance";
 
 export type LootTarget = {
   /** header title: "Ammo tin", "Peel Gang bandit" */
@@ -565,13 +566,22 @@ function render() {
   if (focus) (root.querySelector(`[data-src="${focus}"]`) as HTMLElement | null)?.focus({ preventScroll: true });
 }
 let tagKey = "";
+let disposeAppearance: (() => void) | null = null;
 function renderTag() {
   if (!root) return;
+  const mirror = home() && target?.kind === "locker";
+  const wrap = root.querySelector<HTMLElement>(".lv-tagwrap")!;
+  const appearance = root.querySelector<HTMLElement>(".lv-appearance")!;
+  if (mirror && !disposeAppearance) disposeAppearance = createAppearance(appearance);
+  if (!mirror && disposeAppearance) { disposeAppearance(); disposeAppearance = null; }
+  const inspecting = !!(sel ?? hover);
+  appearance.hidden = !mirror || inspecting;
+  wrap.hidden = mirror && !inspecting;
   const src = sel ?? hover, inst = itemAt(src), en = src?.z === "them" ? entries()[src.i] : undefined;
   const quantity = src?.z === "pack" ? packStack(src.i)?.length : en ? stackOf(en) : undefined;
   const k = (src ? key(src) : "") + (src && src === sel ? "!" : "") + "|" + (inst ?? "") + "|" + (target?.name ?? "") + "|" + G.mag + "/" + G.ammo + "|" + (quantity ?? "") + "|" + (src?.z === "slot" || src?.z === "pack" ? (gear() ? Object.values(gear()).join() : "") : "") + "|" + JSON.stringify(G.save.guns) + G.loaded.join();
   if (k === tagKey) return; tagKey = k;
-  (root.querySelector(".lv-tagwrap") as HTMLElement).innerHTML = tagHtml();
+  wrap.innerHTML = tagHtml() + (mirror ? `<button type="button" class="b3 lv-back-appearance" data-act="appearance">Back to appearance</button>` : "");
 }
 
 // ---------------------------------------------------------------- open / close
@@ -582,7 +592,7 @@ export function openLoot(t: LootTarget | null) {
   if (G.scene === "raid") menuOpened("pack"); // the bar across the top; closes the map or a Jobs or Notes page
   if (!root) {
     root = document.createElement("div"); root.className = "lv opening"; root.setAttribute("role", "dialog"); root.setAttribute("aria-label", t ? t.name : "Your pack");
-    root.innerHTML = `<div class="dim"></div><div class="ui-ref"><section class="plate lv-panel lv-me" aria-label="You"></section><div class="ui-ref-tag lv-tagwrap" style="position:absolute"></div>
+    root.innerHTML = `<div class="dim"></div><div class="ui-ref"><section class="plate lv-panel lv-me" aria-label="You"></section><div class="lv-appearance" hidden></div><div class="ui-ref-tag lv-tagwrap" style="position:absolute"></div>
       <section class="plate lv-panel lv-them" aria-label="Container"></section><p class="lv-msg" aria-live="polite"></p><div class="lv-keys">${keysHtml()}</div></div>`;
     (document.getElementById("ui") ?? document.body).appendChild(root);
     wire(root); addEventListener("keydown", onKey, true);
@@ -594,6 +604,7 @@ export function openLoot(t: LootTarget | null) {
 }
 export function closeLoot() {
   if (!root) return;
+  disposeAppearance?.(); disposeAppearance = null;
   const t = target; root.remove(); root = null; target = null; sel = hover = null; closedAt = performance.now(); popped.clear();
   removeEventListener("keydown", onKey, true); tipEl?.classList.remove("on"); ghostEnd();
   t?.onClose?.(); sfx("ui"); menuClosed("pack");
@@ -646,6 +657,7 @@ function wire(r: HTMLDivElement) {
   r.addEventListener("click", (e) => {
     const b = (e.target as HTMLElement).closest("[data-act]") as HTMLElement | null; if (!b) return;
     const a = b.dataset.act!, src = sel ?? hover;
+    if (a === "appearance") { sel = hover = null; render(); return; }
     if (a === "sort") return sortMine();
     if (a === "takeall") return takeAllSearched();
     if (a[0] === "x") { target?.actions?.[+a.slice(1)]?.run(); return; }
