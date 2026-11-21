@@ -1,7 +1,7 @@
 // Player controller on Duckov's body mechanisms (combat/weapons.ts header): HP + armor, stamina (sprint, dodge,
 // melee, pain), weight states, timed healing, aim-down-sights. Implements the roll contract and the one cancel rule.
 import * as THREE from "three";
-import { G, V, flat, angDiff, activeCaliber, type Enemy } from "../core/state";
+import { G, V, flat, angDiff, activeCaliber, entryGraceRemaining, type Enemy } from "../core/state";
 import { CALIBERS } from "../combat/guns";
 import { PLAYER, BRIEFCASE, FEEL, HEALS } from "../combat/weapons";
 import { itemType } from "../loot/instances";
@@ -220,7 +220,7 @@ export function playerArmor(crit = false) { const stats = gearStats(G.gear); ret
 
 /** the ROLL CONTRACT is enforced here: no damage while rolling, from any source. Returns damage dealt. */
 export function hurtPlayer(from: THREE.Vector3, src: string, dmg: number, steal?: Enemy): number {
-  if (!G.alive || G.iframes > 0 || G.rollT >= 0 || G.zipping) return 0;
+  if (!G.alive || entryGraceRemaining() > 0 || G.iframes > 0 || G.rollT >= 0 || G.zipping) return 0;
   const crit = G.rng() < ENEMY_CRIT.chance;
   const n = protectPlayerHit(dmg * (crit ? ENEMY_CRIT.damage : 1), crit);
   G.hp = Math.max(0, G.hp - n); G.iframes = PLAYER.iframesHurt; G.hurtT = 0; G.log.hurt += n;
