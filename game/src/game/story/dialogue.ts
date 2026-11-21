@@ -66,6 +66,16 @@ export function trackerHtml(save: SaveV1, o: { items?: readonly string[]; pack?:
   const t = i >= 0 ? q.tasks[i] : null, p = t ? taskProgress(save, q, i, q.turnIn === "raid" ? o.pack : o.items) : null;
   const carried = t?.t === "fetch" && q.turnIn === "home" ? (o.pack ?? []).filter((inst) => itemType(inst) === t.item).length : 0;
   const line = st === "ready" ? `Hand it in to ${GIVER[q.giver]}` : t ? `${t.text}${p && (p.need > 1 || t.t === "fetch") ? ` <b class="num">${p.have}/${p.need}</b>` : ""}${carried ? ` <em>+${carried} in pack</em>` : ""}` : "";
+  if (o.pack) {
+    const items = q.turnIn === "raid" ? o.pack : o.items;
+    const objectives = q.tasks.map((task, k) => {
+      const progress = taskProgress(save, q, k, items);
+      const inPack = task.t === "fetch" && q.turnIn === "home" ? o.pack!.filter(inst => itemType(inst) === task.item).length : 0;
+      const preview = Math.min(progress.need, progress.have + inPack);
+      return `<div class="q3-objective ${progress.ok ? "ok" : ""}"><span>${progress.ok ? "✔ " : ""}${esc(task.text)}</span><b class="num">${progress.have}/${progress.need}</b><div class="q3-progress" role="progressbar" aria-label="${esc(task.text)}" aria-valuemin="0" aria-valuemax="${progress.need}" aria-valuenow="${progress.have}"><i class="provisional" style="width:${preview / progress.need * 100}%"></i><i style="width:${progress.have / progress.need * 100}%"></i></div>${inPack && !progress.ok ? `<em>+${inPack} in pack · Extract to secure</em>` : ""}</div>`;
+    }).join("");
+    return `<span class="q3-t"><b>◆ ${esc(q.title)}</b><small>${st === "ready" ? `Ready · Hand in to ${GIVER[q.giver]}` : "Tracked job · Open Jobs to change"}</small>${objectives}</span>`;
+  }
   return `<span class="q3-dia">◆</span><span class="q3-t"><b>${esc(q.title)}</b><span>${line}</span></span>`;
 }
 
