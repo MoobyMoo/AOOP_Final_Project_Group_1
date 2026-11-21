@@ -88,6 +88,14 @@ async function loadModel(url: string, radius: number): Promise<Model> {
       morph: MORPHS.map((nm) => (nm in dict && g.morphAttributes.position ? f32(g.morphAttributes.position[dict[nm]] as THREE.BufferAttribute, 3) : null)),
     });
   }
+  const headPart = parts.get("head");
+  if (headPart && url.endsWith("monkey.glb")) {
+    const indices: number[] = [], nostrilRegion = REGIONS.indexOf("dark");
+    for (let i = 0; i < headPart.idx.length; i += 3) {
+      if (headPart.ra[headPart.idx[i] * 2] !== nostrilRegion) indices.push(headPart.idx[i], headPart.idx[i + 1], headPart.idx[i + 2]);
+    }
+    parts.set("head_soft", { ...headPart, idx: indices });
+  }
   // template = the armature without its meshes
   let rootBone: THREE.Object3D = skel.bones[0];
   while ((rootBone.parent as THREE.Bone | null)?.isBone) rootBone = rootBone.parent!;
@@ -358,6 +366,100 @@ const TW_MAX = 1.3;   // the gun arm can lead or trail the body by up to ~75 deg
 
 /** how far a pack moves out when body armour is worn under it (fractions added to the back socket's x / z scale) */
 const ARMOR_FIT = { x: 0.1, z: 0.09 };
+const detailSpheres = new Map<Region, THREE.BufferGeometry>();
+function detailGeometry(geometry: THREE.BufferGeometry, region: Region) {
+  const regions = new Uint8Array(geometry.getAttribute("position").count * 2);
+  for (let i = 0; i < regions.length; i += 2) {
+    regions[i] = REGIONS.indexOf(region); regions[i + 1] = 255;
+  }
+  geometry.setAttribute("aRA", new THREE.BufferAttribute(regions, 2, false));
+  return geometry;
+}
+function detailMesh(material: THREE.Material, region: Region, position: [number, number, number], scale: [number, number, number]) {
+  let geometry = detailSpheres.get(region);
+  if (!geometry) { geometry = detailGeometry(new THREE.SphereGeometry(1, 16, 12), region); detailSpheres.set(region, geometry); }
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(...position); mesh.scale.set(...scale);
+  mesh.castShadow = mesh.receiveShadow = true;
+  return mesh;
+}
+let heartNose: THREE.BufferGeometry | undefined;
+let bowWing: THREE.BufferGeometry | undefined;
+function bowGeometry() {
+  if (bowWing) return bowWing;
+  const shape = new THREE.Shape();
+  shape.moveTo(0, 0);
+  shape.bezierCurveTo(0.04, 0.02, 0.12, 0.13, 0.18, 0.13);
+  shape.bezierCurveTo(0.27, 0.13, 0.27, -0.04, 0.21, -0.08);
+  shape.bezierCurveTo(0.15, -0.12, 0.07, -0.03, 0, 0);
+  bowWing = detailGeometry(new THREE.ExtrudeGeometry(shape, { depth: 0.04, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 3, steps: 1, curveSegments: 8 }), "pink");
+  return bowWing;
+}
+function noseGeometry() {
+  if (heartNose) return heartNose;
+  const shape = new THREE.Shape();
+  shape.moveTo(0, -0.045);
+  shape.bezierCurveTo(-0.02, -0.025, -0.07, 0.005, -0.06, 0.032);
+  shape.bezierCurveTo(-0.05, 0.065, -0.012, 0.055, 0, 0.033);
+  shape.bezierCurveTo(0.012, 0.055, 0.05, 0.065, 0.06, 0.032);
+  shape.bezierCurveTo(0.07, 0.005, 0.02, -0.025, 0, -0.045);
+  heartNose = detailGeometry(new THREE.ExtrudeGeometry(shape, { depth: 0.018, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.006, bevelSegments: 2, steps: 1, curveSegments: 8 }), "pink");
+  return heartNose;
+}
+const faceSurfaces = new WeakMap<Model, THREE.Mesh>();
+const faceSurfaceMaterial = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
+const faceRay = new THREE.Raycaster();
+function faceDepth(model: Model, x: number, y: number) {
+  let surface = faceSurfaces.get(model);
+  if (!surface) {
+    const geometry = merge(model, ["head"]).clone();
+    geometry.applyMatrix4(model.bind).applyMatrix4(model.inverses[model.bi.sk_face]);
+    surface = new THREE.Mesh(geometry, faceSurfaceMaterial);
+    surface.updateMatrixWorld(true); faceSurfaces.set(model, surface);
+  }
+  faceRay.ray.origin.set(x, y, 2); faceRay.ray.direction.set(0, 0, -1);
+  return faceRay.intersectObject(surface, false)[0]?.point.z ?? 0;
+}
+const cheekGeometries = new WeakMap<Model, THREE.BufferGeometry>();
+const blushMaterial = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -1 });
+function cheekGeometry(model: Model) {
+  const cached = cheekGeometries.get(model); if (cached) return cached;
+  const positions: number[] = [], colors: number[] = [], indices: number[] = [];
+  const color = new THREE.Color("#e98298"), segments = 24;
+  for (const side of [-1, 1]) {
+    const start = positions.length / 3;
+    for (let ring = 0; ring <= 4; ring++) {
+      const radius = ring / 4;
+      for (let i = 0; i <= segments; i++) {
+        const angle = i * Math.PI * 2 / segments;
+        const x = side * 0.28 + Math.cos(angle) * radius * 0.11, y = -0.16 + Math.sin(angle) * radius * 0.07;
+        positions.push(x, y, faceDepth(model, x, y) + 0.002);
+        colors.push(color.r, color.g, color.b, 0.38 * (1 - radius * radius));
+        if (ring > 0 && i > 0) {
+          const vertex = start + ring * (segments + 1) + i, previous = vertex - segments - 1;
+          indices.push(vertex - 1, previous, previous - 1, vertex - 1, vertex, previous);
+        }
+      }
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 4));
+  geometry.setIndex(indices); cheekGeometries.set(model, geometry);
+  return geometry;
+}
+const lashGeometries = new Map<number, THREE.BufferGeometry>();
+function lashGeometry(side: number, model: Model) {
+  let geometry = lashGeometries.get(side);
+  if (!geometry) {
+    const points = [[0.035, 0.045], [0.075, 0.045], [0.10, 0.072]].map(([x, y]) => new THREE.Vector3(side * x, y, faceDepth(model, side * (0.152 * 1.04 + x), y) + 0.018));
+    const curve = new THREE.CatmullRomCurve3(points);
+    geometry = detailGeometry(new THREE.TubeGeometry(curve, 8, 0.006, 4, false), "dark");
+    lashGeometries.set(side, geometry);
+  }
+  return geometry;
+}
+
 class MonkeyRig extends CharRig {
   private look: MonkeyLook = DEFAULT_LOOK; private spec: MonkeyEnemySpec | null;
   private gear: Gear = { head: null, face: null, body: null, back: null, ears: null };
@@ -371,6 +473,10 @@ class MonkeyRig extends CharRig {
   private arms: THREE.Bone[]; private dashK = 0;   // upperarm L/R, forearm L/R; dash pose weight
   private tips: THREE.Object3D[] = []; private longK = 0; // the hand sockets (IK end points) L, R; long-gun hold weight
   private headSm = new THREE.Quaternion(); private headSmOn = false; // the stabilised head, in the character's frame
+  private bow: THREE.Group | null = null;
+  private faceDetails: THREE.Group | null = null;
+  private lashes: THREE.Group | null = null;
+  private nose: THREE.Mesh | null = null;
 
   constructor(model: Model, style: MonkeyLook | EnemyStyle) {
     super(model, /^(root|hips|thigh|shin|foot)/);
@@ -401,6 +507,48 @@ class MonkeyRig extends CharRig {
     const mesh = slot === "ears" && this.gear.head && hasWearable(id + "_nb") ? id + "_nb" : id;
     const o = instWearable(mesh, this.matsFor(slot)); o.name = id; this.sockets[slot].add(o); this.gearObj[slot] = o;
   }
+  /** Hide the starter shades on request; found face equipment retains its own model. */
+  private faceAccessory(): string | null {
+    if (this.spec || baseId(this.gear.face) !== "shades") return this.gear.face;
+    return lookExt(this.look).showGlasses === false ? null : "shades";
+  }
+  private headAccessory(): string | null {
+    return !this.spec && lookExt(this.look).gender === "female" && baseId(this.gear.head) === "bowler" ? null : this.gear.head;
+  }
+  private updateFemaleDetails() {
+    const female = !this.spec && lookExt(this.look).gender === "female";
+    const mats = female ? this.matsFor("female") : null;
+    if (mats && !this.bow) {
+      this.bow = new THREE.Group(); this.bow.name = "female-bow";
+      const left = new THREE.Mesh(bowGeometry(), mats.matte), right = new THREE.Mesh(bowGeometry(), mats.matte);
+      left.scale.x = -1;
+      this.bow.add(left, right, detailMesh(mats.matte, "pink", [0, 0.015, 0.025], [0.058, 0.055, 0.07]));
+      this.bow.position.set(0.33, -0.16, 0.10); this.bow.rotation.z = -0.35;
+      this.sockets.head.add(this.bow);
+      this.faceDetails = new THREE.Group(); this.faceDetails.name = "female-face";
+      this.faceDetails.add(new THREE.Mesh(cheekGeometry(this.model), blushMaterial));
+      this.nose = new THREE.Mesh(noseGeometry(), mats.gloss); this.nose.name = "heart-nose";
+      this.nose.position.set(0, -0.16, faceDepth(this.model, 0, -0.16) + 0.006); this.faceDetails.add(this.nose);
+      this.lashes = new THREE.Group(); this.lashes.name = "eyelashes";
+      for (const side of [-1, 1]) {
+        const lash = new THREE.Mesh(lashGeometry(side, this.model), mats.matte);
+        lash.position.x = side * 0.152 * this.look.eyes.spacing;
+        this.lashes.add(lash);
+      }
+      this.faceDetails.add(this.lashes); this.sockets.face.add(this.faceDetails);
+    }
+    if (this.bow) this.bow.visible = female && !this.headAccessory();
+    if (this.faceDetails) this.faceDetails.visible = female;
+    if (mats) {
+      setRegion(mats.pal, "pink", "#e9a4b1");
+      setRegion(mats.pal, "dark", lookExt(this.look).colors?.brows ?? "#664331");
+    }
+    if (this.lashes) {
+      this.lashes.visible = female && !this.faceAccessory();
+      for (let i = 0; i < this.lashes.children.length; i++) this.lashes.children[i].position.x = (i === 0 ? -1 : 1) * 0.152 * this.look.eyes.spacing;
+    }
+    if (this.nose) this.nose.visible = female && !["banditmask", "snorkel"].includes(baseId(this.gear.face) ?? "");
+  }
   /** gear colours. Socket pieces have a palette copy per slot; body armour uses the non-body regions of the rig's own
    *  palette. The creator's tints (LookExt.gear[slot].main / .accent) recolour a piece's zones only when the piece is
    *  one of the player's own bound pieces (EQUIP[id].bound: bowler, shades, satchel); found gear keeps the colours it
@@ -410,7 +558,8 @@ class MonkeyRig extends CharRig {
     for (const slot of SLOTS) {
       const inst = this.gear[slot], id = baseId(inst), body = slot === "body";
       if (!id && !body) continue;
-      const pal = body ? this.pal : this.matsFor(slot).pal, z = id ? WEAR_ZONES[id] : undefined, c = !this.spec && id && EQUIP[id]?.bound ? g?.[slot] : undefined;
+      const visualId = slot === "face" ? this.faceAccessory() : id;
+      const pal = body ? this.pal : this.matsFor(slot).pal, z = visualId ? WEAR_ZONES[visualId] : undefined, c = !this.spec && id && EQUIP[id]?.bound ? g?.[slot] : undefined;
       if (body) for (const i of ARMOR_REGS) { pal[i * 3] = STATIC_PALETTE[i * 3]; pal[i * 3 + 1] = STATIC_PALETTE[i * 3 + 1]; pal[i * 3 + 2] = STATIC_PALETTE[i * 3 + 2]; }
       else pal.set(STATIC_PALETTE);
       if (z && c?.main) setRegion(pal, z.main, c.main);
@@ -422,9 +571,14 @@ class MonkeyRig extends CharRig {
   /** part list from the look + what the gear hides or adds */
   private refresh() {
     const l = this.look, x = lookExt(l), suit = !this.spec, jacket = x.jacket ?? "two";
+    const face = this.faceAccessory();
+    if ((this.gearObj.face?.name ?? null) !== baseId(face)) this.attach("face", face);
+    const head = this.headAccessory();
+    if ((this.gearObj.head?.name ?? null) !== baseId(head)) this.attach("head", head);
+    this.updateFemaleDetails();
     let noEars = false, noBrows = false, noTie = false;
     for (const slot of SLOTS) { const w = wearable(this.gear[slot]); if (w) { noEars ||= !!w.hidesEars; noBrows ||= !!w.hidesBrows; noTie ||= !!w.hidesTie; } }
-    const parts = ["head", this.spec ? "torso_" + this.spec.torso : jacket === "vest" ? "torso_vest" : "torso_suit", "hands", "tail", "feet_" + l.feet.style, "eyes_" + l.eyes.style, "lids_" + l.eyes.style, "mouth_" + l.mouth];
+    const parts = [!this.spec && x.gender === "female" ? "head_soft" : "head", this.spec ? "torso_" + this.spec.torso : jacket === "vest" ? "torso_vest" : "torso_suit", "hands", "tail", "feet_" + l.feet.style, "eyes_" + l.eyes.style, "lids_" + l.eyes.style, "mouth_" + l.mouth];
     if (!noEars) parts.push("ears_" + l.ears.style);
     if (l.brows.style !== "none" && !noBrows) parts.push("brows_" + l.brows.style);
     if (suit) {
@@ -432,7 +586,7 @@ class MonkeyRig extends CharRig {
       if (l.tie.style !== "none" && !noTie) parts.push("tie_" + l.tie.style);
       if (x.pocketSquare && jacket !== "vest" && !noTie) parts.push("square");
     }
-    if (this.spec?.tuft) parts.push("tuft");
+    if (this.spec?.tuft || (!this.spec && x.gender === "female" && !head)) parts.push("tuft");
     const armor = this.gear.body ? armorPart(this.model, baseId(this.gear.body)!) : null;
     if (armor) parts.push(armor);
     this.armored = !!armor;
@@ -468,8 +622,8 @@ class MonkeyRig extends CharRig {
     this.gear = next;
     for (const slot of SLOTS) {
       if (slot === "body") continue;
-      const id = baseId(next[slot]);
-      if (id !== baseId(prev[slot]) || (id && !this.gearObj[slot]) || (slot === "ears" && !next.head !== !prev.head)) this.attach(slot, next[slot]);
+      const inst = slot === "face" ? this.faceAccessory() : slot === "head" ? this.headAccessory() : next[slot], id = baseId(inst);
+      if (id !== (this.gearObj[slot]?.name ?? null) || (slot === "ears" && !next.head !== !prev.head)) this.attach(slot, inst);
     }
     this.refresh();
   }
