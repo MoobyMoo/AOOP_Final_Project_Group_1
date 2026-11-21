@@ -61,6 +61,15 @@
 .q3-track .q3-t>span b{color:#f3d48a}.q3-track .q3-t>span em{font-style:normal;color:var(--a-warn)}
 .q3-track.raid{right:24px;top:236px;text-align:right;flex-direction:row-reverse;text-shadow:0 1px 3px rgba(0,0,0,.85),0 0 10px rgba(0,0,0,.35)}
 .q3-track.raid .q3-t{align-items:flex-end}
+.q3-track.raid{width:365px;background:rgba(25,24,28,.88);border-right:2px solid var(--a-brass);padding:12px;text-align:left}
+.q3-track.raid .q3-t{width:100%;align-items:stretch;gap:10px}
+.q3-track.raid .q3-t>small{color:var(--a-dim);font:500 16px/1.2 var(--a-font)}
+.q3-objective{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 10px;font:500 17px/1.3 var(--a-font)}
+.q3-objective>b{font-variant-numeric:tabular-nums;color:var(--a-brass-hi)}
+.q3-objective.ok>span{color:var(--a-stam)}
+.q3-progress{position:relative;grid-column:1/-1;height:5px;background:#08070a;overflow:hidden}
+.q3-progress i{position:absolute;inset:0 auto 0 0;background:var(--a-stam)}.q3-progress i.provisional{background:var(--a-warn)}
+.q3-objective em{grid-column:1/-1;font:500 15px/1.2 var(--a-font);color:var(--a-warn)}
 .q3-track.home{right:22px;top:76px;text-align:right;flex-direction:row-reverse;text-shadow:0 1px 3px rgba(0,0,0,.85)}
 .q3-track.home .q3-t{align-items:flex-end}
 #ui:has(> .panel) .q3-track.home,#ui:has(.bld3) .q3-track.home,#ui:has(.lv) .q3-track{opacity:0}
