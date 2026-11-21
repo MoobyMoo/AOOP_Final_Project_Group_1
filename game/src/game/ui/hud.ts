@@ -16,7 +16,7 @@ import "@fontsource/ibm-plex-mono/500.css";
 import "@fontsource/ibm-plex-mono/700.css";
 import "./ui3.css";
 import * as THREE from "three";
-import { G, flat, type Crate, type Enemy } from "../core/state";
+import { G, flat, entryGraceRemaining, type Crate, type Enemy } from "../core/state";
 import { itemDef } from "../loot/raidloot";
 import { CLEARINGS } from "../world/layout";
 import { drainEquipmentEvents, heardEnemies } from "../loot/equipment-actions";
@@ -111,7 +111,8 @@ export const hud = {
     E.hp = el("plate h3-hp", `${BRK}<span class="heart" aria-hidden="true">♥</span><div class="bar"><i class="lag"></i><i class="fill"></i></div><b class="num"></b>`);
     E.armor = el("plate h3-badge h3-armor", `${BRK}<span class="k">armor</span><span class="v"></span><span class="k s"></span>`);
     E.load = el("plate h3-badge h3-load", `${BRK}<span class="k">load</span><span class="v"></span><span class="k s"></span>`);
-    E.capacity = el("plate h3-capacity", `${BRK}<span>背包格數</span><span class="num"></span>`);
+    E.capacity = el("plate h3-capacity", `${BRK}<span>Pack slots</span><span class="num"></span>`);
+    E.grace = el("plate h3-grace", `${BRK}<span></span>`);
     E.ammo = el("plate h3-ammo", `${BRK}<span class="m"></span><span class="r"></span><span class="c"></span>`);
     E.weapons = el("h3-weapons", `<div class="plate h3-slot gun" data-k="0"></div><div class="plate h3-slot gun" data-k="1"></div><div class="plate h3-slot case"><span class="key">V</span><span class="emo" style="font-size:30px">💼</span></div>`);
     E.quick = el("h3-quick");
@@ -190,7 +191,7 @@ export const hud = {
     const w = carriedWeight(), lim = carryLimit(), r = w / lim, band = r > 1 ? "over" : r > 0.75 ? "heavy" : r <= 0.25 ? "light" : "normal";
     const used = packStacks(G.pack).length, remaining = Math.max(0, G.packSlots - used);
     const k = `${w.toFixed(1)}|${lim}|${band}|${used}|${G.packSlots}`; if (k === lastLoad) return; lastLoad = k;
-    set(E.capacity.querySelector(".num") as HTMLElement, `已用 ${used}/${G.packSlots} · 剩餘 ${remaining}`);
+    set(E.capacity.querySelector(".num") as HTMLElement, `Used ${used}/${G.packSlots} · Free ${remaining}`);
     E.capacity.classList.toggle("full", remaining === 0);
     E.load.className = `plate h3-badge h3-load ${band}`;
     set(E.load.querySelector(".v") as HTMLElement, w.toFixed(1)); set(E.load.querySelector(".s") as HTMLElement, band === "over" ? "overloaded" : `of ${lim} kg`);
@@ -229,6 +230,9 @@ export const hud = {
   },
   update(dt: number) {
     if (!E.cross) return;
+    const grace = entryGraceRemaining();
+    E.grace.hidden = grace <= 0;
+    if (grace > 0) set(E.grace.querySelector("span") as HTMLElement, `Spawn protection · ${Math.ceil(grace)}s`);
     updateLoot(dt); menuTick();
     // follow-character pieces: projected each frame, written in reference px
     const me = toScreen(G.pp.clone().setY(G.pp.y + 1.2)), mx = toRef(me.x), my = toRef(me.y);
