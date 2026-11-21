@@ -406,7 +406,7 @@ function weightHtml() {
   const word = { light: "light, a little faster", normal: "normal", heavy: "heavy, slower and louder", over: "overloaded, you crawl" }[band];
   return `<div class="lv-weight ${band}" data-tip="Carry weight. Past 75% you slow down; past 100% you crawl."><div class="row"><span>Load</span><span><span class="num">${w.toFixed(1)} of ${lim} kg</span>, <span class="state">${word}</span></span></div>
     <div class="track"><i style="width:${Math.min(100, r * 100).toFixed(1)}%"></i><b style="left:25%"></b><b style="left:75%"></b></div>
-    <p class="lv-weight-remaining num">${w > lim ? `超重 ${(w - lim).toFixed(1)} kg` : `剩餘負重 ${(lim - w).toFixed(1)} kg`}</p></div>`;
+    <p class="lv-weight-remaining num">${w > lim ? `Overweight by ${(w - lim).toFixed(1)} kg` : `Remaining load ${(lim - w).toFixed(1)} kg`}</p></div>`;
 }
 function leftHtml() {
   const stacks = home() ? [] : packStacks(G.pack);
@@ -422,7 +422,7 @@ function leftHtml() {
       <p class="lv-empty lv-pouch">The first ${G.pouchSlots} slots are your cheek pouch: kept even if you get bonked.</p>`;
   }
   const title = lookExt(G.save.look).gender === "female" ? "The Businesswoman" : "The Businessman";
-  const capacity = `<div class="lv-capacity num" aria-label="背包容量"><span>已用 <b>${stacks.length}</b> 格</span><span class="${stacks.length >= G.packSlots ? "full" : ""}">剩餘 <b>${Math.max(0, G.packSlots - stacks.length)}</b> 格</span><span>總計 <b>${G.packSlots}</b> 格</span></div>`;
+  const capacity = `<div class="lv-capacity num" aria-label="Pack capacity"><span>Used <b>${stacks.length}</b></span><span class="${stacks.length >= G.packSlots ? "full" : ""}">Free <b>${Math.max(0, G.packSlots - stacks.length)}</b></span><span>Total <b>${G.packSlots}</b></span></div>`;
   return `${BRK}<header class="lv-head"><h2>${title}</h2>${home() ? `<small class="num">🍌 ${G.save.money}</small>` : ""}</header><div class="tie"></div>
     <div class="lv-body">${body}</div>${home() ? "" : capacity + weightHtml()}`;
 }
