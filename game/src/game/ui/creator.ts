@@ -4,7 +4,7 @@
 import * as THREE from "three";
 import { G } from "../core/state";
 import type { MonkeyLook, Gear, WearSlot } from "../contracts";
-import { DEFAULT_LOOK, LOOK_PRESETS, randomLook, encodeLook, decodeLook, lookExt } from "../actors/look";
+import { DEFAULT_LOOK, FEMALE_LOOK, LOOK_PRESETS, randomLook, encodeLook, decodeLook, lookExt, type MonkeyLookX } from "../actors/look";
 import { WEAR_ZONES } from "../actors/wearables";
 import { BOUND_KIT, visualGear } from "../loot/equipment";
 import { regionDefault } from "../actors/charmat";
@@ -50,7 +50,7 @@ export function openCreator(done: () => void, scene: THREE.Scene) {
   };
   c.classList.add("c-canvas");
   ctl?.remove(); ctl = document.createElement("div"); ctl.className = "c-stage";
-  ctl.innerHTML = `<span class="hint">Drag to turn him</span><button data-view="1" title="Turn him back to face you">${VIEW_ICON}Front view</button>`;
+  ctl.innerHTML = `<span class="hint">Drag to rotate</span><button data-view="1" title="Rotate to face you">${VIEW_ICON}Front view</button>`;
   document.getElementById("ui")!.appendChild(ctl); ctl.style.pointerEvents = "auto";
   ctl.querySelector<HTMLElement>("[data-view]")!.onclick = () => { vel = 0; goal = FRONT + Math.round((spin - FRONT) / (Math.PI * 2)) * Math.PI * 2; sfx("ui"); };
   if (P.has("bot")) setTimeout(finish, 300);
@@ -59,6 +59,7 @@ function apply() { G.rig.setLook?.(look); G.rig.setGear?.(gear) /* raw instances
 const sw = (cols: string[], cur: string, key: string) => `<div class="sw">${cols.map((c) => `<i data-k="${key}" data-v="${c}" style="background:${c}" class="${c === cur ? "on" : ""}"></i>`).join("")}<label><input type="color" data-k="${key}" value="${cur}"></label></div>`;
 const chips = (opts: string[], cur: string, key: string) => `<div class="chips">${opts.map((o) => `<b data-k="${key}" data-v="${o}" class="${o === cur ? "on" : ""}">${o === "bowtie" ? "Bow tie" : o[0].toUpperCase() + o.slice(1)}</b>`).join("")}</div>`;
 const chipsL = (opts: [string, string][], cur: string, key: string) => `<div class="chips">${opts.map(([v, n]) => `<b data-k="${key}" data-v="${v}" class="${v === cur ? "on" : ""}">${n}</b>`).join("")}</div>`;
+const options = (opts: [string, string][], cur: string, key: string, label: string) => `<div class="c-options" role="group" aria-label="${label}">${opts.map(([value, text]) => `<button type="button" data-k="${key}" data-v="${value}" aria-pressed="${value === cur}">${text}</button>`).join("")}</div>`;
 const hexOf = (c: THREE.Color | string) => "#" + new THREE.Color(c).getHexString();
 const slider = (label: string, key: string, v: number, min: number, max: number) => `<div class="sl"><span>${label}</span><input type="range" data-k="${key}" min="${min}" max="${max}" step="0.01" value="${v}"><em>${v.toFixed(2)}</em></div>`;
 /** tints for YOUR bound pieces (bowler, shades, satchel); found gear keeps its own colours (G1-23) */
@@ -76,20 +77,33 @@ function render() {
   if (tab === "face") body = `<h4>Face</h4>${sw(SKIN, L.face, "face")}<h4>Eyes</h4>${chips(["round", "sleepy", "sparkle", "beady"], L.eyes.style, "eyes.style")}${slider("Eye spacing", "eyes.spacing", L.eyes.spacing, 0.85, 1.15)}${sw(EYE, X.colors?.eyes ?? regionDefault("pupil"), "x.colors.eyes")}<h4>Brows</h4>${chips(["bold", "thin", "bushy", "none"], L.brows.style, "brows.style")}${sw(["#3a2420", "#1e1b24", "#7a4e2e", "#c9c2b8", "#e8b84a"], X.colors?.brows ?? regionDefault("dark"), "x.colors.brows")}${slider("Brow mood", "brows.tilt", L.brows.tilt, -1, 1)}<h4>Mouth</h4>${chips(["smile", "grin", "smirk", "toothy", "whistle"], L.mouth, "mouth")}<p class="dim">Tip: your shades come off at the bunker locker if you want to see the eyes.</p>`;
   if (tab === "outfit") body = `<h4>Build</h4>${slider("Slim to stocky", "x.build", X.build ?? 0, -1, 1)}<h4>Jacket</h4>${chipsL(JACKET_NAMES, X.jacket ?? "two", "x.jacket")}<h4>Suit</h4>${sw(SUIT, L.suit, "suit")}<h4>Shirt</h4>${sw(SHIRT, X.colors?.shirt ?? regionDefault("shirt"), "x.colors.shirt")}<h4>Buttons</h4>${sw(METAL, X.colors?.buttons ?? regionDefault("gold"), "x.colors.buttons")}<h4>Trousers</h4>${sw(SUIT, L.pants, "pants")}<h4>Tie</h4>${chips(["tie", "bowtie", "none"], L.tie.style, "tie.style")}${sw(ACCENT, L.tie.color, "tie.color")}<h4>Pocket square</h4>${chipsL([["yes", "On"], ["no", "Off"]], X.pocketSquare ? "yes" : "no", "x.pocketSquare")}${X.pocketSquare ? sw(ACCENT, X.colors?.square ?? regionDefault("square"), "x.colors.square") : ""}<h4>Feet</h4>${chips(["round", "shoes"], L.feet.style, "feet.style")}${sw([...FUR.slice(0, 5), "#2a2a30", "#6e4b2e"], L.feet.color, "feet.color")}<h4>Your bowler</h4>${gearColours("head", X)}<h4>Your shades</h4>${gearColours("face", X)}<h4>Your satchel</h4>${gearColours("back", X)}<p class="dim">Hats, armor and packs you find in raids are changed in your pack (Tab) or the bunker locker.</p>`;
   if (tab === "code") body = `<p>Share your look: copy this code, or paste a friend's.</p><textarea readonly>${encodeLook(L)}</textarea><button data-copy="1">Copy code</button><input class="paste" placeholder="paste a code here"><button data-paste="1">Use pasted code</button><p class="msg"></p>`;
-  el.innerHTML = `<div class="c-head"><h2>Make your Businessman</h2><small>drag to turn him around</small></div><div class="c-tabs">${tabs.map(([t, n]) => `<b data-tab="${t}" class="${t === tab ? "on" : ""}">${n}</b>`).join("")}</div><div class="c-body">${body}</div><div class="c-foot"><button class="reset" data-reset="1">Reset</button><button class="go" data-go="1">${G.save.lookDone ? "Done" : "Let's get to business ▸"}</button></div>`;
+  if (tab === "presets") body = `<h4>Gender / 性別</h4>${options([["male", "Male / 男性"], ["female", "Female / 女性"]], X.gender ?? "male", "x.gender", "Gender")}` + body;
+  if (tab === "face") {
+    body = `<h4>Starter glasses / 初始眼鏡</h4>${options([["yes", "Show / 顯示"], ["no", "Hide / 取消"]], X.showGlasses === false ? "no" : "yes", "x.showGlasses", "Starter glasses")}<p class="dim">Show or hide the starter glasses. Found face gear is changed in your pack or locker.</p>` + body.replace('<p class="dim">Tip: your shades come off at the bunker locker if you want to see the eyes.</p>', "");
+  }
+  el.innerHTML = `<div class="c-head"><h2>Create your character</h2><small>Drag to rotate</small></div><div class="c-tabs">${tabs.map(([t, n]) => `<b data-tab="${t}" class="${t === tab ? "on" : ""}">${n}</b>`).join("")}</div><div class="c-body">${body}</div><div class="c-foot"><button class="reset" data-reset="1">Reset</button><button class="go" data-go="1">${G.save.lookDone ? "Done" : "Let's get to business"}</button></div>`;
   el.querySelectorAll<HTMLElement>("[data-tab]").forEach((b) => b.onclick = () => { tab = b.dataset.tab as Tab; sfx("ui"); render(); });
-  el.querySelectorAll<HTMLElement>("[data-preset]").forEach((b) => b.onclick = () => { look = structuredClone(LOOK_PRESETS[+b.dataset.preset!].look); apply(); sfx("pop"); render(); });
-  el.querySelectorAll<HTMLElement>("[data-rand]").forEach((b) => b.onclick = () => { look = randomLook(Math.random); apply(); sfx("pop"); render(); });
-  el.querySelectorAll<HTMLElement>("i[data-k], b[data-k]").forEach((b) => b.onclick = () => { set(b.dataset.k!, b.dataset.v!); sfx("ui"); render(); });
+  el.querySelectorAll<HTMLElement>("[data-preset]").forEach((b) => b.onclick = () => chooseLook(structuredClone(LOOK_PRESETS[+b.dataset.preset!].look)));
+  el.querySelectorAll<HTMLElement>("[data-rand]").forEach((b) => b.onclick = () => chooseLook(randomLook(Math.random)));
+  el.querySelectorAll<HTMLElement>("i[data-k], b[data-k], button[data-k]").forEach((b) => b.onclick = () => { set(b.dataset.k!, b.dataset.v!); sfx("ui"); render(); });
   el.querySelectorAll<HTMLInputElement>("input[type=color]").forEach((b) => b.oninput = () => { set(b.dataset.k!, b.value); });
   el.querySelectorAll<HTMLInputElement>("input[type=range]").forEach((b) => b.oninput = () => { set(b.dataset.k!, Number(b.value)); (b.nextElementSibling as HTMLElement).textContent = Number(b.value).toFixed(2); });
   el.querySelector<HTMLElement>("[data-copy]")?.addEventListener("click", () => { navigator.clipboard?.writeText(encodeLook(look)).catch(() => {}); (el!.querySelector(".msg") as HTMLElement).textContent = "Copied!"; });
   el.querySelector<HTMLElement>("[data-paste]")?.addEventListener("click", () => { const v = (el!.querySelector(".paste") as HTMLInputElement).value, l = decodeLook(v); const m = el!.querySelector(".msg") as HTMLElement; if (!l) { m.textContent = "That code didn't work. Nothing changed."; sfx("nope"); return; } look = l; apply(); sfx("pop"); render(); });
-  el.querySelector<HTMLElement>("[data-reset]")!.onclick = () => { look = structuredClone(DEFAULT_LOOK); apply(); render(); };
+  el.querySelector<HTMLElement>("[data-reset]")!.onclick = () => { look = structuredClone(lookExt(look).gender === "female" ? FEMALE_LOOK : DEFAULT_LOOK); apply(); render(); };
   el.querySelector<HTMLElement>("[data-go]")!.onclick = finish;
 }
+function chooseLook(next: MonkeyLook) {
+  const current = lookExt(look);
+  (next as MonkeyLookX).x = { ...lookExt(next), gender: current.gender ?? "male", showGlasses: current.showGlasses ?? true };
+  look = next; apply(); sfx("pop"); render();
+}
 function set(path: string, v: string | number | boolean) {
-  if (path === "x.pocketSquare") v = v === "yes";
+  if (path === "x.gender") {
+    look = structuredClone(v === "female" ? FEMALE_LOOK : DEFAULT_LOOK);
+    apply(); return;
+  }
+  if (path === "x.pocketSquare" || path === "x.showGlasses") v = v === "yes";
   const parts = path.split("."); let o = look as unknown as Record<string, unknown>;
   for (let i = 0; i < parts.length - 1; i++) o = (o[parts[i]] ??= {}) as Record<string, unknown>; // look.x and its groups are optional
   o[parts[parts.length - 1]] = v; apply();
