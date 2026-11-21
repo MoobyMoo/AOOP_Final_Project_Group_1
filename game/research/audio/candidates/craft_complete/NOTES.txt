@@ -1,0 +1,23 @@
+craft_complete.wav
+Short metallic strike followed by a completion bell.
+
+Source: original AI-assisted additive synthesis created for this repository.
+External audio sources: none.
+Preview: open the WAV in an audio player.
+Location: optional research candidate, outside the Vite public directory.
+Adoption requires a separate audio integration change.
+
+Format: mono, 44100 Hz, signed 16-bit PCM WAV.
+Duration: 0.58 seconds.
+Sample peak: -6 dBFS. RMS: -23.35 dBFS.
+Tone: sine fundamental + 0.15 second harmonic + 0.04 third harmonic.
+Envelope: 6 ms attack, exp(-4 * time / length) decay, 25 ms release.
+Noise: xorshift32 seed 107, optional one-pole lowpass layers.
+Normalization: scale the complete cue to -6 dBFS sample peak.
+Voices [start seconds, length seconds, start Hz, gain, optional end Hz]:
+  [0,0.2,370,1]
+  [0,0.13,957,0.5]
+  [0,0.1,1643,0.25]
+  [0.15,0.4,880,0.7]
+Noise layers [start seconds, length seconds, gain, lowpass smoothing]:
+  [0,0.06,0.3,0.8]
