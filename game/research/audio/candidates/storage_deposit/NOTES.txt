@@ -1,0 +1,21 @@
+storage_deposit.wav
+Three descending plunks for placing loot into storage.
+
+Source: original AI-assisted additive synthesis created for this repository.
+External audio sources: none.
+Preview: open the WAV in an audio player.
+Location: optional research candidate, outside the Vite public directory.
+Adoption requires a separate audio integration change.
+
+Format: mono, 44100 Hz, signed 16-bit PCM WAV.
+Duration: 0.43 seconds.
+Sample peak: -8 dBFS. RMS: -20.38 dBFS.
+Tone: sine fundamental + 0.15 second harmonic + 0.04 third harmonic.
+Envelope: 6 ms attack, exp(-4 * time / length) decay, 25 ms release.
+Noise: xorshift32 seed 108, optional one-pole lowpass layers.
+Normalization: scale the complete cue to -8 dBFS sample peak.
+Voices [start seconds, length seconds, start Hz, gain, optional end Hz]:
+  [0,0.15,740,0.7,610]
+  [0.09,0.17,554.37,0.85,440]
+  [0.19,0.22,369.99,1,290]
+Noise layers [start seconds, length seconds, gain, lowpass smoothing]:
