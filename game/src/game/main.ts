@@ -67,7 +67,7 @@ if (QS.has("dev")) Object.assign(window as unknown as object, { __G: G, __RIG_TU
 addEventListener("pointerdown", unlockAudio); addEventListener("keydown", unlockAudio);
 // Esc settings (ui/settings.ts): the loot screen, the map and the bunker panels own Esc while open and close first;
 // quitting a raid from it is a bonk-out (core/raid.ts quitRaid)
-initSettings({ blocked: () => lootOpen() || mapOpen() || menuPageOpen() || homeApi.panelOpen() || storyPanelOpen() || introRunning(), quit: () => quitRaid() });
+initSettings({ blocked: () => lootOpen() || mapOpen() || menuPageOpen() || (G.scene === "bunker" && homeApi.panelOpen()) || storyPanelOpen() || introRunning(), quit: () => quitRaid() });
 
 // world + rig up front (the map snapshot needs the raid scene built); the gun model is a GLB, loaded before anything asks for it
 await preloadGunModels(); // the Kingpin's GLB, every gun's GLB that has landed, placeholders for the rest
