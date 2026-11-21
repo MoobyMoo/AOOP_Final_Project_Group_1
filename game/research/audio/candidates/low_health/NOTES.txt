@@ -1,0 +1,21 @@
+low_health.wav
+A low double pulse for a health warning.
+
+Source: original AI-assisted additive synthesis created for this repository.
+External audio sources: none.
+Preview: open the WAV in an audio player.
+Location: optional research candidate, outside the Vite public directory.
+Adoption requires a separate audio integration change.
+
+Format: mono, 44100 Hz, signed 16-bit PCM WAV.
+Duration: 0.65 seconds.
+Sample peak: -8 dBFS. RMS: -22.26 dBFS.
+Tone: sine fundamental + 0.15 second harmonic + 0.04 third harmonic.
+Envelope: 6 ms attack, exp(-4 * time / length) decay, 25 ms release.
+Noise: xorshift32 seed 110, optional one-pole lowpass layers.
+Normalization: scale the complete cue to -8 dBFS sample peak.
+Voices [start seconds, length seconds, start Hz, gain, optional end Hz]:
+  [0,0.2,82,1,58]
+  [0.24,0.23,72,0.72,50]
+  [0.01,0.14,164,0.12,116]
+Noise layers [start seconds, length seconds, gain, lowpass smoothing]:
