@@ -284,6 +284,36 @@ body:has(.lv) #ui > .ui-ref.h3,body:has(.mb3-page) #ui > .ui-ref.h3,body:has(.lv
 .lv-mirror-controls{display:flex;align-items:center;justify-content:center;gap:20px;font:500 18px/1.3 var(--a-font);color:var(--a-dim)}
 .lv-mirror-controls .b3{flex:none;min-height:36px;padding:6px 16px;font-size:17px}
 .lv-back-appearance{display:block;width:100%;margin-top:12px}
+.lv-filters{display:grid;grid-template-columns:minmax(0,1fr) 125px 52px;gap:6px;padding:8px 16px 2px}
+.lv-filters input,.lv-filters select{min-width:0;width:100%;height:34px;border:1px solid var(--a-edge);background:#19181c;color:var(--a-ink);font:500 17px var(--a-font);padding:4px 6px}
+.lv-filters input:focus,.lv-filters select:focus{outline:2px solid var(--a-brass)}
+.lv-filters .b3{height:34px;padding:0 6px;font-size:16px}
+.lv-filter-count{margin:4px 16px 8px;color:var(--a-dim);font:500 16px/1.2 var(--a-font)}
+.lv-tagwrap{max-height:calc(var(--rh) - 225px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--a-line) transparent;padding-bottom:16px}
+.ui-short .lv-tagwrap{max-height:calc(var(--rh) - 180px)}
+.tag3:has(.gear-compare) .big{width:120px;height:120px}
+.gear-compare{margin-top:16px;border-top:1px solid var(--a-stitch);padding-top:12px}
+.gear-compare h4{margin:0;font:700 22px/1.2 var(--a-font)}
+.gear-compare p{margin:5px 0 10px;font:500 17px/1.3 var(--a-font);color:#d8c7a8}
+.gear-compare table{width:100%;border-collapse:collapse;font:500 16px/1.3 var(--a-font);font-variant-numeric:tabular-nums}
+.gear-compare th,.gear-compare td{padding:5px 4px;border-bottom:1px solid #9a765155;text-align:right}
+.gear-compare th:first-child{text-align:left}.gear-compare thead{color:#d8c7a8}.gear-compare .gain{color:#9deb94}.gear-compare .loss{color:#ffb09c}
+.departure-check{margin:14px 20px;padding:14px;border:1px solid var(--a-edge);background:#19181c80}
+.departure-check h3{margin:0 0 10px;font:700 24px/1.2 var(--a-font);color:var(--a-brass-hi)}
+.departure-check dl{display:grid;grid-template-columns:120px minmax(0,1fr);gap:8px 12px;margin:0;font:500 18px/1.3 var(--a-font)}
+.departure-check dt{color:var(--a-dim)}.departure-check dd{margin:0}.departure-check p{font-size:16px;margin:10px 0 0}
+.departure-warnings{padding-left:20px;margin:12px 0 0;color:var(--a-warn);font:600 17px/1.4 var(--a-font)}
+.departure-ready{color:var(--a-stam)}
+.h3-routes{position:absolute;left:16px;top:245px;width:350px;pointer-events:auto;background:#1d1c20e8;border:1px solid var(--a-edge);color:var(--a-ink);font:600 18px/1.3 var(--a-font)}
+.h3-routes summary{padding:10px 12px;cursor:pointer;color:var(--a-brass-hi)}
+.exit-card-list{max-height:420px;overflow:auto;overscroll-behavior:contain;padding:0 12px 10px}
+.exit-card{padding:9px 0;border-top:1px solid var(--a-line)}.exit-card>div{display:flex;justify-content:space-between;gap:10px}
+.exit-card small{display:block;font-size:16px;color:var(--a-dim);margin-top:4px}.exit-card p{margin:4px 0 0;font-size:16px;color:var(--a-stam)}.exit-card.locked p{color:var(--a-warn)}
+.slip .raid-report{border-top:1.5px dashed #9c907a;margin-top:14px;padding-top:4px}
+.slip .raid-report h3{margin:14px 0 6px;font:700 21px/1.2 var(--a-font)}
+.slip .raid-report p,.slip .raid-report li{font:500 14px/1.5 var(--a-mono);color:#5a4a36;margin:4px 0}
+.slip .raid-report article{margin:10px 0}.slip .raid-report small{display:block;color:#2f7a3a;margin-top:3px;font:500 14px/1.3 var(--a-mono)}
+.slip .raid-report ul{padding-left:18px;margin:5px 0}
 .tag3{position:relative;background:linear-gradient(180deg,var(--a-leather-hi),var(--a-leather));border-radius:10px 10px 4px 4px;padding:30px 30px 24px;box-shadow:0 14px 40px rgba(0,0,0,.6);color:var(--a-ink)}
 .tag3::before{content:"";position:absolute;inset:9px;border:1.5px dashed var(--a-stitch);border-radius:6px 6px 2px 2px;pointer-events:none}
 .tag3 .hole{position:absolute;top:14px;left:50%;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:#0e0d10;box-shadow:0 0 0 4px var(--a-brass)}
@@ -463,7 +493,7 @@ body:has(.lv) #ui > .ui-ref.h3,body:has(.mb3-page) #ui > .ui-ref.h3,body:has(.lv
 @media (prefers-reduced-motion:reduce){.curtain3,.curtain3 .cdots b{transition:none;animation:none}}
 
 /* ---------------------------------------------------------------- the payout slip (end of raid): B's receipt idea in A's palette */
-.panel.result{width:min(500px,92vw);padding:0;background:none;border:0;box-shadow:none;overflow:visible;animation:a-slip .45s cubic-bezier(.2,.8,.2,1)}
+.panel.result{width:min(500px,92vw);padding:12px 0;background:none;border:0;box-shadow:none;overflow-y:auto;overflow-x:hidden;animation:a-slip .45s cubic-bezier(.2,.8,.2,1)}
 @keyframes a-slip{from{opacity:0;transform:translate(-50%,-38%)}}
 .slip{position:relative;background:linear-gradient(180deg,#f3ead6,#e9dcc0);color:#2a2018;padding:30px 30px 26px;filter:drop-shadow(0 18px 30px rgba(0,0,0,.6));font-family:var(--a-mono)}
 .slip::before,.slip::after{content:"";position:absolute;left:0;right:0;height:12px;background:radial-gradient(circle at 9px -2px,transparent 8px,#f3ead6 8.5px) 0 0/18px 12px repeat-x}
