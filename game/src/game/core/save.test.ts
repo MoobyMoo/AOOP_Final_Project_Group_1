@@ -1,4 +1,4 @@
-import { DEFAULT_LOOK } from "../actors/look";
+import { DEFAULT_LOOK, FEMALE_LOOK, decodeLook, encodeLook, lookExt, sanitizeLook } from "../actors/look";
 import { KINGPIN } from "../combat/weapons";
 import { load, migrate, reset, save, retainKeys } from "./save";
 import { CATALOG, STARTERS, build, canBuild, checkPlace, craft, defOf, legacyBase, move, packUp, stashCapacity } from "../home/facilities";
@@ -34,6 +34,17 @@ reset();
 assert(fresh.v === 1 && fresh.money === 0 && fresh.raids === 0, "missing storage returns defaults");
 assert(Number.isFinite(Date.parse(fresh.createdAt)), "creation date is valid");
 equal(fresh.look, DEFAULT_LOOK, "brand default look");
+{
+  const appearance = structuredClone(FEMALE_LOOK);
+  const customized = migrate({ ...fresh, look: appearance });
+  save(customized);
+  assert(lookExt(load().look).gender === "female" && lookExt(load().look).showGlasses === false, "female character and hidden starter glasses survive save and load");
+  const shared = decodeLook(encodeLook(appearance));
+  assert(shared !== null && lookExt(shared).gender === "female" && lookExt(shared).showGlasses === false, "share codes preserve character gender and hidden glasses");
+  const invalid = sanitizeLook({ ...DEFAULT_LOOK, x: { gender: "invalid", showGlasses: "false" } })!;
+  assert(lookExt(invalid).gender === "male" && lookExt(invalid).showGlasses === undefined, "invalid appearance options fall back safely");
+  reset();
+}
 fresh.look.tie.color = "#000000";
 assert(load().look.tie.color === DEFAULT_LOOK.tie.color, "fresh nested defaults are not shared");
 assert(itemType(fresh.gear.head!) === "bowler" && itemType(fresh.gear.face!) === "shades" && fresh.satchel === null, "default gear and no satchel");
