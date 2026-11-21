@@ -114,7 +114,7 @@ export function confirmHtml(id: string, save: SaveV1) {
   return `<header><h2>Confirm departure</h2><small class="num">🍌 ${save.money}</small></header>
     <div class="dconf">${img ? `<img src="${img}" alt="">` : ""}<div><b>${d.name}</b><p>${d.blurb}</p></div></div>
     <div class="total"><span>Fare</span><b class="num">${fare(d.cost)}</b></div>
-    <p class="dim">${d.cost ? `Paid once when you press Launch. You'll have 🍌 ${left} left.` : "No fare on this route."}</p>
+    <p class="dim fare-note">${d.cost ? `Paid once when you press Launch. You'll have 🍌 ${left} left.` : "No fare on this route."}</p>
     <div class="actions"><button data-a="launch:${d.id}" class="launch">Launch</button><button class="ghost" data-a="dests">Back</button></div>`;
 }
 
