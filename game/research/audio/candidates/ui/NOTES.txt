@@ -1,0 +1,22 @@
+Bananaville optional audio candidates
+
+Source: original AI-assisted additive synthesis created for this repository.
+External audio sources: none.
+Format: mono, 44100 Hz, signed 16-bit PCM WAV. Sample peak: -6 dBFS.
+Envelope: 6 ms attack, exponential decay, 25 ms release.
+These candidates are outside the Vite public directory. Preview them in an
+audio player. Adoption requires a separate audio integration change.
+
+ui_confirm.wav
+Ascending two-note menu confirmation.
+Duration: 0.30 seconds.
+Voices [start seconds, length seconds, start Hz, gain, optional end Hz]:
+  [0,0.17,660,1]
+  [0.08,0.21,990,0.85]
+
+ui_back.wav
+Soft descending cue for returning from a menu.
+Duration: 0.22 seconds.
+Voices [start seconds, length seconds, start Hz, gain, optional end Hz]:
+  [0,0.15,620,0.8,480]
+  [0.065,0.15,390,0.7]
