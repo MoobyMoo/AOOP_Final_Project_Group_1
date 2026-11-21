@@ -40,6 +40,8 @@ import { packStacks } from "../loot/pack";
 import { lookExt } from "../actors/look";
 import { checkpointInventory, consumeInstance } from "../core/raid-journal";
 import { createAppearance } from "./appearance";
+import { emptyLootFilter, matchesLoot, LOOT_FILTERS, type LootFilter } from "./lootfilters";
+import { equipmentComparison, gunComparisons, type Comparison } from "./gearcompare";
 
 export type LootTarget = {
   /** header title: "Ammo tin", "Peel Gang bandit" */
@@ -81,6 +83,20 @@ let closedAt = -1e9, sigLeft = "", sigThem = "", msgT = 0, tipEl: HTMLDivElement
 const home = () => G.scene === "bunker";
 const gear = () => (home() ? G.save.gear : G.gear);
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+const filters = { mine: emptyLootFilter(), them: emptyLootFilter() };
+const filtering = (f: LootFilter) => f.category !== "all" || !!f.query.trim();
+function filterHtml(zone: "mine" | "them") {
+  const f = filters[zone];
+  return `<div class="lv-filters"><input type="search" data-filter-query="${zone}" aria-label="Search ${zone === "mine" ? "pack" : "container"}" placeholder="Search items…" maxlength="80" value="${esc(f.query)}"><select data-filter-category="${zone}" aria-label="${zone === "mine" ? "Pack" : "Container"} category">${Object.entries(LOOT_FILTERS).map(([k, v]) => `<option value="${k}" ${k === f.category ? "selected" : ""}>${v}</option>`).join("")}</select><button class="b3 small" data-act="clear-${zone}" aria-label="Clear ${zone === "mine" ? "pack" : "container"} filters">Clear</button></div>`;
+}
+function comparisonHtml(inst: string) {
+  const comparison = equipmentComparison(inst, gear()); if (!comparison) return "";
+  return comparisonTable(comparison);
+}
+function comparisonTable(comparison: Comparison) {
+  const number = (n: number) => Number(n.toFixed(2)).toString();
+  return `<section class="gear-compare" aria-label="Equipment comparison"><h4>Loadout comparison</h4><p>${esc(comparison.current)} / ${esc(comparison.candidate)}</p><table><thead><tr><th>Stat</th><th>Current</th><th>With item</th><th>Change</th></tr></thead><tbody>${comparison.rows.map(row => `<tr><th>${row.label}</th><td>${number(row.before)}${row.unit}</td><td>${number(row.after)}${row.unit}</td><td class="${Math.abs(row.delta) < 1e-6 ? "" : row.good ? "gain" : "loss"}">${row.delta > 0 ? "+" : ""}${number(row.delta)}${row.unit}</td></tr>`).join("") || `<tr><td colspan="4">No change to loadout stats.</td></tr>`}</tbody></table></section>`;
+}
 
 export const lootOpen = () => !!root;
 export const lootTarget = () => target;
@@ -418,8 +434,14 @@ function leftHtml() {
     const stash = G.save.reserved.length;
     body += `<div class="lv-sect">At home</div><p class="lv-empty">Gear you find comes home to this locker. ${stash ? `${stash} item${stash > 1 ? "s" : ""} wait in your stash for the Fence.` : "Your stash is empty."} Pieces marked ★ are yours for good.</p>`;
   } else {
-    let cells = ""; for (let i = 0; i < G.packSlots; i++) cells += cellHtml(stacks[i]?.[0], "pack:" + i, { pouch: i < G.pouchSlots, count: stacks[i]?.length });
-    body += `<div class="lv-sect">Pack <button class="b3 small" data-act="sort" data-tip="Most valuable first, so the cheek pouch keeps the best (R)">Sort <kbd>R</kbd></button></div><div class="lv-grid" data-drop="packGrid">${cells}</div>
+    let cells = "", matched = 0;
+    for (let i = 0; i < G.packSlots; i++) {
+      const inst = stacks[i]?.[0];
+      if (inst && matchesLoot(inst, filters.mine)) matched++;
+      if (filtering(filters.mine) && (!inst || !matchesLoot(inst, filters.mine))) continue;
+      cells += cellHtml(inst, "pack:" + i, { pouch: i < G.pouchSlots, count: stacks[i]?.length });
+    }
+    body += `<div class="lv-sect">Pack <button class="b3 small" data-act="sort" data-tip="Most valuable first, so the cheek pouch keeps the best (R)">Sort <kbd>R</kbd></button></div>${filterHtml("mine")}<p class="lv-filter-count">${matched} of ${stacks.length} occupied slots shown</p><div class="lv-grid" data-drop="packGrid">${cells}</div>${!matched && filtering(filters.mine) ? `<p class="lv-empty">No matching items. Clear your filters to see everything.</p>` : ""}
       <p class="lv-empty lv-pouch">The first ${G.pouchSlots} slots are your cheek pouch: kept even if you get bonked.</p>`;
   }
   const title = lookExt(G.save.look).gender === "female" ? "The Businesswoman" : "The Businessman";
@@ -434,6 +456,7 @@ function themHtml() {
   let cells = "";
   for (let i = 0; i < n; i++) {
     const e = list[i], k = "them:" + i;
+    if (filtering(filters.them) && (!e?.revealed || !matchesLoot(e.item, filters.them))) continue;
     if (!e) { cells += `<div class="c3 empty" data-drop="${k}"></div>`; continue; }
     if (!e.revealed) {
       const scan = list.findIndex((q) => !q.revealed) === i;
@@ -450,7 +473,7 @@ function themHtml() {
   const sortBtn = home() ? `<button class="b3 small" data-act="sort">Sort <kbd>R</kbd></button>` : "";
   return `${BRK}<header class="lv-head"><h2>${esc(target.name)}</h2><small class="num">${count}</small></header><div class="tie ${stripe}"></div>
     <div class="lv-sect">${home() ? "Stored gear" : searching ? "Searching…" : list.length ? "Searched" : "Empty"}${target.sub ? `<span class="note">${esc(target.sub)}</span>` : ""}${sortBtn}</div>
-    <div class="lv-body"><div class="lv-grid" data-drop="themGrid">${cells}</div>${!list.length && !home() ? `<p class="lv-empty" style="margin-top:12px">Nothing left. Drag things here to leave them behind.</p>` : ""}</div>
+    <div class="lv-body">${filterHtml("them")}<p class="lv-filter-count">${list.filter(e => e.revealed && matchesLoot(e.item, filters.them)).length} of ${shown} searched items shown${searching ? ` · ${searching} still hidden` : ""}</p><div class="lv-grid" data-drop="themGrid">${cells}</div>${!cells && filtering(filters.them) ? `<p class="lv-empty">No matching searched items.</p>` : ""}${!list.length && !home() ? `<p class="lv-empty" style="margin-top:12px">Nothing left. Drag things here to leave them behind.</p>` : ""}</div>
     <div class="lv-foot">${takeBtn}${extra}</div>`;
 }
 function tagHtml() {
@@ -518,7 +541,7 @@ function tagHtml() {
   return `<div class="tag3" style="--rar:var(--rar-${d.rarity})"><span class="hole"></span>${iconHtml(inst, 200).replace('class="ico"', 'class="ico big"')}
     <h3>${esc(d.name)}</h3><div class="rar">${esc(cp.rarityLine)}</div>${cp.blurb ? `<p class="blurb">${esc(cp.blurb)}</p>` : ""}
     ${cp.lines?.length ? `<ul class="does stats">${cp.lines.map((l) => `<li class="${l.good ? "up" : "down"}">${esc(l.text)}</li>`).join("")}</ul>` : cp.does.length ? `<ul class="does">${cp.does.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>` : ""}<ul class="facts">${facts.join("")}</ul>
-    ${acts.length ? `<div class="acts">${acts.join("")}</div>` : ""}${how ? `<p class="how">${esc(how)}</p>` : ""}</div>`.replace('<span class="emo"', '<span class="emo bigemo"');
+    ${e ? comparisonHtml(inst) : ""}${acts.length ? `<div class="acts">${acts.join("")}</div>` : ""}${how ? `<p class="how">${esc(how)}</p>` : ""}</div>`.replace('<span class="emo"', '<span class="emo bigemo"');
 }
 /** a gun's tag: tier, class, the numbers that matter (with its fitted parts), and loaded / reserve when it is slotted */
 function gunTagHtml(src: Src, inst: string) {
@@ -541,7 +564,7 @@ function gunTagHtml(src: Src, inst: string) {
     : src.z === "them" ? btn("primary", home() ? "Put in a gun slot" : "Take", true) + (home() ? "" : btn("wear", "Take into a gun slot")) : "";
   return `<div class="tag3" style="--rar:var(--rar-${def.tier})"><span class="hole"></span>${iconHtml(inst, 140).replace('class="ico"', 'class="ico big"')}
     <h3>${esc(def.name)}</h3><div class="rar">${esc(`${t.name} ${CLASS_LABEL[def.cls].toLowerCase()}${def.bound ? ", yours for good" : ""}`)}</div><p class="blurb">${esc(def.blurb)}</p>
-    <ul class="does"><li>${esc(def.trait)}</li></ul><ul class="facts">${facts}</ul>${acts ? `<div class="acts">${acts}</div>` : ""}</div>`.replace('<span class="emo"', '<span class="emo bigemo"');
+    <ul class="does"><li>${esc(def.trait)}</li></ul><ul class="facts">${facts}</ul>${src.z !== "gun" ? gunComparisons(inst, G.save.guns).map(comparisonTable).join("") : ""}${acts ? `<div class="acts">${acts}</div>` : ""}</div>`.replace('<span class="emo"', '<span class="emo bigemo"');
 }
 const keysHtml = () => home()
   ? `<span><kbd>Click</kbd>Read the tag</span><span><kbd>Double-click</kbd>Wear or store</span><span><kbd>Drag</kbd>Move</span><span><kbd>R</kbd>Sort</span><span><kbd>Esc</kbd>Close</span>`
@@ -556,6 +579,8 @@ function sigs() {
 }
 function render() {
   if (!root) return;
+  const input = document.activeElement as HTMLInputElement | null;
+  const queryFocus = input?.dataset?.filterQuery, caret = queryFocus ? input?.selectionStart : null;
   const s = sigs(), focus = (document.activeElement as HTMLElement | null)?.dataset?.src;
   if (s.left !== sigLeft) { sigLeft = s.left; (root.querySelector(".lv-me") as HTMLElement).innerHTML = leftHtml(); }
   const them = root.querySelector(".lv-them") as HTMLElement;
@@ -564,6 +589,7 @@ function render() {
   const disp = target || (lootHooks.side && G.scene === "raid") ? "" : "none"; if (them.style.display !== disp) them.style.display = disp;
   renderTag();
   if (focus) (root.querySelector(`[data-src="${focus}"]`) as HTMLElement | null)?.focus({ preventScroll: true });
+  if (queryFocus) { const field = root.querySelector<HTMLInputElement>(`[data-filter-query="${queryFocus}"]`); field?.focus({ preventScroll: true }); if (caret !== null && caret !== undefined) field?.setSelectionRange(caret, caret); }
 }
 let tagKey = "";
 let disposeAppearance: (() => void) | null = null;
@@ -580,7 +606,8 @@ function renderTag() {
   const src = sel ?? hover, inst = itemAt(src), en = src?.z === "them" ? entries()[src.i] : undefined;
   const quantity = src?.z === "pack" ? packStack(src.i)?.length : en ? stackOf(en) : undefined;
   const k = (src ? key(src) : "") + (src && src === sel ? "!" : "") + "|" + (inst ?? "") + "|" + (target?.name ?? "") + "|" + G.mag + "/" + G.ammo + "|" + (quantity ?? "") + "|" + (src?.z === "slot" || src?.z === "pack" ? (gear() ? Object.values(gear()).join() : "") : "") + "|" + JSON.stringify(G.save.guns) + G.loaded.join();
-  if (k === tagKey) return; tagKey = k;
+  const compareKey = k + "|" + Object.values(gear() ?? {}).join();
+  if (compareKey === tagKey) return; tagKey = compareKey;
   wrap.innerHTML = tagHtml() + (mirror ? `<button type="button" class="b3 lv-back-appearance" data-act="appearance">Back to appearance</button>` : "");
 }
 
@@ -589,6 +616,7 @@ export function openLoot(t: LootTarget | null) {
   const fresh = !root;
   if (root && target && target !== t) target.onClose?.();
   target = t; sel = null; hover = null; sigLeft = sigThem = tagKey = "";
+  filters.mine = emptyLootFilter(); filters.them = emptyLootFilter();
   if (G.scene === "raid") menuOpened("pack"); // the bar across the top; closes the map or a Jobs or Notes page
   if (!root) {
     root = document.createElement("div"); root.className = "lv opening"; root.setAttribute("role", "dialog"); root.setAttribute("aria-label", t ? t.name : "Your pack");
@@ -645,6 +673,16 @@ function dropKeyAt(x: number, y: number): string | null {
   return hit ? hit.dataset.src ?? hit.dataset.drop ?? null : null;
 }
 function wire(r: HTMLDivElement) {
+  const updateFilter = (e: Event) => {
+    const field = e.target as HTMLInputElement | HTMLSelectElement;
+    const zone = (field.dataset.filterQuery ?? field.dataset.filterCategory) as "mine" | "them" | undefined;
+    if (!zone) return;
+    if (field.dataset.filterQuery) filters[zone].query = field.value;
+    else if (Object.hasOwn(LOOT_FILTERS, field.value)) filters[zone].category = field.value as LootFilter["category"];
+    sel = hover = null; sigLeft = sigThem = ""; render();
+  };
+  r.addEventListener("input", updateFilter);
+  r.addEventListener("change", e => { if ((e.target as HTMLElement).matches("select[data-filter-category]")) updateFilter(e); });
   r.addEventListener("pointerdown", (e) => {
     const el = (e.target as HTMLElement).closest("[data-src]") as HTMLElement | null;
     if (e.button !== 0) return;
@@ -658,6 +696,7 @@ function wire(r: HTMLDivElement) {
     const b = (e.target as HTMLElement).closest("[data-act]") as HTMLElement | null; if (!b) return;
     const a = b.dataset.act!, src = sel ?? hover;
     if (a === "appearance") { sel = hover = null; render(); return; }
+    if (a === "clear-mine" || a === "clear-them") { filters[a === "clear-mine" ? "mine" : "them"] = emptyLootFilter(); sel = hover = null; sigLeft = sigThem = ""; render(); return; }
     if (a === "sort") return sortMine();
     if (a === "takeall") return takeAllSearched();
     if (a[0] === "x") { target?.actions?.[+a.slice(1)]?.run(); return; }
@@ -722,6 +761,7 @@ function showTip(el: HTMLElement | null) {
 }
 function onKey(e: KeyboardEvent) {
   if (!root) return;
+  if ((e.target as HTMLElement)?.matches("input,select,textarea") && e.key !== "Escape") { e.stopImmediatePropagation(); return; }
   const k = e.key.toLowerCase();
   if (k === "escape" || (k === "e" && target) || (k === "tab" && home())) { e.preventDefault(); e.stopPropagation(); closeLoot(); return; }
   if (k === "r" && !e.repeat) { e.stopPropagation(); sortMine(); return; }
