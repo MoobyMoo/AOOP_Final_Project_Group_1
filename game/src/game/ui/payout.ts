@@ -3,10 +3,11 @@
 // (green "Home safe", red "Bonked"). Shown by home/bunker.ts as the arrival panel (class "result").
 import { itemDef } from "../loot/raidloot";
 import { iconHtml } from "./itemicon";
+import type { RaidReport } from "../core/raid-report";
 
 export type PayoutInfo = { raid: number; how: "bonked" | "raft" | "tunnel" | string; raidT: number; kills: number; crates: number; kept: string[]; lost: number; value: number; bonus: number; vineKey: boolean; delivery?: number;
   /** extra slip sections (main.ts): the wager result, the factory's run, Double or Nothing (home/econ-ui.ts) */
-  extra?: string };
+  extra?: string; report?: RaidReport };
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
 export function payoutSlip(p: PayoutInfo) {
@@ -24,7 +25,8 @@ export function payoutSlip(p: PayoutInfo) {
     <div class="how ${bad ? "bad" : "ok"}">${how}</div><p class="sub">${sub}</p><hr>
     <table><tr><td>Enemies bonked</td><td>${p.kills}</td></tr><tr><td>Crates opened</td><td>${p.crates}</td></tr></table><hr>
     ${p.kept.length ? `<div class="items"><table>${rows}</table></div>` : `<p class="sub">Nothing came home this time.</p>`}
-    <table>${p.bonus ? `<tr><td>Raft bonus, paid now</td><td>🍌 ${p.bonus}</td></tr>` : ""}<tr class="tot"><td>Haul value</td><td>🍌 ${p.value + p.bonus}</td></tr></table>
+    <table><tr><td>Items brought home</td><td>${p.kept.length}</td></tr><tr><td>Loot appraisal (sell later)</td><td>🍌 ${p.value}</td></tr>${p.bonus ? `<tr><td>Raft bonus, paid now</td><td>🍌 ${p.bonus}</td></tr>` : ""}<tr class="tot"><td>Haul + bonus value</td><td>🍌 ${p.value + p.bonus}</td></tr>${p.report ? `<tr><td>Wallet change since landing</td><td>${p.report.cashChange >= 0 ? "+" : "−"}🍌 ${Math.abs(p.report.cashChange)}</td></tr>` : ""}</table>
+    ${p.report ? `<section class="raid-report"><h3>Job progress</h3>${p.report.jobs.length ? p.report.jobs.map(job => `<article><b>${esc(job.title)}</b><small>${esc(job.status)}</small><ul>${job.tasks.map(task => `<li>${esc(task)}</li>`).join("")}</ul></article>`).join("") : `<p>No job progress this raid.</p>`}<h3>New accessories</h3><p>${p.report.accessories.length ? p.report.accessories.map(esc).join(" · ") + " · Available in your locker or equipped slots." : "No new accessories brought home."}</p><h3>Unlocks</h3><p>${p.report.unlocks.length ? p.report.unlocks.map(esc).join(" · ") : "No new unlocks this raid."}</p></section>` : ""}
     ${p.lost ? `<p class="lost">${p.lost} item${p.lost > 1 ? "s" : ""} stayed in your satchel where you fell. Recover it next raid.</p>` : ""}
     ${p.vineKey ? `<p class="note">The Vine Key is on your keyring. The vault opens next raid.</p>` : ""}
     ${p.delivery ? `<p class="note">${p.delivery} owned item${p.delivery === 1 ? " is" : "s are"} safe in delivery. Free stash space or build a Safe-Deposit Wall to receive them automatically. Nothing expires.</p>` : ""}
