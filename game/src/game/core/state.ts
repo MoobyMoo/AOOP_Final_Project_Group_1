@@ -74,5 +74,7 @@ export const G = {
   encounters: [] as { id: string; count: number }[],
 };
 export const V = (x: number, z: number, y = 0) => new THREE.Vector3(x, y, z);
+export const ENTRY_GRACE_SECONDS = 10;
+export const entryGraceRemaining = () => G.scene === "raid" && G.alive ? Math.max(0, ENTRY_GRACE_SECONDS - G.raidT) : 0;
 export const flat = (a: { x: number; z: number }, b: { x: number; z: number }) => Math.hypot(a.x - b.x, a.z - b.z);
 export const angDiff = (a: number, b: number) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
