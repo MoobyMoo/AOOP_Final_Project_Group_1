@@ -1,0 +1,24 @@
+Bananaville optional audio candidates
+
+Source: original AI-assisted additive synthesis created for this repository.
+External audio sources: none.
+Format: mono, 44100 Hz, signed 16-bit PCM WAV. Sample peak: -6 dBFS.
+Envelope: 6 ms attack, exponential decay, 25 ms release.
+These candidates are outside the Vite public directory. Preview them in an
+audio player. Adoption requires a separate audio integration change.
+
+loot_pickup.wav
+Bright pickup bell with a short high overtone.
+Duration: 0.32 seconds.
+Voices [start seconds, length seconds, start Hz, gain, optional end Hz]:
+  [0,0.27,1046.5,1]
+  [0.045,0.27,1567.98,0.5]
+  [0.07,0.2,2093,0.2]
+
+cash_reward.wav
+Three-note cash reward arpeggio.
+Duration: 0.52 seconds.
+Voices [start seconds, length seconds, start Hz, gain, optional end Hz]:
+  [0,0.28,783.99,0.8]
+  [0.09,0.3,987.77,0.85]
+  [0.19,0.32,1318.51,1]
