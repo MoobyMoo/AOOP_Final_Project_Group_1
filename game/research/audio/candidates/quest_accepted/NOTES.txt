@@ -1,0 +1,20 @@
+quest_accepted.wav
+Ascending pair for accepting a new task.
+
+Source: original AI-assisted additive synthesis created for this repository.
+External audio sources: none.
+Preview: open the WAV in an audio player.
+Location: optional research candidate, outside the Vite public directory.
+Adoption requires a separate audio integration change.
+
+Format: mono, 44100 Hz, signed 16-bit PCM WAV.
+Duration: 0.42 seconds.
+Sample peak: -6 dBFS. RMS: -18.3 dBFS.
+Tone: sine fundamental + 0.15 second harmonic + 0.04 third harmonic.
+Envelope: 6 ms attack, exp(-4 * time / length) decay, 25 ms release.
+Noise: xorshift32 seed 105, optional one-pole lowpass layers.
+Normalization: scale the complete cue to -6 dBFS sample peak.
+Voices [start seconds, length seconds, start Hz, gain, optional end Hz]:
+  [0,0.22,440,0.8]
+  [0.12,0.28,659.26,1]
+Noise layers [start seconds, length seconds, gain, lowpass smoothing]:
