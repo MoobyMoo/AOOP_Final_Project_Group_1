@@ -19,6 +19,7 @@ export const TIES: TieStyle[] = ["tie", "bowtie", "none"], FEET: FeetStyle[] = [
 /** suit front, a swappable mesh: two-button jacket, double-breasted jacket, vest over shirt sleeves, open jacket */
 export type JacketStyle = "two" | "double" | "vest" | "open";
 export const JACKETS: JacketStyle[] = ["two", "double", "vest", "open"];
+export const GENDERS = ["male", "female"] as const;
 /** Extra creator fields the rig understands. They ride on the look as the optional `x` property (MonkeyLookX), so the
  *  contract type is untouched; every field is optional and defaults to the brand look.
  *   build         -1 slim .. 0 standard .. 1 chubby (shape key "build" on the torso, sleeves, legs, suit front, tie)
@@ -27,6 +28,7 @@ export const JACKETS: JacketStyle[] = ["two", "double", "vest", "open"];
  *                 (brows + nostrils + mouth line), buttons, square (pocket square), hands (default: the face colour)
  *   gear          recolour the worn gear per slot: main / accent (which region each maps to: wearables.ts WEAR_ZONES) */
 export type LookExt = {
+  gender?: typeof GENDERS[number]; showGlasses?: boolean;
   build?: number; jacket?: JacketStyle; pocketSquare?: boolean;
   colors?: { innerEar?: string; eyes?: string; shirt?: string; brows?: string; buttons?: string; square?: string };
   gear?: { head?: GearTint; face?: GearTint; back?: GearTint; body?: GearTint; ears?: GearTint };
@@ -36,6 +38,11 @@ export type MonkeyLookX = MonkeyLook & { x?: LookExt };
 export const lookExt = (l: MonkeyLook): LookExt => (l as MonkeyLookX).x ?? {};
 
 const L = (o: Partial<MonkeyLook>, x?: LookExt): MonkeyLookX => ({ ...structuredClone(DEFAULT_LOOK), ...o, ...(x ? { x } : {}) });
+export const FEMALE_LOOK: MonkeyLookX = L({
+  fur: "#b97b50", face: "#f6d2b0", headSize: 0.02,
+  eyes: { style: "sparkle", spacing: 1.04 }, brows: { style: "thin", tilt: -0.15 }, mouth: "smile",
+  tie: { style: "bowtie", color: "#e6a0ae" }, feet: { style: "shoes", color: "#80533c" },
+}, { gender: "female", showGlasses: false, colors: { innerEar: "#efb3a6", brows: "#664331", shirt: "#fff1df" } });
 export const LOOK_PRESETS: { name: string; look: MonkeyLook }[] = [
   { name: "The Businessman", look: DEFAULT_LOOK },
   { name: "Blue Monday", look: L({ suit: "#3c5a8c", pants: "#2c3550", tie: { style: "tie", color: "#ff8a2a" } }, { pocketSquare: true, colors: { square: "#ff8a2a" } }) },
@@ -85,6 +92,8 @@ function sanitizeExt(x: LookExt | undefined): LookExt | undefined {
   const zone = (z: { main?: string; accent?: string } | undefined) => (z && typeof z === "object" ? { main: optCol(z.main), accent: optCol(z.accent) } : undefined);
   const c = x.colors ?? {}, g = x.gear ?? {};
   return JSON.parse(JSON.stringify({
+    gender: x.gender === undefined ? undefined : one(x.gender, GENDERS, "male"),
+    showGlasses: typeof x.showGlasses === "boolean" ? x.showGlasses : undefined,
     build: clamp(x.build, -1, 1, 0), jacket: one(x.jacket, JACKETS, "two"), pocketSquare: !!x.pocketSquare,
     colors: { innerEar: optCol(c.innerEar), eyes: optCol(c.eyes), shirt: optCol(c.shirt), brows: optCol(c.brows), buttons: optCol(c.buttons), square: optCol(c.square) },
     gear: { head: zone(g.head), face: zone(g.face), back: zone(g.back), body: zone(g.body), ears: zone(g.ears) },
