@@ -272,6 +272,18 @@ body:has(.lv) #ui > .ui-ref.h3,body:has(.mb3-page) #ui > .ui-ref.h3,body:has(.lv
 /* the leather luggage tag: item details */
 .lv-tagwrap{left:50%;top:150px;width:563px;transform:translateX(-50%)}
 .ui-short .lv-tagwrap{top:64px}
+.lv-appearance{position:absolute;left:50%;top:150px;width:520px;height:min(740px,calc(var(--rh) - 240px));transform:translateX(-50%)}
+.ui-short .lv-appearance{top:108px;height:calc(var(--rh) - 185px)}
+.lv-appearance[hidden],.lv-tagwrap[hidden]{display:none}
+.lv-mirror{height:100%;display:flex;flex-direction:column;padding:24px 20px 18px;border:3px solid var(--a-brass);border-radius:90px 90px 8px 8px;background:radial-gradient(ellipse at 50% 38%,#635347 0%,#302824 56%,#19171a 100%);box-shadow:0 16px 40px #0008,inset 0 0 0 5px #282221,inset 0 0 0 6px #a28150;color:var(--a-ink)}
+.lv-mirror h3{margin:8px 0 0;text-align:center;font:700 32px/1.2 var(--a-font)}
+.lv-mirror p{margin:6px 0 0;text-align:center;color:var(--a-dim);font:500 17px/1.2 var(--a-font)}
+.lv-mirror canvas{display:block;flex:1;min-height:0;width:100%;object-fit:contain;cursor:grab;touch-action:none;outline-offset:-4px}
+.lv-mirror canvas.turning{cursor:grabbing}
+.lv-mirror canvas:focus-visible{outline:2px solid var(--a-brass-hi)}
+.lv-mirror-controls{display:flex;align-items:center;justify-content:center;gap:20px;font:500 18px/1.3 var(--a-font);color:var(--a-dim)}
+.lv-mirror-controls .b3{flex:none;min-height:36px;padding:6px 16px;font-size:17px}
+.lv-back-appearance{display:block;width:100%;margin-top:12px}
 .tag3{position:relative;background:linear-gradient(180deg,var(--a-leather-hi),var(--a-leather));border-radius:10px 10px 4px 4px;padding:30px 30px 24px;box-shadow:0 14px 40px rgba(0,0,0,.6);color:var(--a-ink)}
 .tag3::before{content:"";position:absolute;inset:9px;border:1.5px dashed var(--a-stitch);border-radius:6px 6px 2px 2px;pointer-events:none}
 .tag3 .hole{position:absolute;top:14px;left:50%;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:#0e0d10;box-shadow:0 0 0 4px var(--a-brass)}
