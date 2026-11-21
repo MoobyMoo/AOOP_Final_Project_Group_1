@@ -40,6 +40,7 @@ import { refreshEquipment, restoreBoundKit } from "../loot/equipment-actions";
 import { pickEntry, type SpawnPick } from "./deployment";
 import { commitSave } from "./save";
 import { beginRaid, settleRaid } from "./settlement";
+import { startingSupplies } from "./loadout";
 import { checkpointInventory } from "./raid-journal";
 import { itemType, own } from "../loot/instances";
 import { placeItem } from "../loot/raidloot";
@@ -99,10 +100,7 @@ export function startRaid(end: (r: RaidResult) => void, entry: RaidEntry = {}) {
   G.pouchSlots = 2; G.pack = []; G.equipping = null; G.equipmentEvents = []; refreshEquipment();
   // heals bought at home come along (up to 3)
   const outbound = structuredClone(G.save);
-  for (const h of ["firstaid", "smoothie", "bandage"]) {
-    let index = -1;
-    while (G.pack.length < 3 && (index = outbound.reserved.findIndex(inst => itemType(inst) === h)) >= 0) G.pack.push(outbound.reserved.splice(index, 1)[0]);
-  }
+  for (const inst of startingSupplies(outbound)) G.pack.push(outbound.reserved.splice(outbound.reserved.indexOf(inst), 1)[0]);
   G.save = beginRaid(outbound, crypto.randomUUID(), G.pack, G.gear);
   G.discovered = new Set(); G.area = ""; G.lockTarget = null;
   G.log = { crates: 0, kills: {}, killsBy: { pistol: 0, briefcase: 0 }, shots: 0, hits: 0, hurt: 0, rolls: 0, swaps: 0, missed: 0, firstShot: -1, firstCrate: -1, firstRoll: -1, breaks: [], value: 0 };
