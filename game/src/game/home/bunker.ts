@@ -122,7 +122,7 @@ export function enterBunker(deploy: (req: DeployRequest) => void, mirror: () => 
   sync(); drawHud();
   if (summary) showPanel(summary, "result");
 }
-export function leaveBunker() { stopFactoryHums(); closeBuild(); closePanel(); clearBarks(); squish = 1; lift = 0; G.rig?.root.scale.setScalar(1); // the raid shares the rig: undo the pod's stretch
+export function leaveBunker() { launching = false; stopFactoryHums(); closeBuild(); closePanel(); clearBarks(); squish = 1; lift = 0; G.rig?.root.scale.setScalar(1); // the raid shares the rig: undo the pod's stretch
   G.stage.hemi.intensity = Number(new URLSearchParams(location.search).get("fill") ?? 0.9); G.stage.sun.intensity = Number(new URLSearchParams(location.search).get("sun") ?? 6); G.stage.bounce.intensity = Number(new URLSearchParams(location.search).get("bounce") ?? 1.6); }
 function drawHud() {
   const empty = !G.save.base.items.length;
