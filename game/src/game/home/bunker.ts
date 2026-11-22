@@ -107,8 +107,12 @@ function iconTex(icon: string) { const c = document.createElement("canvas"); c.w
 // ---------------------------------------------------------------- the home visit
 let panel: HTMLDivElement | null = null, onDeploy: (req: DeployRequest) => void = () => {}, onMirror: () => void = () => {};
 const pp = new THREE.Vector3(), vel = new THREE.Vector3(); let face = 0, launching = false, lift = 0, squish = 1;
+const dashDir = new THREE.Vector3();
+let dashT = -1, dashCooldown = 0, dashBuffer = 0;
+function stopHomeDash() { dashT = -1; dashBuffer = 0; vel.set(0, 0, 0); }
 export function enterBunker(deploy: (req: DeployRequest) => void, mirror: () => void, summary?: string) {
   onDeploy = deploy; onMirror = mirror; launching = false; lift = 0; squish = 1; buildRoom();
+  stopHomeDash(); dashCooldown = 0;
   initVault({ show: showPanel, close: closePanel, refresh: () => sync(), money }); setExtras({ sal: () => wagerRowsHtml() + salShopHtml() }); trackT = 0;
   initEconUi({ reopen: (id, uid) => { const st = stations.find((q) => q.id === id && (uid === undefined || q.uid === uid)); if (st) open(st); else closePanel(); }, money, refresh: () => sync(), closePanel,
     showPanel, float: (text, fac, color) => floatText(text, atFac(fac), color ?? "#fff3c4", 24) });
@@ -122,14 +126,14 @@ export function enterBunker(deploy: (req: DeployRequest) => void, mirror: () => 
   sync(); drawHud();
   if (summary) showPanel(summary, "result");
 }
-export function leaveBunker() { launching = false; stopFactoryHums(); closeBuild(); closePanel(); clearBarks(); squish = 1; lift = 0; G.rig?.root.scale.setScalar(1); // the raid shares the rig: undo the pod's stretch
+export function leaveBunker() { stopHomeDash(); dashCooldown = 0; launching = false; stopFactoryHums(); closeBuild(); closePanel(); clearBarks(); squish = 1; lift = 0; G.rig?.root.scale.setScalar(1); // the raid shares the rig: undo the pod's stretch
   G.stage.hemi.intensity = Number(new URLSearchParams(location.search).get("fill") ?? 0.9); G.stage.sun.intensity = Number(new URLSearchParams(location.search).get("sun") ?? 6); G.stage.bounce.intensity = Number(new URLSearchParams(location.search).get("bounce") ?? 1.6); }
 function drawHud() {
   const empty = !G.save.base.items.length;
   const ui = document.getElementById("ui")!; ui.innerHTML = `<div class="home-top"><div class="place"><b>The Vault</b><span>Under Exile Beach</span></div><span class="home-chips">${titleChipHtml()}<span class="home-stash num" title="Stash slots used">Stash <b>${stashUsed(G.save)}</b>/${stashCapacity(G.save)}</span><span class="home-money">🍌 <b>${G.save.money}</b></span></span></div><div class="hud-prompt" id="hp"></div>
     ${empty ? `<div class="home-tip">Your vault is empty. Press <kbd>B</kbd> or use the blueprint desk to build. The Fence's window and the workbench are free.</div>` : ""}
     ${marketBoardHtml()}
-    <div class="home-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk &nbsp;<kbd>E</kbd> use &nbsp;<kbd>B</kbd> build</div>`;
+    <div class="home-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk &nbsp;<kbd>Space</kbd> dash &nbsp;<kbd>E</kbd> use &nbsp;<kbd>B</kbd> build</div>`;
 }
 function money() { const el = document.querySelector(".home-money b"); if (el) el.textContent = String(G.save.money); const tc = document.querySelector(".home-title"); if (tc) tc.outerHTML = titleChipHtml(); const st = document.querySelector(".home-stash"); if (st) st.innerHTML = `Stash <b>${stashUsed(G.save)}</b>/${stashCapacity(G.save)}`; }
 const BRK = `<i class="brk tl"></i><i class="brk tr"></i><i class="brk bl"></i><i class="brk br"></i>`;
@@ -178,14 +182,29 @@ function collide() {
 }
 export function stepBunker(dt: number) {
   const i = G.intent; G.time += dt; U.uTime.value = G.time;
-  if (launching) return;
-  if (buildOpen()) { stepBuild(dt); return; }
-  if (lootOpen() || lootSwallowsInteract()) return; // the locker (ui/lootview.ts) owns Esc and E while open
-  if (document.querySelector("#ui > .ov3")) return; // a roll or a lockbox reveal owns the keys (home/econ-ui.ts)
-  if (panel) { stepNpcs(dt, pp, true); if (i.esc || i.interact) { closePanel(); sfx("ui"); } return; }
-  if (maybeReview()) return; // a promotion's Performance Review (home/econ-ui.ts) plays once, when no panel is open
+  dashCooldown = Math.max(0, dashCooldown - dt);
+  if (launching) { stopHomeDash(); return; }
+  if (buildOpen()) { stopHomeDash(); stepBuild(dt); return; }
+  if (lootOpen() || lootSwallowsInteract()) { stopHomeDash(); return; } // the locker owns Esc and E while open
+  if (document.querySelector("#ui > .ov3")) { stopHomeDash(); return; } // a roll or a lockbox reveal owns the keys
+  if (panel) { stopHomeDash(); stepNpcs(dt, pp, true); if (i.esc || i.interact) { closePanel(); sfx("ui"); } return; }
+  if (maybeReview()) { stopHomeDash(); return; } // a promotion's Performance Review owns the controls
   stepNpcs(dt, pp, false); trackerTick(dt);
   const mv = new THREE.Vector3(i.move.x, 0, i.move.z).applyAxisAngle(new THREE.Vector3(0, 1, 0), G.stage.cam.yaw);
+  dashBuffer = i.roll ? PLAYER.roll.buffer : Math.max(0, dashBuffer - dt);
+  if (dashBuffer > 0 && dashT < 0 && dashCooldown <= 0) {
+    dashDir.copy(mv.lengthSq() > 0.01 ? mv.normalize() : V(Math.sin(face), Math.cos(face)));
+    dashT = 0; dashBuffer = 0; sfx("dash");
+  }
+  if (dashT >= 0) {
+    const travelTime = Math.min(dt, (1 - dashT) * PLAYER.roll.time);
+    vel.copy(dashDir).multiplyScalar(PLAYER.roll.dist / PLAYER.roll.time);
+    pp.addScaledVector(vel, travelTime); collide();
+    face = Math.atan2(dashDir.x, dashDir.z);
+    dashT = Math.min(1, dashT + dt / PLAYER.roll.time);
+    if (dashT >= 1) { dashT = -1; dashCooldown = PLAYER.roll.cooldown; vel.set(0, 0, 0); }
+    return; // no station interaction while dashing
+  }
   vel.lerp(mv.multiplyScalar(PLAYER.speed), Math.min(1, dt * 12)); pp.addScaledVector(vel, dt); collide();
   if (vel.lengthSq() > 0.1) face = Math.atan2(vel.x, vel.z);
   near = stations.reduce<Station | null>((b, s) => (rectDist(s.rect, pp) < 1.15 && (!b || rectDist(s.rect, pp) < rectDist(b.rect, pp)) ? s : b), null);
@@ -208,7 +227,7 @@ function humFactories() {
 export function renderBunker(dt: number) {
   G.rig.root.position.copy(pp); G.rig.root.position.y += lift; G.rig.root.rotation.y = face;
   G.rig.root.scale.set(1 / Math.sqrt(squish), squish, 1 / Math.sqrt(squish));
-  G.rig.pose({ time: G.time, speed: launching ? 0 : vel.length(), moveYaw: face, faceYaw: face, action: !launching && vel.lengthSq() > 0.1 ? "run" : "idle", actionT: 0, armed: "none", flash: 0 });
+  G.rig.pose({ time: G.time, speed: launching ? 0 : vel.length(), moveYaw: face, faceYaw: face, action: dashT >= 0 ? "roll" : !launching && vel.lengthSq() > 0.1 ? "run" : "idle", actionT: Math.max(0, dashT), armed: "none", flash: 0 });
   poseNpcs(G.time, pp);
   updateFx(dt); animateFacilities(objects.values(), dt, G.time, powered(G.save)); humFactories();
   if (buildOpen()) { placeBuildCamera(dt); return; }
