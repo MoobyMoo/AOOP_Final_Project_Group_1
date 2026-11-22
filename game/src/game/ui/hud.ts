@@ -18,6 +18,8 @@ import "./ui3.css";
 import * as THREE from "three";
 import { G, flat, entryGraceRemaining, type Crate, type Enemy } from "../core/state";
 import { buildExitCards, updateExitCards } from "./exitcards";
+import { mapDestination, destinationBearing } from "./navigation";
+import { levelOf } from "./mapdata";
 import { itemDef } from "../loot/raidloot";
 import { CLEARINGS } from "../world/layout";
 import { drainEquipmentEvents, heardEnemies } from "../loot/equipment-actions";
@@ -119,6 +121,7 @@ export const hud = {
     E.quick = el("h3-quick");
     E.extract = el("plate h3-extract", "");
     E.routes = el("h3-routes", ""); buildExitCards(E.routes);
+    E.guidance = el("plate h3-guidance", `<span class="nav-arrow" aria-hidden="true">↑</span><span><b></b><small></small></span>`); E.guidance.hidden = true;
     // the waypoint table, bottom-right (Duckov's [M] distance readout): your newest map marker, else the nearest extract
     E.wp = el("h3-wp shade", `<span class="ic"></span><span class="t"><small></small><b class="num"></b></span><kbd>M</kbd>`); wpT = 0; lastWp = "";
     // ... and its bar above the hotbar's middle with the cancel key under it (frames/reload: about 6% of the screen wide)
@@ -252,7 +255,17 @@ export const hud = {
         for (const q of E.weapons.querySelectorAll<HTMLElement>(".rl")) q.style.setProperty("--rl", "0");
         c?.querySelector<HTMLElement>(".rl")?.style.setProperty("--rl", rl || "0"); c?.querySelector<HTMLElement>(".draw")?.style.setProperty("--dr", dr || "1"); } }
     if ((wpT -= dt) <= 0) { wpT = 0.25; const w = waypoint(), k = w ? `${w.svg}|${w.label}|${Math.round(w.d)}` : "";
-      if (k !== lastWp) { lastWp = k; E.wp.style.display = w ? "" : "none"; if (w) { (E.wp.querySelector(".ic") as HTMLElement).innerHTML = w.svg; E.wp.classList.toggle("pin", w.kind === "pin"); set(E.wp.querySelector("small") as HTMLElement, w.label); set(E.wp.querySelector("b") as HTMLElement, `${String(Math.round(w.d)).padStart(2, "0")} m`); } } }
+      if (k !== lastWp) { lastWp = k; E.wp.style.display = w ? "" : "none"; if (w) { (E.wp.querySelector(".ic") as HTMLElement).innerHTML = w.svg; E.wp.classList.toggle("pin", w.kind === "pin"); set(E.wp.querySelector("small") as HTMLElement, w.label); set(E.wp.querySelector("b") as HTMLElement, `${String(Math.round(w.d)).padStart(2, "0")} m`); } }
+      const target = prefs.mapAssist ? mapDestination(G.save.activeRaid?.id ?? "") : null;
+      E.guidance.hidden = !target;
+      if (target) {
+        const bearing = destinationBearing(G.pp, target, G.stage.cam.yaw), sameFloor = levelOf(G.pp.x) === levelOf(target.x), arrived = sameFloor && bearing.distance <= 4;
+        const arrow = E.guidance.querySelector<HTMLElement>(".nav-arrow")!;
+        arrow.hidden = !sameFloor || arrived; arrow.style.transform = `rotate(${bearing.angle.toFixed(1)}deg)`;
+        set(E.guidance.querySelector("b") as HTMLElement, target.label);
+        set(E.guidance.querySelector("small") as HTMLElement, !sameFloor ? `Destination ${levelOf(target.x) === "under" ? "underground" : "on surface"} · Use a map connection` : arrived ? "Near destination" : `Approx. direction ${bearing.compass} · ${Math.round(bearing.distance)} m`);
+      }
+    }
     toastT -= dt; bannerT -= dt; promptT -= dt;
     if (prefs.controls) { if (E.help.classList.contains("gone")) E.help.classList.remove("gone"); helpT = Math.max(helpT, 0.01); }
     else if (helpT > 0) { helpT -= dt; if (helpT <= 0) E.help.classList.add("gone"); }
