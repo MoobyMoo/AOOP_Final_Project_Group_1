@@ -24,6 +24,8 @@ import { bakeMap, type MapImage } from "./mapbake";
 import { menuOpened, menuClosed, registerMenu } from "./menubar";
 import { SURFACE, UNDER, levelOf, areaLabels, marks, closedPoly, demoEdge, inDemo, underClosed, routeLocks, PIN_DEFAULT, type Level, type Mark, type MarkKind, type Pin } from "./mapdata";
 import { ICON, TIPS, PIN_GLYPHS, PIN_COLORS, ME_FACE, ME_NOTCH, pinSvg, glyphSvg } from "./mapicons";
+import { prefs } from "./settings";
+import { mapDestination, setMapDestination, clearMapDestination } from "./navigation";
 
 const imgs: Partial<Record<Level, MapImage>> = {};
 const pins: Pin[] = JSON.parse(localStorage.getItem("bv_pins") ?? "[]");
@@ -121,6 +123,7 @@ function open(start?: Level) {
   </div>
   <div class="mv3-peek"></div>
   <section class="mv3-mk" aria-label="Map markers">
+    <div class="mv3-guidance"><span>${prefs.mapAssist ? "Click the map to choose a destination" : "Enable Map guidance in Esc settings"}</span><button type="button" aria-label="Clear destination">Clear</button></div>
     <h3>Map markers</h3><p>Right-click the map to place or remove a marker</p>
     <div class="mv3-mk-icons">${PIN_GLYPHS.map((g, i) => `<button data-i="${i}" title="${g[0]}">${glyphSvg(i)}</button>`).join("")}</div>
     <div class="mv3-mk-cols">${PIN_COLORS.map((c) => `<button data-c="${c}" style="--c:${c}" title="Marker colour"></button>`).join("")}</div>
@@ -141,6 +144,7 @@ function open(start?: Level) {
   el.querySelectorAll<HTMLButtonElement>(".mv3-mk-icons button").forEach((b) => b.onclick = () => { pick.i = +b.dataset.i!; savePick(); paint(); });
   el.querySelectorAll<HTMLButtonElement>(".mv3-mk-cols button").forEach((b) => b.onclick = () => { pick.c = b.dataset.c!; savePick(); paint(); });
   paint();
+  el.querySelector<HTMLButtonElement>('.mv3-guidance button')!.onclick = () => { clearMapDestination(); lastMarks = 0; update(); };
   // the zoom slider (drag the magnifier along the rail, or click the rail), centre on you; the floor button peeks
   const zoomTo = (z: number) => { zoom = THREE.MathUtils.clamp(z, fit, fit * ZMAX); clampFocus(); place(); };
   (el.querySelector(".mv3-zoom .ctr") as HTMLElement).onclick = () => {
@@ -163,7 +167,22 @@ function open(start?: Level) {
     const a = -G.stage.cam.yaw, c = Math.cos(a), s = Math.sin(a); // screen delta -> plane delta: undo the rotation and the zoom
     fx = down.fx - (dx * c - dy * s) / zoom; fy = down.fy - (dx * s + dy * c) / zoom; clampFocus(); place();
   };
-  view.onpointerup = () => { view.classList.remove("drag"); down = null; };
+  view.onpointerup = (e) => {
+    const clicked = down && !down.moved && e.button === 0;
+    view.classList.remove("drag"); down = null;
+    if (!clicked || !prefs.mapAssist) return;
+    const bounds = view.getBoundingClientRect();
+    const p = matrix().inverse().transformPoint(new DOMPoint(e.clientX - bounds.left, e.clientY - bounds.top)), m = imgs[level]!;
+    let x = m.minX + p.x / m.ppu, z = m.minZ + p.y / m.ppu, label = "Destination";
+    const placeLabel = labelEls.find(q => { const r = q.el.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom && !q.el.classList.contains("shut"); });
+    const mark = markList.filter(k => k.id !== "navigation-target" && Math.hypot(k.x - x, k.z - z) < 22 / (zoom * m.ppu)).sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z))[0];
+    if (mark) { x = mark.x; z = mark.z; label = mark.kind === "boat" || mark.kind === "exit" ? mark.label.split(" · ")[0] : mark.label; }
+    else if (placeLabel) { x = placeLabel.x; z = placeLabel.z; label = placeLabel.el.textContent ?? label; }
+    if ((!mark && !placeLabel && m.shape.at(x, z) <= 0) || !inDemo(x, z)) return;
+    setMapDestination({ x, z, label, raid: G.save.activeRaid?.id ?? "" });
+    lastMarks = 0; update();
+  };
+  view.onpointercancel = () => { down = null; view.classList.remove("drag"); };
   view.onpointerleave = () => tip.classList.remove("on");
   // right-click: place a marker, or take off the one under the cursor (Duckov's Map Markers)
   view.oncontextmenu = (e) => {
@@ -290,7 +309,13 @@ const face = (k: Mark, size?: number) => (k.kind === "pin" ? pinSvg(k.icon, k.co
 function update() {
   if (!el) return; const now = performance.now(), m = imgs[level]!;
   if (now - lastMarks > 250) {
-    lastMarks = now; const list = marks(level, pins), over = el.querySelector(".mv3-over") as HTMLDivElement, keep = new Set(["me"]); markList = list;
+    lastMarks = now; const list = marks(level, pins), over = el.querySelector(".mv3-over") as HTMLDivElement, keep = new Set(["me"]);
+    const target = prefs.mapAssist ? mapDestination(G.save.activeRaid?.id ?? "") : null;
+    if (target && levelOf(target.x) === level) list.push({ id: "navigation-target", kind: "pin", x: target.x, z: target.z, label: target.label, icon: 0, color: "#f46a10" });
+    const guide = el.querySelector<HTMLElement>('.mv3-guidance span')!;
+    guide.textContent = !prefs.mapAssist ? "Enable Map guidance in Esc settings" : target ? `Destination: ${target.label}` : "Click the map to choose a destination";
+    (el.querySelector('.mv3-guidance button') as HTMLButtonElement).disabled = !target;
+    markList = list;
     for (const k of list) {
       let e = markEls.get(k.id); keep.add(k.id); const sig = k.kind + (k.kind === "pin" ? `${k.icon}${k.color}` : "");
       if (!e || e.dataset.sig !== sig) { e?.remove(); e = document.createElement("em"); e.className = "mk " + k.kind; e.dataset.kind = k.kind; e.dataset.sig = sig; e.innerHTML = face(k) + `<span>${k.label}</span>`; over.insertBefore(e, markEls.get("me")!); markEls.set(k.id, e); }
