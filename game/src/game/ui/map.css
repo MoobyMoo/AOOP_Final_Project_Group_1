@@ -135,3 +135,7 @@
   color: var(--tie); font: 700 12px/15px var(--mfont); text-align: center; font-style: normal; }
 /* a marker's middle marks the spot (map v5 markers are glyphs, not pins) */
 .mm3 .mk.pin svg { width: 16px; height: 16px; filter: drop-shadow(0 0 1px #05121c) drop-shadow(0 0 1px #05121c); }
+
+.mv3-guidance{display:flex;align-items:center;gap:12px;margin-bottom:12px;max-width:460px;font:500 calc(17px * var(--s,1))/1.3 var(--mfont);color:#f3d48a}
+.mv3-guidance button{flex:none;padding:5px 12px;border:1px solid #c29a5b;background:#26252a;color:#f3ead6;font:600 calc(17px * var(--s,1)) var(--mfont);cursor:pointer}
+.mv3-guidance button:disabled{opacity:.4;cursor:default}
