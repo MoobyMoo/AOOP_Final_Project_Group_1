@@ -284,6 +284,12 @@ body:has(.lv) #ui > .ui-ref.h3,body:has(.mb3-page) #ui > .ui-ref.h3,body:has(.lv
 .lv-mirror-controls{display:flex;align-items:center;justify-content:center;gap:20px;font:500 18px/1.3 var(--a-font);color:var(--a-dim)}
 .lv-mirror-controls .b3{flex:none;min-height:36px;padding:6px 16px;font-size:17px}
 .lv-back-appearance{display:block;width:100%;margin-top:12px}
+.set3 .srow input[type="checkbox"]{width:24px;height:24px;justify-self:end;accent-color:var(--a-tie);cursor:pointer}
+.h3-guidance{left:50%;top:76px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;max-width:460px;padding:8px 14px;border-color:var(--a-brass);pointer-events:none}
+.h3-guidance[hidden]{display:none}.h3-guidance b{display:block;font:600 19px/1.2 var(--a-font);overflow-wrap:anywhere}
+.h3-guidance small{display:block;margin-top:3px;font:500 16px/1.3 var(--a-font);color:var(--a-dim)}
+.nav-arrow{display:block;font:700 34px/1 var(--a-font);color:var(--a-brass-hi);transform-origin:center;flex:none}
+.nav-arrow[hidden]{display:none}
 .lv-filters{display:grid;grid-template-columns:minmax(0,1fr) 125px 52px;gap:6px;padding:8px 16px 2px}
 .lv-filters input,.lv-filters select{min-width:0;width:100%;height:34px;border:1px solid var(--a-edge);background:#19181c;color:var(--a-ink);font:500 17px var(--a-font);padding:4px 6px}
 .lv-filters input:focus,.lv-filters select:focus{outline:2px solid var(--a-brass)}
