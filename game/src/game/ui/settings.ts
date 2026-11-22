@@ -10,7 +10,7 @@ import { VOLUME, setVolume, sfx } from "../core/audio";
 
 const LS = "bv_settings";
 /** player preferences outside the audio buses */
-export const prefs = { controls: false, ...(() => { try { return JSON.parse(localStorage.getItem(LS) ?? "{}") as { controls?: boolean }; } catch { return {}; } })() };
+export const prefs = (() => { try { const raw = JSON.parse(localStorage.getItem(LS) ?? "{}"); return { controls: raw?.controls === true, mapAssist: raw?.mapAssist === true }; } catch { return { controls: false, mapAssist: false }; } })();
 const savePrefs = () => localStorage.setItem(LS, JSON.stringify(prefs));
 const BRK = `<i class="brk tl"></i><i class="brk tr"></i><i class="brk bl"></i><i class="brk br"></i>`;
 const BUSES: [keyof typeof VOLUME, string][] = [["master", "Master"], ["sfx", "Effects"], ["ui", "Interface"], ["music", "Music"]];
@@ -38,6 +38,7 @@ export function openSettings() {
     <div class="rows">${BUSES.map(([k, name]) => `<label class="srow"><b>${name}</b><input type="range" min="0" max="100" step="1" value="${Math.round(VOLUME[k] * 100)}" data-bus="${k}" aria-label="${name} volume"><span class="num" data-v="${k}">${Math.round(VOLUME[k] * 100)}%</span></label>`).join("")}</div>
     <h4>Screen</h4>
     <div class="rows"><div class="srow"><b>Show controls</b><small>Keep the key list on screen in a raid</small><button class="tgl" data-a="controls" aria-pressed="${prefs.controls}">${prefs.controls ? "On" : "Off"}</button></div></div>
+    <div class="rows"><label class="srow"><b>Map guidance</b><small>Click a destination on the map for a direction hint</small><input type="checkbox" data-pref="mapAssist" aria-label="Map guidance" ${prefs.mapAssist ? "checked" : ""}></label></div>
     <div class="actions"><button data-a="resume">Resume</button>${raid ? `<button class="ghost" data-a="quit">Quit to bunker</button>` : ""}</div>
     ${raid ? `<p class="dim quitnote">Quitting counts as a bonk-out: your pouch comes home, the rest of your pack and worn gear stay behind.</p>` : ""}
     <div class="foot"><kbd>Esc</kbd> to resume</div>`;
@@ -47,6 +48,7 @@ export function openSettings() {
     r.onchange = () => sfx(r.dataset.bus === "sfx" ? "shell" : "ui"); // a blip on the bus you just set
   });
   el.querySelectorAll<HTMLButtonElement>("button[data-a]").forEach((b) => b.onclick = () => act(b.dataset.a!, b));
+  el.querySelector<HTMLInputElement>('[data-pref="mapAssist"]')!.onchange = (e) => { prefs.mapAssist = (e.target as HTMLInputElement).checked; savePrefs(); sfx("ui"); };
   (el.querySelector('button[data-a="resume"]') as HTMLButtonElement).focus({ preventScroll: true });
   sfx("ui");
 }
