@@ -188,6 +188,7 @@ export function factoryHum(kind: HumKind, level: number) {
   if (!h && level > 0.005) {
     const buf = pickBuf(kind); if (!buf) return;
     const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = buf; src.loop = true; g.gain.value = 0;
+    src.onended = () => { src.disconnect(); g.disconnect(); };
     src.connect(g).connect(sfxBus); src.start(0, Math.random() * buf.duration); h = hums[kind] = { src, g };
   }
   if (!h) return;
@@ -240,7 +241,13 @@ function voice(kind: string, buf: AudioBuffer, vol: number, rate: number, at: nu
   const t0 = ctx!.currentTime + at, len = Math.min(buf.duration / rate, m.max ?? 99);
   if (len < buf.duration / rate) { g.gain.setValueAtTime(m.g * vol, t0 + len - 0.06); g.gain.linearRampToValueAtTime(0, t0 + len); }
   src.start(t0); src.stop(t0 + len + 0.01);
-  const rec = { src, g }; vs.push(rec); src.onended = () => { const j = vs.indexOf(rec); if (j >= 0) vs.splice(j, 1); };
+  const rec = { src, g }; vs.push(rec);
+  src.onended = () => {
+    src.disconnect();
+    g.disconnect();
+    const j = vs.indexOf(rec);
+    if (j >= 0) vs.splice(j, 1);
+  };
 }
 function playSample(kind: Sfx, vol: number, combo: number): boolean {
   const bus = (UI_KINDS.has(kind) ? uiBus : sfxBus)!;
