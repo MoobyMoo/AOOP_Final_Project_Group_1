@@ -97,8 +97,9 @@ export class Stage {
   /** adaptive pixel ratio (advisor 32): step down when frames run long, back up when there's headroom */
   private ft: number[] = []; private dprMax = Math.min(devicePixelRatio, Number(QS.get("dpr") ?? 2)); private dprNow = Math.min(devicePixelRatio, Number(QS.get("dpr") ?? 1.5)); private lastT = performance.now();
   adapt() {
+    if (QS.has("fixdpr")) return;
     const now = performance.now(); this.ft.push(now - this.lastT); this.lastT = now;
-    if (this.ft.length < 90 || QS.has("fixdpr")) return;
+    if (this.ft.length < 90) return;
     const s = [...this.ft].sort((a, b) => a - b), med = s[45]; this.ft.length = 0;
     const steps = [1, 1.25, 1.5, 1.75, 2].filter((v) => v <= this.dprMax + 1e-3);
     const i = steps.findIndex((v) => Math.abs(v - this.dprNow) < 1e-3);
