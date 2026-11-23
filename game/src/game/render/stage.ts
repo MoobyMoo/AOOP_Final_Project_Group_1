@@ -33,6 +33,9 @@ export class Stage {
   /** camera kick (u, decays) and trauma shake (0..1) — feedback channels, separate from hit-stop */
   kick = new THREE.Vector3(); trauma = 0;
   private shake = new THREE.Vector3();
+  private cameraOffset = new THREE.Vector3();
+  private cameraFocus = new THREE.Vector3();
+  private shadowFocus = new THREE.Vector3();
   constructor(canvas: HTMLCanvasElement, haze = "#d9cfa8") {
     const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance", stencil: false, depth: true });
     r.setPixelRatio(Math.min(devicePixelRatio, Number(QS.get("dpr") ?? 1.5)));
@@ -82,11 +85,11 @@ export class Stage {
     this.trauma = Math.max(0, this.trauma - dt * 1.6);
     const k = this.trauma * this.trauma * 0.35;
     this.shake.set(Math.sin(t * 61) * k, 0, Math.cos(t * 53) * k);
-    const off = new THREE.Vector3().setFromSphericalCoords(this.cam.dist, Math.PI / 2 - this.cam.pitch, this.cam.yaw);
-    const f = this.focus.clone().add(this.kick).add(this.shake);
+    const off = this.cameraOffset.setFromSphericalCoords(this.cam.dist, Math.PI / 2 - this.cam.pitch, this.cam.yaw);
+    const f = this.cameraFocus.copy(this.focus).add(this.kick).add(this.shake);
     this.camera.position.copy(f).add(off); this.camera.lookAt(f);
     // shadow box follows the focus, snapped to whole shadow texels so edges don't crawl
-    const texel = 48 / 4096, sp = this.focus.clone();
+    const texel = 48 / 4096, sp = this.shadowFocus.copy(this.focus);
     sp.x = Math.round(sp.x / texel) * texel; sp.z = Math.round(sp.z / texel) * texel;
     this.sun.position.copy(sp).addScaledVector(this.sunDir, 45); this.sun.target.position.copy(sp);
     U.uRimDir.value.set(-0.55, 0.65, 0.35).normalize();
