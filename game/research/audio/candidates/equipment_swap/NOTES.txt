@@ -1,0 +1,22 @@
+equipment_swap.wav
+Two dry clicks with a low latch-like thump.
+
+Source: original AI-assisted additive synthesis created for this repository.
+External audio sources: none.
+Preview: open the WAV in an audio player.
+Location: optional research candidate, outside the Vite public directory.
+Adoption requires a separate audio integration change.
+
+Format: mono, 44100 Hz, signed 16-bit PCM WAV.
+Duration: 0.25 seconds.
+Sample peak: -9 dBFS. RMS: -24.56 dBFS.
+Tone: sine fundamental + 0.15 second harmonic + 0.04 third harmonic.
+Envelope: 6 ms attack, exp(-4 * time / length) decay, 25 ms release.
+Noise: xorshift32 seed 109, optional one-pole lowpass layers.
+Normalization: scale the complete cue to -9 dBFS sample peak.
+Voices [start seconds, length seconds, start Hz, gain, optional end Hz]:
+  [0,0.07,1800,0.25,700]
+  [0.1,0.13,170,1,100]
+Noise layers [start seconds, length seconds, gain, lowpass smoothing]:
+  [0,0.055,0.8,0.7]
+  [0.1,0.1,0.6,0.28]

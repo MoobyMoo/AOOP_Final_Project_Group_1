@@ -1,0 +1,21 @@
+inventory_close.wav
+Short downward sweep and soft closing tap.
+
+Source: original AI-assisted additive synthesis created for this repository.
+External audio sources: none.
+Preview: open the WAV in an audio player.
+Location: optional research candidate, outside the Vite public directory.
+Adoption requires a separate audio integration change.
+
+Format: mono, 44100 Hz, signed 16-bit PCM WAV.
+Duration: 0.25 seconds.
+Sample peak: -9 dBFS. RMS: -20.6 dBFS.
+Tone: sine fundamental + 0.15 second harmonic + 0.04 third harmonic.
+Envelope: 6 ms attack, exp(-4 * time / length) decay, 25 ms release.
+Noise: xorshift32 seed 103, optional one-pole lowpass layers.
+Normalization: scale the complete cue to -9 dBFS sample peak.
+Voices [start seconds, length seconds, start Hz, gain, optional end Hz]:
+  [0,0.2,620,0.7,220]
+  [0.15,0.09,160,0.6]
+Noise layers [start seconds, length seconds, gain, lowpass smoothing]:
+  [0.14,0.08,0.2,0.5]

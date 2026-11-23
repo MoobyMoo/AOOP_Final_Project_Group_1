@@ -1,0 +1,23 @@
+quest_complete.wav
+Four-note rising phrase with a sustained final bell.
+
+Source: original AI-assisted additive synthesis created for this repository.
+External audio sources: none.
+Preview: open the WAV in an audio player.
+Location: optional research candidate, outside the Vite public directory.
+Adoption requires a separate audio integration change.
+
+Format: mono, 44100 Hz, signed 16-bit PCM WAV.
+Duration: 0.90 seconds.
+Sample peak: -6 dBFS. RMS: -19.83 dBFS.
+Tone: sine fundamental + 0.15 second harmonic + 0.04 third harmonic.
+Envelope: 6 ms attack, exp(-4 * time / length) decay, 25 ms release.
+Noise: xorshift32 seed 106, optional one-pole lowpass layers.
+Normalization: scale the complete cue to -6 dBFS sample peak.
+Voices [start seconds, length seconds, start Hz, gain, optional end Hz]:
+  [0,0.25,523.25,0.7]
+  [0.12,0.27,659.26,0.8]
+  [0.24,0.28,783.99,0.9]
+  [0.36,0.52,1046.5,1]
+  [0.36,0.52,1318.51,0.25]
+Noise layers [start seconds, length seconds, gain, lowpass smoothing]:
