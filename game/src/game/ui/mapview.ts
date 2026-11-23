@@ -28,13 +28,31 @@ import { prefs } from "./settings";
 import { mapDestination, setMapDestination, clearMapDestination } from "./navigation";
 
 const imgs: Partial<Record<Level, MapImage>> = {};
-const pins: Pin[] = JSON.parse(localStorage.getItem("bv_pins") ?? "[]");
+function readMapPreference(key: string): unknown {
+  try { return JSON.parse(localStorage.getItem(key) ?? "null"); }
+  catch { return null; }
+}
+function saveMapPreference(key: string, value: unknown) {
+  try { localStorage.setItem(key, JSON.stringify(value)); }
+  catch { /* Keep map interactions available for this session. */ }
+}
+function pinIcon(value: unknown): number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 && value < PIN_GLYPHS.length ? value : 0;
+}
+function pinColor(value: unknown): string {
+  return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value : PIN_DEFAULT;
+}
+const savedPins = readMapPreference("bv_pins");
+const pins: Pin[] = Array.isArray(savedPins) ? savedPins
+  .filter((p): p is Pin => p && typeof p.x === "number" && Number.isFinite(p.x) && typeof p.z === "number" && Number.isFinite(p.z))
+  .map(p => ({ x: p.x, z: p.z, i: pinIcon(p.i), c: pinColor(p.c) })) : [];
 /** the icon and colour the markers bar has picked (Duckov: selected index 0, white) */
-const pick: { i: number; c: string } = { i: 0, c: PIN_DEFAULT, ...JSON.parse(localStorage.getItem("bv_pin_pick") ?? "{}") };
-const savePick = () => localStorage.setItem("bv_pin_pick", JSON.stringify(pick));
+const savedPick = readMapPreference("bv_pin_pick") as Partial<Pin> | null;
+const pick = { i: pinIcon(savedPick?.i), c: pinColor(savedPick?.c) };
+const savePick = () => saveMapPreference("bv_pin_pick", pick);
 /** the encoded image (mapbake encodes it in the background; if asked before that lands, encode now) */
 const urlOf = (m: MapImage) => m.url || (m.url = m.canvas.toDataURL("image/webp", 0.93));
-const savePins = () => localStorage.setItem("bv_pins", JSON.stringify(pins));
+const savePins = () => saveMapPreference("bv_pins", pins);
 const deg = (r: number) => (r * 180) / Math.PI;
 
 // ---------------------------------------------------------------- the bake (once, at load: main.ts)
@@ -340,10 +358,10 @@ export function waypoint(): { svg: string; label: string; d: number; kind: "pin"
 
 // ---------------------------------------------------------------- corner minimap (camera-up, like the game view)
 let mini: HTMLDivElement | null = null, miniPlane: HTMLDivElement | null = null, miniVec: SVGSVGElement | null = null, miniIcons: HTMLDivElement | null = null;
-let miniOn = localStorage.getItem("bv_minimap") !== "0", miniLevel: Level | null = null, miniMarksT = 0, miniMarks: Mark[] = [], miniTrailKey = -1;
+let miniOn = readMapPreference("bv_minimap") !== 0, miniLevel: Level | null = null, miniMarksT = 0, miniMarks: Mark[] = [], miniTrailKey = -1;
 const miniEls = new Map<string, HTMLElement>();
 const MINI_PX = 180, MINI_RANGE = 40; // world units across the circle
-export function toggleMinimap() { miniOn = !miniOn; localStorage.setItem("bv_minimap", miniOn ? "1" : "0"); if (mini) mini.style.display = miniOn ? "" : "none"; }
+export function toggleMinimap() { miniOn = !miniOn; saveMapPreference("bv_minimap", miniOn ? 1 : 0); if (mini) mini.style.display = miniOn ? "" : "none"; }
 export function buildMinimap() {
   if (!imgs.surface) return; mini?.remove(); miniEls.clear(); miniLevel = null; miniTrailKey = -1;
   mini = document.createElement("div"); mini.className = "mm3";
