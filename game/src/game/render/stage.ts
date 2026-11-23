@@ -36,6 +36,9 @@ export class Stage {
   private cameraOffset = new THREE.Vector3();
   private cameraFocus = new THREE.Vector3();
   private shadowFocus = new THREE.Vector3();
+  private pickRay = new THREE.Raycaster();
+  private pickNdc = new THREE.Vector2();
+  private pickPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0));
   constructor(canvas: HTMLCanvasElement, haze = "#d9cfa8") {
     const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance", stencil: false, depth: true });
     r.setPixelRatio(Math.min(devicePixelRatio, Number(QS.get("dpr") ?? 1.5)));
@@ -109,7 +112,11 @@ export class Stage {
   render(dt: number) { this.adapt(); this.renderer.info.reset(); if (this.post) this.composer.render(dt); else this.renderer.render(this.scene, this.camera); }
   /** world point under the mouse on the plane y = h */
   pick(ndcX: number, ndcY: number, h = 0.9) {
-    const rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2(ndcX, ndcY), this.camera);
-    const p = new THREE.Vector3(); rc.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -h), p); return p;
+    this.pickNdc.set(ndcX, ndcY);
+    this.pickRay.setFromCamera(this.pickNdc, this.camera);
+    this.pickPlane.constant = -h;
+    const p = new THREE.Vector3();
+    this.pickRay.ray.intersectPlane(this.pickPlane, p);
+    return p;
   }
 }
