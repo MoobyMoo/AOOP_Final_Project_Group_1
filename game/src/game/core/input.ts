@@ -15,7 +15,16 @@ export class Input {
   mouse = { x: 0, y: 0, down: false, rdown: false, clicked: false, rclicked: false, movedAt: -9 };
   kbMode = false; private t = 0; private wheelAcc = 0; private wheelT = 0;
   constructor(el: HTMLElement) {
-    addEventListener("keydown", (e) => { const k = e.key.toLowerCase(); if (!this.keys.has(k)) this.pressed.add(k); this.keys.add(k); if (k === "t") this.kbMode = !this.kbMode; if ([" ", "tab"].includes(k)) e.preventDefault(); });
+    addEventListener("keydown", (e) => {
+      if (e.defaultPrevented || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
+      const target = e.target;
+      if (target instanceof HTMLElement && (target.isContentEditable || target.closest("input, textarea, select"))) return;
+      const k = e.key.toLowerCase();
+      if (!this.keys.has(k)) this.pressed.add(k);
+      this.keys.add(k);
+      if (k === "t" && !e.repeat) this.kbMode = !this.kbMode;
+      if ([" ", "tab"].includes(k)) e.preventDefault();
+    });
     addEventListener("keyup", (e) => this.keys.delete(e.key.toLowerCase()));
     addEventListener("blur", () => { this.keys.clear(); this.mouse.down = this.mouse.rdown = false; });
     el.addEventListener("mousemove", (e) => { this.mouse.x = (e.clientX / innerWidth) * 2 - 1; this.mouse.y = -(e.clientY / innerHeight) * 2 + 1; this.mouse.movedAt = this.t; if (this.kbMode && Math.abs(e.movementX) + Math.abs(e.movementY) > 6) this.kbMode = false; });
