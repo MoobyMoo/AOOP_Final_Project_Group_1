@@ -34,10 +34,21 @@ export const shotLevel = () => (SHOT_TONE.suppressed > 0 ? SHOT_TONE.level : 1);
 export let musicBus: GainNode | null = null;
 export function audioCtx() { return ctx; }
 /** player volume settings, 0..1 per bus (persisted; the settings menu calls this) */
-export const VOLUME = { master: 1, sfx: 1, ui: 1, music: 1, ...JSON.parse(globalThis.localStorage?.getItem("bv_volume") ?? "{}") as Partial<Record<"master" | "sfx" | "ui" | "music", number>> };
+export const VOLUME = { master: 1, sfx: 1, ui: 1, music: 1 };
+try {
+  const saved = JSON.parse(globalThis.localStorage?.getItem("bv_volume") ?? "{}");
+  for (const bus of Object.keys(VOLUME) as (keyof typeof VOLUME)[]) {
+    const value = saved?.[bus];
+    if (typeof value === "number" && Number.isFinite(value)) VOLUME[bus] = Math.min(1, Math.max(0, value));
+  }
+} catch { /* Use the defaults when stored preferences are unreadable. */ }
 const BUS_BASE = { master: 0.7, sfx: 1, ui: 0.8, music: 0.5 };
 export function setVolume(bus: keyof typeof VOLUME, v: number) {
-  VOLUME[bus] = Math.min(1, Math.max(0, v)); globalThis.localStorage?.setItem("bv_volume", JSON.stringify(VOLUME)); applyVolume();
+  if (!Number.isFinite(v)) return;
+  VOLUME[bus] = Math.min(1, Math.max(0, v));
+  try { globalThis.localStorage?.setItem("bv_volume", JSON.stringify(VOLUME)); }
+  catch { /* Volume still applies for this session when storage is unavailable. */ }
+  applyVolume();
 }
 // ?tune "audio": the same four buses (the setting persists through setVolume, not the tune store)
 tuneObject("audio", VOLUME, { master: { min: 0, max: 1, step: 0.01 }, sfx: { min: 0, max: 1, step: 0.01, label: "effects" }, ui: { min: 0, max: 1, step: 0.01, label: "interface" }, music: { min: 0, max: 1, step: 0.01 } },
