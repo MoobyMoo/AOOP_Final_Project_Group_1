@@ -26,7 +26,13 @@ export class Input {
       if ([" ", "tab"].includes(k)) e.preventDefault();
     });
     addEventListener("keyup", (e) => this.keys.delete(e.key.toLowerCase()));
-    addEventListener("blur", () => { this.keys.clear(); this.mouse.down = this.mouse.rdown = false; });
+    addEventListener("blur", () => {
+      this.keys.clear();
+      this.pressed.clear();
+      this.mouse.down = this.mouse.rdown = false;
+      this.mouse.clicked = this.mouse.rclicked = false;
+      this.wheelAcc = 0;
+    });
     el.addEventListener("mousemove", (e) => { this.mouse.x = (e.clientX / innerWidth) * 2 - 1; this.mouse.y = -(e.clientY / innerHeight) * 2 + 1; this.mouse.movedAt = this.t; if (this.kbMode && Math.abs(e.movementX) + Math.abs(e.movementY) > 6) this.kbMode = false; });
     el.addEventListener("mousedown", (e) => { if (e.button === 0) { this.mouse.down = true; this.mouse.clicked = true; } if (e.button === 2) { this.mouse.rdown = true; this.mouse.rclicked = true; } });
     addEventListener("mouseup", (e) => { if (e.button === 0) this.mouse.down = false; if (e.button === 2) this.mouse.rdown = false; });
