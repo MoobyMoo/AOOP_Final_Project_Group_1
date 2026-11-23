@@ -11,7 +11,10 @@ import { VOLUME, setVolume, sfx } from "../core/audio";
 const LS = "bv_settings";
 /** player preferences outside the audio buses */
 export const prefs = (() => { try { const raw = JSON.parse(localStorage.getItem(LS) ?? "{}"); return { controls: raw?.controls === true, mapAssist: raw?.mapAssist === true }; } catch { return { controls: false, mapAssist: false }; } })();
-const savePrefs = () => localStorage.setItem(LS, JSON.stringify(prefs));
+function savePrefs() {
+  try { localStorage.setItem(LS, JSON.stringify(prefs)); }
+  catch { /* Apply controls and guidance preferences for the current session. */ }
+}
 const BRK = `<i class="brk tl"></i><i class="brk tr"></i><i class="brk bl"></i><i class="brk br"></i>`;
 const BUSES: [keyof typeof VOLUME, string][] = [["master", "Master"], ["sfx", "Effects"], ["ui", "Interface"], ["music", "Music"]];
 
