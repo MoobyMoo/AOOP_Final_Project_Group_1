@@ -211,10 +211,16 @@ const voices: Record<string, { src: AudioBufferSourceNode; g: GainNode }[]> = {}
 async function loadSamples() {
   try {
     const base = `${import.meta.env.BASE_URL}audio/sfx/`;
-    const man = (await (await fetch(base + "manifest.json")).json()) as Record<string, string[]>;
+    const response = await fetch(base + "manifest.json");
+    if (!response.ok) throw new Error(`SFX manifest request failed (${response.status})`);
+    const man = (await response.json()) as Record<string, string[]>;
     await Promise.all(Object.entries(man).flatMap(([kind, files]) => files.map(async (f, i) => {
-      const buf = await ctx!.decodeAudioData(await (await fetch(base + f)).arrayBuffer());
-      (BUFS[kind] ??= [])[i] = buf;
+      try {
+        const sample = await fetch(base + f);
+        if (!sample.ok) throw new Error(`SFX request failed (${sample.status})`);
+        const buf = await ctx!.decodeAudioData(await sample.arrayBuffer());
+        (BUFS[kind] ??= [])[i] = buf;
+      } catch (error) { console.warn(`sfx sample unavailable: ${f}`, error); }
     })));
     for (const k in BUFS) BUFS[k] = BUFS[k].filter(Boolean);
   } catch (e) { console.warn("sfx samples unavailable", e); }
