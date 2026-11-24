@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bananaville audio candidates</title>
+<style>
+:root { color-scheme: light; font-family: Nunito, "Segoe UI", sans-serif; color: #30281e; background: #f6f1e7; }
+body { margin: 0 auto; padding: 32px 20px; max-width: 1180px; }
+h1 { margin: 0 0 8px; font-size: 2rem; }
+p { line-height: 1.6; }
+a { color: #715014; text-underline-offset: 3px; }
+nav { display: flex; gap: 24px; margin: 20px 0; flex-wrap: wrap; }
+.table-wrap { overflow-x: auto; border: 1px solid #d7cbb7; border-radius: 8px; background: #fffdf8; }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+caption { text-align: left; padding: 16px; font-weight: 700; }
+th, td { padding: 16px; border-top: 1px solid #e6dece; vertical-align: middle; line-height: 1.5; }
+thead th { background: #eee5d3; font-size: 0.9rem; }
+tbody th { min-width: 155px; }
+small { display: block; color: #655b4e; font-weight: 400; margin-top: 4px; }
+.details { color: #655b4e; font-size: 0.85rem; margin-top: 8px; }
+audio { width: 250px; }
+@media (max-width: 640px) { body { padding: 20px 12px; } th, td { padding: 12px; } }
+</style>
+</head>
+<body>
+<header>
+<h1>Bananaville audio candidates</h1>
+<p>Audition each candidate before choosing its event and mix level. Open this file in a browser for offline listening.</p>
+<nav aria-label="Candidate references"><a href="catalog.json">Format and provenance catalog</a><a href="quality-report.json">Measured quality report</a></nav>
+</header>
+<main class="table-wrap">
+<table>
+<caption>18 original candidates &middot; mono PCM WAV &middot; 44.1 kHz &middot; 16-bit</caption>
+<thead><tr><th scope="col">Candidate</th><th scope="col">Intended use and measurements</th><th scope="col">Listen</th></tr></thead>
+<tbody>
+<tr>
+  <th scope="row">Extraction ready<small>Alerts</small></th>
+  <td>Rising four-note extraction-ready chime.<div class="details">0.78 s &middot; -6 dBFS sample peak &middot; <a href="alerts/NOTES.txt">Source notes</a></div></td>
+  <td><audio controls preload="none" aria-label="Preview Extraction ready" src="alerts/extraction_ready.wav"><a href="alerts/extraction_ready.wav">Open WAV</a></audio></td>
+</tr>
+<tr>
+  <th scope="row">Low health<small>Alerts</small></th>
+  <td>A low double pulse for a health warning.<div class="details">0.65 s &middot; -8 dBFS sample peak &middot; <a href="low_health/NOTES.txt">Source notes</a></div></td>
+  <td><audio controls preload="none" aria-label="Preview Low health" src="low_health/low_health.wav"><a href="low_health/low_health.wav">Open WAV</a></audio></td>
+</tr>
+<tr>
+  <th scope="row">Radio message<small>Alerts</small></th>
+  <td>Three brief chirps over a short static texture.<div class="details">0.48 s &middot; -9 dBFS sample peak &middot; <a href="radio_message/NOTES.txt">Source notes</a></div></td>
+  <td><audio controls preload="none" aria-label="Preview Radio message" src="radio_message/radio_message.wav"><a href="radio_message/radio_message.wav">Open WAV</a></audio></td>
+</tr>
+<tr>
+  <th scope="row">Warning<small>Alerts</small></th>
+  <td>Two soft low warning pulses.<div class="details">0.46 s &middot; -6 dBFS sample peak &middot; <a href="alerts/NOTES.txt">Source notes</a></div></td>
+  <td><audio controls preload="none" aria-label="Preview Warning" src="alerts/warning.wav"><a href="alerts/warning.wav">Open WAV</a></audio></td>
+</tr>
+<tr>
+  <th scope="row">Grotto water drop<small>Ambience</small></th>
+  <td>A soft single water drop with a short resonant tail, for reviewing underground ambience accents.<div class="details">0.64 s &middot; -10 dBFS sample peak &middot; <a href="grotto_drip/NOTES.txt">Source notes</a></div></td>
+  <td><audio controls preload="none" aria-label="Preview Grotto water drop" src="grotto_drip/grotto_drip.wav"><a href="grotto_drip/grotto_drip.wav">Open WAV</a></audio></td>
+</tr>
+<tr>
+  <th scope="row">Craft complete<small>Crafting</small></th>
+  <td>Short metallic strike followed by a completion bell.<div class="details">0.58 s &middot; -6 dBFS sample peak &middot; <a href="craft_complete/NOTES.txt">Source notes</a></div></td>
+  <td><audio controls preload="none" aria-label="Preview Craft complete" src="craft_complete/craft_complete.wav"><a href="craft_complete/craft_complete.wav">Open WAV</a></audio></td>
+</tr>
+<tr>
+  <th scope="row">UI back<small>Interface</small></th>
+  <td>Soft descending cue for returning from a menu.<div class="details">0.22 s &middot; -6 dBFS sample peak &middot; <a href="ui/NOTES.txt">Source notes</a></div></td>
+  <td><audio controls preload="none" aria-label="Preview UI back" src="ui/ui_back.wav"><a href="ui/ui_back.wav">Open WAV</a></audio></td>
+</tr>
+<tr>
+  <th scope="row">UI confirm<small>Interface</small></th>
+  <td>Ascending two-note menu confirmation.<div class="details">0.30 s &middot; -6 dBFS sample peak &middot; <a href="ui/NOTES.txt">Source notes</a></div></td>
+  <td><audio controls preload="none" aria-label="Preview UI confirm" src="ui/ui_confirm.wav"><a href="ui/ui_confirm.wav">Open WAV</a></audio></td>
+</tr>
+<tr>
+  <th scope="row">UI hover<small>Interface</small></th>
+  <td>Quiet short tick when moving between menu options.<div class="details">0.10 s &middot; -12 dBFS sample peak &middot; <a href="ui_hover/NOTES.txt">Source notes</a></div></td>
+  <td><audio controls preload="none" aria-label="Preview UI hover" src="ui_hover/ui_hover.wav"><a href="ui_hover/ui_hover.wav">Open WAV</a></audio></td>
+</tr>
+<tr>
+  <th scope="row">Equipment swap<small>Inventory</small></th>
+  <td>Two dry clicks with a low latch-like thump.<div class="details">0.25 s &middot; -9 dBFS sample peak &middot; <a href="equipment_swap/NOTES.txt">Source notes</a></div></td>
+  <td><audio controls preload="none" aria-label="Preview Equipment swap" src="equipment_swap/equipment_swap.wav"><a href="equipment_swap/equipment_swap.wav">Open WAV</a></audio></td>
+</tr>
+<tr>
+  <th scope="row">Inventory close<small>Inventory</small></th>
+  <td>Short downward sweep and soft closing tap.<div class="details">0.25 s &middot; -9 dBFS sample peak &middot; <a href="inventory_close/NOTES.txt">Source notes</a></div></td>
+  <td><audio controls preload="none" aria-label="Preview Inventory close" src="inventory_close/inventory_close.wav"><a href="inventory_close/inventory_close.wav">Open WAV</a></audio></td>
+</tr>
+<tr>
+  <th scope="row">Inventory open<small>Inventory</small></th>
+  <td>Airy upward sweep for opening an inventory panel.<div class="details">0.28 s &middot; -9 dBFS sample peak &middot; <a href="inventory_open/NOTES.txt">Source notes</a></div></td>
+  <td><audio controls preload="none" aria-label="Preview Inventory open" src="inventory_open/inventory_open.wav"><a href="inventory_open/inventory_open.wav">Open WAV</a></audio></td>
+</tr>
+<tr>
+  <th scope="row">Storage deposit<small>Inventory</small></th>
+  <td>Three descending plunks for placing loot into storage.<div class="details">0.43 s &middot; -8 dBFS sample peak &middot; <a href="storage_deposit/NOTES.txt">Source notes</a></div></td>
+  <td><audio controls preload="none" aria-label="Preview Storage deposit" src="storage_deposit/storage_deposit.wav"><a href="storage_deposit/storage_deposit.wav">Open WAV</a></audio></td>
+</tr>
+<tr>
+  <th scope="row">Soft plank footstep<small>Movement</small></th>
+  <td>A restrained wooden footstep with a low thump and a brief grainy contact, for reviewing indoor movement sound.<div class="details">0.34 s &middot; -9 dBFS sample peak &middot; <a href="step_plank_soft/NOTES.txt">Source notes</a></div></td>
+  <td><audio controls preload="none" aria-label="Preview Soft plank footstep" src="step_plank_soft/step_plank_soft.wav"><a href="step_plank_soft/step_plank_soft.wav">Open WAV</a></audio></td>
+</tr>
+<tr>
+  <th scope="row">Quest accepted<small>Quests</small></th>
+  <td>Ascending pair for accepting a new task.<div class="details">0.42 s &middot; -6 dBFS sample peak &middot; <a href="quest_accepted/NOTES.txt">Source notes</a></div></td>
+  <td><audio controls preload="none" aria-label="Preview Quest accepted" src="quest_accepted/quest_accepted.wav"><a href="quest_accepted/quest_accepted.wav">Open WAV</a></audio></td>
+</tr>
+<tr>
+  <th scope="row">Quest complete<small>Quests</small></th>
+  <td>Four-note rising phrase with a sustained final bell.<div class="details">0.90 s &middot; -6 dBFS sample peak &middot; <a href="quest_complete/NOTES.txt">Source notes</a></div></td>
+  <td><audio controls preload="none" aria-label="Preview Quest complete" src="quest_complete/quest_complete.wav"><a href="quest_complete/quest_complete.wav">Open WAV</a></audio></td>
+</tr>
+<tr>
+  <th scope="row">Cash reward<small>Rewards</small></th>
+  <td>Three-note cash reward arpeggio.<div class="details">0.52 s &middot; -6 dBFS sample peak &middot; <a href="loot/NOTES.txt">Source notes</a></div></td>
+  <td><audio controls preload="none" aria-label="Preview Cash reward" src="loot/cash_reward.wav"><a href="loot/cash_reward.wav">Open WAV</a></audio></td>
+</tr>
+<tr>
+  <th scope="row">Loot pickup<small>Rewards</small></th>
+  <td>Bright pickup bell with a short high overtone.<div class="details">0.32 s &middot; -6 dBFS sample peak &middot; <a href="loot/NOTES.txt">Source notes</a></div></td>
+  <td><audio controls preload="none" aria-label="Preview Loot pickup" src="loot/loot_pickup.wav"><a href="loot/loot_pickup.wav">Open WAV</a></audio></td>
+</tr>
+</tbody>
+</table>
+</main>
+</body>
+</html>
