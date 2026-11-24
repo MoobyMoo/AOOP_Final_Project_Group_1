@@ -1,0 +1,367 @@
+{
+  "schemaVersion": 1,
+  "pathBase": "Relative to game/research/audio/candidates/",
+  "status": "Optional candidates for audition and audio integration review",
+  "entries": [
+    {
+      "id": "extraction_ready",
+      "file": "alerts/extraction_ready.wav",
+      "label": "Extraction ready",
+      "category": "Alerts",
+      "purpose": "Rising four-note extraction-ready chime.",
+      "sourceNotes": "alerts/NOTES.txt",
+      "source": "original AI-assisted additive synthesis created for this repository.",
+      "sha256": "7356f8478877523208f105a32e2efddb9381d27d42f311306d392c3909fa3b27",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 34398,
+        "durationSeconds": 0.78,
+        "bytes": 68840
+      }
+    },
+    {
+      "id": "warning",
+      "file": "alerts/warning.wav",
+      "label": "Warning",
+      "category": "Alerts",
+      "purpose": "Two soft low warning pulses.",
+      "sourceNotes": "alerts/NOTES.txt",
+      "source": "original AI-assisted additive synthesis created for this repository.",
+      "sha256": "1abcaa738aea98b1364b6c6910cede7c53ee865e5878d8989683e245fe18eb4c",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 20286,
+        "durationSeconds": 0.46,
+        "bytes": 40616
+      }
+    },
+    {
+      "id": "craft_complete",
+      "file": "craft_complete/craft_complete.wav",
+      "label": "Craft complete",
+      "category": "Crafting",
+      "purpose": "Short metallic strike followed by a completion bell.",
+      "sourceNotes": "craft_complete/NOTES.txt",
+      "source": "original AI-assisted additive synthesis created for this repository.",
+      "sha256": "1fae576b3971cbec887358ae423ad94281145ed7ed57cae887db5f78493fdab5",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 25578,
+        "durationSeconds": 0.58,
+        "bytes": 51200
+      }
+    },
+    {
+      "id": "equipment_swap",
+      "file": "equipment_swap/equipment_swap.wav",
+      "label": "Equipment swap",
+      "category": "Inventory",
+      "purpose": "Two dry clicks with a low latch-like thump.",
+      "sourceNotes": "equipment_swap/NOTES.txt",
+      "source": "original AI-assisted additive synthesis created for this repository.",
+      "sha256": "e1aed5f3eedaeed2842df243386b37ef9558b1c39dcb031b844db791e9ea6750",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 11025,
+        "durationSeconds": 0.25,
+        "bytes": 22094
+      }
+    },
+    {
+      "id": "grotto_drip",
+      "file": "grotto_drip/grotto_drip.wav",
+      "label": "Grotto water drop",
+      "category": "Ambience",
+      "purpose": "A soft single water drop with a short resonant tail, for reviewing underground ambience accents.",
+      "sourceNotes": "grotto_drip/NOTES.txt",
+      "source": "original AI-assisted additive/noise synthesis created for this repository.",
+      "sha256": "14c5d4cc044dceb2402140f300c67e6016995575cf4924951a70812018ed6989",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 28224,
+        "durationSeconds": 0.64,
+        "bytes": 56492
+      }
+    },
+    {
+      "id": "inventory_close",
+      "file": "inventory_close/inventory_close.wav",
+      "label": "Inventory close",
+      "category": "Inventory",
+      "purpose": "Short downward sweep and soft closing tap.",
+      "sourceNotes": "inventory_close/NOTES.txt",
+      "source": "original AI-assisted additive synthesis created for this repository.",
+      "sha256": "00d333b9d1e53d3fa4b0f8b97847e59185cb314c5de414e3bfba503fd336ae5d",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 11025,
+        "durationSeconds": 0.25,
+        "bytes": 22094
+      }
+    },
+    {
+      "id": "inventory_open",
+      "file": "inventory_open/inventory_open.wav",
+      "label": "Inventory open",
+      "category": "Inventory",
+      "purpose": "Airy upward sweep for opening an inventory panel.",
+      "sourceNotes": "inventory_open/NOTES.txt",
+      "source": "original AI-assisted additive synthesis created for this repository.",
+      "sha256": "949a80466879a930fa927137a7bb921c0b866464f3389de4949c6c2486f5da06",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 12348,
+        "durationSeconds": 0.28,
+        "bytes": 24740
+      }
+    },
+    {
+      "id": "cash_reward",
+      "file": "loot/cash_reward.wav",
+      "label": "Cash reward",
+      "category": "Rewards",
+      "purpose": "Three-note cash reward arpeggio.",
+      "sourceNotes": "loot/NOTES.txt",
+      "source": "original AI-assisted additive synthesis created for this repository.",
+      "sha256": "572e289ec92b06c83cf615813f933f4c77ae478e4e9494778c7f65147dfb6199",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 22932,
+        "durationSeconds": 0.52,
+        "bytes": 45908
+      }
+    },
+    {
+      "id": "loot_pickup",
+      "file": "loot/loot_pickup.wav",
+      "label": "Loot pickup",
+      "category": "Rewards",
+      "purpose": "Bright pickup bell with a short high overtone.",
+      "sourceNotes": "loot/NOTES.txt",
+      "source": "original AI-assisted additive synthesis created for this repository.",
+      "sha256": "0e44fb99103ca5104690ce8bd92a2b4194e3dea3877ddd813f8b70d386d7cc9a",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 14112,
+        "durationSeconds": 0.32,
+        "bytes": 28268
+      }
+    },
+    {
+      "id": "low_health",
+      "file": "low_health/low_health.wav",
+      "label": "Low health",
+      "category": "Alerts",
+      "purpose": "A low double pulse for a health warning.",
+      "sourceNotes": "low_health/NOTES.txt",
+      "source": "original AI-assisted additive synthesis created for this repository.",
+      "sha256": "1b0aece302f94d9507949a1ee3405c99cb926197cc330270acf918d4e726d4ec",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 28665,
+        "durationSeconds": 0.65,
+        "bytes": 57374
+      }
+    },
+    {
+      "id": "quest_accepted",
+      "file": "quest_accepted/quest_accepted.wav",
+      "label": "Quest accepted",
+      "category": "Quests",
+      "purpose": "Ascending pair for accepting a new task.",
+      "sourceNotes": "quest_accepted/NOTES.txt",
+      "source": "original AI-assisted additive synthesis created for this repository.",
+      "sha256": "6d1ebdf0a4ff3ab060da735b26fe26542c9ac647a1833aa60f5ce57740cbeabd",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 18522,
+        "durationSeconds": 0.42,
+        "bytes": 37088
+      }
+    },
+    {
+      "id": "quest_complete",
+      "file": "quest_complete/quest_complete.wav",
+      "label": "Quest complete",
+      "category": "Quests",
+      "purpose": "Four-note rising phrase with a sustained final bell.",
+      "sourceNotes": "quest_complete/NOTES.txt",
+      "source": "original AI-assisted additive synthesis created for this repository.",
+      "sha256": "18a7fc4b70e1c53b23de2290e66c2a71ba0cd1f04c514ca062ed1fdec921f500",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 39690,
+        "durationSeconds": 0.9,
+        "bytes": 79424
+      }
+    },
+    {
+      "id": "radio_message",
+      "file": "radio_message/radio_message.wav",
+      "label": "Radio message",
+      "category": "Alerts",
+      "purpose": "Three brief chirps over a short static texture.",
+      "sourceNotes": "radio_message/NOTES.txt",
+      "source": "original AI-assisted additive synthesis created for this repository.",
+      "sha256": "a2e03c465c3caa31bb569fca04335267020ec86f0e8a8b72ae3f1fcbbcf55af6",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 21168,
+        "durationSeconds": 0.48,
+        "bytes": 42380
+      }
+    },
+    {
+      "id": "step_plank_soft",
+      "file": "step_plank_soft/step_plank_soft.wav",
+      "label": "Soft plank footstep",
+      "category": "Movement",
+      "purpose": "A restrained wooden footstep with a low thump and a brief grainy contact, for reviewing indoor movement sound.",
+      "sourceNotes": "step_plank_soft/NOTES.txt",
+      "source": "original AI-assisted additive/noise synthesis created for this repository.",
+      "sha256": "fc8df3060c1c6671465436b3d1ce417ca8c233bb050b44a814758afa8de3b4e4",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 14994,
+        "durationSeconds": 0.34,
+        "bytes": 30032
+      }
+    },
+    {
+      "id": "storage_deposit",
+      "file": "storage_deposit/storage_deposit.wav",
+      "label": "Storage deposit",
+      "category": "Inventory",
+      "purpose": "Three descending plunks for placing loot into storage.",
+      "sourceNotes": "storage_deposit/NOTES.txt",
+      "source": "original AI-assisted additive synthesis created for this repository.",
+      "sha256": "d223059cfa874ec8595f818a41856a28acba7fa293188470ad36459b950e06fd",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 18963,
+        "durationSeconds": 0.43,
+        "bytes": 37970
+      }
+    },
+    {
+      "id": "ui_back",
+      "file": "ui/ui_back.wav",
+      "label": "UI back",
+      "category": "Interface",
+      "purpose": "Soft descending cue for returning from a menu.",
+      "sourceNotes": "ui/NOTES.txt",
+      "source": "original AI-assisted additive synthesis created for this repository.",
+      "sha256": "c2bc94b0e74c66eb65e73ea3c72485e4d92142e91983a565ca1a8f6037af4df6",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 9702,
+        "durationSeconds": 0.22,
+        "bytes": 19448
+      }
+    },
+    {
+      "id": "ui_confirm",
+      "file": "ui/ui_confirm.wav",
+      "label": "UI confirm",
+      "category": "Interface",
+      "purpose": "Ascending two-note menu confirmation.",
+      "sourceNotes": "ui/NOTES.txt",
+      "source": "original AI-assisted additive synthesis created for this repository.",
+      "sha256": "7ec64392eff710a6f16d45397fa8c4ecb9069bdc8140a3b399ece2b2d5fce9a7",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 13230,
+        "durationSeconds": 0.3,
+        "bytes": 26504
+      }
+    },
+    {
+      "id": "ui_hover",
+      "file": "ui_hover/ui_hover.wav",
+      "label": "UI hover",
+      "category": "Interface",
+      "purpose": "Quiet short tick when moving between menu options.",
+      "sourceNotes": "ui_hover/NOTES.txt",
+      "source": "original AI-assisted additive synthesis created for this repository.",
+      "sha256": "563f4a4f9741b862af75d4d05a23a4cd98d3429ad90ce3a174a1d386254e2e0f",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 4410,
+        "durationSeconds": 0.1,
+        "bytes": 8864
+      }
+    }
+  ]
+}
