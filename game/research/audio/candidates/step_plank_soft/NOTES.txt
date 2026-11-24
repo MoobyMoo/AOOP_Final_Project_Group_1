@@ -1,0 +1,23 @@
+step_plank_soft.wav
+A restrained wooden footstep with a low thump and a brief grainy contact, for reviewing indoor movement sound.
+
+Source: original AI-assisted additive/noise synthesis created for this repository.
+External audio sources: none.
+Preview: open the WAV in an audio player or the candidate listening index.
+Location: optional research candidate, outside the Vite public directory.
+Adoption requires a separate audio integration change.
+
+Format: mono, 44100 Hz, signed 16-bit PCM WAV.
+Duration: 0.34 seconds.
+Target sample peak: -9 dBFS.
+Tone: sine fundamental + 0.15 second harmonic + 0.04 third harmonic.
+Envelope: 6 ms attack, exp(-4 * time / length) decay, 25 ms release.
+Noise: xorshift32 seed 20261124; lowpass state resets for each layer.
+Voices [start seconds, length seconds, start Hz, gain, optional end Hz]:
+  [0.004,0.24,125,1,82]
+  [0.008,0.18,330,0.22,285]
+  [0.012,0.13,615,0.1]
+Noise layers [start seconds, length seconds, gain, lowpass smoothing]:
+  [0,0.065,0.55,0.7]
+  [0.025,0.2,0.28,0.13]
+Normalization: scale complete cue to target sample peak and round to signed 16-bit PCM.
