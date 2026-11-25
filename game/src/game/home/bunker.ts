@@ -13,6 +13,7 @@ import { own } from "../loot/instances";
 import { sfx, factoryHum, stopFactoryHums, type HumKind } from "../core/audio";
 import { itemDef } from "../loot/raidloot";
 import { createRig } from "../actors/rig";
+import { settingsOpen } from "../ui/settings";
 import { createKingpin, createGunFx } from "../combat/kingpin";
 import { commitSave, save } from "../core/save";
 import { floatText, burst, initFx, updateFx, popIn, squash, tween, easeInOut } from "../../fx";
@@ -133,7 +134,22 @@ function drawHud() {
   const ui = document.getElementById("ui")!; ui.innerHTML = `<div class="home-top"><div class="place"><b>The Vault</b><span>Under Exile Beach</span></div><span class="home-chips">${titleChipHtml()}<span class="home-stash num" title="Stash slots used">Stash <b>${stashUsed(G.save)}</b>/${stashCapacity(G.save)}</span><span class="home-money">🍌 <b>${G.save.money}</b></span></span></div><div class="hud-prompt" id="hp"></div>
     ${empty ? `<div class="home-tip">Your vault is empty. Press <kbd>B</kbd> or use the blueprint desk to build. The Fence's window and the workbench are free.</div>` : ""}
     ${marketBoardHtml()}
+    <nav class="home-shortcuts" aria-label="Lobby shortcuts">
+      <button type="button" data-home="locker"><b>Locker</b><small>Manage equipment</small></button>
+      <button type="button" data-home="look"><b>Appearance</b><small>Change your look</small></button>
+      <button type="button" data-home="jobs"><b>Jobs</b><small>Progress &amp; rewards</small></button>
+      <button type="button" data-home="deploy" class="depart"><b>Depart</b><small>Choose a destination</small></button>
+    </nav>
     <div class="home-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk &nbsp;<kbd>Space</kbd> dash &nbsp;<kbd>E</kbd> use &nbsp;<kbd>B</kbd> build</div>`;
+  ui.querySelectorAll<HTMLButtonElement>("[data-home]").forEach(button => button.onclick = () => {
+    if (G.scene !== "bunker" || launching || panel || lootOpen() || buildOpen() || settingsOpen() || ui.querySelector(":scope > .ov3")) return;
+    stopHomeDash();
+    if (button.dataset.home === "locker") { openLocker(); return; }
+    sfx("ui");
+    if (button.dataset.home === "look") act("look");
+    else if (button.dataset.home === "jobs") openQuestLog();
+    else if (button.dataset.home === "deploy") showPanel(destinationsHtml(G.save), "dest");
+  });
 }
 function money() { const el = document.querySelector(".home-money b"); if (el) el.textContent = String(G.save.money); const tc = document.querySelector(".home-title"); if (tc) tc.outerHTML = titleChipHtml(); const st = document.querySelector(".home-stash"); if (st) st.innerHTML = `Stash <b>${stashUsed(G.save)}</b>/${stashCapacity(G.save)}`; }
 const BRK = `<i class="brk tl"></i><i class="brk tr"></i><i class="brk bl"></i><i class="brk br"></i>`;
@@ -185,7 +201,7 @@ export function stepBunker(dt: number) {
   dashCooldown = Math.max(0, dashCooldown - dt);
   if (launching) { stopHomeDash(); return; }
   if (buildOpen()) { stopHomeDash(); stepBuild(dt); return; }
-  if (lootOpen() || lootSwallowsInteract()) { stopHomeDash(); return; } // the locker owns Esc and E while open
+  if (lootOpen() || (!panel && lootSwallowsInteract())) { stopHomeDash(); return; } // a newly opened station panel owns its keys during the locker's close grace period
   if (document.querySelector("#ui > .ov3")) { stopHomeDash(); return; } // a roll or a lockbox reveal owns the keys
   if (panel) { stopHomeDash(); stepNpcs(dt, pp, true); if (i.esc || i.interact) { closePanel(); sfx("ui"); } return; }
   if (maybeReview()) { stopHomeDash(); return; } // a promotion's Performance Review owns the controls
@@ -322,7 +338,7 @@ function launch(id: string, instant = false) {
     });
   } catch { sfx("nope"); floatText("Could not save. Fare not paid.", V(0, -9, 2.6), "#ffb648", 22); return; }
   if (!r.ok) { sfx("nope"); floatText(r.reason, V(0, -9, 2.6), "#ffb648", 22); return; }
-  launching = true; panel?.querySelectorAll("button").forEach((b) => (b.disabled = true)); closePanel(); money(); board?.refresh(G.save);
+  launching = true; document.querySelector<HTMLElement>(".home-shortcuts")?.setAttribute("hidden", ""); panel?.querySelectorAll("button").forEach((b) => (b.disabled = true)); closePanel(); money(); board?.refresh(G.save);
   if (r.req.paid) floatText(`Fare −🍌 ${r.req.paid}`, V(0, -9, 3), "#fff3c4", 24);
   if (instant) { onDeploy(r.req); return; }
   setTimeout(() => podSequence(r.req), 500);
