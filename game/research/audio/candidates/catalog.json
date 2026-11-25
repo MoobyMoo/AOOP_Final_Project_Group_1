@@ -284,6 +284,26 @@
       }
     },
     {
+      "id": "step_sand_soft",
+      "file": "step_sand_soft/step_sand_soft.wav",
+      "label": "Soft sand footstep",
+      "category": "Movement",
+      "purpose": "A muted thump with a short granular shuffle, for reviewing quiet movement on beach sand.",
+      "sourceNotes": "step_sand_soft/NOTES.txt",
+      "source": "original AI-assisted additive/noise synthesis created for this repository.",
+      "sha256": "ad1407318d24b332ce16d715e5f64c3bf91bc611a2481f92ba120b1c174a72bc",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 13230,
+        "durationSeconds": 0.3,
+        "bytes": 26504
+      }
+    },
+    {
       "id": "storage_deposit",
       "file": "storage_deposit/storage_deposit.wav",
       "label": "Storage deposit",
