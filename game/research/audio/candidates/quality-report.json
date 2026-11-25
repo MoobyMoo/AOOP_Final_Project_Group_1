@@ -19,8 +19,8 @@
     "sourceNotesPresent": true
   },
   "summary": {
-    "assets": 22,
-    "passed": 22,
+    "assets": 23,
+    "passed": 23,
     "peakRangeDbfs": [
       -12.0,
       -6.0
@@ -191,6 +191,20 @@
       "dcOffsetPercent": 0.028945,
       "leadingSilenceMs": 0.136,
       "trailingSilenceMs": 183.764,
+      "clippedSamples": 0,
+      "startsAtZero": true,
+      "endsAtZero": true
+    },
+    {
+      "id": "map_unfold",
+      "file": "map_unfold/map_unfold.wav",
+      "sha256": "3a42b3f5064be4b795551d88d623e971f69c994207625fd029fc7e7750995655",
+      "samplePeakDbfs": -10.0,
+      "rmsDbfs": -26.24,
+      "crestDb": 16.24,
+      "dcOffsetPercent": -0.00018,
+      "leadingSilenceMs": 0.091,
+      "trailingSilenceMs": 45.329,
       "clippedSamples": 0,
       "startsAtZero": true,
       "endsAtZero": true

@@ -244,6 +244,26 @@
       }
     },
     {
+      "id": "map_unfold",
+      "file": "map_unfold/map_unfold.wav",
+      "label": "Map unfold",
+      "category": "Interface",
+      "purpose": "Three short paper-like rustles, for reviewing the opening of the full-screen map.",
+      "sourceNotes": "map_unfold/NOTES.txt",
+      "source": "original AI-assisted additive/noise synthesis created for this repository.",
+      "sha256": "3a42b3f5064be4b795551d88d623e971f69c994207625fd029fc7e7750995655",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 26460,
+        "durationSeconds": 0.6,
+        "bytes": 52964
+      }
+    },
+    {
       "id": "quest_accepted",
       "file": "quest_accepted/quest_accepted.wav",
       "label": "Quest accepted",
