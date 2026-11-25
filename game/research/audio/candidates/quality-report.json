@@ -19,8 +19,8 @@
     "sourceNotesPresent": true
   },
   "summary": {
-    "assets": 19,
-    "passed": 19,
+    "assets": 20,
+    "passed": 20,
     "peakRangeDbfs": [
       -12.0,
       -6.0
@@ -233,6 +233,20 @@
       "dcOffsetPercent": -0.023802,
       "leadingSilenceMs": 0.091,
       "trailingSilenceMs": 89.32,
+      "clippedSamples": 0,
+      "startsAtZero": true,
+      "endsAtZero": true
+    },
+    {
+      "id": "step_stone_soft",
+      "file": "step_stone_soft/step_stone_soft.wav",
+      "sha256": "adb869201529ff867e10a85cc00814e90dce4f6d7cd2f82ff475ec7a645ab1c8",
+      "samplePeakDbfs": -8.0,
+      "rmsDbfs": -21.91,
+      "crestDb": 13.91,
+      "dcOffsetPercent": -0.003819,
+      "leadingSilenceMs": 0.113,
+      "trailingSilenceMs": 81.383,
       "clippedSamples": 0,
       "startsAtZero": true,
       "endsAtZero": true
