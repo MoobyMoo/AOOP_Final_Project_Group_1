@@ -1,0 +1,25 @@
+crate_latch.wav
+A light metal latch followed by a wooden clunk, for reviewing the start of opening a loot crate.
+
+Source: original AI-assisted additive/noise synthesis created for this repository.
+External audio sources: none.
+Preview: open the WAV in an audio player or the candidate listening index.
+Location: optional research candidate, outside the Vite public directory.
+Adoption requires a separate audio integration change.
+
+Format: mono, 44100 Hz, signed 16-bit PCM WAV.
+Duration: 0.50 seconds.
+Target sample peak: -7 dBFS.
+Tone: sine fundamental + 0.15 second harmonic + 0.04 third harmonic.
+Envelope: 6 ms attack, exp(-4 * time / length) decay, 25 ms release.
+Noise: xorshift32 seed 2026112503; lowpass state resets for each layer.
+Highpass layers use white noise minus the one-pole lowpass output.
+Voices [start seconds, length seconds, start Hz, gain, optional end Hz]:
+  [0,0.14,980,0.4,820]
+  [0.02,0.14,1770,0.12]
+  [0.15,0.26,175,1,115]
+  [0.16,0.18,360,0.18]
+Noise layers [start seconds, length seconds, gain, lowpass smoothing, optional highpass]:
+  [0,0.08,0.45,0.8]
+  [0.15,0.2,0.4,0.2]
+Normalization: scale complete cue to target sample peak and round to signed 16-bit PCM.

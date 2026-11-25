@@ -19,8 +19,8 @@
     "sourceNotesPresent": true
   },
   "summary": {
-    "assets": 20,
-    "passed": 20,
+    "assets": 21,
+    "passed": 21,
     "peakRangeDbfs": [
       -12.0,
       -6.0
@@ -65,6 +65,20 @@
       "dcOffsetPercent": 0.000409,
       "leadingSilenceMs": 0.045,
       "trailingSilenceMs": 35.828,
+      "clippedSamples": 0,
+      "startsAtZero": true,
+      "endsAtZero": true
+    },
+    {
+      "id": "crate_latch",
+      "file": "crate_latch/crate_latch.wav",
+      "sha256": "e54630d42973fa543e6f3d62f99d7b74ea3b63a00bd830c996b405262280d785",
+      "samplePeakDbfs": -7.0,
+      "rmsDbfs": -22.28,
+      "crestDb": 15.28,
+      "dcOffsetPercent": 0.002948,
+      "leadingSilenceMs": 0.045,
+      "trailingSilenceMs": 93.537,
       "clippedSamples": 0,
       "startsAtZero": true,
       "endsAtZero": true
