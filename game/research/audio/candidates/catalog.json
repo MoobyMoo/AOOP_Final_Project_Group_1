@@ -44,6 +44,26 @@
       }
     },
     {
+      "id": "bandage_wrap",
+      "file": "bandage_wrap/bandage_wrap.wav",
+      "label": "Bandage wrap",
+      "category": "Recovery",
+      "purpose": "Two soft cloth-like handling swishes and a quiet fastening tap, for reviewing a bandage-use action.",
+      "sourceNotes": "bandage_wrap/NOTES.txt",
+      "source": "original AI-assisted additive/noise synthesis created for this repository.",
+      "sha256": "0053f8b3b51dd74a0b965e51603b1b165ce60137634640d5ea468c661984f232",
+      "format": {
+        "container": "WAV",
+        "encoding": "PCM signed 16-bit little-endian",
+        "sampleRate": 44100,
+        "channels": 1,
+        "bitsPerSample": 16,
+        "frames": 35280,
+        "durationSeconds": 0.8,
+        "bytes": 70604
+      }
+    },
+    {
       "id": "craft_complete",
       "file": "craft_complete/craft_complete.wav",
       "label": "Craft complete",

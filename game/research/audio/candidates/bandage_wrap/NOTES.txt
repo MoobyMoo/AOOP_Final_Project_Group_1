@@ -1,0 +1,22 @@
+bandage_wrap.wav
+Two soft cloth-like handling swishes and a quiet fastening tap, for reviewing a bandage-use action.
+
+Source: original AI-assisted additive/noise synthesis created for this repository.
+External audio sources: none.
+Preview: open the WAV in an audio player or the candidate listening index.
+Location: optional research candidate, outside the Vite public directory.
+Adoption requires a separate audio integration change.
+
+Format: mono, 44100 Hz, signed 16-bit PCM WAV.
+Duration: 0.80 seconds.
+Target sample peak: -11 dBFS.
+Tone: sine fundamental + 0.15 second harmonic + 0.04 third harmonic.
+Envelope: 6 ms attack, exp(-4 * time / length) decay, 25 ms release.
+Noise: xorshift32 seed 2026112504; lowpass state resets for each layer.
+Highpass layers use white noise minus the one-pole lowpass output.
+Voices [start seconds, length seconds, start Hz, gain, optional end Hz]:
+  [0.61,0.14,190,0.08,125]
+Noise layers [start seconds, length seconds, gain, lowpass smoothing, optional highpass]:
+  [0,0.32,0.55,0.15,"highpass"]
+  [0.34,0.38,0.4,0.07,"highpass"]
+Normalization: scale complete cue to target sample peak and round to signed 16-bit PCM.

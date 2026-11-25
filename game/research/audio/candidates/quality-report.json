@@ -19,8 +19,8 @@
     "sourceNotesPresent": true
   },
   "summary": {
-    "assets": 21,
-    "passed": 21,
+    "assets": 22,
+    "passed": 22,
     "peakRangeDbfs": [
       -12.0,
       -6.0
@@ -51,6 +51,20 @@
       "dcOffsetPercent": -0.00144,
       "leadingSilenceMs": 0.068,
       "trailingSilenceMs": 22.698,
+      "clippedSamples": 0,
+      "startsAtZero": true,
+      "endsAtZero": true
+    },
+    {
+      "id": "bandage_wrap",
+      "file": "bandage_wrap/bandage_wrap.wav",
+      "sha256": "0053f8b3b51dd74a0b965e51603b1b165ce60137634640d5ea468c661984f232",
+      "samplePeakDbfs": -11.0,
+      "rmsDbfs": -27.53,
+      "crestDb": 16.53,
+      "dcOffsetPercent": -0.000217,
+      "leadingSilenceMs": 0.045,
+      "trailingSilenceMs": 71.111,
       "clippedSamples": 0,
       "startsAtZero": true,
       "endsAtZero": true
