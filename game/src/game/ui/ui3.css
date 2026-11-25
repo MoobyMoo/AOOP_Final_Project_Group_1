@@ -417,6 +417,14 @@ body:has(.lv) #ui > .ui-ref.h3,body:has(.mb3-page) #ui > .ui-ref.h3,body:has(.lv
 .home-top .place span{font:600 20px/1.2 var(--a-font);color:var(--a-ink);opacity:.85;text-shadow:0 1px 3px rgba(0,0,0,.85)}
 .home-money{position:relative;font:700 26px/1 var(--a-font);font-variant-numeric:tabular-nums;padding:10px 18px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 7px),linear-gradient(180deg,#2b2a30,var(--a-wool));border:1px solid var(--a-edge);box-shadow:0 8px 24px rgba(0,0,0,.45)}
 .home-hint{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);font:600 18px/1 var(--a-font);color:var(--a-ink);text-shadow:0 1px 3px rgba(0,0,0,.85);white-space:nowrap}
+.home-shortcuts{position:absolute;left:50%;bottom:62px;transform:translateX(-50%);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;width:min(650px,calc(100vw - 32px));pointer-events:auto}
+.home-shortcuts button{min-width:0;padding:12px 10px;border:1px solid var(--a-brass);background:repeating-linear-gradient(90deg,#ffffff08 0 1px,transparent 1px 7px),linear-gradient(180deg,#2b2a30,var(--a-wool));box-shadow:0 6px 20px #0006;color:var(--a-ink);font-family:var(--a-font);cursor:pointer}
+.home-shortcuts b{display:block;font-size:22px;line-height:1.1}.home-shortcuts small{display:block;margin-top:5px;font-size:15px;line-height:1.2;color:var(--a-dim)}
+.home-shortcuts button:hover,.home-shortcuts button:focus-visible{background:#3e3530;border-color:var(--a-brass-hi);outline:2px solid var(--a-brass-hi);outline-offset:2px}
+.home-shortcuts .depart{background:var(--a-tie);color:#1c120b;border-color:#ffb37a}.home-shortcuts .depart small{color:#302016}.home-shortcuts .depart:hover,.home-shortcuts .depart:focus-visible{background:#ff8a30}
+.home-shortcuts[hidden],#ui:has(> .panel) .home-shortcuts,#ui:has(.lv) .home-shortcuts,#ui:has(.bld3) .home-shortcuts,#ui:has(> .ov3) .home-shortcuts{display:none}
+#ui:has(.home-shortcuts) .hud-prompt{bottom:155px}
+@media(max-width:650px){.home-shortcuts{gap:5px;bottom:54px}.home-shortcuts button{padding:10px 4px}.home-shortcuts b{font-size:18px}.home-shortcuts small{font-size:13px}}
 .hud-prompt{position:absolute;bottom:120px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 12px 6px 6px;font:600 20px/1 var(--a-font);white-space:nowrap;opacity:0;transition:opacity .12s;
   background:repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 7px),linear-gradient(180deg,#2b2a30,var(--a-wool));border:1px solid var(--a-edge);box-shadow:0 8px 24px rgba(0,0,0,.45)}
 .hud-prompt.on{opacity:1}.hud-prompt:empty{display:none}
