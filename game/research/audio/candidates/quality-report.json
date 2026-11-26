@@ -268,13 +268,13 @@
     {
       "id": "step_sand_soft",
       "file": "step_sand_soft/step_sand_soft.wav",
-      "sha256": "ad1407318d24b332ce16d715e5f64c3bf91bc611a2481f92ba120b1c174a72bc",
+      "sha256": "00fb4cf31d430fa0ce9179699f19427be4069e7e9be9345cb2634702b99164da",
       "samplePeakDbfs": -9.0,
-      "rmsDbfs": -26.21,
-      "crestDb": 17.2,
-      "dcOffsetPercent": -0.023802,
+      "rmsDbfs": -25.24,
+      "crestDb": 16.24,
+      "dcOffsetPercent": -0.029752,
       "leadingSilenceMs": 0.091,
-      "trailingSilenceMs": 89.32,
+      "trailingSilenceMs": 29.32,
       "clippedSamples": 0,
       "startsAtZero": true,
       "endsAtZero": true
