@@ -10,7 +10,7 @@ import { G } from "../core/state";
 import { save } from "../core/save";
 import { sfx } from "../core/audio";
 import { floatText, burst } from "../../fx";
-import { accept, qs, questOf, radioIn, track, type NpcId } from "../core/quests";
+import { accept, qs, questOf, questStatus, giverPresent, radioIn, track, type NpcId } from "../core/quests";
 import { payQuest } from "../core/settlement";
 import { NPCS, BARKS, CHATTER, npcRig } from "./npcs";
 import { dialogueHtml, esc, questLogHtml } from "./dialogue";
@@ -103,6 +103,15 @@ export function npcPanel(id: NpcId, lines?: string[]) {
   return dialogueHtml(id, G.save, { lines, extra: extras[id]?.(), foot });
 }
 export function openNpc(id: NpcId, lines?: string[]) { api?.show(npcPanel(id, lines), "npc"); }
+export function readyJobsHtml() {
+  const jobs = qs(G.save).active.map(questOf).filter(q => q && q.turnIn === "home" && questStatus(G.save, q.id) === "ready");
+  return jobs.length ? `<h3>Ready to hand in</h3>${jobs.map(q => `<div><b>${esc(q!.title)}</b><button type="button" data-ready-job="${q!.id}" ${giverPresent(G.save, q!.giver) ? "" : "disabled"}>Talk to ${esc(NPCS[q!.giver].name)}</button>${!giverPresent(G.save, q!.giver) ? `<small>The quest giver's facility must be available.</small>` : ""}</div>`).join("")}` : "";
+}
+export function openReadyJob(id: string) {
+  const q = questOf(id);
+  if (G.scene !== "bunker" || !q || q.turnIn !== "home" || questStatus(G.save, id) !== "ready" || !giverPresent(G.save, q.giver)) return;
+  openNpc(q.giver); sfx("ui");
+}
 /** the job log (Tab or J): the menu bar's Jobs or Notes page, as a vault plate */
 export function openQuestLog(part: "jobs" | "notes" = "jobs") {
   api?.show(`<header><h2>${part === "jobs" ? "Jobs" : "Notes"}</h2><small>Tab or J</small></header>${questLogHtml(G.save, { part })}`, "qlog");

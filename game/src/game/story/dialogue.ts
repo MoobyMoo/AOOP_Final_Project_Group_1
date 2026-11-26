@@ -74,7 +74,7 @@ export function trackerHtml(save: SaveV1, o: { items?: readonly string[]; pack?:
       const preview = Math.min(progress.need, progress.have + inPack);
       return `<div class="q3-objective ${progress.ok ? "ok" : ""}"><span>${progress.ok ? "✔ " : ""}${esc(task.text)}</span><b class="num">${progress.have}/${progress.need}</b><div class="q3-progress" role="progressbar" aria-label="${esc(task.text)}" aria-valuemin="0" aria-valuemax="${progress.need}" aria-valuenow="${progress.have}"><i class="provisional" style="width:${preview / progress.need * 100}%"></i><i style="width:${progress.have / progress.need * 100}%"></i></div>${inPack && !progress.ok ? `<em>+${inPack} in pack · Extract to secure</em>` : ""}</div>`;
     }).join("");
-    return `<span class="q3-t"><b>◆ ${esc(q.title)}</b><small>${st === "ready" ? `Ready · Hand in to ${GIVER[q.giver]}` : "Tracked job · Open Jobs to change"}</small>${objectives}</span>`;
+    return `<span class="q3-t"><b>◆ ${esc(q.title)}</b><small>${st === "ready" ? q.turnIn === "home" ? `Ready · Extract, then talk to ${GIVER[q.giver]}` : `Ready · Hand in to ${GIVER[q.giver]}` : "Tracked job · Open Jobs to change"}</small>${objectives}</span>`;
   }
   return `<span class="q3-dia">◆</span><span class="q3-t"><b>${esc(q.title)}</b><span>${line}</span></span>`;
 }
