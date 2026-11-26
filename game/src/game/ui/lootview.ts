@@ -43,6 +43,8 @@ import { createAppearance } from "./appearance";
 import { emptyLootFilter, matchesLoot, LOOT_FILTERS, type LootFilter } from "./lootfilters";
 import { equipmentComparison, gunComparisons, type Comparison } from "./gearcompare";
 import { pickupSucceeded, pickupBlocked } from "./pickupfeed";
+import { confirmAction, confirmationOpen } from "./confirmation";
+import { importantItemReasons } from "../loot/item-protection";
 
 export type LootTarget = {
   /** header title: "Ammo tin", "Peel Gang bandit" */
@@ -323,10 +325,14 @@ function unfitTo(s: string, where: "pack" | "them"): boolean {
   else { if (packFull()) { say("No room in your pack", true); return false; } unfit(slot, k); G.pack.push(id); say(`Took the ${attName(id)} off the ${gname}`); }
   sfx("ui"); sel = null; changed(); return true;
 }
-function dropFromPack(i: number) {
+function dropFromPack(i: number, confirmed = false) {
   const index = packIndex(i), inst = G.pack[index]; if (!inst || home() || !G.alive) return;
   if (G.equipping?.inst === inst) { say("You're putting that on", true); return; }
   if (G.useItem?.id === inst) { say("Finish healing first", true); return; }
+  const reasons = importantItemReasons(G.save, [inst]);
+  if (!confirmed && reasons.length) {
+    confirmAction({ title: "Drop important item?", message: `Drop one ${itemDef(inst).name} on the ground? You will need to pick it up again to keep it.`, reasons, confirmLabel: "Drop item", valid: () => G.scene === "raid" && G.alive && G.pack.includes(inst), run: () => { const slot = packStacks(G.pack).findIndex(stack => stack.includes(inst)); if (slot >= 0) dropFromPack(slot, true); } }); return;
+  }
   G.pack.splice(index, 1); spawnPickup(inst, G.pp.clone().setY(1), 0, 1); sfx("pick"); say(`Dropped the ${itemDef(inst).name}`); sel = null; changed();
 }
 function reorder(a: number, b: number) {
@@ -779,6 +785,7 @@ function showTip(el: HTMLElement | null) {
 }
 function onKey(e: KeyboardEvent) {
   if (!root) return;
+  if (confirmationOpen()) return;
   if ((e.target as HTMLElement)?.matches("input,select,textarea") && e.key !== "Escape") { e.stopImmediatePropagation(); return; }
   const k = e.key.toLowerCase();
   if (k === "escape" || (k === "e" && target) || (k === "tab" && home())) { e.preventDefault(); e.stopPropagation(); closeLoot(); return; }
