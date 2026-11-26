@@ -254,13 +254,13 @@
     {
       "id": "step_plank_soft",
       "file": "step_plank_soft/step_plank_soft.wav",
-      "sha256": "fc8df3060c1c6671465436b3d1ce417ca8c233bb050b44a814758afa8de3b4e4",
+      "sha256": "eb5416827177dbc4bd553de765280f8df76fa66baa77488516d286ebdb195056",
       "samplePeakDbfs": -9.0,
-      "rmsDbfs": -24.12,
-      "crestDb": 15.12,
-      "dcOffsetPercent": -0.021361,
+      "rmsDbfs": -22.96,
+      "crestDb": 13.96,
+      "dcOffsetPercent": -0.027934,
       "leadingSilenceMs": 0.136,
-      "trailingSilenceMs": 101.95,
+      "trailingSilenceMs": 21.95,
       "clippedSamples": 0,
       "startsAtZero": true,
       "endsAtZero": true
