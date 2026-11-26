@@ -1,0 +1,25 @@
+import { createPickupNotices } from "./pickup-notices";
+let checks = 0;
+function assert(ok: unknown, message: string) { checks++; if (!ok) throw new Error(message); }
+const feed = createPickupNotices();
+feed.add("pickup", "bandage", "bandage@a", 1, "Pack", 0);
+feed.add("pickup", "bandage", "bandage@b", 1, "Pack", 1);
+assert(feed.entries(1).length === 1 && feed.entries(1)[0].count === 2, "identical pickups merge");
+feed.add("pickup", "ammo45", "ammo45@a", 7, "Reserve", 1);
+feed.add("pickup", "ammo45", "ammo45@b", 3, "Reserve", 2);
+assert(feed.entries(2)[1].count === 10, "ammo notice counts actual rounds");
+feed.add("blocked", "banana", "banana@a", 1, "Full", 2);
+feed.add("blocked", "banana", "banana@a", 1, "Full", 3);
+assert(feed.entries(3).length === 3 && feed.entries(3)[2].count === 1, "repeated failures do not multiply counts");
+feed.add("pickup", "banana", "banana@a", 1, "Pack", 3);
+assert(!feed.entries(3).some(n => n.type === "banana" && n.kind === "blocked"), "success replaces stale failure");
+feed.add("pickup", "hardhat", "hardhat@a", 1, "Pack", 4);
+assert(feed.entries(4).length === 3 && !feed.entries(4).some(n => n.type === "bandage"), "feed bounded to three latest types");
+assert(feed.entries(8).length === 1, "notices expire independently");
+assert(feed.entries(9).length === 0, "feed expires completely");
+feed.add("pickup", "bandage", "bandage@c", 1, "Pack", 10);
+assert(feed.entries(10)[0].count === 1, "new pickup does not include expired counts");
+feed.add("pickup", "bandage", "bad", 0, "Pack", 10);
+assert(feed.entries(10)[0].count === 1, "invalid count ignored");
+feed.clear();assert(feed.entries(10).length === 0, "new raid clears notices");
+console.log(`Pickup notices: ${checks} checks passed`);

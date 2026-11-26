@@ -39,7 +39,8 @@ import { makeNoise } from "../combat/combat";
 import { takeModel, releaseModel, throwVelocity, stepThrow, poseModel, PICK_REACH, hullResolution } from "./ground";
 import { openLoot, closeLoot, lootOpen, type LootTarget } from "../ui/hud";
 import { lootTarget } from "../ui/lootview";
-import { own, itemType, withCount } from "./instances";
+import { own, itemType, withCount, stackCount } from "./instances";
+import { pickupSucceeded, pickupBlocked } from "../ui/pickupfeed";
 import { fitsInPack, packStacks } from "./pack";
 import { consumeInstance } from "../core/raid-journal";
 import { storyExtras, storyForced } from "../story/raid";
@@ -325,32 +326,31 @@ export function giveItem(item: string, n?: number): boolean {
   const d = itemDef(item);
   if (equipDef(item)?.bound) return false;
   // rounds go to their own caliber's reserve (Duckov matches caliber strings; a .45 never loads a rifle)
-  if (d.kind === "ammo") { const cal = itemType(item), k = n ?? d.stack ?? 8; if (isCaliber(cal)) G.reserve[cal] += k; consumeInstance(item); sfx("pick"); floatText(`+${k} ${CALIBERS[cal as Caliber]?.short ?? ""} rounds`, G.pp.clone().setY(2.4), "#ffcf6a", 20); hud.ammo(); return true; }
+  if (d.kind === "ammo") { const cal = itemType(item), k = n ?? stackCount(item, d.stack ?? 8); if (isCaliber(cal)) G.reserve[cal] += k; consumeInstance(item); sfx("pick"); floatText(`+${k} ${CALIBERS[cal as Caliber]?.short ?? ""} rounds`, G.pp.clone().setY(2.4), "#ffcf6a", 20); hud.ammo(); pickupSucceeded(item, k, "Rounds added to reserve"); return true; }
   // a gun goes into the first empty gun slot, empty of rounds; with both full it packs like loot (never swaps the one in hand)
-  if (d.kind === "gun" && equipFound(item) >= 0) { sfx("pick"); hud.ammo(); floatText(`${d.name}`, G.pp.clone().setY(2.4), RAR_COLOR[d.rarity], 22); hud.toast(`${d.name} in gun ${G.save.guns.findIndex(g => g?.inst === item) + 1}: press ${G.save.guns.findIndex(g => g?.inst === item) + 1} to draw it`); return true; }
+  if (d.kind === "gun" && equipFound(item) >= 0) { sfx("pick"); hud.ammo(); floatText(`${d.name}`, G.pp.clone().setY(2.4), RAR_COLOR[d.rarity], 22); const slot = G.save.guns.findIndex(g => g?.inst === item) + 1; pickupSucceeded(item, 1, `Gun slot ${slot} · Press ${slot} to draw`); return true; }
   // gun attachments pack like loot; Duckov never fits a part on pickup (Tab, then drag it onto the Kingpin)
   if (!fitsInPack(G.pack, G.packSlots, item)) return false;
-  if (isEquip(item)) { const result = collectEquipment(item); if (result !== "full") { sortPack(); sfx("pick"); hud.pack(); return true; } }
+  if (isEquip(item)) { const result = collectEquipment(item); if (result !== "full") { sortPack(); sfx("pick"); hud.pack(); pickupSucceeded(item, 1, result === "equipping" ? "Putting on equipment" : "Added to pack"); return true; } }
   G.pack.push(item); sortPack(); sfx("pick"); hud.pack();
   floatText(`${d.icon} ${d.name}`, G.pp.clone().setY(2.4), RAR_COLOR[d.rarity], 20);
-  if (d.kind === "attachment") hud.toast(`${d.name}: press Tab and drag it onto a gun to fit it`);
-  if (d.kind === "gun") hud.toast(`${d.name} packed: both gun slots are full. Tab to swap it in`);
+  pickupSucceeded(item, 1, d.kind === "attachment" ? "Added to pack · Tab to fit onto a gun" : d.kind === "gun" ? "Both gun slots full · Stored in pack" : "Added to pack");
   if (itemType(item) === "vine_key") hud.toast("The Vine Key! Get it home: the key opens the vault door from your next raid");
   return true;
 }
 /** E on a ground item. Returns true if it was taken */
 function collect(p: Pickup): boolean {
   if (giveItem(p.item, p.n)) return true;
-  if (equipDef(p.item)?.bound) return false;
+  if (equipDef(p.item)?.bound) { pickupBlocked(p.item); return false; }
   if (packStacks(G.pack).length >= G.packSlots) {
     // a full pack: swap for the cheapest loose item, which is tossed out where you stand
     const cheapest = cheapestLoot();
     if (cheapest && priority(cheapest) < priority(p.item)) {
       G.pack.splice(G.pack.indexOf(cheapest), 1); dropItem(cheapest, G.pp.clone().setY(G.pp.y + 1), G.aimYaw); G.pack.push(p.item);
       const equipment = equipDef(p.item); if (equipment && !G.gear[equipment.slot]) equipFromPack(G.pack.length - 1);
-      sortPack(); G.log.swaps++; sfx("pick"); hud.pack(); return true;
+      sortPack(); G.log.swaps++; sfx("pick"); hud.pack(); pickupSucceeded(p.item, 1, `Picked up · Dropped ${itemDef(cheapest).name} to make room`); return true;
     }
-    hud.toast(cheapest ? `Pack full: your ${itemDef(cheapest).name} is worth more` : "Pack full: make room first");
+    pickupBlocked(p.item);
   }
   return false;
 }
