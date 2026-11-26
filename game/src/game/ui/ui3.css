@@ -46,6 +46,10 @@ html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .h3-hp.low .fill{background:linear-gradient(180deg,#ff4a3a,#c41f12)}
 .h3-hp b{font:600 22px/1 var(--a-font);min-width:30px;text-align:right;font-variant-numeric:tabular-nums}
 .h3-hp.shake{animation:a-shake .3s}
+.h3-status{position:absolute;left:calc(50% - 738px);bottom:160px;width:300px;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.h3-status>div{padding:7px 10px;background:#1d1c20e8;border-left:3px solid var(--a-warn)}
+.h3-status b{display:block;font:600 18px/1.2 var(--a-font);color:var(--a-warn)}.h3-status small{display:block;margin-top:3px;font:500 15px/1.25 var(--a-font);color:var(--a-ink)}
+.h3-status .danger{border-color:var(--a-hp)}.h3-status .danger b{color:#ff9687}
 @keyframes a-shake{25%{transform:translateX(-4px)}55%{transform:translateX(3px)}}
 .h3-badge{bottom:40px;width:84px;height:75px;display:grid;place-items:center;align-content:center;gap:2px;text-align:center}
 .h3-badge .k{font:500 14px/1 var(--a-font);color:var(--a-dim)}

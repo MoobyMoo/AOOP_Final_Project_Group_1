@@ -114,6 +114,7 @@ export const hud = {
     E.help = el("h3-help shade", `<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move, <kbd>Shift</kbd> sprint, <kbd>Space</kbd> dash<br>Click to shoot, right-click to aim, <kbd>R</kbd> reload, <kbd>V</kbd> briefcase<br><kbd>E</kbd> search, <kbd>Q</kbd> or <kbd>3</kbd>–<kbd>8</kbd> heal, <kbd>Tab</kbd> pack, <kbd>M</kbd> map`);
     helpT = G.save.raids === 0 ? 30 : 8;
     E.hp = el("plate h3-hp", `${BRK}<span class="heart" aria-hidden="true">♥</span><div class="bar"><i class="lag"></i><i class="fill"></i></div><b class="num"></b>`);
+    E.status = el("h3-status", ""); E.status.setAttribute("aria-label", "Character status"); E.status.setAttribute("aria-live", "polite");
     E.armor = el("plate h3-badge h3-armor", `${BRK}<span class="k">armor</span><span class="v"></span><span class="k s"></span>`);
     E.load = el("plate h3-badge h3-load", `${BRK}<span class="k">load</span><span class="v"></span><span class="k s"></span>`);
     E.capacity = el("plate h3-capacity", `${BRK}<span>Pack slots</span><span class="num"></span>`);
@@ -166,6 +167,20 @@ export const hud = {
   /** heals report here from actors/player.ts; the action ring and bar read G.useItem, G.equipping and the reload directly
    *  each frame (hud.update), so this only keeps the old call sites working */
   use(_u: { id: string; t: number; time: number } | null) {},
+  status() {
+    const lines: { label: string; help: string; danger?: boolean }[] = [];
+    if (G.alive) {
+      if (G.hp < G.maxHp) lines.push({ label: G.hp / G.maxHp < 0.3 ? "Critical health" : "Injured", help: "Q or a healing quick slot to recover", danger: G.hp / G.maxHp < 0.3 });
+      if (G.painT > 0) lines.push({ label: "Recently hit", help: "Movement briefly slowed · Find cover" });
+      const ratio = carriedWeight() / carryLimit();
+      if (ratio > 1) lines.push({ label: "Overweight", help: "Drop or store items to restore movement", danger: true });
+      else if (ratio > 0.75) lines.push({ label: "Heavy load", help: "Movement slowed · Lighten your pack" });
+      if (G.useItem) lines.push({ label: `Healing · ${Math.max(0, G.useItem.time - G.useItem.t).toFixed(1)}s`, help: "Taking damage or dashing interrupts healing" });
+      else if (G.stamina < 10) lines.push({ label: "Too tired to dash", help: "Stop sprinting and let stamina recover" });
+    }
+    const html = lines.map(line => `<div class="${line.danger ? "danger" : ""}"><b>${line.label}</b><small>${line.help}</small></div>`).join("");
+    if (E.status.innerHTML !== html) E.status.innerHTML = html;
+  },
   money() {},
   ammo() {
     if (!E.ammo) return;
@@ -242,6 +257,7 @@ export const hud = {
     if (grace > 0) set(E.grace.querySelector("span") as HTMLElement, `Spawn protection · ${Math.ceil(grace)}s`);
     updateLoot(dt); menuTick();
     updatePickupFeed();
+    hud.status();
     updateExitCards(E.routes, dt);
     // follow-character pieces: projected each frame, written in reference px
     const me = toScreen(G.pp.clone().setY(G.pp.y + 1.2)), mx = toRef(me.x), my = toRef(me.y);
