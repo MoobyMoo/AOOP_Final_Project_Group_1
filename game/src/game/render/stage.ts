@@ -2,6 +2,7 @@
 // Settings come from the L1 look target (research/look FINDINGS; council R3): 55 deg pitch, -30 deg yaw, FOV 24,
 // warm low sun, cool hemisphere fill, PCF soft shadows, bloom + SMAA only (bright style: no tone-map pass, no AO pass).
 import * as THREE from "three";
+import { graphics, type Graphics } from "./graphics";
 /** highlight roll-off merged into the existing effect pass (no extra pass): G1 council found sunlit dirt clipping on
  *  13-40% of the frame (Duckov 0.1-0.2%). Khronos PBR Neutral keeps hue and midtones and only compresses the top end.
  *  ?tm=none restores the old look; ?tm=agx to compare. */
@@ -33,12 +34,6 @@ export class Stage {
   /** camera kick (u, decays) and trauma shake (0..1) — feedback channels, separate from hit-stop */
   kick = new THREE.Vector3(); trauma = 0;
   private shake = new THREE.Vector3();
-  private cameraOffset = new THREE.Vector3();
-  private cameraFocus = new THREE.Vector3();
-  private shadowFocus = new THREE.Vector3();
-  private pickRay = new THREE.Raycaster();
-  private pickNdc = new THREE.Vector2();
-  private pickPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0));
   constructor(canvas: HTMLCanvasElement, haze = "#d9cfa8") {
     const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance", stencil: false, depth: true });
     r.setPixelRatio(Math.min(devicePixelRatio, Number(QS.get("dpr") ?? 1.5)));
@@ -61,7 +56,20 @@ export class Stage {
     this.composer = new EffectComposer(r, { frameBufferType: THREE.HalfFloatType });
     this.renderPass = new RenderPass(s, this.camera); this.composer.addPass(this.renderPass);
     this.composer.addPass(new EffectPass(this.camera, new BloomEffect({ mipmapBlur: true, luminanceThreshold: 0.95, intensity: 0.4 }), ...toneMap(), new VignetteEffect({ offset: 0.42, darkness: 0.28 }), new SMAAEffect()));
-    addEventListener("resize", () => this.resize()); this.resize();
+    addEventListener("resize", () => this.resize()); this.applyGraphics(graphics, true);
+  }
+  private graphicsFixed = false;
+  applyGraphics(config: Graphics, honorQuery = false) {
+    const r = this.renderer;
+    const queryDpr = honorQuery && QS.has("dpr") ? Number(QS.get("dpr")) : NaN;
+    const ratio = Number.isFinite(queryDpr) && queryDpr > 0 ? queryDpr : Math.min(devicePixelRatio, 2) * config.scale;
+    this.graphicsFixed = true; this.dprNow = this.dprMax = Math.max(0.5, Math.min(2.5, ratio));
+    r.setPixelRatio(this.dprNow); r.shadowMap.enabled = config.shadows;
+    const size = config.quality === "high" ? 4096 : 2048;
+    if (this.sun.shadow.mapSize.x !== size) { this.sun.shadow.mapSize.set(size, size); this.sun.shadow.map?.dispose(); this.sun.shadow.map = null; }
+    r.shadowMap.needsUpdate = true;
+    this.post = honorQuery && QS.has("post") ? QS.get("post") !== "0" : config.post;
+    this.resize();
   }
   /** switch the rendered scene; the sun and fill move with it */
   setScene(s: THREE.Scene, fog = true) {
@@ -88,11 +96,11 @@ export class Stage {
     this.trauma = Math.max(0, this.trauma - dt * 1.6);
     const k = this.trauma * this.trauma * 0.35;
     this.shake.set(Math.sin(t * 61) * k, 0, Math.cos(t * 53) * k);
-    const off = this.cameraOffset.setFromSphericalCoords(this.cam.dist, Math.PI / 2 - this.cam.pitch, this.cam.yaw);
-    const f = this.cameraFocus.copy(this.focus).add(this.kick).add(this.shake);
+    const off = new THREE.Vector3().setFromSphericalCoords(this.cam.dist, Math.PI / 2 - this.cam.pitch, this.cam.yaw);
+    const f = this.focus.clone().add(this.kick).add(this.shake);
     this.camera.position.copy(f).add(off); this.camera.lookAt(f);
     // shadow box follows the focus, snapped to whole shadow texels so edges don't crawl
-    const texel = 48 / 4096, sp = this.shadowFocus.copy(this.focus);
+    const texel = 48 / 4096, sp = this.focus.clone();
     sp.x = Math.round(sp.x / texel) * texel; sp.z = Math.round(sp.z / texel) * texel;
     this.sun.position.copy(sp).addScaledVector(this.sunDir, 45); this.sun.target.position.copy(sp);
     U.uRimDir.value.set(-0.55, 0.65, 0.35).normalize();
@@ -100,9 +108,9 @@ export class Stage {
   /** adaptive pixel ratio (advisor 32): step down when frames run long, back up when there's headroom */
   private ft: number[] = []; private dprMax = Math.min(devicePixelRatio, Number(QS.get("dpr") ?? 2)); private dprNow = Math.min(devicePixelRatio, Number(QS.get("dpr") ?? 1.5)); private lastT = performance.now();
   adapt() {
-    if (QS.has("fixdpr")) return;
+    if (this.graphicsFixed) return;
     const now = performance.now(); this.ft.push(now - this.lastT); this.lastT = now;
-    if (this.ft.length < 90) return;
+    if (this.ft.length < 90 || QS.has("fixdpr")) return;
     const s = [...this.ft].sort((a, b) => a - b), med = s[45]; this.ft.length = 0;
     const steps = [1, 1.25, 1.5, 1.75, 2].filter((v) => v <= this.dprMax + 1e-3);
     const i = steps.findIndex((v) => Math.abs(v - this.dprNow) < 1e-3);
@@ -112,11 +120,7 @@ export class Stage {
   render(dt: number) { this.adapt(); this.renderer.info.reset(); if (this.post) this.composer.render(dt); else this.renderer.render(this.scene, this.camera); }
   /** world point under the mouse on the plane y = h */
   pick(ndcX: number, ndcY: number, h = 0.9) {
-    this.pickNdc.set(ndcX, ndcY);
-    this.pickRay.setFromCamera(this.pickNdc, this.camera);
-    this.pickPlane.constant = -h;
-    const p = new THREE.Vector3();
-    this.pickRay.ray.intersectPlane(this.pickPlane, p);
-    return p;
+    const rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2(ndcX, ndcY), this.camera);
+    const p = new THREE.Vector3(); rc.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -h), p); return p;
   }
 }
