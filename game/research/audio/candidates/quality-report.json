@@ -282,13 +282,13 @@
     {
       "id": "step_stone_soft",
       "file": "step_stone_soft/step_stone_soft.wav",
-      "sha256": "adb869201529ff867e10a85cc00814e90dce4f6d7cd2f82ff475ec7a645ab1c8",
+      "sha256": "576747ca25ff370131f440fa4399c9055deebbff226f4b69e1790051f9b8a302",
       "samplePeakDbfs": -8.0,
-      "rmsDbfs": -21.91,
-      "crestDb": 13.91,
-      "dcOffsetPercent": -0.003819,
+      "rmsDbfs": -20.86,
+      "crestDb": 12.86,
+      "dcOffsetPercent": -0.004861,
       "leadingSilenceMs": 0.113,
-      "trailingSilenceMs": 81.383,
+      "trailingSilenceMs": 21.383,
       "clippedSamples": 0,
       "startsAtZero": true,
       "endsAtZero": true
