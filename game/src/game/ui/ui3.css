@@ -306,6 +306,8 @@ body:has(.lv) #ui > .ui-ref.h3,body:has(.mb3-page) #ui > .ui-ref.h3,body:has(.lv
 .lv-mirror-controls .b3{flex:none;min-height:36px;padding:6px 16px;font-size:17px}
 .lv-back-appearance{display:block;width:100%;margin-top:12px}
 .set3 .srow input[type="checkbox"]{width:24px;height:24px;justify-self:end;accent-color:var(--a-tie);cursor:pointer}
+.set3 .srow select{max-width:115px;justify-self:end;background:#19181c;color:var(--a-ink);border:1px solid var(--a-brass);padding:5px 8px;font:500 18px var(--a-font)}
+.set3 .graphics-status{font-size:16px;color:var(--a-dim);margin:8px 0}
 .h3-guidance{left:50%;top:76px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;max-width:460px;padding:8px 14px;border-color:var(--a-brass);pointer-events:none}
 .h3-guidance[hidden]{display:none}.h3-guidance b{display:block;font:600 19px/1.2 var(--a-font);overflow-wrap:anywhere}
 .h3-guidance small{display:block;margin-top:3px;font:500 16px/1.3 var(--a-font);color:var(--a-dim)}
@@ -321,6 +323,11 @@ body:has(.lv) #ui > .ui-ref.h3,body:has(.mb3-page) #ui > .ui-ref.h3,body:has(.lv
 .lv-guide{margin:10px 16px;padding:12px;border:1px solid var(--a-brass);background:#18171bd9;color:var(--a-ink)}
 .lv-guide h3{margin:0 0 8px;font:700 22px/1.2 var(--a-font)}.lv-guide ul{padding-left:18px;margin:0 0 10px;font:500 17px/1.35 var(--a-font)}.lv-guide li+li{margin-top:5px}
 .lv-guide .b3{padding:4px 14px;min-height:32px}
+.confirm-action-layer{position:fixed;inset:0;z-index:90;background:#08070bcc;display:grid;place-items:center;padding:20px;pointer-events:auto;color:var(--a-ink);font-family:var(--a-font)}
+.confirm-action{box-sizing:border-box;width:min(540px,100%);max-height:calc(100vh - 60px);overflow:auto;padding:24px;background:var(--a-wool);border:1px solid var(--a-brass);box-shadow:0 20px 60px #0008}
+.confirm-action h2{margin:0 0 12px;font-size:28px}.confirm-action p,.confirm-action li{font-size:18px;line-height:1.4}.confirm-action ul{padding-left:20px;color:var(--a-warn)}
+.confirm-action>div{display:flex;gap:12px;justify-content:flex-end;margin-top:18px}.confirm-action button{padding:10px 18px;border:1px solid var(--a-brass);background:#1d1c20;color:var(--a-ink);font:600 19px var(--a-font);cursor:pointer}
+.confirm-action button[data-confirm="yes"]{background:var(--a-tie);color:#1c120b}.confirm-action button:focus-visible{outline:2px solid var(--a-brass-hi);outline-offset:3px}.confirm-error{color:var(--a-hp)}
 .lv-tagwrap{max-height:calc(var(--rh) - 225px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--a-line) transparent;padding-bottom:16px}
 .ui-short .lv-tagwrap{max-height:calc(var(--rh) - 180px)}
 .tag3:has(.gear-compare) .big{width:120px;height:120px}

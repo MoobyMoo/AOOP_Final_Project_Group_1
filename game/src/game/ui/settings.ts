@@ -7,14 +7,12 @@
 // There is no mouse sensitivity setting: the cursor is the OS pointer itself (no virtual cursor to scale).
 import { G } from "../core/state";
 import { VOLUME, setVolume, sfx } from "../core/audio";
+import { graphics, GRAPHICS_PRESETS, saveGraphics } from "../render/graphics";
 
 const LS = "bv_settings";
 /** player preferences outside the audio buses */
 export const prefs = (() => { try { const raw = JSON.parse(localStorage.getItem(LS) ?? "{}"); return { controls: raw?.controls === true, mapAssist: raw?.mapAssist === true }; } catch { return { controls: false, mapAssist: false }; } })();
-function savePrefs() {
-  try { localStorage.setItem(LS, JSON.stringify(prefs)); }
-  catch { /* Apply controls and guidance preferences for the current session. */ }
-}
+const savePrefs = () => localStorage.setItem(LS, JSON.stringify(prefs));
 const BRK = `<i class="brk tl"></i><i class="brk tr"></i><i class="brk bl"></i><i class="brk br"></i>`;
 const BUSES: [keyof typeof VOLUME, string][] = [["master", "Master"], ["sfx", "Effects"], ["ui", "Interface"], ["music", "Music"]];
 
@@ -42,6 +40,12 @@ export function openSettings() {
     <h4>Screen</h4>
     <div class="rows"><div class="srow"><b>Show controls</b><small>Keep the key list on screen in a raid</small><button class="tgl" data-a="controls" aria-pressed="${prefs.controls}">${prefs.controls ? "On" : "Off"}</button></div></div>
     <div class="rows"><label class="srow"><b>Map guidance</b><small>Click a destination on the map for a direction hint</small><input type="checkbox" data-pref="mapAssist" aria-label="Map guidance" ${prefs.mapAssist ? "checked" : ""}></label></div>
+    <h4>Graphics</h4><div class="rows graphics-options">
+      <label class="srow"><b>Quality</b><small>Low is recommended for slower devices</small><select aria-label="Graphics quality" data-graphics="quality">${["low", "medium", "high", "custom"].map(k => `<option value="${k}" ${graphics.quality === k ? "selected" : ""}>${k[0].toUpperCase() + k.slice(1)}</option>`).join("")}</select></label>
+      <label class="srow"><b>Resolution</b><small>Lower values improve performance</small><select aria-label="Resolution scale" data-graphics="scale">${[0.5, 0.75, 1, 1.25].map(n => `<option value="${n}" ${graphics.scale === n ? "selected" : ""}>${n * 100}%</option>`).join("")}</select></label>
+      <label class="srow"><b>Shadows</b><small>Disable to reduce rendering cost</small><input type="checkbox" aria-label="Shadows" data-graphics="shadows" ${graphics.shadows ? "checked" : ""}></label>
+      <label class="srow"><b>Post effects</b><small>Bloom and screen effects</small><input type="checkbox" aria-label="Post effects" data-graphics="post" ${graphics.post ? "checked" : ""}></label>
+      <p class="graphics-status" data-graphics-status>Changes apply immediately.</p></div>
     <div class="actions"><button data-a="resume">Resume</button>${raid ? `<button class="ghost" data-a="quit">Quit to bunker</button>` : ""}</div>
     ${raid ? `<p class="dim quitnote">Quitting counts as a bonk-out: your pouch comes home, the rest of your pack and worn gear stay behind.</p>` : ""}
     <div class="foot"><kbd>Esc</kbd> to resume</div>`;
@@ -52,6 +56,17 @@ export function openSettings() {
   });
   el.querySelectorAll<HTMLButtonElement>("button[data-a]").forEach((b) => b.onclick = () => act(b.dataset.a!, b));
   el.querySelector<HTMLInputElement>('[data-pref="mapAssist"]')!.onchange = (e) => { prefs.mapAssist = (e.target as HTMLInputElement).checked; savePrefs(); sfx("ui"); };
+  el.querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-graphics]").forEach(field => field.onchange = () => {
+    const key = field.dataset.graphics!;
+    if (key === "quality") { const preset = GRAPHICS_PRESETS[field.value as keyof typeof GRAPHICS_PRESETS]; if (preset) Object.assign(graphics, preset); else graphics.quality = "custom"; }
+    else { graphics.quality = "custom"; if (key === "scale") graphics.scale = Number(field.value); else if (key === "shadows" || key === "post") graphics[key] = (field as HTMLInputElement).checked; }
+    G.stage.applyGraphics(graphics);
+    for (const control of el!.querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-graphics]")) {
+      const k = control.dataset.graphics as keyof typeof graphics;
+      if (k === "shadows" || k === "post") (control as HTMLInputElement).checked = graphics[k]; else control.value = String(graphics[k]);
+    }
+    el!.querySelector("[data-graphics-status]")!.textContent = saveGraphics() ? "Applied · Saved on this browser" : "Applied for this session";
+  });
   (el.querySelector('button[data-a="resume"]') as HTMLButtonElement).focus({ preventScroll: true });
   sfx("ui");
 }
