@@ -31,7 +31,7 @@ import { makePod, makeBoard, destinationsHtml, confirmHtml, showCurtain, POD_DOO
 import { deploy, destOf, type DeployRequest } from "../core/deployment";
 import { unlocked, wantedItems, type NpcId } from "../core/quests";
 import { menuClosed } from "../ui/menubar";
-import { initVault, syncNpcs, poseNpcs, stepNpcs, npcBlockers, openNpc, openQuestLog, questAct, setExtras, clearBarks } from "../story/vault";
+import { initVault, syncNpcs, poseNpcs, stepNpcs, npcBlockers, openNpc, openQuestLog, questAct, setExtras, clearBarks, readyJobsHtml, openReadyJob } from "../story/vault";
 import { dialogueHtml } from "../story/dialogue";
 import { trackerHtml } from "../story/dialogue";
 import { credit, debit } from "../core/wallet";
@@ -134,6 +134,7 @@ function drawHud() {
   const ui = document.getElementById("ui")!; ui.innerHTML = `<div class="home-top"><div class="place"><b>The Vault</b><span>Under Exile Beach</span></div><span class="home-chips">${titleChipHtml()}<span class="home-stash num" title="Stash slots used">Stash <b>${stashUsed(G.save)}</b>/${stashCapacity(G.save)}</span><span class="home-money">🍌 <b>${G.save.money}</b></span></span></div><div class="hud-prompt" id="hp"></div>
     ${empty ? `<div class="home-tip">Your vault is empty. Press <kbd>B</kbd> or use the blueprint desk to build. The Fence's window and the workbench are free.</div>` : ""}
     ${marketBoardHtml()}
+    <section class="home-turnins" aria-label="Jobs ready to hand in">${readyJobsHtml()}</section>
     <nav class="home-shortcuts" aria-label="Lobby shortcuts">
       <button type="button" data-home="locker"><b>Locker</b><small>Manage equipment</small></button>
       <button type="button" data-home="look"><b>Appearance</b><small>Change your look</small></button>
@@ -150,6 +151,11 @@ function drawHud() {
     else if (button.dataset.home === "jobs") openQuestLog();
     else if (button.dataset.home === "deploy") showPanel(destinationsHtml(G.save), "dest");
   });
+  ui.querySelector<HTMLElement>(".home-turnins")!.onclick = e => {
+    const button = (e.target as HTMLElement).closest<HTMLButtonElement>("[data-ready-job]");
+    if (!button || launching || panel || lootOpen() || buildOpen() || settingsOpen() || ui.querySelector(":scope > .ov3")) return;
+    stopHomeDash(); openReadyJob(button.dataset.readyJob!);
+  };
 }
 function money() { const el = document.querySelector(".home-money b"); if (el) el.textContent = String(G.save.money); const tc = document.querySelector(".home-title"); if (tc) tc.outerHTML = titleChipHtml(); const st = document.querySelector(".home-stash"); if (st) st.innerHTML = `Stash <b>${stashUsed(G.save)}</b>/${stashCapacity(G.save)}`; }
 const BRK = `<i class="brk tl"></i><i class="brk tr"></i><i class="brk bl"></i><i class="brk br"></i>`;
@@ -166,6 +172,8 @@ let trackT = 0;
 function trackerTick(dt: number) {
   if ((trackT -= dt) > 0) return; trackT = 0.25;
   const ui = document.getElementById("ui"); if (!ui) return;
+  const turnins = ui.querySelector<HTMLElement>(".home-turnins"), ready = readyJobsHtml();
+  if (turnins && turnins.innerHTML !== ready) turnins.innerHTML = ready;
   let el = ui.querySelector<HTMLElement>(":scope > .q3-track"); const html = trackerHtml(G.save);
   if (!el) { el = document.createElement("div"); el.className = "q3-track home"; ui.appendChild(el); }
   if (el.innerHTML !== html) el.innerHTML = html; el.style.display = html ? "" : "none";
