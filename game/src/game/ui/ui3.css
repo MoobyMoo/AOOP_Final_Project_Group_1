@@ -316,6 +316,11 @@ body:has(.lv) #ui > .ui-ref.h3,body:has(.mb3-page) #ui > .ui-ref.h3,body:has(.lv
 .lv-filters input:focus,.lv-filters select:focus{outline:2px solid var(--a-brass)}
 .lv-filters .b3{height:34px;padding:0 6px;font-size:16px}
 .lv-filter-count{margin:4px 16px 8px;color:var(--a-dim);font:500 16px/1.2 var(--a-font)}
+.lv-help-button{align-self:flex-end;margin:8px 16px 0;border:1px solid var(--a-brass);padding:4px 14px;background:#26252a;color:var(--a-ink);font:600 17px var(--a-font);cursor:pointer}
+.lv-help-button:focus-visible{outline:2px solid var(--a-brass-hi)}
+.lv-guide{margin:10px 16px;padding:12px;border:1px solid var(--a-brass);background:#18171bd9;color:var(--a-ink)}
+.lv-guide h3{margin:0 0 8px;font:700 22px/1.2 var(--a-font)}.lv-guide ul{padding-left:18px;margin:0 0 10px;font:500 17px/1.35 var(--a-font)}.lv-guide li+li{margin-top:5px}
+.lv-guide .b3{padding:4px 14px;min-height:32px}
 .lv-tagwrap{max-height:calc(var(--rh) - 225px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--a-line) transparent;padding-bottom:16px}
 .ui-short .lv-tagwrap{max-height:calc(var(--rh) - 180px)}
 .tag3:has(.gear-compare) .big{width:120px;height:120px}

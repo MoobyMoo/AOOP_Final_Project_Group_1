@@ -85,6 +85,11 @@ const home = () => G.scene === "bunker";
 const gear = () => (home() ? G.save.gear : G.gear);
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 const filters = { mine: emptyLootFilter(), them: emptyLootFilter() };
+let guideOpen = false;
+const guideSeen = () => { try { return localStorage.getItem("bv_inventory_guide_v1") === "seen"; } catch { return false; } };
+function guideHtml() {
+  return guideOpen ? `<section class="lv-guide" aria-label="Inventory help"><h3>Inventory basics</h3><ul><li><b>Double-click</b> to take, wear or use an item.</li><li><b>Drag</b> items between panels or onto an equipment slot.</li><li><b>Numbers</b> at the bottom-right show stack quantities.</li><li>The first <b>${G.pouchSlots || 2} pack slots</b> are your cheek pouch. Their contents stay with you if you are bonked.</li><li><b>Search</b> or choose a category to filter items. <b>R</b> sorts by value.</li><li><b>Ctrl-click</b> container ammo to take half its rounds.</li></ul><button type="button" class="b3 small" data-act="guide-done">Got it</button></section>` : "";
+}
 const filtering = (f: LootFilter) => f.category !== "all" || !!f.query.trim();
 function filterHtml(zone: "mine" | "them") {
   const f = filters[zone];
@@ -454,7 +459,7 @@ function leftHtml() {
   const title = lookExt(G.save.look).gender === "female" ? "The Businesswoman" : "The Businessman";
   const capacity = `<div class="lv-capacity num" aria-label="Pack capacity"><span>Used <b>${stacks.length}</b></span><span class="${stacks.length >= G.packSlots ? "full" : ""}">Free <b>${Math.max(0, G.packSlots - stacks.length)}</b></span><span>Total <b>${G.packSlots}</b></span></div>`;
   return `${BRK}<header class="lv-head"><h2>${title}</h2>${home() ? `<small class="num">🍌 ${G.save.money}</small>` : ""}</header><div class="tie"></div>
-    <div class="lv-body">${body}</div>${home() ? "" : capacity + weightHtml()}`;
+    <button type="button" class="lv-help-button" data-act="guide" aria-expanded="${guideOpen}">Help</button><div class="lv-body">${guideHtml()}${body}</div>${home() ? "" : capacity + weightHtml()}`;
 }
 function themHtml() {
   if (!target) return "";
@@ -621,6 +626,7 @@ function renderTag() {
 // ---------------------------------------------------------------- open / close
 export function openLoot(t: LootTarget | null) {
   const fresh = !root;
+  if (fresh) guideOpen = !guideSeen();
   if (root && target && target !== t) target.onClose?.();
   target = t; sel = null; hover = null; sigLeft = sigThem = tagKey = "";
   filters.mine = emptyLootFilter(); filters.them = emptyLootFilter();
@@ -703,6 +709,11 @@ function wire(r: HTMLDivElement) {
     const b = (e.target as HTMLElement).closest("[data-act]") as HTMLElement | null; if (!b) return;
     const a = b.dataset.act!, src = sel ?? hover;
     if (a === "appearance") { sel = hover = null; render(); return; }
+    if (a === "guide" || a === "guide-done") {
+      guideOpen = a === "guide" ? !guideOpen : false;
+      if (a === "guide-done") { try { localStorage.setItem("bv_inventory_guide_v1", "seen"); } catch {} }
+      sigLeft = ""; render(); return;
+    }
     if (a === "clear-mine" || a === "clear-them") { filters[a === "clear-mine" ? "mine" : "them"] = emptyLootFilter(); sel = hover = null; sigLeft = sigThem = ""; render(); return; }
     if (a === "sort") return sortMine();
     if (a === "takeall") return takeAllSearched();
