@@ -42,6 +42,7 @@ import { checkpointInventory, consumeInstance } from "../core/raid-journal";
 import { createAppearance } from "./appearance";
 import { emptyLootFilter, matchesLoot, LOOT_FILTERS, type LootFilter } from "./lootfilters";
 import { equipmentComparison, gunComparisons, type Comparison } from "./gearcompare";
+import { pickupSucceeded, pickupBlocked } from "./pickupfeed";
 
 export type LootTarget = {
   /** header title: "Ammo tin", "Peel Gang bandit" */
@@ -159,17 +160,17 @@ function takeFrom(i: number, opts: { half?: boolean; wear?: boolean; quiet?: boo
       e.slot.item = remaining;
       if (index >= 0) target.items[index] = remaining;
     } else { removeEntry(e); consumeInstance(e.item); }
-    sfx("pick"); say(`+${k} ${isCaliber(cal) ? CALIBERS[cal].name.toLowerCase() : "rounds"}`); changed(); return true;
+    sfx("pick"); say(`+${k} ${isCaliber(cal) ? CALIBERS[cal].name.toLowerCase() : "rounds"}`); changed(); pickupSucceeded(e.item, k, "Rounds added to reserve"); return true;
   }
   if (d.kind === "attachment" && opts.wear) return fitFrom({ z: "them", i }); // "Take and fit"; a plain take packs it (Duckov never fits from a container)
   if (d.kind === "gun" && (opts.wear || freeGunSlot() >= 0)) return gunFrom({ z: "them", i }); // Duckov TryPlug: an empty gun slot first
-  if (!fits(e.item)) { if (!opts.quiet) say(equipDef(e.item)?.bound ? "That stays with its owner" : "Your pack is full. Put something back or drop it first.", true); return false; }
+  if (!fits(e.item)) { if (!opts.quiet) { pickupBlocked(e.item); say(equipDef(e.item)?.bound ? "That stays with its owner" : "No free pack slots. Put something back or drop it first.", true); } return false; }
   if (isEquip(e.item)) {
     removeEntry(e); const r = collectEquipment(e.item);
     if (opts.wear && r === "packed") equipFromPack(G.pack.length - 1);
     say(r === "equipping" || opts.wear ? `Putting on the ${d.name}…` : `Took the ${d.name}`);
   } else { removeEntry(e); G.pack.push(e.item); if (!opts.quiet) say(`Took the ${d.name}`); }
-  sfx("pick"); if (sel && sel.z === "them") sel = null; changed(); return true;
+  sfx("pick"); if (sel && sel.z === "them") sel = null; changed(); pickupSucceeded(e.item, 1, opts.wear ? "Picked up · Putting on equipment" : "Added to pack"); return true;
 }
 function takeAllSearched() {
   let n = 0;
@@ -178,6 +179,8 @@ function takeAllSearched() {
     if (i < 0) break; if (!takeFrom(i, { quiet: true })) break; n++;
   }
   const left = entries().filter((e) => e.revealed).length;
+  const blocked = entries().find(e => e.revealed && !fits(e.item));
+  if (blocked && !home()) pickupBlocked(blocked.item);
   say(n ? (left ? `Took ${n}. Your pack is full.` : `Took ${n} item${n > 1 ? "s" : ""}`) : left ? "Your pack is full" : "Nothing searched yet", !n);
 }
 function putInto(i: number): boolean {
@@ -243,7 +246,9 @@ function fitFrom(src: Src, on?: 0 | 1): boolean {
     if (r.ok && r.old) fit(r.old, from);
   } else return false;
   if (home()) save(G.save);
-  sfx("rare", 0.6); say(`${a.name} fitted on the ${gunOf(G.save.guns[k]!.inst)!.name}. ${statLines(id, gunOf(G.save.guns[k]!.inst)!.mag).map((l) => l.text).join(", ")}`); sel = { z: "att", s: `${k}.${a.slot}` }; changed(); return true;
+  sfx("rare", 0.6); say(`${a.name} fitted on the ${gunOf(G.save.guns[k]!.inst)!.name}. ${statLines(id, gunOf(G.save.guns[k]!.inst)!.mag).map((l) => l.text).join(", ")}`); sel = { z: "att", s: `${k}.${a.slot}` }; changed();
+  if (!home() && src.z === "them" && G.save.guns[k]?.atts[a.slot] === id) pickupSucceeded(id, 1, `Fitted on gun ${k + 1}`);
+  return true;
 }
 // ---- guns: into a gun slot from the pack, a container or the locker; out to the pack, a container or the locker
 /** room in the pack for n more items */
@@ -293,7 +298,9 @@ function gunFrom(src: Src, on?: 0 | 1): boolean {
   }
   if (home()) save(G.save);
   sfx("rare", 0.6); say(`${gunOf(inst)!.name} in gun ${k + 1}${out ? `; the ${gunOf(out.inst)?.name} ${home() ? (isKingpin(out.inst) ? "went on the rack" : "went to the locker") : "came off"}` : ""}. Press ${k + 1} to draw it`);
-  sel = { z: "gun", s: String(k) as "0" | "1" }; changed(); return true;
+  sel = { z: "gun", s: String(k) as "0" | "1" }; changed();
+  if (!home() && src.z === "them") pickupSucceeded(inst, 1, `Gun slot ${k + 1} · Press ${k + 1} to draw`);
+  return true;
 }
 /** home: an empty gun slot takes the Kingpin back off the rack */
 function kingpinBack(k: 0 | 1): boolean {

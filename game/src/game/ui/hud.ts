@@ -20,6 +20,7 @@ import { G, flat, entryGraceRemaining, type Crate, type Enemy } from "../core/st
 import { buildExitCards, updateExitCards } from "./exitcards";
 import { mapDestination, destinationBearing } from "./navigation";
 import { levelOf } from "./mapdata";
+import { buildPickupFeed, updatePickupFeed } from "./pickupfeed";
 import { itemDef } from "../loot/raidloot";
 import { CLEARINGS } from "../world/layout";
 import { drainEquipmentEvents, heardEnemies } from "../loot/equipment-actions";
@@ -103,6 +104,7 @@ export const hud = {
     quick = [null, null, null, null, null, null]; wireKeys(); lootHooks.changed = () => { hud.health(); hud.pack(); hud.ammo(); };
     const scr = document.createElement("div"); scr.className = "h3-screen"; scr.style.cssText = "position:absolute;inset:0;pointer-events:none"; root().appendChild(scr);
     const ref = document.createElement("div"); ref.className = "ui-ref h3"; root().appendChild(ref);
+    buildPickupFeed(root());
     const el = (cls: string, html = "", parent: HTMLElement = ref) => { const d = document.createElement("div"); d.className = cls; d.innerHTML = html; parent.appendChild(d); return d; };
     E.hurt = el("h3-hurt", "", scr); E.heard = el("h3-heard", "", scr); E.ehp = el("h3-ehp", "", scr); E.arrows = el("h3-arrows", "", scr);
     E.cross = el("h3-cross", `<u class="ring"></u><u class="rest"></u><i></i><i></i><i></i><i></i><b></b>`, scr); shownScatter = shownRest = 0; lastCross = "";
@@ -239,6 +241,7 @@ export const hud = {
     E.grace.hidden = grace <= 0;
     if (grace > 0) set(E.grace.querySelector("span") as HTMLElement, `Spawn protection · ${Math.ceil(grace)}s`);
     updateLoot(dt); menuTick();
+    updatePickupFeed();
     updateExitCards(E.routes, dt);
     // follow-character pieces: projected each frame, written in reference px
     const me = toScreen(G.pp.clone().setY(G.pp.y + 1.2)), mx = toRef(me.x), my = toRef(me.y);
