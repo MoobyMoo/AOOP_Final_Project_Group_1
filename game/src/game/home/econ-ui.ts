@@ -26,6 +26,8 @@ import { LOCKBOXES, canOpen, isLockbox, lockboxOf, oddsRows, openLockbox } from 
 import { marketMovers, marketPrice } from "../loot/market";
 import { claimDelivery } from "../core/settlement";
 import { portrait } from "../story/portrait";
+import { confirmAction } from "../ui/confirmation";
+import { importantItemReasons } from "../loot/item-protection";
 
 export type EconHost = { reopen(station: string, uid?: number): void; money(): void; refresh(): void; float(text: string, fac: string, color?: string): void; closePanel(): void; showPanel(html: string, cls?: string): void };
 let host: EconHost | null = null;
@@ -147,9 +149,14 @@ function stampSlip() {
   const slip = document.querySelector(".slip"); if (!slip || slip.querySelector(".stamp.dice")) return;
   const s = document.createElement("span"); s.className = "stamp dice"; s.textContent = "Rolled the dice"; slip.appendChild(s);
 }
-function rollNow() {
+function rollNow(confirmed = false) {
   const d = don; if (!d || d.busy) return;
   const offer = haulOffer(G.save, d.raid); if (!offer || offer.rolled) return;
+  const reasons = importantItemReasons(G.save, offer.items);
+  if (!confirmed && reasons.length) {
+    const snapshot = offer.items.slice().sort().join("|");
+    confirmAction({ title: "Sell important loot and bet?", message: `This sells ${offer.items.length} items for ${offer.sold} bananas and places your selected bet. Sold items leave your stash.`, reasons, confirmLabel: "Sell and bet", valid: () => G.scene === "bunker" && don === d && haulOffer(G.save, d.raid)?.items.slice().sort().join("|") === snapshot, run: () => rollNow(true) }); return;
+  }
   const stake = stakeOf(offer.cap, d.frac), u = draw();
   const res = rollDouble(G.save, d.raid, stake, d.game, d.pick, u);
   if (!res) { sfx("nope"); return; }

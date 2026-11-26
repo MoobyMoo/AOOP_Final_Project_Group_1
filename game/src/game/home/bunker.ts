@@ -14,6 +14,8 @@ import { sfx, factoryHum, stopFactoryHums, type HumKind } from "../core/audio";
 import { itemDef } from "../loot/raidloot";
 import { createRig } from "../actors/rig";
 import { settingsOpen } from "../ui/settings";
+import { confirmAction } from "../ui/confirmation";
+import { importantItemReasons } from "../loot/item-protection";
 import { createKingpin, createGunFx } from "../combat/kingpin";
 import { commitSave, save } from "../core/save";
 import { floatText, burst, initFx, updateFx, popIn, squash, tween, easeInOut } from "../../fx";
@@ -366,7 +368,7 @@ function podSequence(req: DeployRequest) {
     }, 0.25);
   });
 }
-function act(a: string) {
+function act(a: string, confirmed = false) {
   const sv = G.save;
   if (a === "deploy") return launch("beach", true);        // the pacing bot and old callers: straight to the beach
   if (a.startsWith("deploy:")) return launch(a.slice(7), true);
@@ -375,10 +377,16 @@ function act(a: string) {
   if (a.startsWith("launch:")) return launch(a.slice(7));
   if (a === "look") { closePanel(); onMirror(); return; }
   if (a.startsWith("craft:")) { const ok = craft(sv, a.slice(6)); if (ok) { save(sv); sfx("buy"); money(); const r = RECIPES.find((q) => q.id === a.slice(6))!; const o = facObj(r.at); if (o) squash(o, 0.12, 0.25); floatText(`+ ${r.name}`, atFac(r.at), "#fff3c4", 24); } else sfx("nope"); open(stations.find((q) => q.id === RECIPES.find((r) => r.id === a.slice(6))?.at)!); return; }
-  if (a.startsWith("sellGear:")) { const got = sellEquip(+a.slice(9)); if (got > 0) { sfx("cash"); money(); floatText(`+🍌 ${got}`, atFac("fence"), "#ffd84a", 26); } else sfx("nope"); const st = stations.find((q) => q.id === "sell"); if (st) open(st); return; }
+  if (a.startsWith("sellGear:")) {
+    const inst = sv.locker[+a.slice(9)], reasons = inst ? importantItemReasons(sv, [inst]) : [];
+    if (!confirmed && inst && reasons.length) { confirmAction({ title: "Sell important equipment?", message: `Sell ${itemDef(inst).name}? It will leave your locker.`, reasons, confirmLabel: "Sell equipment", valid: () => G.scene === "bunker" && G.save.locker.includes(inst), run: () => act(`sellGear:${G.save.locker.indexOf(inst)}`, true) }); return; }
+    const got = sellEquip(+a.slice(9)); if (got > 0) { sfx("cash"); money(); floatText(`+🍌 ${got}`, atFac("fence"), "#ffd84a", 26); } else sfx("nope"); const st = stations.find((q) => q.id === "sell"); if (st) open(st); return;
+  }
   if (a === "repairAll") { const paid = repairAll(); if (paid > 0) { sfx("buy"); money(); floatText(`Gear repaired: 🍌 ${paid}`, atFac("bench"), "#fff3c4", 24); } else sfx("nope"); const st = stations.find((q) => q.id === "bench"); if (st) open(st); return; }
   if (a === "sellAll") {
     const items = sellable(sv); const v = items.reduce((x, i) => x + marketPrice(sv, i), 0);
+    const reasons = importantItemReasons(sv, items);
+    if (!confirmed && reasons.length) { const snapshot = [...items].sort().join("|"); confirmAction({ title: "Sell important stash items?", message: `Sell ${items.length} items for ${v} bananas? These items will leave your stash, including the supplies below.`, reasons, confirmLabel: "Confirm sale", valid: () => G.scene === "bunker" && sellable(G.save).slice().sort().join("|") === snapshot, run: () => act("sellAll", true) }); return; }
     const gone = new Set(items); sv.reserved = sv.reserved.filter((i) => !gone.has(i));
     let shown = 0; const start = sv.money; credit(sv, "sale", v, { in: items }); save(sv);
     const tick = () => { shown = Math.min(v, shown + Math.max(1, Math.ceil(v / 30))); const el = document.querySelector(".home-money b"); if (el) el.textContent = String(start + shown); sfx("cash"); if (shown < v) setTimeout(tick, 33); else money(); };
