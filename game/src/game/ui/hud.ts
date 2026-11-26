@@ -119,7 +119,7 @@ export const hud = {
     E.load = el("plate h3-badge h3-load", `${BRK}<span class="k">load</span><span class="v"></span><span class="k s"></span>`);
     E.capacity = el("plate h3-capacity", `${BRK}<span>Pack slots</span><span class="num"></span>`);
     E.grace = el("plate h3-grace", `${BRK}<span></span>`);
-    E.ammo = el("plate h3-ammo", `${BRK}<span class="m"></span><span class="r"></span><span class="c"></span>`);
+    E.ammo = el("plate h3-ammo", `${BRK}<span class="ammo-counts"><span><small>Loaded</small><b class="m"></b></span><span><small>Reserve</small><b class="r"></b></span></span><span class="c"></span><div class="ammo-reload" role="progressbar" aria-label="Reload progress" aria-valuemin="0" aria-valuemax="100"><i></i></div>`);
     E.weapons = el("h3-weapons", `<div class="plate h3-slot gun" data-k="0"></div><div class="plate h3-slot gun" data-k="1"></div><div class="plate h3-slot case"><span class="key">V</span><span class="emo" style="font-size:30px">💼</span></div>`);
     E.quick = el("h3-quick");
     E.extract = el("plate h3-extract", "");
@@ -153,7 +153,7 @@ export const hud = {
     lastRl = ""; // the reload strip lives in the card just rebuilt
     // the ammo block floats above the gun in hand (Duckov: 8 px above the selected card at 2560, centred on it)
     const right = 42.75, centre = G.slot === 0 ? right - 60 - 15 - 96 - 15 - 48 : right - 60 - 15 - 48;
-    if (E.ammo) E.ammo.style.left = `calc(50% + ${centre - 105}px)`;
+    if (E.ammo) E.ammo.style.left = `calc(50% + ${centre - 150}px)`;
   },
   health() {
     if (!E.hp) return; const k = Math.max(0, G.hp / G.maxHp);
@@ -186,13 +186,18 @@ export const hud = {
     if (!E.ammo) return;
     hud.weapons();
     const def = gunOf(G.save.guns[G.slot]?.inst);
-    const st = !def ? "empty" : G.reloadT >= 0 ? "reloading" : G.mag === 0 && G.ammo === 0 ? "empty" : "";
+    const st = !def ? "empty" : G.reloadT >= 0 ? "reloading" : G.mag === 0 && G.ammo === 0 ? "empty" : G.mag <= Math.ceil(G.magSize * 0.25) ? "low" : "";
     const other = G.save.guns[G.slot === 0 ? 1 : 0];
-    const cap = !def ? "No gun: swing V" : st === "reloading" ? "Reloading…" : st === "empty" ? (other ? `No ${CALIBERS[def.caliber].short}: press ${G.slot === 0 ? 2 : 1}` : "No rounds: swing V") : G.mag === 0 ? "Press R to reload" : def.name; // the caliber is on the card
-    const k = `${G.mag}|${G.ammo}|${st}|${cap}`; if (k === lastAmmo) return; lastAmmo = k;
+    const otherDef = gunOf(other?.inst), otherIndex = G.slot === 0 ? 1 : 0;
+    const canSwitch = otherDef && (G.loaded[otherIndex] > 0 || G.reserve[otherDef.caliber] > 0);
+    const cap = !def ? "No gun · V to use briefcase" : st === "reloading" ? `Reloading · ${Math.max(0, (1 - G.reloadT) * G.reloadTime).toFixed(1)}s remaining` : st === "empty" ? `Need ${CALIBERS[def.caliber].name} · ${canSwitch ? `Press ${otherIndex + 1} to switch` : "V for briefcase"}` : G.mag === 0 ? `Empty magazine · R to reload ${CALIBERS[def.caliber].short}` : `${def.name} · ${CALIBERS[def.caliber].name}`;
+    const progress = G.reloadT >= 0 ? Math.round(G.reloadT * 100) : 0;
+    const k = `${G.mag}|${G.magSize}|${G.ammo}|${st}|${cap}|${progress}`; if (k === lastAmmo) return; lastAmmo = k;
     E.ammo.className = `plate h3-ammo ${st}`;
-    set(E.ammo.querySelector(".m") as HTMLElement, String(G.mag).padStart(2, "0")); set(E.ammo.querySelector(".r") as HTMLElement, `/ ${String(G.ammo).padStart(2, "0")}`);
+    set(E.ammo.querySelector(".m") as HTMLElement, def ? `${G.mag} / ${G.magSize}` : "—"); set(E.ammo.querySelector(".r") as HTMLElement, String(G.ammo));
     set(E.ammo.querySelector(".c") as HTMLElement, cap);
+    const reload = E.ammo.querySelector<HTMLElement>(".ammo-reload")!; reload.hidden = G.reloadT < 0;
+    reload.setAttribute("aria-valuenow", String(progress)); (reload.firstElementChild as HTMLElement).style.width = `${progress}%`;
   },
   pack() { hud.bar(); },
   /** quick slots 3-8 and the load badge */

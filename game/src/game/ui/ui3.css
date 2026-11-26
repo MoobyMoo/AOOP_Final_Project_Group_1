@@ -69,6 +69,11 @@ html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .h3-ammo.empty{background:linear-gradient(180deg,#5a1f1a,#3a1512);border-color:#7a2a22}.h3-ammo.empty .m{color:var(--a-hp)}
 .h3-ammo.low .m{color:var(--a-warn)}
 .h3-ammo.reloading .c{color:var(--a-tie)}
+.h3-ammo{width:300px;height:86px;display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:5px;padding:8px 12px}
+.ammo-counts{display:flex;justify-content:space-between;gap:16px}.ammo-counts>span{display:flex;align-items:baseline;gap:8px}
+.ammo-counts small{font:500 15px/1 var(--a-font);color:var(--a-dim)}.h3-ammo .m{font-size:25px}.h3-ammo .r{font-size:23px;color:var(--a-ink)}
+.h3-ammo .c{margin:0;white-space:normal;line-height:1.2;font-size:16px}
+.ammo-reload{height:5px;background:#09080b;overflow:hidden}.ammo-reload[hidden]{display:none}.ammo-reload i{display:block;height:100%;background:var(--a-tie)}
 .h3-weapons{position:absolute;right:calc(50% - 42.75px);bottom:37.5px;display:flex;gap:15px;align-items:flex-end}
 .h3-slot{position:relative;display:grid;place-items:center}
 .h3-slot .key{position:absolute;left:5px;top:4px;font:600 14px/1 var(--a-font);color:var(--a-dim)}
