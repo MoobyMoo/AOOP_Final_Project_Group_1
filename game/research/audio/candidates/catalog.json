@@ -231,16 +231,16 @@
       "purpose": "A low double pulse for a health warning.",
       "sourceNotes": "low_health/NOTES.txt",
       "source": "original AI-assisted additive synthesis created for this repository.",
-      "sha256": "1b0aece302f94d9507949a1ee3405c99cb926197cc330270acf918d4e726d4ec",
+      "sha256": "a19969043dc84d069fa6d9ea20f03f34f6364847a772d5a36a84d514c38908c5",
       "format": {
         "container": "WAV",
         "encoding": "PCM signed 16-bit little-endian",
         "sampleRate": 44100,
         "channels": 1,
         "bitsPerSample": 16,
-        "frames": 28665,
-        "durationSeconds": 0.65,
-        "bytes": 57374
+        "frames": 21609,
+        "durationSeconds": 0.49,
+        "bytes": 43262
       }
     },
     {

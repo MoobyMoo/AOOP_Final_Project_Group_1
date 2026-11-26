@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "measuredOn": "2026-11-25",
+  "measuredOn": "2026-11-26",
   "method": {
     "samplePeakDbfs": "20 * log10(max(abs(PCM sample)) / 32768)",
     "rmsDbfs": "20 * log10(sqrt(mean(PCM sample squared)) / 32768)",
@@ -184,13 +184,13 @@
     {
       "id": "low_health",
       "file": "low_health/low_health.wav",
-      "sha256": "1b0aece302f94d9507949a1ee3405c99cb926197cc330270acf918d4e726d4ec",
+      "sha256": "a19969043dc84d069fa6d9ea20f03f34f6364847a772d5a36a84d514c38908c5",
       "samplePeakDbfs": -8.0,
-      "rmsDbfs": -22.26,
-      "crestDb": 14.26,
-      "dcOffsetPercent": 0.028945,
+      "rmsDbfs": -21.04,
+      "crestDb": 13.04,
+      "dcOffsetPercent": 0.038397,
       "leadingSilenceMs": 0.136,
-      "trailingSilenceMs": 183.764,
+      "trailingSilenceMs": 23.764,
       "clippedSamples": 0,
       "startsAtZero": true,
       "endsAtZero": true
