@@ -86,13 +86,13 @@
     {
       "id": "crate_latch",
       "file": "crate_latch/crate_latch.wav",
-      "sha256": "e54630d42973fa543e6f3d62f99d7b74ea3b63a00bd830c996b405262280d785",
+      "sha256": "5245d383e9dd0d254c30b6b1f7998d0de47aa1ab0a89f703bf16e1ca853abe2c",
       "samplePeakDbfs": -7.0,
-      "rmsDbfs": -22.28,
-      "crestDb": 15.28,
-      "dcOffsetPercent": 0.002948,
+      "rmsDbfs": -21.63,
+      "crestDb": 14.63,
+      "dcOffsetPercent": 0.003427,
       "leadingSilenceMs": 0.045,
-      "trailingSilenceMs": 93.537,
+      "trailingSilenceMs": 23.537,
       "clippedSamples": 0,
       "startsAtZero": true,
       "endsAtZero": true

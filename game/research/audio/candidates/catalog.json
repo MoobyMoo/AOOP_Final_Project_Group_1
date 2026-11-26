@@ -91,16 +91,16 @@
       "purpose": "A light metal latch followed by a wooden clunk, for reviewing the start of opening a loot crate.",
       "sourceNotes": "crate_latch/NOTES.txt",
       "source": "original AI-assisted additive/noise synthesis created for this repository.",
-      "sha256": "e54630d42973fa543e6f3d62f99d7b74ea3b63a00bd830c996b405262280d785",
+      "sha256": "5245d383e9dd0d254c30b6b1f7998d0de47aa1ab0a89f703bf16e1ca853abe2c",
       "format": {
         "container": "WAV",
         "encoding": "PCM signed 16-bit little-endian",
         "sampleRate": 44100,
         "channels": 1,
         "bitsPerSample": 16,
-        "frames": 22050,
-        "durationSeconds": 0.5,
-        "bytes": 44144
+        "frames": 18963,
+        "durationSeconds": 0.43,
+        "bytes": 37970
       }
     },
     {

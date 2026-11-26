@@ -8,7 +8,7 @@ Location: optional research candidate, outside the Vite public directory.
 Adoption requires a separate audio integration change.
 
 Format: mono, 44100 Hz, signed 16-bit PCM WAV.
-Duration: 0.50 seconds.
+Duration: 0.43 seconds.
 Target sample peak: -7 dBFS.
 Tone: sine fundamental + 0.15 second harmonic + 0.04 third harmonic.
 Envelope: 6 ms attack, exp(-4 * time / length) decay, 25 ms release.
@@ -23,3 +23,11 @@ Noise layers [start seconds, length seconds, gain, lowpass smoothing, optional h
   [0,0.08,0.45,0.8]
   [0.15,0.2,0.4,0.2]
 Normalization: scale complete cue to target sample peak and round to signed 16-bit PCM.
+
+Post-processing: trailing digital-zero padding trimmed on 2026-11-26.
+Original synthesized duration: 0.50 seconds.
+Source audio SHA-256 before trimming: e54630d42973fa543e6f3d62f99d7b74ea3b63a00bd830c996b405262280d785
+Removed samples: 3087, all with a PCM value of zero.
+Retained trailing digital-zero padding: 885 samples (20.068 ms).
+Retained PCM samples match the source bit for bit.
+Processing rule: retain at least 12 ms of trailing zeros and round duration up to a 10 ms grid.
