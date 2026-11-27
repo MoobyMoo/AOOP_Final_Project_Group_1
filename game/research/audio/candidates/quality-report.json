@@ -8,6 +8,10 @@
     "dcOffsetPercent": "100 * mean(PCM sample) / 32768",
     "silenceThresholdDbfs": -60,
     "clippedSamples": "Count of samples whose absolute value is at least 32767",
+    "leadingZeroSamples": "Consecutive PCM samples equal to zero before the first nonzero sample",
+    "trailingZeroSamples": "Consecutive PCM samples equal to zero after the last nonzero sample",
+    "leadingZeroMs": "1000 * leadingZeroSamples / sample rate",
+    "trailingZeroMs": "1000 * trailingZeroSamples / sample rate",
     "scope": "Sample-based measurements of the stored PCM, with listening and runtime mix review handled during selection"
   },
   "checks": {
@@ -16,7 +20,8 @@
     "zeroFirstAndLastSamples": true,
     "noClippedSamples": true,
     "uniqueIdsAndAudioHashes": true,
-    "sourceNotesPresent": true
+    "sourceNotesPresent": true,
+    "digitalZeroPaddingMeasured": true
   },
   "summary": {
     "assets": 23,
@@ -39,7 +44,11 @@
       "trailingSilenceMs": 23.175,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 889,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 20.159
     },
     {
       "id": "warning",
@@ -53,7 +62,11 @@
       "trailingSilenceMs": 22.698,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 892,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 20.227
     },
     {
       "id": "bandage_wrap",
@@ -67,7 +80,11 @@
       "trailingSilenceMs": 41.111,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 922,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 20.907
     },
     {
       "id": "craft_complete",
@@ -81,7 +98,11 @@
       "trailingSilenceMs": 35.828,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 1328,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 30.113
     },
     {
       "id": "crate_latch",
@@ -95,7 +116,11 @@
       "trailingSilenceMs": 23.537,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 885,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 20.068
     },
     {
       "id": "equipment_swap",
@@ -109,7 +134,11 @@
       "trailingSilenceMs": 23.469,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 911,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 20.658
     },
     {
       "id": "grotto_drip",
@@ -123,7 +152,11 @@
       "trailingSilenceMs": 22.698,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 667,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 15.125
     },
     {
       "id": "inventory_close",
@@ -137,7 +170,11 @@
       "trailingSilenceMs": 13.492,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 446,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 10.113
     },
     {
       "id": "inventory_open",
@@ -151,7 +188,11 @@
       "trailingSilenceMs": 33.651,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 1326,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 30.068
     },
     {
       "id": "cash_reward",
@@ -165,7 +206,11 @@
       "trailingSilenceMs": 13.084,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 444,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 10.068
     },
     {
       "id": "loot_pickup",
@@ -179,7 +224,11 @@
       "trailingSilenceMs": 9.773,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 224,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 5.079
     },
     {
       "id": "low_health",
@@ -193,7 +242,11 @@
       "trailingSilenceMs": 23.764,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 916,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 20.771
     },
     {
       "id": "map_unfold",
@@ -207,7 +260,11 @@
       "trailingSilenceMs": 25.329,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 894,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 20.272
     },
     {
       "id": "quest_accepted",
@@ -221,7 +278,11 @@
       "trailingSilenceMs": 22.63,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 891,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 20.204
     },
     {
       "id": "quest_complete",
@@ -235,7 +296,11 @@
       "trailingSilenceMs": 23.81,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 891,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 20.204
     },
     {
       "id": "radio_message",
@@ -249,7 +314,11 @@
       "trailingSilenceMs": 36.848,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 2,
+      "trailingZeroSamples": 912,
+      "leadingZeroMs": 0.045,
+      "trailingZeroMs": 20.68
     },
     {
       "id": "step_plank_soft",
@@ -263,7 +332,11 @@
       "trailingSilenceMs": 21.95,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 710,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 16.1
     },
     {
       "id": "step_sand_soft",
@@ -277,7 +350,11 @@
       "trailingSilenceMs": 29.32,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 894,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 20.272
     },
     {
       "id": "step_stone_soft",
@@ -291,7 +368,11 @@
       "trailingSilenceMs": 21.383,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 716,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 16.236
     },
     {
       "id": "storage_deposit",
@@ -305,7 +386,11 @@
       "trailingSilenceMs": 24.308,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 900,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 20.408
     },
     {
       "id": "ui_back",
@@ -319,7 +404,11 @@
       "trailingSilenceMs": 8.027,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 226,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 5.125
     },
     {
       "id": "ui_confirm",
@@ -333,7 +422,11 @@
       "trailingSilenceMs": 12.676,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 443,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 10.045
     },
     {
       "id": "ui_hover",
@@ -347,7 +440,11 @@
       "trailingSilenceMs": 33.265,
       "clippedSamples": 0,
       "startsAtZero": true,
-      "endsAtZero": true
+      "endsAtZero": true,
+      "leadingZeroSamples": 1,
+      "trailingZeroSamples": 1328,
+      "leadingZeroMs": 0.023,
+      "trailingZeroMs": 30.113
     }
   ]
 }
