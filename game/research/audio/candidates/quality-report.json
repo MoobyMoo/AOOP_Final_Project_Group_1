@@ -198,13 +198,13 @@
     {
       "id": "map_unfold",
       "file": "map_unfold/map_unfold.wav",
-      "sha256": "3a42b3f5064be4b795551d88d623e971f69c994207625fd029fc7e7750995655",
+      "sha256": "0faad51cd9bf9942db9031c2d26a745f5c6f88845c4df41d3cef754e63703000",
       "samplePeakDbfs": -10.0,
-      "rmsDbfs": -26.24,
-      "crestDb": 16.24,
-      "dcOffsetPercent": -0.00018,
+      "rmsDbfs": -26.1,
+      "crestDb": 16.1,
+      "dcOffsetPercent": -0.000186,
       "leadingSilenceMs": 0.091,
-      "trailingSilenceMs": 45.329,
+      "trailingSilenceMs": 25.329,
       "clippedSamples": 0,
       "startsAtZero": true,
       "endsAtZero": true
