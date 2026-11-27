@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "measuredOn": "2026-11-26",
+  "measuredOn": "2026-11-27",
   "method": {
     "samplePeakDbfs": "20 * log10(max(abs(PCM sample)) / 32768)",
     "rmsDbfs": "20 * log10(sqrt(mean(PCM sample squared)) / 32768)",
@@ -114,13 +114,13 @@
     {
       "id": "grotto_drip",
       "file": "grotto_drip/grotto_drip.wav",
-      "sha256": "14c5d4cc044dceb2402140f300c67e6016995575cf4924951a70812018ed6989",
+      "sha256": "539faf9fb0b013bd0a2cf206698b8765e94a94ae8bc4684e937779bd3ae986c1",
       "samplePeakDbfs": -10.0,
-      "rmsDbfs": -24.92,
-      "crestDb": 14.92,
-      "dcOffsetPercent": -0.001329,
+      "rmsDbfs": -24.64,
+      "crestDb": 14.64,
+      "dcOffsetPercent": -0.001417,
       "leadingSilenceMs": 0.045,
-      "trailingSilenceMs": 62.698,
+      "trailingSilenceMs": 22.698,
       "clippedSamples": 0,
       "startsAtZero": true,
       "endsAtZero": true

@@ -131,16 +131,16 @@
       "purpose": "A soft single water drop with a short resonant tail, for reviewing underground ambience accents.",
       "sourceNotes": "grotto_drip/NOTES.txt",
       "source": "original AI-assisted additive/noise synthesis created for this repository.",
-      "sha256": "14c5d4cc044dceb2402140f300c67e6016995575cf4924951a70812018ed6989",
+      "sha256": "539faf9fb0b013bd0a2cf206698b8765e94a94ae8bc4684e937779bd3ae986c1",
       "format": {
         "container": "WAV",
         "encoding": "PCM signed 16-bit little-endian",
         "sampleRate": 44100,
         "channels": 1,
         "bitsPerSample": 16,
-        "frames": 28224,
-        "durationSeconds": 0.64,
-        "bytes": 56492
+        "frames": 26460,
+        "durationSeconds": 0.6,
+        "bytes": 52964
       }
     },
     {
