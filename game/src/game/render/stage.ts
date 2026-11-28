@@ -100,8 +100,12 @@ export class Stage {
     const f = this.focus.clone().add(this.kick).add(this.shake);
     this.camera.position.copy(f).add(off); this.camera.lookAt(f);
     // shadow box follows the focus, snapped to whole shadow texels so edges don't crawl
-    const texel = 48 / 4096, sp = this.focus.clone();
-    sp.x = Math.round(sp.x / texel) * texel; sp.z = Math.round(sp.z / texel) * texel;
+    const shadow = this.sun.shadow;
+    const texelX = (shadow.camera.right - shadow.camera.left) / shadow.mapSize.x;
+    const texelZ = (shadow.camera.top - shadow.camera.bottom) / shadow.mapSize.y;
+    const sp = this.focus.clone();
+    sp.x = Math.round(sp.x / texelX) * texelX;
+    sp.z = Math.round(sp.z / texelZ) * texelZ;
     this.sun.position.copy(sp).addScaledVector(this.sunDir, 45); this.sun.target.position.copy(sp);
     U.uRimDir.value.set(-0.55, 0.65, 0.35).normalize();
   }
