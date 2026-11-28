@@ -4,6 +4,7 @@ let overlay: HTMLDivElement | null = null, previous: HTMLElement | null = null;
 export const confirmationOpen = () => !!overlay;
 function close() {
   overlay?.remove(); overlay = null; removeEventListener("keydown", onKey, true); G.input?.pressed.clear();
+  accept = () => {};
   if (previous?.isConnected) previous.focus({ preventScroll: true }); previous = null;
 }
 let accept = () => {};
@@ -24,7 +25,13 @@ export function confirmAction(request: Request) {
   for (const reason of request.reasons) { const li = document.createElement("li"); li.textContent = reason; list.appendChild(li); }
   const yes = overlay.querySelector<HTMLButtonElement>('[data-confirm="yes"]')!;
   yes.textContent = request.confirmLabel;
-  accept = () => { if (!request.valid()) { overlay!.querySelector(".confirm-error")!.textContent = "Inventory changed. Cancel and try again."; return; } close(); request.run(); };
+  const current = overlay;
+  accept = () => {
+    if (overlay !== current) return;
+    if (!request.valid()) { current.querySelector(".confirm-error")!.textContent = "Inventory changed. Cancel and try again."; return; }
+    close();
+    request.run();
+  };
   yes.onclick = accept; overlay.querySelector<HTMLButtonElement>('[data-confirm="no"]')!.onclick = close;
   document.body.appendChild(overlay); addEventListener("keydown", onKey, true);
   overlay.querySelector<HTMLButtonElement>('[data-confirm="no"]')!.focus();
