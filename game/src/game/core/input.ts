@@ -39,7 +39,13 @@ export class Input {
     el.addEventListener("contextmenu", (e) => e.preventDefault());
     // the wheel cycles guns (Duckov's ScrollWheelBehaviour "Weapon" option): one step per notch, a trackpad's stream of
     // small deltas adds up to a step, and steps are at least 0.12 s apart so a fling doesn't spin through both guns
-    el.addEventListener("wheel", (e) => { this.wheelAcc += e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY; }, { passive: true });
+    el.addEventListener("wheel", (e) => {
+      const mode = e.deltaMode;
+      let pixels = e.deltaY;
+      if (mode === WheelEvent.DOM_DELTA_LINE) pixels *= 33;
+      else if (mode === WheelEvent.DOM_DELTA_PAGE) pixels *= innerHeight;
+      this.wheelAcc += pixels;
+    }, { passive: true });
   }
   /** usingMouse: the mouse aims unless keyboard mode is on (T); a resting mouse keeps aiming where it points */
   get usingMouse() { return !this.kbMode; }
