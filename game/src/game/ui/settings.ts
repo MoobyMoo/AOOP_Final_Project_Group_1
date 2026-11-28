@@ -16,7 +16,7 @@ const savePrefs = () => localStorage.setItem(LS, JSON.stringify(prefs));
 const BRK = `<i class="brk tl"></i><i class="brk tr"></i><i class="brk bl"></i><i class="brk br"></i>`;
 const BUSES: [keyof typeof VOLUME, string][] = [["master", "Master"], ["sfx", "Effects"], ["ui", "Interface"], ["music", "Music"]];
 
-let el: HTMLDivElement | null = null, quitArmed = false;
+let el: HTMLDivElement | null = null, previousFocus: HTMLElement | null = null, quitArmed = false;
 let hooks: { blocked: () => boolean; quit: () => void } = { blocked: () => false, quit: () => {} };
 export const settingsOpen = () => !!el;
 
@@ -24,16 +24,31 @@ export const settingsOpen = () => !!el;
 export function initSettings(h: typeof hooks) {
   hooks = h;
   addEventListener("keydown", (e) => {
+    if (el) {
+      e.stopImmediatePropagation();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        if (!e.repeat) closeSettings();
+      } else if (e.key === "Tab") {
+        e.preventDefault();
+        const controls = [...el.querySelectorAll<HTMLElement>("input:not(:disabled), select:not(:disabled), button:not(:disabled)")];
+        let index = controls.indexOf(document.activeElement as HTMLElement);
+        if (e.shiftKey) index = index <= 0 ? controls.length - 1 : index - 1;
+        else index = (index + 1) % controls.length;
+        controls[index]?.focus();
+      }
+      return;
+    }
     if (e.key !== "Escape" || e.repeat) return;
-    if (el) { e.preventDefault(); closeSettings(); return; }
     if ((G.scene !== "raid" && G.scene !== "bunker") || hooks.blocked() || (G.scene === "raid" && !G.alive) || G.bot) return;
     e.preventDefault(); openSettings();
   }, true);
 }
 export function openSettings() {
   if (el) return;
+  previousFocus = document.activeElement as HTMLElement | null;
   const raid = G.scene === "raid"; quitArmed = false;
-  el = document.createElement("div"); el.className = "panel set3"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "Settings");
+  el = document.createElement("div"); el.className = "panel set3"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "Settings"); el.setAttribute("aria-modal", "true");
   el.innerHTML = `${BRK}<header><h2>Settings</h2><small>${raid ? "Raid paused" : "Bunker"}</small></header><div class="tie"></div>
     <h4>Sound</h4>
     <div class="rows">${BUSES.map(([k, name]) => `<label class="srow"><b>${name}</b><input type="range" min="0" max="100" step="1" value="${Math.round(VOLUME[k] * 100)}" data-bus="${k}" aria-label="${name} volume"><span class="num" data-v="${k}">${Math.round(VOLUME[k] * 100)}%</span></label>`).join("")}</div>
@@ -78,4 +93,10 @@ function act(a: string, b: HTMLButtonElement) {
     closeSettings(); hooks.quit();
   }
 }
-export function closeSettings() { if (!el) return; el.remove(); el = null; quitArmed = false; sfx("ui"); }
+export function closeSettings() {
+  if (!el) return;
+  el.remove(); el = null; quitArmed = false;
+  if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+  previousFocus = null;
+  sfx("ui");
+}
